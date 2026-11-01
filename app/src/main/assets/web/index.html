@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Jarvis</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- 1) FOKUS -->
+  <section id="v-fokus" class="view active">
+    <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Jarvis zu reden</div>
+    <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas></div>
+    <div class="name">J.A.R.V.I.S.</div>
+    <div class="state" id="fokus-state">bereit</div>
+    <div class="talkbox" id="talkbox">
+      <div class="line"><span class="who you">DU</span><span id="last-you">–</span></div>
+      <div class="line"><span class="who jar">JARVIS</span><span id="last-jar">Guten Abend. Ich bin bereit.</span></div>
+    </div>
+    <button class="callbtn" id="callbtn">Gespräch starten</button>
+  </section>
+
+  <!-- 2) INFO -->
+  <section id="v-info" class="view info">
+    <div class="topbar">
+      <div class="roundbtn" id="btn-settings">⚙</div>
+      <div class="title">J.A.R.V.I.S.</div>
+      <div class="roundbtn">⌂</div>
+    </div>
+    <div class="sphere-wrap small" id="sphere-info"><canvas class="sphere"></canvas><canvas class="rings"></canvas></div>
+    <div class="sub">bereit · tipp auf die Kugel zum Reden</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="ctitle">LEONBERG</div>
+        <div class="big" id="w-temp">–°</div>
+        <div class="row"><span>gefühlt</span><b id="w-feel">–</b></div>
+        <div class="row"><span>Regen</span><b id="w-rain">–</b></div>
+      </div>
+      <div class="card green">
+        <div class="ctitle">PC ZUHAUSE</div>
+        <div class="row"><span>Status</span><b>kommt bald</b></div>
+        <div class="row"><span>Verbindung</span><b>Etappe 4</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">HEUTE</div>
+      <div class="big" id="clock">--:--</div>
+      <div class="row"><span id="date">–</span></div>
+    </div>
+    <div class="card orange">
+      <div class="ctitle">LAGE</div>
+      <div class="row muted">Briefing, Globus und Satellitenkarte kommen in Etappe 5.</div>
+    </div>
+  </section>
+
+  <!-- 3) LAGE -->
+  <section id="v-lage" class="view">
+    <div class="lagehead">
+      <div><div class="bignum">–</div><div class="bigsub">BRENNPUNKTE WELTWEIT</div></div>
+      <div class="toggle"><span class="pill on">GLOBUS</span><span class="pill">SATELLIT</span></div>
+    </div>
+    <div class="globe-wrap"><canvas id="globe"></canvas></div>
+    <div class="card orange">
+      <div class="ctitle">BALD HIER</div>
+      <div class="row muted">Die Lage vom PC (Brennpunkte, Leonberg, deine Lieblingsorte) mit Globus und echter
+        Satellitenkarte kommt in Etappe 5.</div>
+    </div>
+  </section>
+
+  <!-- 4) STEUERN -->
+  <section id="v-steuern" class="view">
+    <div class="sphere-wrap tiny" id="sphere-steuern"><canvas class="sphere"></canvas></div>
+    <div class="sub">Sag es – oder tipp drauf</div>
+    <div class="gtitle gold">HANDY <small>· Etappe 3</small></div>
+    <div class="tiles">
+      <div class="tile off"><i>♪</i>Musik</div><div class="tile off"><i>◷</i>Wecker</div><div class="tile off"><i>➜</i>Navigation</div>
+      <div class="tile off"><i>☎</i>Anrufen</div><div class="tile off"><i>✉</i>WhatsApp</div><div class="tile off"><i>▶</i>YouTube</div>
+    </div>
+    <div class="gtitle green">PC ZUHAUSE <small>· Etappe 4</small></div>
+    <div class="tiles">
+      <div class="tile off g"><i>♪</i>Musik am PC</div><div class="tile off g"><i>D</i>Discord</div><div class="tile off g"><i>S</i>Steam</div>
+      <div class="tile off g"><i>✕</i>Stumm</div><div class="tile off g"><i>☾</i>Sperren</div><div class="tile off g"><i>◯</i>Aus</div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <nav id="nav">
+    <div class="tab on" data-v="fokus"><i>◉</i><span>FOKUS</span></div>
+    <div class="tab" data-v="info"><i>▦</i><span>INFO</span></div>
+    <div class="tab" data-v="lage"><i>◍</i><span>LAGE</span></div>
+    <div class="tab" data-v="steuern"><i>✦</i><span>STEUERN</span></div>
+  </nav>
+</div>
+<script src="sphere.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
