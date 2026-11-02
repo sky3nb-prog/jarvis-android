@@ -32,10 +32,31 @@ class MainActivity : ComponentActivity() {
     private var talk: LiveTalk? = null
     private var pendingTalk = false
 
-    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok && pendingTalk) startTalk()
-        else if (!ok) send("error", JSONObject().put("text", "Ohne Mikrofon kann ich dich nicht hören."))
+    private val perms = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        val mic = res[Manifest.permission.RECORD_AUDIO] ?: hasMic()
+        if (!mic) send("error", JSONObject().put("text", "Ohne Mikrofon kann ich dich nicht hören."))
+        else {
+            startBackground()
+            if (pendingTalk) startTalk()
+        }
         pendingTalk = false
+    }
+
+    private fun hasMic() = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+    private val busListener: (String, JSONObject) -> Unit = { type, data -> send(type, data) }
+
+    private fun askPermissions() {
+        val want = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE)
+        if (android.os.Build.VERSION.SDK_INT >= 33) want.add(Manifest.permission.POST_NOTIFICATIONS)
+        val missing = want.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isEmpty()) startBackground() else perms.launch(missing.toTypedArray())
+    }
+
+    /** Hintergrund-Jarvis (Aktivierungswort) starten, wenn eingeschaltet. */
+    private fun startBackground() {
+        if (!hasMic()) return
+        if (prefs.getBoolean("background", true)) JarvisService.start(this)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -72,11 +93,13 @@ class MainActivity : ComponentActivity() {
             WindowInsetsCompat.CONSUMED
         }
         setContentView(root)
+        Bus.add(busListener)
+        askPermissions()
     }
 
     override fun onDestroy() {
         talk?.stop()
-        free?.stop()
+        Bus.remove(busListener)
         super.onDestroy()
     }
 
@@ -105,49 +128,42 @@ class MainActivity : ComponentActivity() {
     private val prefs by lazy { getSharedPreferences("jarvis", MODE_PRIVATE) }
 
     private fun startTalk() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            pendingTalk = true
-            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        if (!hasMic()) { pendingTalk = true; askPermissions(); return }
+        if (running()) return
+        if (prefs.getString("groq_key", "").isNullOrBlank() && prefs.getString("voice_mode", "free") != "auto") {
+            send("needkey", JSONObject()); return
+        }
+        if (prefs.getString("voice_mode", "free") == "auto" &&
+            prefs.getLong("eleven_off_until", 0L) < System.currentTimeMillis()) {
+            // George (ElevenLabs): Mikrofon vom Hintergrund-Jarvis kurz freigeben
+            JarvisService.start(this, JarvisService.ACTION_PAUSE)
+            talk = LiveTalk(this, AGENT_ID, Prompts.voicePrompt(this)) { type, data ->
+                if (type == "quota") {
+                    prefs.edit().putLong("eleven_off_until", System.currentTimeMillis() + 6 * 3600_000L).apply()
+                    runOnUiThread { talk = null; JarvisService.start(this, JarvisService.ACTION_TALK) }
+                } else {
+                    if (type == "state" && data.optString("state") == "ended") JarvisService.start(this, JarvisService.ACTION_RESUME)
+                    send(type, data)
+                }
+            }.also { it.start() }
             return
         }
-        if (talk?.isRunning == true || free?.isRunning == true) return
-        val prompt = Prompts.voicePrompt(this)
-        val elevenOff = prefs.getLong("eleven_off_until", 0L) > System.currentTimeMillis()
-        if (elevenOff || prefs.getString("voice_mode", "auto") == "free") {
-            startFree(prompt)
-            return
-        }
-        talk = LiveTalk(this, AGENT_ID, prompt) { type, data ->
-            if (type == "quota") {
-                // ElevenLabs-Guthaben leer: 6 Stunden lang gleich die kostenlose Variante nehmen
-                prefs.edit().putLong("eleven_off_until", System.currentTimeMillis() + 6 * 3600_000L).apply()
-                runOnUiThread { talk = null; startFree(prompt) }
-            } else send(type, data)
-        }.also { it.start() }
-    }
-
-    private var free: FreeTalk? = null
-
-    private fun startFree(prompt: String) {
-        val key = prefs.getString("groq_key", "") ?: ""
-        if (key.isBlank()) {
-            send("needkey", JSONObject())
-            return
-        }
-        free = FreeTalk(this, key, prompt, prefs.getString("tts_voice", null)) { type, data ->
-            if (type == "voices") prefs.edit().putString("tts_voices", data.toString()).apply()
-            send(type, data)
-        }.also { it.start() }
+        JarvisService.start(this, JarvisService.ACTION_TALK)   // kostenlos: Gespräch über den Hintergrund-Jarvis
     }
 
     private fun stopTalk() {
-        talk?.stop()
-        talk = null
-        free?.stop()
-        free = null
+        if (talk != null) {
+            talk?.stop(); talk = null
+            JarvisService.start(this, JarvisService.ACTION_RESUME)
+        } else if (JarvisService.running) {
+            startService(Intent(this, JarvisService::class.java).setAction(JarvisService.ACTION_PAUSE))
+            JarvisService.start(this, JarvisService.ACTION_RESUME)
+        }
+        send("state", JSONObject().put("state", "ended"))
     }
 
-    private fun running() = talk?.isRunning == true || free?.isRunning == true
+    private fun running() = talk?.isRunning == true ||
+        (JarvisService.running && Bus.lastState != "ended" && Bus.lastState != "idle")
 
     inner class Bridge {
         @JavascriptInterface
@@ -161,9 +177,54 @@ class MainActivity : ComponentActivity() {
             if (running()) this@MainActivity.stopTalk() else this@MainActivity.startTalk()
         }
 
-        /** Tipp auf die Kugel während er spricht: nur unterbrechen (kostenlose Variante). */
+        /** Tipp auf die Kugel während er spricht: wie Tippen auf die kleine Kugel. */
         @JavascriptInterface
-        fun interrupt() = runOnUiThread { free?.interrupt() }
+        fun interrupt() = runOnUiThread { JarvisService.start(this@MainActivity, JarvisService.ACTION_TALK) }
+
+        @JavascriptInterface
+        fun getSettings(): String = JSONObject()
+            .put("wake_words", prefs.getString("wake_words", "jarvis"))
+            .put("wake_level", prefs.getInt("wake_level", 1))
+            .put("wake_cloud", prefs.getBoolean("wake_cloud", false))
+            .put("background", prefs.getBoolean("background", true))
+            .put("overlay", android.provider.Settings.canDrawOverlays(this@MainActivity))
+            .put("model", VoskModel.ready(this@MainActivity))
+            .toString()
+
+        @JavascriptInterface
+        fun saveSettings(json: String) {
+            val o = JSONObject(json)
+            prefs.edit()
+                .putString("wake_words", o.optString("wake_words", "jarvis").ifBlank { "jarvis" })
+                .putInt("wake_level", o.optInt("wake_level", 1))
+                .putBoolean("wake_cloud", o.optBoolean("wake_cloud", false))
+                .putBoolean("background", o.optBoolean("background", true))
+                .apply()
+            runOnUiThread {
+                if (o.optBoolean("background", true)) {
+                    startBackground(); JarvisService.start(this@MainActivity, JarvisService.ACTION_RELOAD)
+                } else if (JarvisService.running) {
+                    startService(Intent(this@MainActivity, JarvisService::class.java).setAction(JarvisService.ACTION_STOP))
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun askOverlay() = runOnUiThread {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")))
+            } catch (_: Exception) {}
+        }
+
+        @JavascriptInterface
+        fun askBattery() = runOnUiThread {
+            try {
+                @SuppressLint("BatteryLife")
+                val i = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                startActivity(i)
+            } catch (_: Exception) {}
+        }
 
         @JavascriptInterface
         fun isTalking(): Boolean = running()
@@ -180,10 +241,13 @@ class MainActivity : ComponentActivity() {
         fun setVoiceMode(mode: String) { prefs.edit().putString("voice_mode", mode).apply() }
 
         @JavascriptInterface
-        fun getVoiceMode(): String = prefs.getString("voice_mode", "auto") ?: "auto"
+        fun getVoiceMode(): String = prefs.getString("voice_mode", "free") ?: "free"
 
         @JavascriptInterface
-        fun setTtsVoice(name: String) { prefs.edit().putString("tts_voice", name).apply() }
+        fun setTtsVoice(name: String) {
+            prefs.edit().putString("tts_voice", name).apply()
+            runOnUiThread { if (JarvisService.running) JarvisService.start(this@MainActivity, JarvisService.ACTION_RELOAD) }
+        }
 
         @JavascriptInterface
         fun getTtsVoices(): String = prefs.getString("tts_voices", "{}") ?: "{}"

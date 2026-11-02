@@ -60,6 +60,7 @@
       else if (type === "agent") $("last-jar").textContent = data.text;
       else if (type === "level") { if (data.kind === "out" || !talking) target = data.value; else target = Math.max(target * 0.8, data.value * 0.6); }
       else if (type === "error") { toast(data.text); setState("ended"); }
+      else if (type === "model" || type === "info") toast(data.text);
     },
     back() {
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
@@ -70,7 +71,7 @@
   // --- Einstellungen ---
   function askKey() {
     setState("ended");
-    const k = window.prompt("Das ElevenLabs-Guthaben ist leer – ich rede kostenlos über Groq weiter.\n\n" +
+    const k = window.prompt("Für die kostenlose Stimme und das Aktivierungswort brauche ich Groq.\n\n" +
       "Bitte einmal deinen Groq-Schlüssel eintragen (console.groq.com → API Keys, beginnt mit gsk_):", "");
     if (k && k.trim().length > 20 && A) { A.setGroqKey(k.trim()); A.startTalk(); }
     else if (k !== null) toast("Das sah nicht nach einem Groq-Schlüssel aus.");
@@ -86,19 +87,36 @@
       if (v.current) sel.value = v.current;
       if (!(v.list || []).length) sel.options[0].textContent = "Automatisch (Liste erscheint nach dem ersten kostenlosen Gespräch)";
     } catch (e) {}
+    try {
+      const c = JSON.parse(A.getSettings());
+      $("set-bg").value = c.background ? "1" : "0";
+      $("set-wake").value = c.wake_words || "jarvis";
+      $("set-level").value = String(c.wake_level);
+      $("set-cloud").value = c.wake_cloud ? "1" : "0";
+      $("set-status").textContent = (c.model ? "Spracherkennung fürs Aktivierungswort ist geladen." : "Spracherkennung wird noch geladen (45 MB, einmalig) – bis dahin prüft Groq.") +
+        (c.overlay ? " Kugel über anderen Apps: erlaubt." : " Kugel über anderen Apps: noch nicht erlaubt.");
+    } catch (e) {}
     $("set-key").value = "";
     $("set-version").textContent = "Version " + A.version() + (A.hasGroqKey() ? " · Groq-Schlüssel ist gespeichert" : " · noch kein Groq-Schlüssel");
     $("settings").classList.add("on");
   }
   $("btn-settings").addEventListener("click", openSettings);
+  $("set-overlay").addEventListener("click", () => A.askOverlay());
+  $("set-battery").addEventListener("click", () => A.askBattery());
   $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));
   $("set-save").addEventListener("click", () => {
     A.setVoiceMode($("set-mode").value);
     A.setTtsVoice($("set-voice").value);
     const k = $("set-key").value.trim();
     if (k) A.setGroqKey(k);
+    A.saveSettings(JSON.stringify({
+      background: $("set-bg").value === "1",
+      wake_words: $("set-wake").value.trim() || "jarvis",
+      wake_level: parseInt($("set-level").value, 10),
+      wake_cloud: $("set-cloud").value === "1",
+    }));
     $("settings").classList.remove("on");
-    toast("Gespeichert. Gilt ab dem nächsten Gespräch.");
+    toast("Gespeichert.");
   });
 
   // --- Wetter (Open-Meteo, Leonberg) und Uhr ---
