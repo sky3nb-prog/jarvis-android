@@ -81,11 +81,22 @@ class LiveTalk(
 
     private fun connect(withOverride: Boolean) {
         opened = false
+        val attempt = ++attempts
+        // Wächter: kommt nach 8 Sekunden keine Antwort, ohne Extras nochmal bzw. Fehler anzeigen
+        Thread({
+            Thread.sleep(8000)
+            if (running.get() && !opened && attempt == attempts) {
+                Log.w(tag, "timeout (override=$withOverride)")
+                try { ws?.cancel() } catch (_: Exception) {}
+                retryOrEnd(withOverride, "keine Antwort vom Server", attempt)
+            }
+        }, "jarvis-watchdog").start()
         val req = Request.Builder()
             .url("wss://api.elevenlabs.io/v1/convai/conversation?agent_id=$agentId")
             .build()
         ws = client.newWebSocket(req, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                if (attempt != attempts) return
                 val init = JSONObject().put("type", "conversation_initiation_client_data")
                 if (withOverride && promptOverride != null) {
                     init.put("conversation_config_override", JSONObject().put("agent",
@@ -97,30 +108,57 @@ class LiveTalk(
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
-                try { handle(webSocket, JSONObject(text)) } catch (e: Exception) { Log.w(tag, "msg: $e") }
+                if (attempt != attempts) return
+                try { handle(webSocket, JSONObject(text)) } catch (e: Exception) {
+                    Log.w(tag, "msg: $e")
+                    emit("error", JSONObject().put("text", "Fehler: ${e.message}"))
+                }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.w(tag, "failure: $t")
-                retryOrEnd(withOverride, t.message ?: "Verbindung fehlgeschlagen")
+                if (attempt == attempts) retryOrEnd(withOverride, (t.message ?: t.javaClass.simpleName) +
+                    (response?.let { " (HTTP ${it.code})" } ?: ""), attempt)
+            }
+
+            // Server beendet die Verbindung (z. B. wenn Überschreiben nicht erlaubt ist): sauber schließen
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                Log.i(tag, "closing $code $reason")
+                try { webSocket.close(1000, null) } catch (_: Exception) {}
+                if (attempt == attempts) retryOrEnd(withOverride, "Code $code ${reason}".trim(), attempt)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.i(tag, "closed $code $reason")
-                retryOrEnd(withOverride, reason)
+                if (attempt == attempts) retryOrEnd(withOverride, "Code $code ${reason}".trim(), attempt)
             }
         })
     }
 
     /** Erlaubt der Agent kein Überschreiben, schließt er sofort – dann einmal ohne versuchen. */
-    private fun retryOrEnd(withOverride: Boolean, reason: String) {
+    @Volatile private var attempts = 0
+    @Volatile private var handled = -1
+
+    private fun retryOrEnd(withOverride: Boolean, reason: String, attempt: Int) {
         if (!running.get()) return
-        if (!opened && withOverride && !triedWithoutOverride) {
+        synchronized(this) {
+            if (handled == attempt) return
+            handled = attempt
+        }
+        if (!opened && withOverride && !triedWithoutOverride && !reason.contains("quota", true)) {
             triedWithoutOverride = true
             connect(false)
             return
         }
-        if (!opened) emit("error", JSONObject().put("text", "Keine Verbindung zu Jarvis: $reason"))
+        if (!opened) {
+            val text = when {
+                reason.contains("quota", true) || reason.contains("credits", true) ->
+                    "Das ElevenLabs-Guthaben ist für diesen Monat aufgebraucht. Live-Gespräche gehen erst wieder, " +
+                        "wenn es sich erneuert oder aufgeladen wird."
+                else -> "Keine Verbindung zu Jarvis: $reason"
+            }
+            emit("error", JSONObject().put("text", text))
+        }
         stop()
     }
 
@@ -131,8 +169,12 @@ class LiveTalk(
                 val fmt = ev?.optString("agent_output_audio_format") ?: "pcm_16000"
                 Regex("pcm_(\\d+)").find(fmt)?.let { outRate = it.groupValues[1].toInt() }
                 opened = true
-                startAudio()
                 emit("state", JSONObject().put("state", "listening"))
+                try { startAudio() } catch (e: Exception) {
+                    Log.w(tag, "audio: $e")
+                    emit("error", JSONObject().put("text", "Mikrofon/Lautsprecher-Fehler: ${e.message}"))
+                    stop()
+                }
             }
             "audio" -> {
                 val b64 = msg.optJSONObject("audio_event")?.optString("audio_base_64") ?: return
@@ -168,7 +210,9 @@ class LiveTalk(
     }
 
     // --- Audio ---------------------------------------------------------------------------------
-    private fun useSpeaker() {
+    private fun useSpeaker() = try { useSpeakerInner() } catch (e: Exception) { Log.w(tag, "speaker: $e") }
+
+    private fun useSpeakerInner() {
         audio.mode = AudioManager.MODE_IN_COMMUNICATION
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val speaker = audio.availableCommunicationDevices.firstOrNull {
@@ -194,8 +238,10 @@ class LiveTalk(
         val rec = AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, inRate,
             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(minIn, 6400))
         record = rec
-        if (AcousticEchoCanceler.isAvailable()) AcousticEchoCanceler.create(rec.audioSessionId)?.enabled = true
-        if (NoiseSuppressor.isAvailable()) NoiseSuppressor.create(rec.audioSessionId)?.enabled = true
+        try {
+            if (AcousticEchoCanceler.isAvailable()) AcousticEchoCanceler.create(rec.audioSessionId)?.enabled = true
+            if (NoiseSuppressor.isAvailable()) NoiseSuppressor.create(rec.audioSessionId)?.enabled = true
+        } catch (e: Exception) { Log.w(tag, "fx: $e") }
 
         val minOut = AudioTrack.getMinBufferSize(outRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
         val tr = AudioTrack.Builder()
