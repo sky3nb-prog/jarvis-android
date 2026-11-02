@@ -87,6 +87,26 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- Einstellungen -->
+  <div class="modal" id="settings">
+    <div class="sheet">
+      <div class="ctitle">EINSTELLUNGEN</div>
+      <label>Stimme beim Reden</label>
+      <select id="set-mode">
+        <option value="auto">Automatisch – George (ElevenLabs), sonst kostenlos</option>
+        <option value="free">Immer kostenlos (Handy-Stimme + Groq)</option>
+      </select>
+      <label>Handy-Stimme (kostenlose Variante)</label>
+      <select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select>
+      <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache →
+        Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
+      <label>Groq-Schlüssel (kostenlos, console.groq.com)</label>
+      <input id="set-key" type="password" placeholder="gsk_…  (leer lassen = nicht ändern)">
+      <div class="btnrow"><button id="set-cancel">Abbrechen</button><button id="set-save" class="gold">Speichern</button></div>
+      <div class="note" id="set-version"></div>
+    </div>
+  </div>
+
   <nav id="nav">
     <div class="tab on" data-v="fokus"><i>◉</i><span>FOKUS</span></div>
     <div class="tab" data-v="info"><i>▦</i><span>INFO</span></div>

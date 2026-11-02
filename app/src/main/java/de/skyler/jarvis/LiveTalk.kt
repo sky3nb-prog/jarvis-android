@@ -150,6 +150,12 @@ class LiveTalk(
             connect(false)
             return
         }
+        if (!opened && (reason.contains("quota", true) || reason.contains("credits", true))) {
+            emit("quota", JSONObject().put("text", reason))
+            running.set(false)
+            try { ws?.cancel() } catch (_: Exception) {}
+            return
+        }
         if (!opened) {
             val text = when {
                 reason.contains("quota", true) || reason.contains("credits", true) ->

@@ -26,13 +26,16 @@
     if (A) A.toggleTalk(); else toast("Nur in der App verfügbar.");
   }
   $("callbtn").addEventListener("click", toggleTalk);
+  let curState = "ended";
   document.querySelectorAll(".sphere-wrap").forEach((w) => w.addEventListener("click", () => {
     if (view !== "fokus") show("fokus");
-    toggleTalk();
+    if (A && curState === "speaking") A.interrupt(); else toggleTalk();  // spricht er: nur unterbrechen
   }));
 
-  const STATES = { connecting: "verbinde …", listening: "hört zu …", speaking: "spricht …", ended: "bereit", idle: "bereit" };
+  const STATES = { connecting: "verbinde …", listening: "hört zu …", thinking: "denkt nach …", speaking: "spricht …",
+                   ended: "bereit", idle: "bereit" };
   function setState(st) {
+    curState = st;
     talking = st !== "ended" && st !== "idle";
     $("fokus-state").textContent = STATES[st] || st;
     $("callbtn").textContent = talking ? "Gespräch beenden" : "Gespräch starten";
@@ -52,13 +55,51 @@
   window.jarvis = {
     onEvent(type, data) {
       if (type === "state") setState(data.state);
-      else if (type === "user") $("last-you").textContent = data.text;
+      else if (type === "user" || type === "partial") $("last-you").textContent = data.text;
+      else if (type === "needkey") askKey();
       else if (type === "agent") $("last-jar").textContent = data.text;
       else if (type === "level") { if (data.kind === "out" || !talking) target = data.value; else target = Math.max(target * 0.8, data.value * 0.6); }
       else if (type === "error") { toast(data.text); setState("ended"); }
     },
-    back() { if (view !== "fokus") { show("fokus"); return true; } return false; },
+    back() {
+      if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
+      if (view !== "fokus") { show("fokus"); return true; } return false;
+    },
   };
+
+  // --- Einstellungen ---
+  function askKey() {
+    setState("ended");
+    const k = window.prompt("Das ElevenLabs-Guthaben ist leer – ich rede kostenlos über Groq weiter.\n\n" +
+      "Bitte einmal deinen Groq-Schlüssel eintragen (console.groq.com → API Keys, beginnt mit gsk_):", "");
+    if (k && k.trim().length > 20 && A) { A.setGroqKey(k.trim()); A.startTalk(); }
+    else if (k !== null) toast("Das sah nicht nach einem Groq-Schlüssel aus.");
+  }
+  function openSettings() {
+    if (!A) return;
+    $("set-mode").value = A.getVoiceMode();
+    const sel = $("set-voice");
+    sel.length = 1;
+    try {
+      const v = JSON.parse(A.getTtsVoices() || "{}");
+      (v.list || []).forEach((n) => { const o = document.createElement("option"); o.value = n; o.textContent = n; sel.appendChild(o); });
+      if (v.current) sel.value = v.current;
+      if (!(v.list || []).length) sel.options[0].textContent = "Automatisch (Liste erscheint nach dem ersten kostenlosen Gespräch)";
+    } catch (e) {}
+    $("set-key").value = "";
+    $("set-version").textContent = "Version " + A.version() + (A.hasGroqKey() ? " · Groq-Schlüssel ist gespeichert" : " · noch kein Groq-Schlüssel");
+    $("settings").classList.add("on");
+  }
+  $("btn-settings").addEventListener("click", openSettings);
+  $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));
+  $("set-save").addEventListener("click", () => {
+    A.setVoiceMode($("set-mode").value);
+    A.setTtsVoice($("set-voice").value);
+    const k = $("set-key").value.trim();
+    if (k) A.setGroqKey(k);
+    $("settings").classList.remove("on");
+    toast("Gespeichert. Gilt ab dem nächsten Gespräch.");
+  });
 
   // --- Wetter (Open-Meteo, Leonberg) und Uhr ---
   function clock() {
