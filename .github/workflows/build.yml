@@ -19,7 +19,9 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
+      # Das Android-SDK ist auf den GitHub-Rechnern schon installiert
+      - name: Android-SDK
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - uses: gradle/actions/setup-gradle@v4
         with:
