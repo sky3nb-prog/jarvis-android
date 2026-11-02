@@ -39,6 +39,14 @@ class Actions(private val ctx: Context) {
             "search" -> url("https://www.google.com/search?q=" + Uri.encode(a.optString("query")))
             "torch" -> torch(a.optBoolean("on", true))
             "settings" -> settings(a.optString("what"))
+            "calendar_add" -> Cal.add(ctx, a)
+            "calendar_list" -> Cal.list(ctx, a.optString("from"), a.optInt("days", 1))
+            "calendar_delete" -> Cal.delete(ctx, a.optString("title"), a.optString("date"))
+            "jarvis_volume" -> jarvisVolume(a.optString("what"), a.optInt("value", -1))
+            "remember" -> Memory.remember(ctx, a.optString("text"), a.optString("date"))
+            "forget" -> Memory.forget(ctx, a.optString("text"))
+            "mood" -> { Memory.mood(ctx, a.optString("text")); null }
+            "sms" -> sms(a.optString("to"), a.optString("text"))
             else -> null
         }
     } catch (e: Exception) {
@@ -102,6 +110,27 @@ class Actions(private val ctx: Context) {
         return "Lautstärke ${am.getStreamVolume(s) * 100 / maxOf(1, max)} Prozent."
     }
 
+    /** Eigene Lautstärke von Jarvis (unabhängig von der Musik). */
+    private fun jarvisVolume(what: String, value: Int): String {
+        val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        var v = p.getInt("jarvis_volume", 70)
+        v = when (what) {
+            "up" -> v + 15
+            "down" -> v - 15
+            "max" -> 100
+            "set" -> if (value in 0..100) value else v
+            else -> v
+        }.coerceIn(10, 100)
+        p.edit().putInt("jarvis_volume", v).apply()
+        return "Meine Stimme steht jetzt auf $v Prozent."
+    }
+
+    private fun sms(to: String, text: String): String {
+        val nr = number(to) ?: return "$to finde ich nicht in deinen Kontakten."
+        val i = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + Uri.encode(nr))).putExtra("sms_body", text)
+        return start(i, "Die SMS an $to ist vorbereitet, tipp nur noch auf Senden.") ?: "SMS geht gerade nicht."
+    }
+
     // --- Wecker, Timer ---
     private fun alarm(h: Int, m: Int, label: String): String {
         if (h !in 0..23) return "Für wann soll der Wecker sein?"
@@ -136,7 +165,19 @@ class Actions(private val ctx: Context) {
         ctx.contentResolver.query(uri, arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER), sel, arrayOf("%$who%"), null)?.use { c ->
             if (c.moveToFirst()) return c.getString(0)
         }
-        return null
+        // ungefähr passend (z. B. "Lukas" für "Lucas"): ähnlichsten Namen nehmen
+        val want = Wake.norm(who)
+        var best: String? = null; var bestD = 99
+        ctx.contentResolver.query(uri, arrayOf(ContactsContract.Contacts.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER),
+            null, null, null)?.use { c ->
+            while (c.moveToNext()) {
+                val name = c.getString(0) ?: continue
+                val parts = listOf(name) + name.split(" ")
+                val d = parts.minOf { Wake.dist(Wake.norm(it), want) }
+                if (d < bestD) { bestD = d; best = c.getString(1) }
+            }
+        }
+        return if (bestD <= maxOf(1, want.length / 4)) best else null
     }
 
     private fun call(who: String): String {

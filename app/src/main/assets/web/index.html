@@ -100,6 +100,12 @@
       <select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select>
       <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache →
         Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
+      <label>Lautstärke von Jarvis (eigene, unabhängig von der Musik)</label>
+      <input id="set-jvol" type="range" min="10" max="100" step="5">
+      <div class="note">Tipp: Drück die Lautstärketasten, während er spricht – das merkt er sich als seine Lautstärke.</div>
+      <label>Kopplungscode vom PC (PC: Einstellungen → Handy-App)</label>
+      <input id="set-link" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off">
+      <div class="note" id="set-linkstate"></div>
       <label>Im Hintergrund zuhören</label>
       <select id="set-bg"><option value="1">Ja – auf das Aktivierungswort hören</option><option value="0">Nein</option></select>
       <label>Aktivierungswort(e) – mehrere mit Komma trennen</label>

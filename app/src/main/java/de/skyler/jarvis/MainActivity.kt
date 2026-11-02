@@ -47,7 +47,8 @@ class MainActivity : ComponentActivity() {
     private val busListener: (String, JSONObject) -> Unit = { type, data -> send(type, data) }
 
     private fun askPermissions() {
-        val want = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE)
+        val want = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE,
+            Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
         if (android.os.Build.VERSION.SDK_INT >= 33) want.add(Manifest.permission.POST_NOTIFICATIONS)
         val missing = want.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
         if (missing.isEmpty()) startBackground() else perms.launch(missing.toTypedArray())
@@ -189,6 +190,10 @@ class MainActivity : ComponentActivity() {
             .put("background", prefs.getBoolean("background", true))
             .put("overlay", android.provider.Settings.canDrawOverlays(this@MainActivity))
             .put("model", VoskModel.ready(this@MainActivity))
+            .put("link_code", prefs.getString("link_code", ""))
+            .put("jarvis_volume", prefs.getInt("jarvis_volume", 70))
+            .put("synced", prefs.getLong("snap_got", 0L))
+            .put("facts", Memory.facts(this@MainActivity).size)
             .toString()
 
         @JavascriptInterface
@@ -199,7 +204,13 @@ class MainActivity : ComponentActivity() {
                 .putInt("wake_level", o.optInt("wake_level", 1))
                 .putBoolean("wake_cloud", o.optBoolean("wake_cloud", false))
                 .putBoolean("background", o.optBoolean("background", true))
+                .putString("link_code", o.optString("link_code", "").trim().uppercase())
+                .putInt("jarvis_volume", o.optInt("jarvis_volume", 70).coerceIn(10, 100))
                 .apply()
+            if (Link.paired(this@MainActivity) && !JarvisService.running) Thread({
+                try { if (Link.pull(this@MainActivity)) send("synced", JSONObject().put("text", "Gedächtnis vom PC übernommen.")) }
+                catch (_: Exception) { send("synced", JSONObject().put("text", "PC gerade nicht erreichbar.")) }
+            }).start()
             runOnUiThread {
                 if (o.optBoolean("background", true)) {
                     startBackground(); JarvisService.start(this@MainActivity, JarvisService.ACTION_RELOAD)

@@ -24,7 +24,7 @@ object Wake {
         .replace(Regex("[^a-z0-9 ]"), " ")
         .replace(Regex("\\s+"), " ").trim()
 
-    private fun dist(a: String, b: String): Int {
+    fun dist(a: String, b: String): Int {
         val d = IntArray(b.length + 1) { it }
         for (i in 1..a.length) {
             var prev = d[0]; d[0] = i

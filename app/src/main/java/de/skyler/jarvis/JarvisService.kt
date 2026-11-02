@@ -98,6 +98,24 @@ class JarvisService : Service() {
         VoskModel.ensure(this) { ok -> if (ok) loadModel() }
         alive = true
         Thread({ audioLoop() }, "jarvis-audio").start()
+        main.post(syncTask)
+    }
+
+    // Gedächtnis vom PC holen: beim Start und dann alle 15 Minuten
+    private val syncTask = object : Runnable {
+        override fun run() {
+            if (!alive) return
+            syncNow()
+            main.postDelayed(this, 15 * 60_000L)
+        }
+    }
+
+    private fun syncNow() {
+        if (!Link.paired(this)) return
+        Thread({
+            try { if (Link.pull(this)) Bus.emit("synced", JSONObject().put("text", "Gedächtnis vom PC übernommen.")) }
+            catch (e: Exception) { Log.w(tag, "sync: $e") }
+        }, "jarvis-sync").start()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -106,7 +124,7 @@ class JarvisService : Service() {
             ACTION_STOP -> { endTalk(); stopSelf() }
             ACTION_PAUSE -> { paused = true; endTalk() }
             ACTION_RESUME -> paused = false
-            ACTION_RELOAD -> { reload(); setupVoice() }
+            ACTION_RELOAD -> { reload(); setupVoice(); syncNow() }
         }
         return START_STICKY
     }
@@ -114,6 +132,8 @@ class JarvisService : Service() {
     override fun onDestroy() {
         alive = false
         running = false
+        main.removeCallbacks(syncTask)
+        endVolume()
         overlay?.hide()
         try { tts?.shutdown() } catch (_: Exception) {}
         try { rec?.close(); model?.close() } catch (_: Exception) {}
@@ -160,10 +180,48 @@ class JarvisService : Service() {
         prefs.edit().putString("tts_voices", list.toString()).apply()
     }
 
+    // --- Eigene Lautstärke: solange Jarvis spricht, steht die Medienlautstärke auf "seiner" Lautstärke.
+    // Drückst du währenddessen die Lautstärketasten, merkt er sich das als neue Jarvis-Lautstärke.
+    private var savedVol = -1
+    private var setVol = -1
+    private var focus: android.media.AudioFocusRequest? = null
+
+    private fun beginVolume() {
+        if (savedVol >= 0) return
+        val am = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+        val s = android.media.AudioManager.STREAM_MUSIC
+        try {
+            val f = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANT)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build()).build()
+            am.requestAudioFocus(f); focus = f
+        } catch (_: Exception) {}
+        val max = am.getStreamMaxVolume(s)
+        savedVol = am.getStreamVolume(s)
+        setVol = Math.round(max * prefs.getInt("jarvis_volume", 70) / 100f).coerceIn(1, max)
+        try { am.setStreamVolume(s, setVol, 0) } catch (_: Exception) {}
+    }
+
+    private fun endVolume() {
+        if (savedVol < 0) return
+        val am = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+        val s = android.media.AudioManager.STREAM_MUSIC
+        val now = am.getStreamVolume(s)
+        if (now != setVol) {   // mit den Tasten verstellt -> neue Jarvis-Lautstärke
+            val max = am.getStreamMaxVolume(s)
+            prefs.edit().putInt("jarvis_volume", (now * 100 / maxOf(1, max)).coerceIn(10, 100)).apply()
+        }
+        try { am.setStreamVolume(s, savedVol, 0) } catch (_: Exception) {}
+        focus?.let { try { am.abandonAudioFocusRequest(it) } catch (_: Exception) {} }
+        focus = null; savedVol = -1; setVol = -1
+    }
+
     private fun speak(text: String, then: () -> Unit) {
         val t = tts
         Bus.emit("agent", JSONObject().put("text", text))
         if (t == null || !ttsReady) { then(); return }
+        beginVolume()
         speaking = true
         setState("speaking")
         val id = "j" + System.nanoTime()
@@ -174,7 +232,7 @@ class JarvisService : Service() {
             override fun onError(utteranceId: String?) { if (utteranceId == id) done() }
             override fun onStop(utteranceId: String?, interrupted: Boolean) { if (utteranceId == id) done() }
             private fun done() {
-                main.postDelayed({ speaking = false; rec?.reset(); then() }, 250) // kurz warten: Nachhall nicht mithören
+                main.postDelayed({ speaking = false; endVolume(); rec?.reset(); then() }, 250) // kurz warten: Nachhall nicht mithören
             }
         })
         t.speak(text, TextToSpeech.QUEUE_FLUSH, null, id)
@@ -202,6 +260,7 @@ class JarvisService : Service() {
         mode = Mode.IDLE
         try { tts?.stop() } catch (_: Exception) {}
         speaking = false
+        main.post { endVolume() }
         setState("ended")
     }
 

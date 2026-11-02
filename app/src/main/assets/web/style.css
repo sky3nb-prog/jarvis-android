@@ -91,3 +91,4 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .btnrow button { flex: 1; padding: 13px; border-radius: 24px; border: 1px solid #16506a; background: #06141e; color: var(--txt);
   font-size: 15px; font-weight: 600; }
 .btnrow button.gold { border-color: var(--gold); background: #3a2608; color: var(--gold-l); }
+.sheet input[type=range] { padding: 0; height: 34px; accent-color: #ffb43c; border: none; background: transparent; }

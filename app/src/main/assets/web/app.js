@@ -60,7 +60,7 @@
       else if (type === "agent") $("last-jar").textContent = data.text;
       else if (type === "level") { if (data.kind === "out" || !talking) target = data.value; else target = Math.max(target * 0.8, data.value * 0.6); }
       else if (type === "error") { toast(data.text); setState("ended"); }
-      else if (type === "model" || type === "info") toast(data.text);
+      else if (type === "model" || type === "info" || type === "synced") toast(data.text);
     },
     back() {
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
@@ -93,6 +93,12 @@
       $("set-wake").value = c.wake_words || "jarvis";
       $("set-level").value = String(c.wake_level);
       $("set-cloud").value = c.wake_cloud ? "1" : "0";
+      $("set-jvol").value = c.jarvis_volume || 70;
+      $("set-link").value = c.link_code || "";
+      $("set-linkstate").textContent = c.link_code
+        ? (c.synced ? "Gekoppelt · zuletzt abgeglichen " + new Date(c.synced).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + " · " + c.facts + " Dinge über dich"
+                    : "Code eingetragen – warte auf den PC (Jarvis am PC muss laufen).")
+        : "Noch nicht gekoppelt. Ohne Code merkt sich das Handy alles nur für sich.";
       $("set-status").textContent = (c.model ? "Spracherkennung fürs Aktivierungswort ist geladen." : "Spracherkennung wird noch geladen (45 MB, einmalig) – bis dahin prüft Groq.") +
         (c.overlay ? " Kugel über anderen Apps: erlaubt." : " Kugel über anderen Apps: noch nicht erlaubt.");
     } catch (e) {}
@@ -114,6 +120,8 @@
       wake_words: $("set-wake").value.trim() || "jarvis",
       wake_level: parseInt($("set-level").value, 10),
       wake_cloud: $("set-cloud").value === "1",
+      link_code: $("set-link").value.trim(),
+      jarvis_volume: parseInt($("set-jvol").value, 10),
     }));
     $("settings").classList.remove("on");
     toast("Gespeichert.");
