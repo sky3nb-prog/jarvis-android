@@ -184,7 +184,7 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun getSettings(): String = JSONObject()
-            .put("wake_words", Wake.words(this@MainActivity).joinToString(", "))
+            .put("wake_words", prefs.getString("wake_words", "jarvis"))
             .put("wake_level", prefs.getInt("wake_level", 1))
             .put("wake_cloud", prefs.getBoolean("wake_cloud", false))
             .put("background", prefs.getBoolean("background", true))
@@ -201,7 +201,7 @@ class MainActivity : ComponentActivity() {
         fun saveSettings(json: String) {
             val o = JSONObject(json)
             prefs.edit()
-                .putString("wake_words", o.optString("wake_words", Wake.DEFAULT).ifBlank { Wake.DEFAULT })
+                .putString("wake_words", o.optString("wake_words", "jarvis").ifBlank { "jarvis" })
                 .putInt("wake_level", o.optInt("wake_level", 1))
                 .putBoolean("wake_cloud", o.optBoolean("wake_cloud", false))
                 .putBoolean("background", o.optBoolean("background", true))

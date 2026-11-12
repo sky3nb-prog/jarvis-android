@@ -19,20 +19,15 @@ object Groq {
     class KeyError(msg: String) : Exception(msg)
 
     /** PCM 16 kHz mono 16 bit -> Text (Deutsch). */
-    // Was Whisper bei Stille oder Rauschen gern "erfindet" -> wegwerfen
-    private val hallucinations = Regex("(untertitel|amara\\.org|vielen dank für(s)? zuschauen|tschüss und bis zum nächsten mal|" +
-        "copyright|swr \\d|zdf|ard|abonnier|danke fürs zuhören)", RegexOption.IGNORE_CASE)
-
-    fun transcribe(key: String, pcm: ByteArray, prompt: String = "Jarvis, öffne WhatsApp. Jarvis, wie ist das Wetter?"): String {
+    fun transcribe(key: String, pcm: ByteArray): String {
         val wav = wav(pcm, 16000)
-        // erst das genaueste Modell (large-v3), bei Problemen das schnellere
-        for (model in listOf("whisper-large-v3", "whisper-large-v3-turbo")) {
+        for (model in listOf("whisper-large-v3-turbo", "whisper-large-v3")) {
             val body = MultipartBody.Builder().setType(MultipartBody.FORM)
                 .addFormDataPart("model", model)
                 .addFormDataPart("language", "de")
                 .addFormDataPart("temperature", "0")
-                .addFormDataPart("prompt", prompt)
-                .addFormDataPart("response_format", "verbose_json")
+                .addFormDataPart("prompt", "Jarvis, öffne WhatsApp. Jarvis, wie ist das Wetter?")
+                .addFormDataPart("response_format", "json")
                 .addFormDataPart("file", "sprache.wav", wav.toRequestBody("audio/wav".toMediaType()))
                 .build()
             val req = Request.Builder().url("https://api.groq.com/openai/v1/audio/transcriptions")
@@ -40,18 +35,7 @@ object Groq {
             http.newCall(req).execute().use { r ->
                 val txt = r.body?.string() ?: ""
                 if (r.code == 401) throw KeyError("Der Groq-Schlüssel stimmt nicht.")
-                if (r.isSuccessful) {
-                    val o = JSONObject(txt)
-                    val segs = o.optJSONArray("segments")
-                    // Teile, bei denen Whisper selbst sicher ist, dass niemand spricht, weglassen
-                    val text = if (segs != null && segs.length() > 0) {
-                        (0 until segs.length()).map { segs.getJSONObject(it) }
-                            .filter { !(it.optDouble("no_speech_prob", 0.0) > 0.85 && it.optDouble("avg_logprob", 0.0) < -1.0) }
-                            .joinToString(" ") { it.optString("text").trim() }
-                    } else o.optString("text")
-                    val t = text.trim()
-                    return if (hallucinations.containsMatchIn(t)) "" else t
-                }
+                if (r.isSuccessful) return JSONObject(txt).optString("text").trim()
                 if (r.code != 404 && r.code != 400) throw RuntimeException("Groq-Spracherkennung ${r.code}")
             }
         }

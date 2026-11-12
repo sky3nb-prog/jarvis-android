@@ -295,7 +295,7 @@ class JarvisService : Service() {
     /** Hört Vosk im laufenden Satz etwas, das wie das Aktivierungswort klingt? (großzügig, Groq prüft genau nach) */
     private fun voskHeardWake(json: String, key: String): Boolean {
         val t = try { JSONObject(json).optString(key) } catch (_: Exception) { "" }
-        return t.isNotBlank() && Wake.roughly(t, words)
+        return t.isNotBlank() && Wake.find(t, words, 2) != null
     }
 
     // --- Mikrofon-Schleife ---------------------------------------------------------------------------
@@ -393,10 +393,8 @@ class JarvisService : Service() {
         busy = true
         worker.execute {
             try {
-                val text = Groq.transcribe(key, pcm, Wake.prompt(this))
+                val text = Groq.transcribe(key, pcm)
                 Log.i(tag, "gehört: $text")
-                if (mode == Mode.IDLE && text.isNotBlank())   // in der App sichtbar, was er verstanden hat (zur Kontrolle)
-                    Bus.emit("heard", JSONObject().put("text", text))
                 if (text.isBlank()) return@execute
                 if (mode == Mode.IDLE) {
                     val cmd = Wake.commandAfter(text, words, level) ?: return@execute

@@ -7,40 +7,9 @@ import android.content.Context
  * Mehrere Wörter möglich (Einstellungen: mit Komma trennen).
  */
 object Wake {
-    const val DEFAULT = "jarvis, friday"
-
     fun words(ctx: Context): List<String> {
-        var raw = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("wake_words", DEFAULT) ?: DEFAULT
-        if (raw.trim().lowercase() == "jarvis") raw = DEFAULT   // Jarvis heißt auch Friday
+        val raw = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("wake_words", "jarvis") ?: "jarvis"
         return raw.split(",", ";").map { it.trim().lowercase() }.filter { it.length >= 2 }.ifEmpty { listOf("jarvis") }
-    }
-
-    /** So schreibt die Spracherkennung die Wörter manchmal (deutsch gehört). */
-    private val ALIASES = mapOf(
-        "friday" to listOf("freitag", "fraidei", "fraidi", "freidi", "frei dei", "fry day"),
-        "jarvis" to listOf("jarwis", "javis", "dschawis", "jervis", "charvis", "harvis", "service"),
-    )
-
-    private fun variants(w: String): List<String> = listOf(w) + (ALIASES[w] ?: emptyList())
-
-    /**
-     * Großzügige Vorprüfung für die Offline-Erkennung (Vosk kennt "Jarvis" nicht und hört z. B. "ja wis"):
-     * lieber einmal zu oft bei Groq nachfragen als das Wort verpassen. Groq prüft danach genau.
-     */
-    fun roughly(text: String, words: List<String>): Boolean {
-        val toks = norm(text).split(" ").filter { it.isNotEmpty() }
-        if (toks.isEmpty()) return false
-        for (w in words) for (v in variants(w)) {
-            val target = norm(v).replace(" ", "")
-            val tol = maxOf(2, target.length / 2)
-            for (i in toks.indices) for (span in 1..3) {
-                if (i + span > toks.size) continue
-                val cand = toks.subList(i, i + span).joinToString("")
-                if (kotlin.math.abs(cand.length - target.length) > tol + 1) continue
-                if (dist(cand, target) <= tol) return true
-            }
-        }
-        return false
     }
 
     /** 0 = streng, 1 = normal, 2 = locker */
@@ -75,17 +44,10 @@ object Wake {
     fun find(text: String, words: List<String>, level: Int): String? {
         val toks = norm(text).split(" ").filter { it.isNotEmpty() }
         if (toks.isEmpty()) return null
-        // Das Aktivierungswort steht vorne ("Jarvis, mach ..." / "Hey Jarvis ..."), nicht irgendwo mitten im Gespräch
-        val reach = when (level) { 0 -> 2; 2 -> 6; else -> 3 }
-        for (w in words.flatMap { variants(it) }) {
+        for (w in words) {
             val target = norm(w).replace(" ", "")
-            val tol = when (level) {
-                0 -> 0
-                2 -> maxOf(2, target.length / 3)
-                else -> if (target.length >= 8) 2 else if (target.length >= 4) 1 else 0
-            }
+            val tol = when (level) { 0 -> if (target.length >= 6) 1 else 0; 2 -> maxOf(2, target.length / 2); else -> if (target.length >= 5) 2 else 1 }
             for (i in toks.indices) {
-                if (i >= reach) break
                 for (span in 1..2) {
                     if (i + span > toks.size) continue
                     val cand = toks.subList(i, i + span).joinToString("")
@@ -97,13 +59,6 @@ object Wake {
             }
         }
         return null
-    }
-
-    /** Hinweis für Whisper: so schreibt man das Aktivierungswort und typische Befehle. */
-    fun prompt(ctx: Context): String {
-        val w = words(ctx).joinToString(", ") { it.replaceFirstChar { c -> c.uppercase() } }
-        return "$w. $w, öffne WhatsApp. $w, ruf Mama an. $w, trag morgen um 15 Uhr Zahnarzt ein. " +
-            "$w, stell einen Timer auf 10 Minuten. $w, mach die Musik leiser. $w, wie wird das Wetter?"
     }
 
     /** Befehl aus dem Originaltext (mit Großbuchstaben/Umlauten) nach dem Aktivierungswort. */
