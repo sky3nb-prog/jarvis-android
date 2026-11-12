@@ -318,18 +318,13 @@ class JarvisService : Service() {
         val rate = 16000
         val minBuf = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         val ar = try {
-            // VOICE_COMMUNICATION: das Handy rechnet heraus, was aus dem eigenen Lautsprecher kommt (Videos, Musik),
-            // damit nur deine Stimme zählt – wie bei einem Telefonat
-            AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, rate, AudioFormat.CHANNEL_IN_MONO,
+            // VOICE_RECOGNITION: teilt sich das Mikrofon mit anderen Apps (WhatsApp-Sprachnachricht, Anrufe gehen vor)
+            AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, rate, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuf, 6400))
         } catch (e: Exception) {
             Bus.emit("error", JSONObject().put("text", "Mikrofon nicht verfügbar: ${e.message}")); stopSelf(); return
         }
         try { if (NoiseSuppressor.isAvailable()) NoiseSuppressor.create(ar.audioSessionId)?.enabled = true } catch (_: Exception) {}
-        try {
-            if (android.media.audiofx.AcousticEchoCanceler.isAvailable())
-                android.media.audiofx.AcousticEchoCanceler.create(ar.audioSessionId)?.enabled = true
-        } catch (_: Exception) {}
         ar.startRecording()
         val chunk = ByteArray(3200) // 100 ms
         val pre = ArrayDeque<ByteArray>()
