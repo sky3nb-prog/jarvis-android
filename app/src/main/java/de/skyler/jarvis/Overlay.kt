@@ -47,7 +47,7 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit, onTalk:
     private var visible = false
 
     /** Zustand (listening, thinking, speaking …) an Rand und Fenster weitergeben. */
-    fun setState(st: String) {
+    fun applyState(st: String) {
         state = st
         if (st == "ended" || st == "idle") { hide(); return }
         show()
@@ -60,7 +60,7 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit, onTalk:
         panel.card(data)
     }
 
-    fun setAppVisible(on: Boolean) {
+    fun changeAppVisible(on: Boolean) {
         appVisible = on
         if (on) { hideEdge(); panel.hide() }
     }

@@ -251,8 +251,8 @@ class JarvisService : Service() {
         if (type == "app_visible") main.post {
             val o = overlay ?: return@post
             val st = Bus.lastState
-            o.setAppVisible(data.optBoolean("on"))
-            if (!o.appVisible && st != "ended" && st != "idle") o.setState(st)
+            o.changeAppVisible(data.optBoolean("on"))
+            if (!o.appVisible && st != "ended" && st != "idle") o.applyState(st)
         }
     }
 
@@ -261,7 +261,7 @@ class JarvisService : Service() {
         Bus.state(st)
         main.post {
             val o = overlay ?: return@post
-            o.setState(st)
+            o.applyState(st)
         }
     }
 
