@@ -95,7 +95,7 @@ class JarvisService : Service() {
             ttsReady = st == TextToSpeech.SUCCESS
             if (ttsReady) setupVoice()
         }
-        overlay = Overlay(this) { main.post { onOrbTap() } }
+        overlay = Overlay(this) { main.post { endTalk() } }   // X am Rand = Gespräch beenden
         VoskModel.ensure(this) { ok -> if (ok) loadModel() }
         alive = true
         Thread({ audioLoop() }, "jarvis-audio").start()

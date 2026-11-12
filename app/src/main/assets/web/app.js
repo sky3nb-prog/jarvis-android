@@ -123,7 +123,7 @@
                     : "Code eingetragen – warte auf den PC (Jarvis am PC muss laufen).")
         : "Noch nicht gekoppelt. Ohne Code merkt sich das Handy alles nur für sich.";
       $("set-status").textContent = (c.model ? "Spracherkennung fürs Aktivierungswort ist geladen." : "Spracherkennung wird noch geladen (45 MB, einmalig) – bis dahin prüft Groq.") +
-        (c.overlay ? " Kugel über anderen Apps: erlaubt." : " Kugel über anderen Apps: noch nicht erlaubt.");
+        (c.overlay ? " Leuchtrand über anderen Apps: erlaubt." : " Leuchtrand über anderen Apps: noch nicht erlaubt.");
     } catch (e) {}
     $("set-key").value = "";
     $("set-version").textContent = "Version " + A.version() + (A.hasGroqKey() ? " · Groq-Schlüssel ist gespeichert" : " · noch kein Groq-Schlüssel");
