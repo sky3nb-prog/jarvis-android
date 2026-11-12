@@ -46,7 +46,7 @@ object Groq {
                     // Teile, bei denen Whisper selbst sicher ist, dass niemand spricht, weglassen
                     val text = if (segs != null && segs.length() > 0) {
                         (0 until segs.length()).map { segs.getJSONObject(it) }
-                            .filter { it.optDouble("no_speech_prob", 0.0) < 0.6 && it.optDouble("avg_logprob", 0.0) > -1.0 }
+                            .filter { !(it.optDouble("no_speech_prob", 0.0) > 0.85 && it.optDouble("avg_logprob", 0.0) < -1.0) }
                             .joinToString(" ") { it.optString("text").trim() }
                     } else o.optString("text")
                     val t = text.trim()

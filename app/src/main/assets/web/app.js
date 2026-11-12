@@ -62,6 +62,7 @@
       else if (type === "error") { toast(data.text); setState("ended"); }
       else if (type === "model" || type === "info" || type === "synced") toast(data.text);
       else if (type === "power") showPower(!!data.on);
+      else if (type === "heard") $("last-you").textContent = "(gehört, ohne Aktivierungswort) " + data.text;
     },
     back() {
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
@@ -142,7 +143,7 @@
     if (k) A.setGroqKey(k);
     A.saveSettings(JSON.stringify({
       background: $("set-bg").value === "1",
-      wake_words: $("set-wake").value.trim() || "jarvis",
+      wake_words: $("set-wake").value.trim() || "jarvis, friday",
       wake_level: parseInt($("set-level").value, 10),
       wake_cloud: $("set-cloud").value === "1",
       link_code: $("set-link").value.trim(),
