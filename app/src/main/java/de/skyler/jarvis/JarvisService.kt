@@ -90,6 +90,7 @@ class JarvisService : Service() {
         if (Build.VERSION.SDK_INT >= 29) startForeground(1, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         else startForeground(1, notification())
         running = true
+        Bus.emit("power", JSONObject().put("on", true))
         tts = TextToSpeech(this) { st ->
             ttsReady = st == TextToSpeech.SUCCESS
             if (ttsReady) setupVoice()
@@ -121,7 +122,10 @@ class JarvisService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_TALK -> startTalk()
-            ACTION_STOP -> { endTalk(); stopSelf() }
+            ACTION_STOP -> {   // auch "Ausschalten" in der Mitteilung: bleibt aus, bis du ihn wieder einschaltest
+                prefs.edit().putBoolean("background", false).apply()
+                endTalk(); Bus.emit("power", JSONObject().put("on", false)); stopSelf()
+            }
             ACTION_PAUSE -> { paused = true; endTalk() }
             ACTION_RESUME -> paused = false
             ACTION_RELOAD -> { reload(); setupVoice(); syncNow() }
@@ -389,7 +393,7 @@ class JarvisService : Service() {
         busy = true
         worker.execute {
             try {
-                val text = Groq.transcribe(key, pcm)
+                val text = Groq.transcribe(key, pcm, Wake.prompt(this))
                 Log.i(tag, "gehört: $text")
                 if (text.isBlank()) return@execute
                 if (mode == Mode.IDLE) {

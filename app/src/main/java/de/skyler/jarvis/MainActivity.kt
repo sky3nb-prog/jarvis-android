@@ -220,6 +220,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        /** Ein/Aus-Knopf: an = im Hintergrund auf das Aktivierungswort hören, aus = Dienst ganz beenden. */
+        @JavascriptInterface
+        fun setPower(on: Boolean) {
+            prefs.edit().putBoolean("background", on).apply()
+            runOnUiThread {
+                if (on) {
+                    if (!hasMic()) askPermissions() else JarvisService.start(this@MainActivity)
+                } else {
+                    talk?.stop(); talk = null
+                    if (JarvisService.running)
+                        startService(Intent(this@MainActivity, JarvisService::class.java).setAction(JarvisService.ACTION_STOP))
+                }
+            }
+        }
+
         @JavascriptInterface
         fun askOverlay() = runOnUiThread {
             try {

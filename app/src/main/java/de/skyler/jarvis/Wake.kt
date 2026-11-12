@@ -44,10 +44,17 @@ object Wake {
     fun find(text: String, words: List<String>, level: Int): String? {
         val toks = norm(text).split(" ").filter { it.isNotEmpty() }
         if (toks.isEmpty()) return null
+        // Das Aktivierungswort steht vorne ("Jarvis, mach ..." / "Hey Jarvis ..."), nicht irgendwo mitten im Gespräch
+        val reach = when (level) { 0 -> 2; 2 -> 6; else -> 3 }
         for (w in words) {
             val target = norm(w).replace(" ", "")
-            val tol = when (level) { 0 -> if (target.length >= 6) 1 else 0; 2 -> maxOf(2, target.length / 2); else -> if (target.length >= 5) 2 else 1 }
+            val tol = when (level) {
+                0 -> 0
+                2 -> maxOf(2, target.length / 3)
+                else -> if (target.length >= 8) 2 else if (target.length >= 4) 1 else 0
+            }
             for (i in toks.indices) {
+                if (i >= reach) break
                 for (span in 1..2) {
                     if (i + span > toks.size) continue
                     val cand = toks.subList(i, i + span).joinToString("")
@@ -59,6 +66,13 @@ object Wake {
             }
         }
         return null
+    }
+
+    /** Hinweis für Whisper: so schreibt man das Aktivierungswort und typische Befehle. */
+    fun prompt(ctx: Context): String {
+        val w = words(ctx).joinToString(", ") { it.replaceFirstChar { c -> c.uppercase() } }
+        return "$w. $w, öffne WhatsApp. $w, ruf Mama an. $w, trag morgen um 15 Uhr Zahnarzt ein. " +
+            "$w, stell einen Timer auf 10 Minuten. $w, mach die Musik leiser. $w, wie wird das Wetter?"
     }
 
     /** Befehl aus dem Originaltext (mit Großbuchstaben/Umlauten) nach dem Aktivierungswort. */

@@ -61,12 +61,35 @@
       else if (type === "level") { if (data.kind === "out" || !talking) target = data.value; else target = Math.max(target * 0.8, data.value * 0.6); }
       else if (type === "error") { toast(data.text); setState("ended"); }
       else if (type === "model" || type === "info" || type === "synced") toast(data.text);
+      else if (type === "power") showPower(!!data.on);
     },
     back() {
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
       if (view !== "fokus") { show("fokus"); return true; } return false;
     },
   };
+
+  // --- Ein/Aus: Jarvis hört im Hintergrund zu oder ist ganz aus ---
+  function showPower(on) {
+    const b = $("powerbtn");
+    if (!b) return;
+    b.classList.toggle("on", on);
+    $("power-txt").textContent = on ? "Jarvis an" : "Jarvis aus";
+  }
+  function readPower() {
+    try { showPower(!!JSON.parse(A.getSettings()).background); } catch (e) {}
+  }
+  if ($("powerbtn")) {
+    $("powerbtn").addEventListener("click", () => {
+      if (!A) return;
+      const on = !$("powerbtn").classList.contains("on");
+      A.setPower(on);
+      showPower(on);
+      toast(on ? "Jarvis ist an und hört auf sein Aktivierungswort." : "Jarvis ist aus. Er hört nicht mehr zu.");
+    });
+    if (A) readPower();
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && A) readPower(); });
+  }
 
   // --- Einstellungen ---
   function askKey() {
