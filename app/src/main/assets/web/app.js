@@ -117,6 +117,7 @@
       $("set-level").value = String(c.wake_level);
       $("set-cloud").value = c.wake_cloud ? "1" : "0";
       $("set-jvol").value = c.jarvis_volume || 70;
+      $("set-mediastate").textContent = c.media || "";
       $("set-link").value = c.link_code || "";
       $("set-linkstate").textContent = c.link_code
         ? (c.synced ? "Gekoppelt · zuletzt abgeglichen " + new Date(c.synced).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + " · " + c.facts + " Dinge über dich"
@@ -133,6 +134,7 @@
   $("btn-settings").addEventListener("click", openSettings);
   $("set-overlay").addEventListener("click", () => A.askOverlay());
   $("set-battery").addEventListener("click", () => A.askBattery());
+  $("set-media").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-usage").addEventListener("click", () => { A.askUsage(); toast("Bei „Jarvis“ den Nutzungszugriff einschalten."); });
   $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));
   $("set-save").addEventListener("click", () => {

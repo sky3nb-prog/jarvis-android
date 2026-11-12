@@ -202,6 +202,7 @@ class MainActivity : ComponentActivity() {
             .put("background", prefs.getBoolean("background", true))
             .put("overlay", android.provider.Settings.canDrawOverlays(this@MainActivity))
             .put("usage", ScreenColors.hasUsageAccess(this@MainActivity))
+            .put("media", Interests.summaryForSettings(this@MainActivity))
             .put("model", VoskModel.ready(this@MainActivity))
             .put("link_code", prefs.getString("link_code", ""))
             .put("jarvis_volume", prefs.getInt("jarvis_volume", 70))
@@ -256,6 +257,12 @@ class MainActivity : ComponentActivity() {
             } catch (_: Exception) {
                 try { startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)) } catch (_: Exception) {}
             }
+        }
+
+        /** "Was ich schaue und höre": Benachrichtigungszugriff, damit Jarvis sieht, was gerade läuft. */
+        @JavascriptInterface
+        fun askMedia() = runOnUiThread {
+            try { startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) } catch (_: Exception) {}
         }
 
         @JavascriptInterface

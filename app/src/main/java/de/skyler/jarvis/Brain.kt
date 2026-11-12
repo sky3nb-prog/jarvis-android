@@ -13,7 +13,7 @@ class Brain(private val ctx: Context) {
     private val actions = Actions(ctx)
 
     /** Aktionen, deren Ergebnis Jarvis erst noch in eine Antwort fassen muss. */
-    private val infoActions = setOf("calendar_list")
+    private val infoActions = setOf("calendar_list", "youtube_neu")
 
     private fun system(): String {
         val now = SimpleDateFormat("EEEE, dd.MM.yyyy, HH:mm 'Uhr'", Locale.GERMANY).format(Date())
@@ -29,6 +29,7 @@ Du handelst selbstständig: Wenn der Nutzer etwas will, tust du es direkt mit de
 Antworten kurz und gesprochen (1 bis 2 Sätze), Deutsch, keine Listen, keine Sonderzeichen. Es ist $now (ISO: $iso).
 $cal
 ${Memory.block(ctx)}
+${Interests.block(ctx)}
 Antworte NUR mit einem JSON-Objekt: {"actions":[ ... ], "say":"<was du sagst>"}
 Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"open_app","name":"<App-Name, z. B. WhatsApp, Spotify, Instagram, Kamera, Galerie>"}
@@ -45,6 +46,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>"}
 {"action":"sms","to":"<Name>","text":"<Nachricht>"}
 {"action":"youtube","query":"<Suche>"}
+{"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")
 {"action":"spotify","query":"<Suche>"}
 {"action":"search","query":"<Google-Suche>"}
 {"action":"url","url":"<Adresse>"}
@@ -62,6 +64,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
 
     /** Gibt den gesprochenen Text zurück. */
     fun handle(key: String, text: String): String {
+        Thread({ Interests.refreshGenres(ctx, key) }, "jarvis-genres").start()   // höchstens einmal am Tag
         history.put(JSONObject().put("role", "user").put("content", text))
         while (history.length() > 12) history.remove(0)
         val sys = system()

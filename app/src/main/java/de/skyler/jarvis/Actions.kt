@@ -47,6 +47,7 @@ class Actions(private val ctx: Context) {
             "forget" -> Memory.forget(ctx, a.optString("text"))
             "mood" -> { Memory.mood(ctx, a.optString("text")); null }
             "sms" -> sms(a.optString("to"), a.optString("text"))
+            "youtube_neu" -> Interests.newVideos(ctx, a.optInt("days", 7).coerceIn(1, 30))
             else -> null
         }
     } catch (e: Exception) {
