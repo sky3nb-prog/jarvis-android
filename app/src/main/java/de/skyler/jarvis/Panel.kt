@@ -140,6 +140,9 @@ class Panel(private val ctx: Context, private val onClose: () -> Unit, private v
         @JavascriptInterface fun ready() = main.post {
             ready = true
             val w = web ?: return@post
+            // Die Karte darf höchstens 60 % des Bildschirms hoch werden (nicht des eigenen Fensters, das wächst ja mit)
+            val hCss = ctx.resources.displayMetrics.heightPixels / dp
+            w.evaluateJavascript("window.J && J.ev('screen', {h: $hCss})", null)
             for (c in queue) w.evaluateJavascript(c, null)
             queue.clear()
         }

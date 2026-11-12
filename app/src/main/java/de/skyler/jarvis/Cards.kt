@@ -47,8 +47,8 @@ object Cards {
         val tops = Interests.topTracks(ctx, 4)
         val artists = Interests.top(ctx, "music", 5).map { it.first }
         if (tops.isEmpty() && artists.isEmpty())
-            return "MUSIK: Ich weiß noch nicht, was du hörst. In der Jarvis-App unter Einstellungen „Was ich schaue und höre“ erlauben " +
-                "und ein bisschen Deezer hören."
+            return if (Interests.hasAccess(ctx)) "MUSIK: Ich lerne gerade noch, was du hörst. Hör ein paar Songs auf Deezer, dann kann ich dir etwas vorschlagen."
+            else "MUSIK: Ich weiß noch nicht, was du hörst. Erlaube in der Jarvis-App unter Einstellungen den Zugriff auf das, was du schaust und hörst."
         val top = JSONArray()
         for ((title, artist, n) in tops) deezerTrack(title, artist)?.let { top.put(trackItem(it, n)) }
             ?: top.put(JSONObject().put("title", title).put("artist", artist).put("count", n).put("cover", "")
