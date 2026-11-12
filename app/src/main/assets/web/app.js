@@ -123,7 +123,8 @@
                     : "Code eingetragen – warte auf den PC (Jarvis am PC muss laufen).")
         : "Noch nicht gekoppelt. Ohne Code merkt sich das Handy alles nur für sich.";
       $("set-status").textContent = (c.model ? "Spracherkennung fürs Aktivierungswort ist geladen." : "Spracherkennung wird noch geladen (45 MB, einmalig) – bis dahin prüft Groq.") +
-        (c.overlay ? " Leuchtrand über anderen Apps: erlaubt." : " Leuchtrand über anderen Apps: noch nicht erlaubt.");
+        (c.overlay ? " Leuchtrand über anderen Apps: erlaubt." : " Leuchtrand über anderen Apps: noch nicht erlaubt.") +
+        (c.usage ? " Farben passen sich der offenen App an." : " Farben: nur vom Hintergrundbild (für App-Farben unten den Knopf antippen).");
     } catch (e) {}
     $("set-key").value = "";
     $("set-version").textContent = "Version " + A.version() + (A.hasGroqKey() ? " · Groq-Schlüssel ist gespeichert" : " · noch kein Groq-Schlüssel");
@@ -132,6 +133,7 @@
   $("btn-settings").addEventListener("click", openSettings);
   $("set-overlay").addEventListener("click", () => A.askOverlay());
   $("set-battery").addEventListener("click", () => A.askBattery());
+  $("set-usage").addEventListener("click", () => { A.askUsage(); toast("Bei „Jarvis“ den Nutzungszugriff einschalten."); });
   $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));
   $("set-save").addEventListener("click", () => {
     A.setVoiceMode($("set-mode").value);

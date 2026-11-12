@@ -189,6 +189,7 @@ class MainActivity : ComponentActivity() {
             .put("wake_cloud", prefs.getBoolean("wake_cloud", false))
             .put("background", prefs.getBoolean("background", true))
             .put("overlay", android.provider.Settings.canDrawOverlays(this@MainActivity))
+            .put("usage", ScreenColors.hasUsageAccess(this@MainActivity))
             .put("model", VoskModel.ready(this@MainActivity))
             .put("link_code", prefs.getString("link_code", ""))
             .put("jarvis_volume", prefs.getInt("jarvis_volume", 70))
@@ -232,6 +233,16 @@ class MainActivity : ComponentActivity() {
                     if (JarvisService.running)
                         startService(Intent(this@MainActivity, JarvisService::class.java).setAction(JarvisService.ACTION_STOP))
                 }
+            }
+        }
+
+        /** Nutzungszugriff: damit der Leuchtrand die Farben der App annehmen kann, die gerade vorne ist. */
+        @JavascriptInterface
+        fun askUsage() = runOnUiThread {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:$packageName")))
+            } catch (_: Exception) {
+                try { startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)) } catch (_: Exception) {}
             }
         }
 

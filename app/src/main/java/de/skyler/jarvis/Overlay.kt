@@ -86,20 +86,49 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         close = null
     }
 
-    /** Leuchtrand: dreht sich langsam, atmet mit der Stimme; beim Nachdenken schneller, beim Sprechen heller. */
+    // --- Farben passend zum Bildschirm (Hintergrundbild oder vordere App), weich überblendet ---------------
+    private var target: IntArray = ScreenColors.DEFAULT
+    private val cur = IntArray(4) { ScreenColors.DEFAULT[it % ScreenColors.DEFAULT.size] }
+    @Volatile private var watching = false
+
+    private fun startWatching() {
+        if (watching) return
+        watching = true
+        Thread({
+            while (watching) {
+                try { target = ScreenColors.current(ctx) } catch (_: Exception) {}
+                try { Thread.sleep(1200) } catch (_: InterruptedException) { break }
+            }
+        }, "jarvis-farben").start()
+    }
+
+    /** Einmal pro Bild: aktuelle Farben ein Stück Richtung Ziel schieben (sanfter Wechsel beim App-Wechsel). */
+    private fun blend(): IntArray {
+        val tg = target
+        for (i in cur.indices) {
+            val a = cur[i]; val b = tg[i % tg.size]
+            fun mix(x: Int, y: Int) = (x + (y - x) * 0.06f).toInt()
+            cur[i] = Color.rgb(mix(Color.red(a), Color.red(b)), mix(Color.green(a), Color.green(b)), mix(Color.blue(a), Color.blue(b)))
+        }
+        return cur
+    }
+
+    /** Leuchtrand: Farben vom Bildschirm, ein heller Lichtpunkt läuft ständig im Kreis, atmet mit der Stimme. */
     inner class EdgeView(c: Context) : View(c) {
         private val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
         private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+        private val comet = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
         private val rot = Matrix()
+        private val rot2 = Matrix()
         private var t = 0f
         private var shown = 0f
         private var lvl = 0f
         private var radius = -1f
-        private val colors = intArrayOf(
-            Color.rgb(255, 176, 60), Color.rgb(255, 120, 30), Color.rgb(60, 200, 255),
-            Color.rgb(255, 214, 120), Color.rgb(255, 140, 40), Color.rgb(90, 220, 255), Color.rgb(255, 176, 60))
 
         init { setLayerType(LAYER_TYPE_SOFTWARE, null) }  // für den weichen Schein (Blur)
+
+        override fun onAttachedToWindow() { super.onAttachedToWindow(); startWatching() }
+        override fun onDetachedFromWindow() { watching = false; super.onDetachedFromWindow() }
 
         private fun cornerRadius(): Float {
             if (radius >= 0) return radius
@@ -117,13 +146,16 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
             t += 0.016f
             shown = minOf(1f, shown + 0.06f)  // sanft einblenden
             lvl += (level - lvl) * 0.25f
-            val speed = when (state) { "thinking" -> 3.2f; "speaking" -> 1.4f; else -> 0.8f }
+            val pal = blend()
+            val speed = when (state) { "thinking" -> 3.0f; "speaking" -> 1.3f; else -> 0.7f }
             val w = width.toFloat(); val h = height.toFloat()
             val breathe = 0.5f + 0.5f * sin(t * 2.4f)
             val base = dp * (if (state == "speaking") 3.2f else 2.6f)
             val thick = base + dp * 4f * lvl
-            val sg = SweepGradient(w / 2, h / 2, colors, null)
-            rot.setRotate((t * 60f * speed) % 360f, w / 2, h / 2)
+            // Verlauf aus den Bildschirmfarben, zweimal rundherum, nahtlos
+            val ring = intArrayOf(pal[0], pal[1], pal[2], pal[3], pal[0], pal[1], pal[2], pal[3], pal[0])
+            val sg = SweepGradient(w / 2, h / 2, ring, null)
+            rot.setRotate((t * 40f * speed) % 360f, w / 2, h / 2)
             sg.setLocalMatrix(rot)
             val r = cornerRadius()
             val inset = thick / 2
@@ -132,35 +164,73 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
             glow.shader = sg
             glow.strokeWidth = thick * 4.5f
             glow.maskFilter = BlurMaskFilter(dp * 14, BlurMaskFilter.Blur.NORMAL)
-            glow.alpha = (shown * (110 + 70 * breathe + 60 * lvl)).toInt().coerceIn(0, 255)
+            glow.alpha = (shown * (120 + 70 * breathe + 60 * lvl)).toInt().coerceIn(0, 255)
             canvas.drawRoundRect(rect, r, r, glow)
-            // scharfe Linie am Rand
+            // Linie am Rand
             line.shader = sg
             line.strokeWidth = thick
             line.alpha = (shown * 255).toInt()
             canvas.drawRoundRect(rect, r, r, line)
+            // heller Lichtpunkt, der ständig ums Handy läuft (mit Schweif)
+            val head = Color.argb(255, 255, 255, 255)
+            val tail = Color.argb(0, 255, 255, 255)
+            val cs = SweepGradient(w / 2, h / 2, intArrayOf(tail, tail, Color.argb(90, 255, 255, 255), head, tail),
+                floatArrayOf(0f, 0.80f, 0.93f, 0.985f, 1f))
+            rot2.setRotate((t * 110f * speed) % 360f, w / 2, h / 2)
+            cs.setLocalMatrix(rot2)
+            comet.shader = cs
+            comet.strokeWidth = thick * 1.6f
+            comet.maskFilter = BlurMaskFilter(dp * 3, BlurMaskFilter.Blur.NORMAL)
+            comet.alpha = (shown * 230).toInt()
+            canvas.drawRoundRect(rect, r, r, comet)
             postInvalidateOnAnimation()
         }
     }
 
-    /** Rundes X zum Beenden: dunkel mit goldenem Ring, groß genug zum Treffen. */
+    /** Rundes X zum Beenden: Ring in den Bildschirmfarben dreht sich, sanftes Pulsieren. */
     inner class CloseView(c: Context) : View(c) {
         private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
+        private val m = Matrix()
+        private var t = 0f
+        private var shown = 0f
+
+        init { setLayerType(LAYER_TYPE_SOFTWARE, null) }
+
         override fun onDraw(canvas: Canvas) {
-            val w = width.toFloat(); val cx = w / 2; val cy = height / 2f; val r = w * 0.44f
+            t += 0.016f
+            shown = minOf(1f, shown + 0.07f)
+            val w = width.toFloat(); val cx = w / 2; val cy = height / 2f
+            val pulse = 0.5f + 0.5f * sin(t * 3f)
+            val r = w * 0.40f * (0.92f + 0.08f * shown)
+            val pal = cur
+            // Schein
             p.style = Paint.Style.FILL
-            p.color = Color.argb(235, 12, 10, 8)
+            p.maskFilter = BlurMaskFilter(dp * (4 + 3 * pulse), BlurMaskFilter.Blur.NORMAL)
+            p.color = pal[0]; p.alpha = (shown * (70 + 60 * pulse)).toInt()
+            canvas.drawCircle(cx, cy, r * 1.05f, p)
+            p.maskFilter = null
+            // dunkler Knopf
+            p.color = Color.argb((235 * shown).toInt(), 12, 10, 8)
             canvas.drawCircle(cx, cy, r, p)
+            // drehender Farbring
+            val sg = SweepGradient(cx, cy, intArrayOf(pal[0], pal[1], pal[2], pal[3], pal[0]), null)
+            m.setRotate((t * 160f) % 360f, cx, cy)
+            sg.setLocalMatrix(m)
+            ring.shader = sg
+            ring.strokeWidth = dp * 2.6f
+            ring.alpha = (shown * 255).toInt()
+            canvas.drawCircle(cx, cy, r, ring)
+            // X
             p.style = Paint.Style.STROKE
-            p.strokeWidth = dp * 2f
-            p.color = Color.rgb(255, 176, 60)
-            canvas.drawCircle(cx, cy, r, p)
             p.strokeWidth = dp * 3.2f
             p.strokeCap = Paint.Cap.ROUND
             p.color = Color.WHITE
-            val k = r * 0.38f
+            p.alpha = (shown * 255).toInt()
+            val k = r * 0.38f * (0.96f + 0.04f * pulse)
             canvas.drawLine(cx - k, cy - k, cx + k, cy + k, p)
             canvas.drawLine(cx + k, cy - k, cx - k, cy + k, p)
+            postInvalidateOnAnimation()
         }
     }
 }
