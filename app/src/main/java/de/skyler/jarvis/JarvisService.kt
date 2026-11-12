@@ -37,6 +37,7 @@ import kotlin.math.sqrt
 class JarvisService : Service() {
 
     companion object {
+        @Volatile var appVisible = false
         const val CH = "jarvis_listen"
         const val ACTION_TALK = "de.skyler.jarvis.TALK"   // Gespräch starten (ohne Aktivierungswort)
         const val ACTION_STOP = "de.skyler.jarvis.STOP"
@@ -96,6 +97,8 @@ class JarvisService : Service() {
             if (ttsReady) setupVoice()
         }
         overlay = Overlay(this) { main.post { endTalk() } }   // X am Rand = Gespräch beenden
+        overlay?.appVisible = appVisible
+        Bus.add(appListener)
         VoskModel.ensure(this) { ok -> if (ok) loadModel() }
         alive = true
         Thread({ audioLoop() }, "jarvis-audio").start()
@@ -138,7 +141,8 @@ class JarvisService : Service() {
         running = false
         main.removeCallbacks(syncTask)
         endVolume()
-        overlay?.hide()
+        overlay?.destroy()
+        Bus.remove(appListener)
         try { tts?.shutdown() } catch (_: Exception) {}
         try { rec?.close(); model?.close() } catch (_: Exception) {}
         Bus.state("ended")
@@ -242,6 +246,16 @@ class JarvisService : Service() {
         t.speak(text, TextToSpeech.QUEUE_FLUSH, null, id)
     }
 
+    // --- Ist die Jarvis-App gerade vorne? Dann kein Leuchtrand (die App zeigt selbst, was passiert) ---------
+    private val appListener: (String, JSONObject) -> Unit = { type, data ->
+        if (type == "app_visible") main.post {
+            val o = overlay ?: return@post
+            o.appVisible = data.optBoolean("on")
+            val st = Bus.lastState
+            if (o.appVisible || st == "ended" || st == "idle") o.hide() else { o.state = st; o.show() }
+        }
+    }
+
     // --- Zustände -----------------------------------------------------------------------------------
     private fun setState(st: String) {
         Bus.state(st)
@@ -304,12 +318,18 @@ class JarvisService : Service() {
         val rate = 16000
         val minBuf = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         val ar = try {
-            AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, rate, AudioFormat.CHANNEL_IN_MONO,
+            // VOICE_COMMUNICATION: das Handy rechnet heraus, was aus dem eigenen Lautsprecher kommt (Videos, Musik),
+            // damit nur deine Stimme zählt – wie bei einem Telefonat
+            AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, rate, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuf, 6400))
         } catch (e: Exception) {
             Bus.emit("error", JSONObject().put("text", "Mikrofon nicht verfügbar: ${e.message}")); stopSelf(); return
         }
         try { if (NoiseSuppressor.isAvailable()) NoiseSuppressor.create(ar.audioSessionId)?.enabled = true } catch (_: Exception) {}
+        try {
+            if (android.media.audiofx.AcousticEchoCanceler.isAvailable())
+                android.media.audiofx.AcousticEchoCanceler.create(ar.audioSessionId)?.enabled = true
+        } catch (_: Exception) {}
         ar.startRecording()
         val chunk = ByteArray(3200) // 100 ms
         val pre = ArrayDeque<ByteArray>()
@@ -397,7 +417,9 @@ class JarvisService : Service() {
                 Log.i(tag, "gehört: $text")
                 if (text.isBlank()) return@execute
                 if (mode == Mode.IDLE) {
-                    val cmd = Wake.commandAfter(text, words, level) ?: return@execute
+                    val am = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+                    val strict = if (am.isMusicActive) 0 else level   // läuft ein Video/Musik: nur ganz genaues "Jarvis"
+                    val cmd = Wake.commandAfter(text, words, strict) ?: return@execute
                     buzz()
                     Bus.emit("user", JSONObject().put("text", text))
                     if (cmd.isBlank()) {   // nur das Aktivierungswort: auf den Befehl warten

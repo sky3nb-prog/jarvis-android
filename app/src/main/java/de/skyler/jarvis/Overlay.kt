@@ -41,10 +41,18 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
     private fun type() = if (Build.VERSION.SDK_INT >= 26) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
     else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 
+    /** Jarvis-App ist gerade vorne: dann kein Rand (die App zeigt ihre eigene Kugel). */
+    @Volatile var appVisible = false
+    private var visible = false
+
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
-        if (!canShow()) return
-        if (edge == null && close == null) Bus.add(busListener)
+        if (!canShow() || appVisible) { hide(); return }
+        if (visible) return
+        visible = true
+        Bus.add(busListener)
+        edge?.let { it.restart(); it.visibility = View.VISIBLE }
+        close?.let { it.restart(); it.visibility = View.VISIBLE }
         if (edge == null) {
             val v = EdgeView(ctx)
             val lp = WindowManager.LayoutParams(
@@ -52,6 +60,7 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT)
+            lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED  // flüssig über die Grafikkarte
             lp.gravity = Gravity.TOP or Gravity.START
             lp.alpha = 0.8f  // Android lässt Berührungen nur durch Fenster bis 80 % Deckkraft hindurch
             if (Build.VERSION.SDK_INT >= 28)
@@ -64,6 +73,7 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
             val lp = WindowManager.LayoutParams(size, size, type(),
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT)
+            lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
             lp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             lp.y = (dp * 96).toInt()  // über der Navigationsleiste
             v.setOnTouchListener { view, e ->
@@ -78,8 +88,20 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         }
     }
 
+    /** Ausblenden: die Fenster bleiben bestehen (nur unsichtbar), dadurch erscheint der Rand beim nächsten Mal sofort. */
     fun hide() {
-        if (edge != null || close != null) Bus.remove(busListener)
+        if (!visible) return
+        visible = false
+        watching = false   // Farben nicht mehr abfragen, solange nichts zu sehen ist (spart Akku)
+        Bus.remove(busListener)
+        edge?.visibility = View.GONE
+        close?.visibility = View.GONE
+    }
+
+    /** Ganz entfernen (Dienst wird beendet). */
+    fun destroy() {
+        hide()
+        watching = false
         edge?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         close?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         edge = null
@@ -125,7 +147,7 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         private var lvl = 0f
         private var radius = -1f
 
-        init { setLayerType(LAYER_TYPE_SOFTWARE, null) }  // für den weichen Schein (Blur)
+        fun restart() { shown = 0f; startWatching(); postInvalidateOnAnimation() }
 
         override fun onAttachedToWindow() { super.onAttachedToWindow(); startWatching() }
         override fun onDetachedFromWindow() { watching = false; super.onDetachedFromWindow() }
@@ -143,14 +165,15 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         }
 
         override fun onDraw(canvas: Canvas) {
+            if (visibility != VISIBLE) return
             t += 0.016f
-            shown = minOf(1f, shown + 0.06f)  // sanft einblenden
-            lvl += (level - lvl) * 0.25f
+            shown = minOf(1f, shown + 0.16f)  // schnell, aber weich einblenden (~0,1 s)
+            lvl += (level - lvl) * 0.3f
             val pal = blend()
             val speed = when (state) { "thinking" -> 3.0f; "speaking" -> 1.3f; else -> 0.7f }
             val w = width.toFloat(); val h = height.toFloat()
             val breathe = 0.5f + 0.5f * sin(t * 2.4f)
-            val base = dp * (if (state == "speaking") 3.2f else 2.6f)
+            val base = dp * (if (state == "speaking") 3.8f else 3.2f)
             val thick = base + dp * 4f * lvl
             // Verlauf aus den Bildschirmfarben, zweimal rundherum, nahtlos
             val ring = intArrayOf(pal[0], pal[1], pal[2], pal[3], pal[0], pal[1], pal[2], pal[3], pal[0])
@@ -160,12 +183,14 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
             val r = cornerRadius()
             val inset = thick / 2
             val rect = RectF(inset, inset, w - inset, h - inset)
-            // weicher Schein nach innen
+            // Schein nach innen: drei breite, immer durchsichtigere Bahnen (ohne Weichzeichner -> flüssig)
             glow.shader = sg
-            glow.strokeWidth = thick * 4.5f
-            glow.maskFilter = BlurMaskFilter(dp * 14, BlurMaskFilter.Blur.NORMAL)
-            glow.alpha = (shown * (120 + 70 * breathe + 60 * lvl)).toInt().coerceIn(0, 255)
-            canvas.drawRoundRect(rect, r, r, glow)
+            val ga = shown * (0.55f + 0.25f * breathe + 0.2f * lvl)
+            for ((k, a) in listOf(7.5f to 0.16f, 4.5f to 0.30f, 2.4f to 0.55f)) {
+                glow.strokeWidth = thick * k
+                glow.alpha = (255 * a * ga).toInt().coerceIn(0, 255)
+                canvas.drawRoundRect(rect, r, r, glow)
+            }
             // Linie am Rand
             line.shader = sg
             line.strokeWidth = thick
@@ -179,9 +204,8 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
             rot2.setRotate((t * 110f * speed) % 360f, w / 2, h / 2)
             cs.setLocalMatrix(rot2)
             comet.shader = cs
-            comet.strokeWidth = thick * 1.6f
-            comet.maskFilter = BlurMaskFilter(dp * 3, BlurMaskFilter.Blur.NORMAL)
-            comet.alpha = (shown * 230).toInt()
+            comet.strokeWidth = thick * 1.5f
+            comet.alpha = (shown * 255).toInt()
             canvas.drawRoundRect(rect, r, r, comet)
             postInvalidateOnAnimation()
         }
@@ -195,21 +219,20 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         private var t = 0f
         private var shown = 0f
 
-        init { setLayerType(LAYER_TYPE_SOFTWARE, null) }
+        fun restart() { shown = 0f; postInvalidateOnAnimation() }
 
         override fun onDraw(canvas: Canvas) {
+            if (visibility != VISIBLE) return
             t += 0.016f
-            shown = minOf(1f, shown + 0.07f)
+            shown = minOf(1f, shown + 0.14f)
             val w = width.toFloat(); val cx = w / 2; val cy = height / 2f
             val pulse = 0.5f + 0.5f * sin(t * 3f)
             val r = w * 0.40f * (0.92f + 0.08f * shown)
             val pal = cur
             // Schein
             p.style = Paint.Style.FILL
-            p.maskFilter = BlurMaskFilter(dp * (4 + 3 * pulse), BlurMaskFilter.Blur.NORMAL)
-            p.color = pal[0]; p.alpha = (shown * (70 + 60 * pulse)).toInt()
-            canvas.drawCircle(cx, cy, r * 1.05f, p)
-            p.maskFilter = null
+            p.color = pal[0]; p.alpha = (shown * (40 + 40 * pulse)).toInt()
+            canvas.drawCircle(cx, cy, r * (1.08f + 0.05f * pulse), p)
             // dunkler Knopf
             p.color = Color.argb((235 * shown).toInt(), 12, 10, 8)
             canvas.drawCircle(cx, cy, r, p)

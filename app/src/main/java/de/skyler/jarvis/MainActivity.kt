@@ -98,6 +98,18 @@ class MainActivity : ComponentActivity() {
         askPermissions()
     }
 
+    override fun onResume() {
+        super.onResume()
+        JarvisService.appVisible = true
+        Bus.emit("app_visible", JSONObject().put("on", true))
+    }
+
+    override fun onPause() {
+        JarvisService.appVisible = false
+        Bus.emit("app_visible", JSONObject().put("on", false))
+        super.onPause()
+    }
+
     override fun onDestroy() {
         talk?.stop()
         Bus.remove(busListener)
