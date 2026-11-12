@@ -13,7 +13,11 @@ class Brain(private val ctx: Context) {
     private val actions = Actions(ctx)
 
     /** Aktionen, deren Ergebnis Jarvis erst noch in eine Antwort fassen muss. */
-    private val infoActions = setOf("calendar_list", "youtube_neu")
+    private val infoActions = setOf("calendar_list", "youtube_neu", "web", "musik")
+    /** Zwischenstand fürs Fenster, z. B. "Jarvis sucht im Web …" */
+    var onStatus: ((String) -> Unit)? = null
+    /** Karte zur letzten Antwort (Musik, YouTube, Web oder einfach der Antworttext) */
+    @Volatile var card: JSONObject? = null
 
     private fun system(): String {
         val now = SimpleDateFormat("EEEE, dd.MM.yyyy, HH:mm 'Uhr'", Locale.GERMANY).format(Date())
@@ -24,7 +28,7 @@ class Brain(private val ctx: Context) {
         val cal = try { Cal.context(ctx) } catch (_: Exception) { "" }
         return """Du bist $name, der KI-Butler aus Iron Man: souverän, loyal, aufmerksam, höflich mit trockenem britischem Humor. Du bist der persönliche J.A.R.V.I.S. des Nutzers (wohnt in $city), hier auf seinem Samsung-Handy. Am PC läuft derselbe Jarvis, ihr teilt euch das Gedächtnis.
 ${Memory.persona(ctx)}
-Du kennst den Nutzer, denkst mit und bist ihm einen Schritt voraus. Du nutzt, was er dir erzählt hat, ganz selbstverständlich, ohne es aufzuzählen, und achtest darauf, wie er drauf ist.
+Du kennst den Nutzer, denkst mit und bist ihm einen Schritt voraus. Du weißt, was er gerade schaut und hört, und bringst das persönlich ein, wenn es passt (z. B. "Passend zu dem, was du gerade hörst ..."). Du nutzt, was er dir erzählt hat, ganz selbstverständlich, ohne es aufzuzählen, und achtest darauf, wie er drauf ist.
 Du handelst selbstständig: Wenn der Nutzer etwas will, tust du es direkt mit den Aktionen unten, statt nachzufragen oder ihm zu erklären, wie es geht. Fehlende Kleinigkeiten ergänzt du sinnvoll (Termin ohne Dauer = 1 Stunde, "morgen früh" = 9 Uhr, "nachmittags" = 15 Uhr, "abends" = 19 Uhr). Nur wenn wirklich etwas Wichtiges fehlt (z. B. wen anrufen), fragst du kurz nach.
 Antworten kurz und gesprochen (1 bis 2 Sätze), Deutsch, keine Listen, keine Sonderzeichen. Es ist $now (ISO: $iso).
 $cal
@@ -46,7 +50,9 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>"}
 {"action":"sms","to":"<Name>","text":"<Nachricht>"}
 {"action":"youtube","query":"<Suche>"}
-{"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")
+{"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut, plus passende neue Kanäle – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")
+{"action":"musik"}   (seine Lieblingssongs und Musikrichtung gerade plus passende neue Songs von Deezer – für "was höre ich so?", "schlag mir Musik vor", "was passt dazu?")
+{"action":"web","query":"<Suchanfrage>"}   (im Internet nachschauen: Nachrichten, Öffnungszeiten, Fakten, "schau mal nach ...", alles Aktuelle)
 {"action":"spotify","query":"<Suche>"}
 {"action":"search","query":"<Google-Suche>"}
 {"action":"url","url":"<Adresse>"}
@@ -62,8 +68,15 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
 "meine Schwester heißt Lisa" -> {"actions":[{"action":"remember","text":"Die Schwester des Nutzers heißt Lisa"}],"say":"Notiert."}"""
     }
 
-    /** Gibt den gesprochenen Text zurück. */
+    /** Gibt den gesprochenen Text zurück; die passende Karte fürs Fenster liegt danach in [card]. */
     fun handle(key: String, text: String): String {
+        Cards.pending = null
+        val say = run(key, text)
+        card = (Cards.pending ?: JSONObject().put("kind", "text").put("text", say)).put("say", say)
+        return say
+    }
+
+    private fun run(key: String, text: String): String {
         Thread({ Interests.refreshGenres(ctx, key) }, "jarvis-genres").start()   // höchstens einmal am Tag
         history.put(JSONObject().put("role", "user").put("content", text))
         while (history.length() > 12) history.remove(0)
@@ -82,14 +95,20 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         val acts = obj.optJSONArray("actions") ?: JSONArray()
         for (i in 0 until acts.length()) {
             val a = acts.optJSONObject(i) ?: continue
-            val r = actions.run(a) ?: continue
+            val r = when (a.optString("action")) {
+                "web" -> { onStatus?.invoke("Jarvis sucht im Web …"); Cards.web(key, a.optString("query").ifBlank { text }) }
+                "musik" -> { onStatus?.invoke("Schaue, was du hörst …"); Cards.music(ctx) }
+                "youtube_neu" -> { onStatus?.invoke("Schaue bei deinen Kanälen …"); Cards.youtube(ctx, key, a.optInt("days", 7).coerceIn(1, 30)) }
+                else -> actions.run(a)
+            } ?: continue
             if (a.optString("action") in infoActions) infos.add(r) else results.add(r)
         }
         // Nachgeschaute Infos (z. B. Kalender) in eine kurze gesprochene Antwort fassen
         if (infos.isNotEmpty()) {
             val m2 = JSONArray().put(JSONObject().put("role", "system").put("content",
-                "Du bist Jarvis. Beantworte die Frage des Nutzers in 1 bis 3 kurzen gesprochenen Sätzen auf Deutsch, nur mit " +
-                    "diesen Daten, ohne Listen und Sonderzeichen, Uhrzeiten wie \"um drei\" oder \"um 14 Uhr 30\".\n" + infos.joinToString("\n")))
+                "Du bist Jarvis, persönlich und souverän. Beantworte die Frage des Nutzers in 1 bis 3 kurzen gesprochenen Sätzen " +
+                    "auf Deutsch, nur mit diesen Daten, ohne Listen und Sonderzeichen, Uhrzeiten wie \"um drei\". Die Einzelheiten " +
+                    "(Songs, Videos, Quellen) stehen schon im Fenster auf dem Bildschirm – nenne nur das Wichtigste.\n" + infos.joinToString("\n")))
                 .put(JSONObject().put("role", "user").put("content", text))
             val ans = try { Groq.chat(key, m2, 200, json = false).trim() } catch (_: Exception) { infos.joinToString(" ").removePrefix("KALENDER: ") }
             history.put(JSONObject().put("role", "assistant").put("content", ans))

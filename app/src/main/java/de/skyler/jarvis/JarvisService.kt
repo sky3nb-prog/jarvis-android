@@ -96,7 +96,7 @@ class JarvisService : Service() {
             ttsReady = st == TextToSpeech.SUCCESS
             if (ttsReady) setupVoice()
         }
-        overlay = Overlay(this) { main.post { endTalk() } }   // X am Rand = Gespräch beenden
+        overlay = Overlay(this, { main.post { endTalk() } }, { main.post { startTalk() } })   // × = beenden, Mikro = weiterreden
         overlay?.appVisible = appVisible
         Bus.add(appListener)
         VoskModel.ensure(this) { ok -> if (ok) loadModel() }
@@ -250,9 +250,9 @@ class JarvisService : Service() {
     private val appListener: (String, JSONObject) -> Unit = { type, data ->
         if (type == "app_visible") main.post {
             val o = overlay ?: return@post
-            o.appVisible = data.optBoolean("on")
             val st = Bus.lastState
-            if (o.appVisible || st == "ended" || st == "idle") o.hide() else { o.state = st; o.show() }
+            o.setAppVisible(data.optBoolean("on"))
+            if (!o.appVisible && st != "ended" && st != "idle") o.setState(st)
         }
     }
 
@@ -261,8 +261,7 @@ class JarvisService : Service() {
         Bus.state(st)
         main.post {
             val o = overlay ?: return@post
-            o.state = st
-            if (st == "ended" || st == "idle") o.hide() else o.show()
+            o.setState(st)
         }
     }
 
@@ -447,8 +446,11 @@ class JarvisService : Service() {
 
     private fun answer(key: String, cmd: String) {
         setState("thinking")
+        brain.onStatus = { t -> main.post { overlay?.panel?.state("searching", t) } }
         val reply = try { brain.handle(key, cmd) } catch (e: Exception) { "Das hat nicht geklappt. ${e.message ?: ""}" }
+        val card = brain.card
         main.post {
+            card?.let { overlay?.card(it) }   // Antwort als Karte im Fenster (außerhalb der Jarvis-App)
             speak(reply) {
                 // danach kurz weiterhören wie am PC (ohne Aktivierungswort); im Gespräch länger
                 if (mode == Mode.TALK) deadline = System.currentTimeMillis() + 45_000

@@ -100,13 +100,63 @@ object Interests {
         try {
             val msgs = JSONArray()
                 .put(JSONObject().put("role", "system").put("content",
-                    "Du bist Musikexperte. Antworte in einem kurzen deutschen Satz ohne Aufzählungszeichen: welche Genres und " +
-                        "Stimmungen hört diese Person gerade hauptsächlich (mit grobem Anteil)? Nenne keine Künstler."))
+                    "Du bist Musikexperte. Welche Genres und Stimmungen hört diese Person gerade hauptsächlich? Antworte NUR mit " +
+                        "JSON: {\"satz\":\"<ein kurzer deutscher Satz, persönlich, z. B. Du hörst gerade viel ... – eher ...>\"," +
+                        "\"genres\":[{\"name\":\"<Genre>\",\"pct\":<Anteil in Prozent>}]} mit 2 bis 4 Genres. Keine Künstler nennen."))
                 .put(JSONObject().put("role", "user").put("content",
                     "Gehörte Künstler mit Anzahl: " + mu.joinToString(", ") { "${it.first} ${it.second}x" }))
-            val ans = Groq.chat(key, msgs, 120).trim()
-            if (ans.isNotBlank()) p.edit().putString("music_genres", ans).putLong("music_genres_ts", System.currentTimeMillis()).apply()
+            val raw = Groq.chat(key, msgs, 220, json = true).trim()
+            val o = JSONObject(Regex("\\{.*\\}", RegexOption.DOT_MATCHES_ALL).find(raw)?.value ?: raw)
+            val satz = o.optString("satz").trim()
+            if (satz.isNotBlank()) p.edit().putString("music_genres", satz)
+                .putString("music_genres_json", (o.optJSONArray("genres") ?: JSONArray()).toString())
+                .putLong("music_genres_ts", System.currentTimeMillis()).apply()
         } catch (_: Exception) {}
+    }
+
+    /** Deine meistgehörten Songs: (Titel, Künstler, wie oft) – neuere zählen mehr. */
+    fun topTracks(ctx: Context, n: Int): List<Triple<String, String, Int>> {
+        val arr = load(ctx)
+        val now = System.currentTimeMillis()
+        val score = HashMap<String, Double>(); val count = HashMap<String, Int>(); val names = HashMap<String, Pair<String, String>>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            if (o.optString("k") != "music") continue
+            val t = o.optString("t").trim(); val a = o.optString("a").trim()
+            if (t.isBlank()) continue
+            val key = (t + "|" + a).lowercase()
+            score[key] = (score[key] ?: 0.0) + Math.exp(-(now - o.optLong("ts")) / 86_400_000.0 / 7.0)
+            count[key] = (count[key] ?: 0) + 1
+            names[key] = t to a
+        }
+        return score.entries.sortedByDescending { it.value }.take(n).map { Triple(names[it.key]!!.first, names[it.key]!!.second, count[it.key] ?: 0) }
+    }
+
+    /** Neue Videos als Daten für die Karte (Titel, Kanal, Vorschaubild, Link für die YouTube-App). */
+    fun newVideosData(ctx: Context, days: Int): List<JSONObject> {
+        val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        val cutoff = System.currentTimeMillis() - days * 86_400_000L
+        val out = mutableListOf<Pair<Long, JSONObject>>()
+        for ((name, _) in top(ctx, "video", 8)) {
+            val id = channelId(ctx, name) ?: continue
+            try {
+                val xml = get("https://www.youtube.com/feeds/videos.xml?channel_id=$id")
+                for (m in Regex("<entry>(.*?)</entry>", RegexOption.DOT_MATCHES_ALL).findAll(xml).take(3)) {
+                    val e = m.groupValues[1]
+                    val vid = Regex("<yt:videoId>(.*?)</yt:videoId>").find(e)?.groupValues?.get(1) ?: continue
+                    val title = (Regex("<title>(.*?)</title>").find(e)?.groupValues?.get(1) ?: "")
+                        .replace("&amp;", "&").replace("&quot;", "\"").replace("&#39;", "'")
+                    val ts = try { iso.parse((Regex("<published>(.*?)</published>").find(e)?.groupValues?.get(1) ?: "").take(19))?.time ?: 0L } catch (_: Exception) { 0L }
+                    if (ts < cutoff) continue
+                    val ago = ((System.currentTimeMillis() - ts) / 86_400_000L).toInt()
+                    out.add(ts to JSONObject().put("title", title).put("channel", name)
+                        .put("thumb", "https://i.ytimg.com/vi/$vid/mqdefault.jpg")
+                        .put("url", "https://www.youtube.com/watch?v=$vid")
+                        .put("ago", if (ago == 0) "heute" else if (ago == 1) "gestern" else "vor $ago Tagen"))
+                }
+            } catch (_: Exception) {}
+        }
+        return out.sortedByDescending { it.first }.map { it.second }
     }
 
     // --- Neue Videos von den Kanälen, die du viel schaust -------------------------------------------------

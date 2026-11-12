@@ -23,10 +23,11 @@ import kotlin.math.sin
  * Solange Jarvis zuhört oder spricht: ein schmaler Leuchtrand einmal ums ganze Handy (wie bei Siri/Gemini)
  * und unten ein gut sichtbares X zum Beenden. Der Rand lässt alle Berührungen durch, man kann normal weiterbedienen.
  */
-class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
+class Overlay(private val ctx: Context, private val onClose: () -> Unit, onTalk: () -> Unit = {}) {
     private val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var edge: EdgeView? = null
-    private var close: CloseView? = null
+    /** Das Jarvis-Fenster unten (Leiste + Karten), wie bei Gemini */
+    val panel = Panel(ctx, onClose, onTalk)
     private val dp = ctx.resources.displayMetrics.density
     var level = 0f
     var state = "listening"
@@ -35,7 +36,7 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
 
     // Lautstärke der Stimme (vom Mikrofon) lässt den Rand mitatmen
     private val busListener: (String, org.json.JSONObject) -> Unit = { type, data ->
-        if (type == "level") level = data.optDouble("value", 0.0).toFloat().coerceIn(0f, 1f)
+        if (type == "level") { level = data.optDouble("value", 0.0).toFloat().coerceIn(0f, 1f); panel.level(level) }
     }
 
     private fun type() = if (Build.VERSION.SDK_INT >= 26) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -45,14 +46,33 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
     @Volatile var appVisible = false
     private var visible = false
 
+    /** Zustand (listening, thinking, speaking …) an Rand und Fenster weitergeben. */
+    fun setState(st: String) {
+        state = st
+        if (st == "ended" || st == "idle") { hide(); return }
+        show()
+        panel.state(st)
+    }
+
+    /** Eine Karte mit Ergebnis zeigen (nur außerhalb der Jarvis-App). */
+    fun card(data: org.json.JSONObject) {
+        if (!canShow() || appVisible) return
+        panel.card(data)
+    }
+
+    fun setAppVisible(on: Boolean) {
+        appVisible = on
+        if (on) { hideEdge(); panel.hide() }
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
         if (!canShow() || appVisible) { hide(); return }
+        panel.show()
         if (visible) return
         visible = true
         Bus.add(busListener)
         edge?.let { it.restart(); it.visibility = View.VISIBLE }
-        close?.let { it.restart(); it.visibility = View.VISIBLE }
         if (edge == null) {
             val v = EdgeView(ctx)
             val lp = WindowManager.LayoutParams(
@@ -67,35 +87,20 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
                 lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             try { wm.addView(v, lp); edge = v } catch (_: Exception) {}
         }
-        if (close == null) {
-            val size = (dp * 58).toInt()
-            val v = CloseView(ctx)
-            val lp = WindowManager.LayoutParams(size, size, type(),
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT)
-            lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
-            lp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            lp.y = (dp * 96).toInt()  // über der Navigationsleiste
-            v.setOnTouchListener { view, e ->
-                when (e.action) {
-                    MotionEvent.ACTION_DOWN -> { view.scaleX = 0.88f; view.scaleY = 0.88f }
-                    MotionEvent.ACTION_UP -> { view.scaleX = 1f; view.scaleY = 1f; onClose() }
-                    MotionEvent.ACTION_CANCEL -> { view.scaleX = 1f; view.scaleY = 1f }
-                }
-                true
-            }
-            try { wm.addView(v, lp); close = v } catch (_: Exception) {}
-        }
     }
 
     /** Ausblenden: die Fenster bleiben bestehen (nur unsichtbar), dadurch erscheint der Rand beim nächsten Mal sofort. */
     fun hide() {
+        hideEdge()
+        panel.state("ended")   // Leiste/Karte bleibt noch kurz stehen und blendet sich dann aus
+    }
+
+    private fun hideEdge() {
         if (!visible) return
         visible = false
         watching = false   // Farben nicht mehr abfragen, solange nichts zu sehen ist (spart Akku)
         Bus.remove(busListener)
         edge?.visibility = View.GONE
-        close?.visibility = View.GONE
     }
 
     /** Ganz entfernen (Dienst wird beendet). */
@@ -103,9 +108,8 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         hide()
         watching = false
         edge?.let { try { wm.removeView(it) } catch (_: Exception) {} }
-        close?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         edge = null
-        close = null
+        panel.destroy()
     }
 
     // --- Farben passend zum Bildschirm (Hintergrundbild oder vordere App), weich überblendet ---------------
@@ -118,7 +122,10 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         watching = true
         Thread({
             while (watching) {
-                try { target = ScreenColors.current(ctx) } catch (_: Exception) {}
+                try {
+                    val t = ScreenColors.current(ctx)
+                    if (!t.contentEquals(target)) { target = t; panel.colors(t) }
+                } catch (_: Exception) {}
                 try { Thread.sleep(1200) } catch (_: InterruptedException) { break }
             }
         }, "jarvis-farben").start()
@@ -146,6 +153,8 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
         private var shown = 0f
         private var lvl = 0f
         private var radius = -1f
+        private var dimA = 0f
+        private val dim = Paint()
 
         fun restart() { shown = 0f; startWatching(); postInvalidateOnAnimation() }
 
@@ -170,6 +179,12 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
             shown = minOf(1f, shown + 0.16f)  // schnell, aber weich einblenden (~0,1 s)
             lvl += (level - lvl) * 0.3f
             val pal = blend()
+            dimA += ((if (panel.cardOpen) 1f else 0f) - dimA) * 0.12f
+            if (dimA > 0.01f) {   // wie bei Gemini: oben leicht abdunkeln, solange eine Karte offen ist
+                dim.shader = android.graphics.LinearGradient(0f, 0f, 0f, height * 0.75f,
+                    Color.argb((150 * dimA).toInt(), 0, 0, 0), Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
+                canvas.drawRect(0f, 0f, width.toFloat(), height * 0.75f, dim)
+            }
             val speed = when (state) { "thinking" -> 3.0f; "speaking" -> 1.3f; else -> 0.7f }
             val w = width.toFloat(); val h = height.toFloat()
             val breathe = 0.5f + 0.5f * sin(t * 2.4f)
@@ -207,52 +222,6 @@ class Overlay(private val ctx: Context, private val onClose: () -> Unit) {
             comet.strokeWidth = thick * 1.5f
             comet.alpha = (shown * 255).toInt()
             canvas.drawRoundRect(rect, r, r, comet)
-            postInvalidateOnAnimation()
-        }
-    }
-
-    /** Rundes X zum Beenden: Ring in den Bildschirmfarben dreht sich, sanftes Pulsieren. */
-    inner class CloseView(c: Context) : View(c) {
-        private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
-        private val m = Matrix()
-        private var t = 0f
-        private var shown = 0f
-
-        fun restart() { shown = 0f; postInvalidateOnAnimation() }
-
-        override fun onDraw(canvas: Canvas) {
-            if (visibility != VISIBLE) return
-            t += 0.016f
-            shown = minOf(1f, shown + 0.14f)
-            val w = width.toFloat(); val cx = w / 2; val cy = height / 2f
-            val pulse = 0.5f + 0.5f * sin(t * 3f)
-            val r = w * 0.40f * (0.92f + 0.08f * shown)
-            val pal = cur
-            // Schein
-            p.style = Paint.Style.FILL
-            p.color = pal[0]; p.alpha = (shown * (40 + 40 * pulse)).toInt()
-            canvas.drawCircle(cx, cy, r * (1.08f + 0.05f * pulse), p)
-            // dunkler Knopf
-            p.color = Color.argb((235 * shown).toInt(), 12, 10, 8)
-            canvas.drawCircle(cx, cy, r, p)
-            // drehender Farbring
-            val sg = SweepGradient(cx, cy, intArrayOf(pal[0], pal[1], pal[2], pal[3], pal[0]), null)
-            m.setRotate((t * 160f) % 360f, cx, cy)
-            sg.setLocalMatrix(m)
-            ring.shader = sg
-            ring.strokeWidth = dp * 2.6f
-            ring.alpha = (shown * 255).toInt()
-            canvas.drawCircle(cx, cy, r, ring)
-            // X
-            p.style = Paint.Style.STROKE
-            p.strokeWidth = dp * 3.2f
-            p.strokeCap = Paint.Cap.ROUND
-            p.color = Color.WHITE
-            p.alpha = (shown * 255).toInt()
-            val k = r * 0.38f * (0.96f + 0.04f * pulse)
-            canvas.drawLine(cx - k, cy - k, cx + k, cy + k, p)
-            canvas.drawLine(cx + k, cy - k, cx - k, cy + k, p)
             postInvalidateOnAnimation()
         }
     }

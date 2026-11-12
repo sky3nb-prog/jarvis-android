@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  :root { --gold: #ffb446; --gold-l: #ffd68c; --bg: #0a0a0e; --line: #2a2a33; --txt: #f2f2f6; --dim: #a0a5b4;
+          --c0: #ffb03c; --c1: #3cc8ff; --c2: #ff7a3c; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: transparent; overflow: hidden; font-family: "Roboto", "Segoe UI", sans-serif; color: var(--txt);
+               -webkit-font-smoothing: antialiased; user-select: none; }
+  #wrap { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 14px 14px; }
+
+  /* --- Karte ------------------------------------------------------------------------------- */
+  #cardbox { position: relative; transform-origin: 50% 100%; will-change: transform, opacity;
+             transition: transform .42s cubic-bezier(.2,.9,.25,1.08), opacity .28s ease; }
+  #cardbox.hidden { transform: translateY(40px) scale(.96); opacity: 0; pointer-events: none; }
+  #mini { position: absolute; right: 10px; top: -44px; height: 32px; padding: 0 14px 0 12px; border-radius: 16px;
+          background: rgba(10,10,14,.94); display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13.5px; }
+  #mini svg { width: 13px; height: 13px; }
+  .card { background: var(--bg); border-radius: 28px; padding: 26px 20px 18px; position: relative; overflow: hidden;
+          max-height: 62vh; box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+  .card::before { content: ""; position: absolute; left: 34px; top: 0; width: 56px; height: 2.5px; border-radius: 2px;
+                  background: linear-gradient(90deg, var(--c0), var(--c1)); }
+  .card .grab { position: absolute; left: 50%; top: 9px; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: #3a3a44; }
+  .scroll { max-height: calc(62vh - 44px); overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .lead { font-size: 16.5px; font-weight: 700; line-height: 1.32; margin-bottom: 12px; }
+  .text { font-size: 15px; line-height: 1.45; color: #e8e8ee; white-space: pre-wrap; }
+  .sec { color: var(--gold); font-size: 11.5px; font-weight: 800; letter-spacing: .6px; margin: 16px 0 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 7px 13px; border-radius: 15px; background: #1c1c22; border: 1px solid #3a3a46; font-size: 13px; color: #d6d6de; }
+  .chip.on { background: #3a2608; border-color: var(--gold); color: var(--gold-l); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 7px 0; border-radius: 12px; transition: background .15s; }
+  .row:active { background: #17171d; }
+  .cover { width: 46px; height: 46px; border-radius: 9px; flex: none; background: #222 center/cover no-repeat; }
+  .thumb { width: 124px; height: 70px; border-radius: 10px; flex: none; background: #222 center/cover no-repeat; position: relative; }
+  .thumb::after { content: ""; position: absolute; inset: 0; margin: auto; width: 0; height: 0; border-left: 14px solid #fff;
+                  border-top: 9px solid transparent; border-bottom: 9px solid transparent; opacity: .9; }
+  .meta { flex: 1; min-width: 0; }
+  .t1 { font-size: 14.5px; font-weight: 700; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .t2 { font-size: 12.5px; color: var(--dim); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t2 b { color: var(--gold); font-weight: 700; }
+  .n { color: #8f93a3; font-size: 12.5px; }
+  .play { width: 32px; height: 32px; border-radius: 50%; background: var(--gold); flex: none; position: relative; }
+  .play::after { content: ""; position: absolute; left: 12px; top: 9px; border-left: 11px solid #1a1104;
+                 border-top: 7px solid transparent; border-bottom: 7px solid transparent; }
+  .btns { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .btn { padding: 9px 15px; border-radius: 17px; background: #1c1c22; border: 1px solid #3a3a46; font-size: 13.5px; font-weight: 700; }
+  .btn.gold { background: #3a2608; border-color: var(--gold); color: var(--gold-l); }
+  .src { font-size: 12.5px; }
+  .fade-in { animation: fin .35s ease both; }
+  .fade-in:nth-child(2) { animation-delay: .04s } .fade-in:nth-child(3) { animation-delay: .08s }
+  .fade-in:nth-child(4) { animation-delay: .12s } .fade-in:nth-child(5) { animation-delay: .16s }
+  @keyframes fin { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+
+  /* --- Leiste unten ------------------------------------------------------------------------- */
+  #pillwrap { position: relative; margin-top: 44px; will-change: transform, opacity;
+              transition: transform .38s cubic-bezier(.2,.9,.25,1.1), opacity .25s; }
+  #pillwrap.hidden { transform: translateY(90px); opacity: 0; }
+  #glow { position: absolute; left: 6%; right: 6%; bottom: -16px; height: 48px; border-radius: 50%; filter: blur(22px);
+          background: linear-gradient(90deg, var(--c0), var(--c1), var(--c2)); opacity: 0; transition: opacity .35s;
+          background-size: 200% 100%; animation: flow 2.4s linear infinite; }
+  #pillwrap.busy #glow, #pillwrap.listen #glow { opacity: .85; }
+  @keyframes flow { from { background-position: 0% 0 } to { background-position: 200% 0 } }
+  #pill { position: relative; height: 60px; border-radius: 30px; background: rgba(10,10,14,.97); display: flex; align-items: center;
+          padding: 0 9px 0 6px; gap: 6px; overflow: hidden; }
+  #pill::after { content: ""; position: absolute; inset: 0; border-radius: 30px; padding: 1.2px; pointer-events: none;
+                 background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); background-size: 220% 100%;
+                 -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+                 opacity: 0; transition: opacity .3s; animation: flow 1.6s linear infinite; }
+  #pillwrap.busy #pill::after { opacity: 1; }
+  .ib { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; }
+  .ib:active { transform: scale(.9); }
+  .ib svg { width: 22px; height: 22px; }
+  #ptext { flex: 1; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 4px; }
+  #wave { flex: 1; height: 34px; display: none; align-items: center; justify-content: center; gap: 4px; }
+  #wave i { display: block; width: 3.4px; height: 6px; border-radius: 2px; background: #ececf2; will-change: transform; transition: transform .08s linear; }
+  #pillwrap.listen #wave { display: flex } #pillwrap.listen #ptext { display: none }
+  #mic { background: transparent; }
+  #pillwrap.listen #mic, #pillwrap.busy #mic { background: var(--gold); }
+  #pillwrap.listen #mic svg path, #pillwrap.busy #mic svg rect { stroke: #1a1104; }
+  .shimmer { background: linear-gradient(90deg, #8a8a96 0%, #fff 45%, #8a8a96 90%); background-size: 200% 100%;
+             -webkit-background-clip: text; background-clip: text; color: transparent; animation: flow 1.8s linear infinite; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="cardbox" class="hidden">
+    <div id="mini" onclick="minimize()"><svg viewBox="0 0 14 14" fill="none" stroke="#e8e8ee" stroke-width="1.8" stroke-linecap="round"><path d="M12 2L2 12M2 6v6h6"/></svg>Minimieren</div>
+    <div class="card"><div class="grab"></div><div class="scroll" id="content"></div></div>
+  </div>
+  <div id="pillwrap" class="hidden">
+    <div id="glow"></div>
+    <div id="pill">
+      <div class="ib" onclick="A.close()"><svg viewBox="0 0 24 24" fill="none" stroke="#e8e8ee" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      <div id="ptext">Frag Jarvis</div>
+      <div id="wave"></div>
+      <div class="ib" id="mic" onclick="A.talk()">
+        <svg id="micicon" viewBox="0 0 24 24" fill="none" stroke="#e8e8ee" stroke-width="2" stroke-linecap="round"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const A = window.Panel || { close(){}, talk(){}, open(){}, size(){}, mini(){} };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const N = 15; for (let i = 0; i < N; i++) $("wave").appendChild(document.createElement("i"));
+let level = 0, shown = 0, st = "ended", minimized = false, cardOn = false;
+
+// Wellenform: 60 Bilder pro Sekunde, nur "transform" (läuft auf der Grafikkarte)
+const bars = [...$("wave").children];
+function frame(t) {
+  shown += (level - shown) * 0.25;
+  if (st === "listening") bars.forEach((b, i) => {
+    const k = 0.35 + 0.65 * Math.abs(Math.sin(t / 260 + i * 0.7)) * (0.25 + shown * 1.4);
+    b.style.transform = "scaleY(" + (0.6 + k * 4.2).toFixed(3) + ")";
+  });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function reportSize() {
+  const r = $("wrap").getBoundingClientRect();
+  A.size(Math.ceil(window.innerHeight - r.top + 2));
+}
+new ResizeObserver(reportSize).observe($("wrap"));
+
+function setState(s, text) {
+  st = s;
+  const pw = $("pillwrap");
+  pw.classList.remove("hidden", "listen", "busy");
+  if (s === "listening") pw.classList.add("listen");
+  else if (s === "thinking") { pw.classList.add("busy"); setText(text || "Einen Moment …", true); }
+  else if (s === "searching") { pw.classList.add("busy"); setText(text || "Jarvis sucht im Web …", true); }
+  else if (s === "speaking") setText("Frag Jarvis", false);
+  else setText("Frag Jarvis", false);
+  $("micicon").innerHTML = (s === "thinking" || s === "searching")
+    ? '<rect x="7" y="7" width="10" height="10" rx="2.5" stroke-width="2.2"/>'
+    : '<path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>';
+  setTimeout(reportSize, 20);
+}
+function setText(t, shim) { const p = $("ptext"); p.textContent = t; p.className = shim ? "shimmer" : ""; }
+
+function minimize() { minimized = true; $("cardbox").classList.add("hidden"); A.mini(true); setTimeout(reportSize, 450); }
+function showCard(html) {
+  minimized = false; cardOn = true;
+  $("content").innerHTML = html;
+  $("content").scrollTop = 0;
+  $("cardbox").classList.remove("hidden");
+  A.mini(false);
+  reportSize();
+}
+function hideAll() { $("cardbox").classList.add("hidden"); $("pillwrap").classList.add("hidden"); cardOn = false; setTimeout(reportSize, 450); }
+
+function openLink(el) { A.open(el.dataset.url || "", el.dataset.app || ""); }
+document.addEventListener("click", (e) => { const el = e.target.closest("[data-url]"); if (el) openLink(el); });
+
+// --- Karten -------------------------------------------------------------------------------------
+function cardText(d) {
+  return '<div class="text fade-in">' + esc(d.text) + "</div>";
+}
+function cardMusic(d) {
+  let h = '<div class="lead fade-in">' + esc(d.say || "") + "</div>";
+  if (d.genres && d.genres.length) h += '<div class="chips fade-in">' + d.genres.map((g, i) =>
+    '<div class="chip' + (i === 0 ? " on" : "") + '">' + esc(g.name) + (g.pct ? " " + g.pct + " %" : "") + "</div>").join("") + "</div>";
+  if (d.top && d.top.length) {
+    h += '<div class="sec">DEINE TOP-SONGS GERADE</div>';
+    h += d.top.map((s) => '<div class="row fade-in" data-url="' + esc(s.url) + '" data-app="deezer"><div class="cover" style="background-image:url(\'' +
+      esc(s.cover) + '\')"></div><div class="meta"><div class="t1">' + esc(s.title) + '</div><div class="t2">' + esc(s.artist) +
+      '</div></div><div class="n">' + esc(s.count ? s.count + "×" : "") + "</div></div>").join("");
+  }
+  if (d.suggest && d.suggest.length) {
+    h += '<div class="sec">PASST DAZU – NEU FÜR DICH</div>';
+    h += d.suggest.map((s) => '<div class="row fade-in" data-url="' + esc(s.url) + '" data-app="deezer"><div class="cover" style="background-image:url(\'' +
+      esc(s.cover) + '\')"></div><div class="meta"><div class="t1">' + esc(s.title) + '</div><div class="t2">' + esc(s.artist) +
+      (s.why ? " · " + esc(s.why) : "") + '</div></div><div class="play"></div></div>').join("");
+  }
+  if (d.play) h += '<div class="btns"><div class="btn gold" data-url="' + esc(d.play.url) + '" data-app="deezer">▶  ' + esc(d.play.label) + "</div></div>";
+  return h;
+}
+function cardYoutube(d) {
+  let h = '<div class="lead fade-in">' + esc(d.say || "Neu von den Kanälen, die du gerade viel schaust:") + "</div>";
+  h += (d.videos || []).map((v) => '<div class="row fade-in" data-url="' + esc(v.url) + '" data-app="youtube"><div class="thumb" style="background-image:url(\'' +
+    esc(v.thumb) + '\')"></div><div class="meta"><div class="t1">' + esc(v.title) + '</div><div class="t2"><b>' + esc(v.channel) +
+    '</b></div><div class="t2">' + esc(v.ago || "") + "</div></div></div>").join("");
+  if (d.more && d.more.length) h += '<div class="sec">KÖNNTE DIR AUCH GEFALLEN</div><div class="chips">' + d.more.map((c) =>
+    '<div class="chip" data-url="' + esc(c.url) + '" data-app="youtube">' + esc(c.name) + "</div>").join("") + "</div>";
+  return h;
+}
+function cardWeb(d) {
+  let h = '<div class="text fade-in">' + esc(d.text) + "</div>";
+  if (d.sources && d.sources.length) h += '<div class="sec">QUELLEN</div><div class="chips">' + d.sources.map((s) =>
+    '<div class="chip src" data-url="' + esc(s.url) + '">' + esc(s.name) + "</div>").join("") + "</div>";
+  return h;
+}
+
+window.J = {
+  ev(type, d) {
+    if (type === "state") setState(d.state, d.text);
+    else if (type === "level") level = d.value || 0;
+    else if (type === "colors") { const r = document.documentElement.style;
+      ["--c0", "--c1", "--c2"].forEach((k, i) => d.c[i] && r.setProperty(k, d.c[i])); }
+    else if (type === "card") {
+      const k = d.kind;
+      showCard(k === "music" ? cardMusic(d) : k === "youtube" ? cardYoutube(d) : k === "web" ? cardWeb(d) : cardText(d));
+    }
+    else if (type === "hide") hideAll();
+  },
+};
+A.ready && A.ready();
+</script>
+</body>
+</html>
