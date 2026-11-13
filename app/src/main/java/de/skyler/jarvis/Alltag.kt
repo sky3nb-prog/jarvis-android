@@ -365,7 +365,7 @@ object Alltag {
             val out = Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content",
                 "Schreib eine kurze SMS (1 bis 2 Sätze). Sie beginnt genau mit \"Hier ist Jarvis.\" und sagt in der dritten Person: " +
                     "Skyler ist um $atS Uhr da, er ist um $startS Uhr losgefahren, man kann schon runterkommen. " +
-                    "Formuliere es jedes Mal etwas anders, freundlich und locker, ohne Emojis. Nur der SMS-Text.")))
+                    "Formuliere es jedes Mal etwas anders, freundlich und locker, ohne Emojis. Nur der SMS-Text."))
                 .put(JSONObject().put("role", "user").put("content", "Empfänger: $who")), 150).trim().trim('"')
             if (out.startsWith("Hier ist Jarvis") && out.length < 300) text = out
         } catch (_: Exception) {}
