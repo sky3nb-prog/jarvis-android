@@ -55,6 +55,10 @@ object Chats {
     private fun matches(list: List<String>, vararg names: String) =
         names.map { norm(it) }.filter { it.isNotBlank() }.any { n -> list.any { it == n || n.startsWith("$it ") } }
 
+    private val SYSTEM = Regex("Nachrichtenverlauf|message history|Ende-zu-Ende|end-to-end|hat dich hinzugefügt|added you|" +
+        "hat die Gruppe|changed the group|Diese Nachricht wurde gelöscht|This message was deleted|verpasster (?:Sprach|Video)?anruf|" +
+        "missed (?:voice |video )?call|^\\d+ neue Nachrichten|new messages$", RegexOption.IGNORE_CASE)
+
     private fun isVoice(t: String) = t.contains("🎤") || Regex("^(?:sprachnachricht|voice message|audio)\\b", RegexOption.IGNORE_CASE).containsMatchIn(t.trim())
 
     /** Aus MediaWatch.onNotificationPosted. */
@@ -63,8 +67,9 @@ object Chats {
         val n = sbn.notification ?: return
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
         val ex = n.extras ?: return
-        val chat = (ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE) ?: ex.getCharSequence(Notification.EXTRA_TITLE))?.toString()
+        val chat0 = (ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE) ?: ex.getCharSequence(Notification.EXTRA_TITLE))?.toString()
             ?.replace(Regex("\\s*\\(\\d+ (?:Nachrichten|messages)\\)\\s*$"), "")?.replace(Regex(":\\s*$"), "")?.trim() ?: return
+        val chat = chat0.replace(Regex("[\u200e\u200f\u202a-\u202e]"), "").trim()
         if (chat.isBlank() || chat.equals("WhatsApp", true)) return
         val group = ex.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false)
 
@@ -86,7 +91,9 @@ object Chats {
         } else if (group && text.contains(": ")) {
             sender = text.substringBefore(": "); text = text.substringAfter(": ")
         }
-        if (text.isBlank()) return
+        val inv = Regex("[\u200e\u200f\u202a-\u202e]")
+        text = text.replace(inv, "").trim(); sender = sender.replace(inv, "").trim()
+        if (text.isBlank() || SYSTEM.containsMatchIn(text)) return   // WhatsApp-Hinweise, keine echte Nachricht
 
         // Antworten-Knopf merken (auch für Chats, die nicht angesagt werden – "antworte Mama" soll gehen)
         n.actions?.firstOrNull { a -> a.remoteInputs?.any { it.allowFreeFormInput } == true }?.let {
