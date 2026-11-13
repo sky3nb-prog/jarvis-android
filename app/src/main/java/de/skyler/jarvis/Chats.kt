@@ -23,6 +23,7 @@ import java.io.File
  */
 object Chats {
     private const val TAG = "JarvisChats"
+    const val DEFAULT = "Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis"
     private val PKGS = setOf("com.whatsapp", "com.whatsapp.w4b")
 
     private class Reply(val action: Notification.Action, val at: Long)
@@ -34,7 +35,7 @@ object Chats {
     fun norm(s: String) = s.lowercase().replace(Regex("[^\\p{L}\\p{N} ]"), " ").replace(Regex("\\s+"), " ").trim()
 
     fun important(ctx: Context): List<String> =
-        (prefs(ctx).getString("wichtig", "") ?: "").split(',', ';', '\n').map { norm(it) }.filter { it.isNotBlank() }
+        (prefs(ctx).getString("wichtig", Chats.DEFAULT) ?: "").split(',', ';', '\n').map { norm(it) }.filter { it.isNotBlank() }
 
     private fun watched(ctx: Context): List<String> {
         val o = try { JSONObject(prefs(ctx).getString("watch", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }

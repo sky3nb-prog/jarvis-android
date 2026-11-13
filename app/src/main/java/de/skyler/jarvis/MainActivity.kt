@@ -265,7 +265,7 @@ class MainActivity : ComponentActivity() {
             .put("use_location", prefs.getBoolean("use_location", false))
             .put("here", Here.name(this@MainActivity))
             .put("media_ok", Interests.hasAccess(this@MainActivity))
-            .put("wichtig", prefs.getString("wichtig", "")).put("absage", prefs.getString("absage", ""))
+            .put("wichtig", prefs.getString("wichtig", Chats.DEFAULT)).put("absage", prefs.getString("absage", ""))
             .put("butler", prefs.getBoolean("butler", true)).put("butler_ok", Butler.ready(this@MainActivity))
             .put("files_ok", Chats.filesOk())
             .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) put(k, prefs.getBoolean(k, true)) }

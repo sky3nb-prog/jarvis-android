@@ -144,7 +144,7 @@ object Link {
         set.put("city", Lage.city(ctx)).put("address", p.getString("address", "") ?: "").put("anrede", p.getString("anrede", "") ?: "")
             .put("lage_orte", p.getString("lage_orte", "Stuttgart") ?: "")
             .put("orte", p.getString("orte", "") ?: "").put("wege", p.getString("wege", "") ?: "").put("route_an", p.getString("route_an", "") ?: "")
-            .put("wichtig", p.getString("wichtig", "") ?: "").put("absage", p.getString("absage", "") ?: "")
+            .put("wichtig", p.getString("wichtig", Chats.DEFAULT) ?: "").put("absage", p.getString("absage", "") ?: "")
         (p.getString("assistant_name", "") ?: "").takeIf { it.isNotBlank() }?.let { set.put("assistant_name", it) }
         set.put("themen_selbst", Themen.manual(ctx).joinToString(", "))
         for (k in BOOL_KEYS) set.put(k, p.getBoolean(k, true))
