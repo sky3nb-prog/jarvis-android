@@ -280,6 +280,13 @@ object Alltag {
         try { leaveInTime(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "losfahren: $e") }
         try { routines(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "feste wege: $e") }
         try { alarms(ctx, s) } catch (_: Exception) {}
+        try {   // Aufsteh-Zeit erreicht und Handy ist an: Tages-Update (auch ohne neues Entsperren)
+            val up = Wecker.upToday(ctx); val now = System.currentTimeMillis()
+            val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            if (up != null && now - up in 0..15 * 60_000L && pm.isInteractive && !done(s, "morgen|${today()}") && on(ctx, "brief_morgen")) {
+                save(ctx, s); onUnlock(ctx, say); s.put("done", state(ctx).optJSONObject("done") ?: JSONObject())
+            }
+        } catch (_: Exception) {}
         try { evening(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "abend: $e") }
         try { weekly(ctx, s) } catch (e: Exception) { Log.w(TAG, "rückblick: $e") }
         save(ctx, s)
@@ -834,9 +841,12 @@ object Alltag {
         if (!on(ctx, "brief_morgen")) return
         val s = state(ctx)
         alarms(ctx, s)
-        val last = s.optLong("alarm_last"); val now = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
         val key = "morgen|${today()}"
-        if (last <= 0 || now - last !in 0..3 * 3_600_000L || done(s, key)) return
+        // Aufsteh-Zeit von Jarvis' Weckern hat Vorrang: erst ab dann (frühere Wecker = nur Vorwarnung)
+        val up = Wecker.upToday(ctx)
+        val last = up ?: s.optLong("alarm_last")
+        if (last <= 0 || now - last !in -2 * 60_000L..3 * 3_600_000L || done(s, key)) return
         mark(s, key); save(ctx, s)
         Thread({
             val (t, fid) = dayBrief(ctx, 0) ?: return@Thread

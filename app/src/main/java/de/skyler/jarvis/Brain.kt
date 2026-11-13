@@ -55,7 +55,8 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"media","key":"<playpause|play|pause|next|previous>"}
 {"action":"volume","what":"<up|down|mute|unmute|set>","value":<0-100 bei set>}   (Lautstärke von Musik und Videos)
 {"action":"jarvis_volume","what":"<up|down|max|set>","value":<10-100 bei set>}   (deine eigene Sprechlautstärke, z. B. "sprich lauter", "du bist zu laut")
-{"action":"alarm","hour":<0-23>,"minute":<0-59>,"label":"<optional>"}
+{"action":"wecker","zeiten":["HH:mm", …],"aufstehen":"HH:mm oder leer","tage":"" | "werktags" | "täglich" | "wochenende","aus":false}   (Wecker stellen, auch mehrere: "Wecker um 6", "ich will um 7:30 aufstehen, Wecker um 6:45, 6:50, 7 und 7:05", "werktags Wecker um 6:30"; aus true = Wecker ausschalten, zeiten leer = alle von Jarvis)
+{"action":"wecker_zeigen"}   ("zeig meine Wecker")
 {"action":"timer","seconds":<Sekunden>,"label":"<optional>"}
 {"action":"calendar_add","title":"<Titel>","start":"<yyyy-MM-ddTHH:mm oder yyyy-MM-dd für ganztägig>","minutes":<Dauer, Standard 60>,"location":"<optional>","remind":<Minuten vorher erinnern, Standard 30>}   (trägt direkt in den Kalender ein; auch für "erinnere mich morgen um 9 an ..." mit remind 0)
 {"action":"calendar_list","from":"<yyyy-MM-dd>","days":<Anzahl Tage>}   (Termine nachschauen, wenn die Frage über heute und morgen hinausgeht)

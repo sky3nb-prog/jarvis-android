@@ -25,7 +25,13 @@ class Actions(private val ctx: Context) {
             "open_app" -> openApp(a.optString("name"))
             "media" -> media(a.optString("key"))
             "volume" -> volume(a.optString("what"), a.optInt("value", -1))
-            "alarm" -> alarm(a.optInt("hour", -1), a.optInt("minute", 0), a.optString("label"))
+            "alarm" -> if (a.optInt("hour", -1) in 0..23) Wecker.set(ctx, listOf("%d:%02d".format(a.optInt("hour"), a.optInt("minute", 0)))) else "Für wann soll der Wecker sein?"
+            "wecker" -> {
+                val z = a.optJSONArray("zeiten"); val list = (0 until (z?.length() ?: 0)).map { z!!.optString(it) }.filter { it.isNotBlank() && it != "null" }
+                if (a.optBoolean("aus")) Wecker.off(ctx, list)
+                else Wecker.set(ctx, list, a.optString("aufstehen").let { if (it == "null") "" else it }, a.optString("tage").let { if (it == "null") "" else it })
+            }
+            "wecker_zeigen" -> Wecker.openApp(ctx)
             "timer" -> timer(a.optInt("seconds", 0), a.optString("label"))
             "navigate" -> navigate(a.optString("to"), a.optString("mode", "d"))
             "call" -> call(a.optString("who"))
