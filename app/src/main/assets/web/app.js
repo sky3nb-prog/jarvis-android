@@ -215,7 +215,7 @@
   }));
   // Neue Einstellungen: kleiner roter Punkt (am Zahnrad und am Bereich), bis du den Bereich einmal geöffnet hast.
   // Bei jedem Update ergänzen: Bereich -> Kennung des Updates
-  const NEW_TABS = { wege: "wege1", allg: "schau1" };
+  const NEW_TABS = { wege: "wege1", allg: "schau1", leute: "leute1" };
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };
   const seenAdd = (k) => { try { const s = seenGet(); if (!s.includes(k)) { s.push(k); localStorage.setItem("seen_new", JSON.stringify(s)); } } catch (e) {} };
   function newDots() {
@@ -276,6 +276,8 @@
       sw("set-lorbit", c.lage_orbits !== false); sw("set-llabels", c.lage_labels !== false); sw("set-strand", c.strand !== false);
       perm("set-screen", c.screen_ok, "Einrichten");
       $("set-gstate").textContent = c.has_gemini ? "● gespeichert" : "";
+      $("set-wichtig").value = c.wichtig || ""; $("set-absage").value = c.absage || ""; sw("set-butler", c.butler !== false);
+      perm("set-butlerok", c.butler_ok); perm("set-files", c.files_ok); perm("set-media2", !!c.media_ok);
       perm("set-overlay", c.overlay); perm("set-usage", c.usage); perm("set-media", !!c.media_ok);
       $("set-mediastate").textContent = c.media || "";
       $("set-link").value = c.link_code || "";
@@ -295,6 +297,9 @@
   $("set-battery").addEventListener("click", () => A.askBattery());
   $("set-media").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-usage").addEventListener("click", () => { A.askUsage(); toast("Bei „Jarvis“ den Nutzungszugriff einschalten."); });
+  $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
+  $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
+  $("set-butlerok").addEventListener("click", () => A.askButler());
   $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));
   $("set-save").addEventListener("click", () => {
     A.setVoiceMode($("set-mode").value);
@@ -315,6 +320,7 @@
       calendar_id: parseInt($("set-cal").value || "-1", 10),
       gemini_key: $("set-gkey").value.trim(),
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
+      wichtig: $("set-wichtig").value.trim(), absage: $("set-absage").value.trim(), butler: sw("set-butler"),
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
     };

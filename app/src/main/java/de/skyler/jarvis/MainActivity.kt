@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
     private var pendingTalk = false
 
     private val perms = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        if (res.keys.any { it in Butler.PERMS } && JarvisService.running) JarvisService.start(this, JarvisService.ACTION_RELOAD)
         val mic = res[Manifest.permission.RECORD_AUDIO] ?: hasMic()
         if (!mic) send("error", JSONObject().put("text", "Ohne Mikrofon kann ich dich nicht hören."))
         else {
@@ -264,6 +265,9 @@ class MainActivity : ComponentActivity() {
             .put("use_location", prefs.getBoolean("use_location", false))
             .put("here", Here.name(this@MainActivity))
             .put("media_ok", Interests.hasAccess(this@MainActivity))
+            .put("wichtig", prefs.getString("wichtig", "")).put("absage", prefs.getString("absage", ""))
+            .put("butler", prefs.getBoolean("butler", true)).put("butler_ok", Butler.ready(this@MainActivity))
+            .put("files_ok", Chats.filesOk())
             .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) put(k, prefs.getBoolean(k, true)) }
             .toString()
 
@@ -287,6 +291,8 @@ class MainActivity : ComponentActivity() {
                 .apply { o.optString("gemini_key").trim().takeIf { it.isNotBlank() }?.let { putString("gemini_key", it) } }
                 .putString("orte", o.optString("orte").trim()).putString("wege", o.optString("wege").trim())
                 .putString("route_an", o.optString("route_an").trim())
+                .putString("wichtig", o.optString("wichtig").trim()).putString("absage", o.optString("absage").trim())
+                .putBoolean("butler", o.optBoolean("butler", true))
                 .putBoolean("use_location", o.optBoolean("use_location", false))
                 .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) putBoolean(k, o.optBoolean(k, true)) }
                 .apply()
@@ -328,6 +334,23 @@ class MainActivity : ComponentActivity() {
                 startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:$packageName")))
             } catch (_: Exception) {
                 try { startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)) } catch (_: Exception) {}
+            }
+        }
+
+        /** Anruf-Butler: Telefon, Anrufliste, Anrufe beenden, SMS. */
+        @JavascriptInterface
+        fun askButler() = runOnUiThread {
+            val missing = Butler.PERMS.filter { ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED }
+            if (missing.isNotEmpty()) perms.launch(missing.toTypedArray())
+        }
+
+        /** Sprachnachrichten: "Zugriff auf alle Dateien" (nur damit Jarvis die WhatsApp-Sprachnachrichten lesen kann). */
+        @JavascriptInterface
+        fun askFiles() = runOnUiThread {
+            if (android.os.Build.VERSION.SDK_INT >= 30) try {
+                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")))
+            } catch (_: Exception) {
+                try { startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) } catch (_: Exception) {}
             }
         }
 

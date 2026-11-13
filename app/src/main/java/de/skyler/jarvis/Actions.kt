@@ -30,7 +30,7 @@ class Actions(private val ctx: Context) {
             "navigate" -> navigate(a.optString("to"), a.optString("mode", "d"))
             "call" -> call(a.optString("who"))
             "pc" -> pc(a.optString("text"))
-            "whatsapp" -> whatsapp(a.optString("to"), a.optString("text"))
+            "whatsapp" -> whatsapp(a.optString("to"), a.optString("text"), a.optBoolean("jarvis"))
             "youtube" -> start(Intent(Intent.ACTION_SEARCH).setPackage("com.google.android.youtube")
                 .putExtra("query", a.optString("query")), "YouTube sucht nach ${a.optString("query")}.")
                 ?: url("https://www.youtube.com/results?search_query=" + Uri.encode(a.optString("query")))
@@ -191,7 +191,23 @@ class Actions(private val ctx: Context) {
         return start(i, "Ich rufe $who an.") ?: "Anrufen geht gerade nicht."
     }
 
-    private fun whatsapp(to: String, text: String): String {
+    /**
+     * Versandregeln: Antwort auf einen Chat mit offener Benachrichtigung -> über die Benachrichtigung (nichts geht auf).
+     * Sonst: PC läuft -> WhatsApp über den PC. Unterwegs -> SMS (Nummer aus den Kontakten).
+     * jarvis = "unter deinem Namen": beginnt mit "Hier ist Jarvis.", Antworten aus dem Chat werden angesagt.
+     */
+    private fun whatsapp(to: String, text0: String, jarvis: Boolean = false): String {
+        val text = if (jarvis) "Hier ist Jarvis. " + text0.replace(Regex("^hier ist jarvis[.,!]?\\s*", RegexOption.IGNORE_CASE), "") else text0
+        if (jarvis) Chats.watch(ctx, to, 24)
+        if (Chats.reply(ctx, to, to, text)) return "Geschickt an $to: $text"
+        try {
+            if (Link.paired(ctx) && Link.pcOnline(ctx)) {
+                val r = Link.command(ctx, JSONObject().put("type", "wa_send").put("to", to).put("text", text), 25_000)
+                if (r?.optBoolean("ok") == true) return "Geschickt an $to, über WhatsApp am PC."
+            }
+        } catch (_: Exception) {}
+        val sms = number(to)
+        if (sms != null && Butler.sms(ctx, sms, text)) return "Ich habe $to eine SMS geschickt: $text"
         val nr = number(to)?.let { normNumber(it) }
         val uri = if (nr != null) "https://wa.me/$nr?text=" + Uri.encode(text) else "https://wa.me/?text=" + Uri.encode(text)
         val i = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage("com.whatsapp")

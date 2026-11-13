@@ -130,7 +130,7 @@
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-allg">
         <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
@@ -209,6 +209,20 @@
         <div class="sec" style="--c:#3cc8ff"><h3>ROUTEN SCHICKEN</h3>
           <div class="f"><label>Google-Maps-Link per WhatsApp an (Name aus den Kontakten, leer = an niemanden)</label><input id="set-routean" type="text" placeholder="z. B. Thomas"></div>
           <div class="note">Am Handy öffnet sich WhatsApp mit fertiger Nachricht – du tippst nur auf Senden. Fragst du am PC, schickt der PC sie über WhatsApp am PC.</div>
+        </div>
+      </div>
+      <div class="spane" id="sp-leute">
+        <div class="sec" style="--c:#6effcd"><h3>WICHTIGE LEUTE</h3>
+          <div class="f"><label>Namen wie in WhatsApp, mit Komma getrennt</label><input id="set-wichtig" type="text" placeholder="Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis"></div>
+          <div class="note">Schreiben sie dir, sagt Jarvis es am PC an – auch mitten im Spiel – und fragt, ob du antworten willst. Die Antwort geht über die WhatsApp-Benachrichtigung, WhatsApp geht nicht auf. Gilt auch am PC.</div>
+          <div class="srow"><div>Benachrichtigungszugriff<small>Damit Jarvis die WhatsApp-Benachrichtigungen lesen kann</small></div><div class="sbtn" id="set-media2">Erlauben</div></div>
+          <div class="srow"><div>Sprachnachrichten<small>„Zugriff auf alle Dateien“, nur um die Sprachnachrichten aus dem WhatsApp-Ordner zu lesen</small></div><div class="sbtn" id="set-files">Erlauben</div></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>ANRUF-BUTLER</h3>
+          <div class="srow"><div>Anruf-Butler<small>„Nicht stören“ an: Anrufe aus deinen Kontakten wegdrücken und Bescheid geben. Sonst ein Knopf beim Klingeln. Unbekannte Nummern bleiben unberührt.</small></div><div class="sw" id="set-butler"></div></div>
+          <div class="f"><label>Absage-Text</label><input id="set-absage" type="text" placeholder="Kann gerade nicht, rufe später zurück."></div>
+          <div class="note">Läuft der PC, geht sie per WhatsApp am PC, sonst per SMS.</div>
+          <div class="srow"><div>Rechte für Anrufe und SMS</div><div class="sbtn" id="set-butlerok">Erlauben</div></div>
         </div>
       </div>
       <div class="spane" id="sp-anz">

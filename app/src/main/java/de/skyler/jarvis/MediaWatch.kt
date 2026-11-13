@@ -37,6 +37,10 @@ class MediaWatch : NotificationListenerService() {
         super.onListenerDisconnected()
     }
 
+    override fun onNotificationPosted(sbn: android.service.notification.StatusBarNotification?) {
+        if (sbn != null) try { Chats.onPosted(this, sbn) } catch (_: Exception) {}
+    }
+
     private fun attach(list: List<MediaController>) {
         for (c in list) {
             val key = c.sessionToken.toString()

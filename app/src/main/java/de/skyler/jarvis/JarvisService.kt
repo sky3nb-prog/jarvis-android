@@ -144,6 +144,7 @@ class JarvisService : Service() {
         alive = false
         running = false
         main.removeCallbacks(syncTask)
+        Butler.stop(this)
         endVolume()
         overlay?.destroy()
         Bus.remove(appListener)
@@ -154,6 +155,7 @@ class JarvisService : Service() {
     }
 
     private fun reload() {
+        main.post { Butler.start(this) }   // Anruf-Butler (braucht die Telefon-Rechte)
         words = Wake.words(this)
         level = Wake.level(this)
         val nm = getSystemService(NotificationManager::class.java)
@@ -507,6 +509,12 @@ class JarvisService : Service() {
                 Link.replyPc(this, id, true, r)
             }
             "status" -> worker.execute { Link.replyPc(this, id, true, "", PhoneCtl.status(this)) }
+            // Antwort auf eine angesagte WhatsApp-Nachricht: über die Benachrichtigung, WhatsApp geht nicht auf
+            "wa_reply" -> Thread {
+                val ok = Chats.reply(this, m.optString("key"), m.optString("chat"), m.optString("text"))
+                Link.replyPc(this, id, ok, if (ok) "Geschickt." else "Die Benachrichtigung ist schon weg.")
+            }.start()
+            "watch" -> Chats.watch(this, m.optString("name"), m.optInt("hours", 24))
             "ctl" -> Thread {
                 val r = try { PhoneCtl.ctl(this, m) } catch (e: Exception) { "Ging nicht: ${e.message ?: ""}" }
                 Thread.sleep(400)   // Lautstärke usw. nachziehen lassen, damit der Status stimmt

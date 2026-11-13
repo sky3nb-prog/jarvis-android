@@ -21,6 +21,15 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+    <!-- Anruf-Butler: wer anruft, wegdrücken, Absage per SMS -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <!-- Sprachnachrichten aus dem WhatsApp-Ordner lesen -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <!-- Android 11+: Spracherkennung und Sprachausgabe des Handys sichtbar machen -->
     <queries>
@@ -77,6 +86,7 @@
             </intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/screen_service" />
         </service>
+        <receiver android:name=".ButlerReceiver" android:exported="false" />
         <service
             android:name=".JarvisService"
             android:exported="false"

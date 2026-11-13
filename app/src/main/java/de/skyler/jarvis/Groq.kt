@@ -42,6 +42,25 @@ object Groq {
         return ""
     }
 
+    /** Sprachnachricht (WhatsApp .opus) -> Text. */
+    fun transcribeFile(key: String, f: java.io.File): String {
+        for (model in listOf("whisper-large-v3-turbo", "whisper-large-v3")) {
+            val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("model", model).addFormDataPart("language", "de").addFormDataPart("temperature", "0")
+                .addFormDataPart("response_format", "json")
+                .addFormDataPart("file", "sprachnachricht.ogg", f.readBytes().toRequestBody("audio/ogg".toMediaType()))
+                .build()
+            val req = Request.Builder().url("https://api.groq.com/openai/v1/audio/transcriptions")
+                .header("Authorization", "Bearer $key").post(body).build()
+            http.newCall(req).execute().use { r ->
+                val txt = r.body?.string() ?: ""
+                if (r.isSuccessful) return JSONObject(txt).optString("text").trim()
+                if (r.code != 404 && r.code != 400) throw RuntimeException("Groq-Spracherkennung ${r.code}")
+            }
+        }
+        return ""
+    }
+
     // Groq tauscht Modelle immer wieder aus: Liste einmal am Tag frisch holen, bekannte gute zuerst
     @Volatile private var live: List<String> = emptyList()
     @Volatile private var liveAt = 0L

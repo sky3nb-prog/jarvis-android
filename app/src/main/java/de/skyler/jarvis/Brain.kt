@@ -65,7 +65,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"call","who":"<Name aus den Kontakten oder Nummer>"}
 {"action":"screen","frage":"<was er wissen will>","geraet":"handy" | "pc"}   (wenn er sagt "schau mal hier", "was siehst du", "guck mal auf den Bildschirm", "was ist das hier"; "pc" nur wenn er den PC-Bildschirm meint)
 {"action":"pc","text":"<Befehl an den Jarvis am PC, so wie man ihn dort sagen würde>"}   (alles, was am PC passieren soll: "mach am PC Musik an", "sperr den PC", "schick mir das Lied vom PC aufs Handy" -> text "schick mir was ich gerade höre aufs handy")
-{"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>"}
+{"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>","jarvis":false}   (jarvis true, wenn er "unter deinem Namen", "als Jarvis", "von dir aus" sagt: dann schreibst DU über ihn in der dritten Person, z. B. "Skyler ist um 18 Uhr da", ohne "Hier ist Jarvis" – das kommt automatisch davor; auch für "antworte Mama …")
 {"action":"sms","to":"<Name>","text":"<Nachricht>"}
 {"action":"youtube","query":"<Suche>"}
 {"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut, plus passende neue Kanäle – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")

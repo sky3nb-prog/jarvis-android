@@ -127,7 +127,7 @@ object Link {
             when {
                 k in BOOL_KEYS -> e.putBoolean(k, s.optBoolean(k, true))
                 k == "themen_selbst" -> Themen.setManual(ctx, s.optString(k))
-                k in listOf("anrede", "assistant_name", "city", "address", "lage_orte", "orte", "wege", "route_an") -> e.putString(k, s.optString(k))
+                k in listOf("anrede", "assistant_name", "city", "address", "lage_orte", "orte", "wege", "route_an", "wichtig", "absage") -> e.putString(k, s.optString(k))
             }
         }
         e.putLong("settings_ts", ts).apply()
@@ -144,6 +144,7 @@ object Link {
         set.put("city", Lage.city(ctx)).put("address", p.getString("address", "") ?: "").put("anrede", p.getString("anrede", "") ?: "")
             .put("lage_orte", p.getString("lage_orte", "Stuttgart") ?: "")
             .put("orte", p.getString("orte", "") ?: "").put("wege", p.getString("wege", "") ?: "").put("route_an", p.getString("route_an", "") ?: "")
+            .put("wichtig", p.getString("wichtig", "") ?: "").put("absage", p.getString("absage", "") ?: "")
         (p.getString("assistant_name", "") ?: "").takeIf { it.isNotBlank() }?.let { set.put("assistant_name", it) }
         set.put("themen_selbst", Themen.manual(ctx).joinToString(", "))
         for (k in BOOL_KEYS) set.put(k, p.getBoolean(k, true))
@@ -248,6 +249,17 @@ object Link {
         if (extra != null) for (k in extra.keys()) m.put(k, extra.get(k))
         post(c, remoteTopic(c), m)
     }
+
+    /** Meldung an den PC (z. B. neue WhatsApp-Nachricht), ohne auf Antwort zu warten. */
+    fun toPc(ctx: Context, msg: JSONObject) {
+        val c = code(ctx); if (!paired(ctx)) return
+        post(c, remoteTopic(c), msg)
+    }
+
+    /** Läuft der PC gerade? (Lebenszeichen in den letzten 35 Minuten) */
+    fun pcOnline(ctx: Context): Boolean = try {
+        val s = latestStatus(ctx, "35m"); s != null && System.currentTimeMillis() / 1000 - s.optLong("ts") < 35 * 60
+    } catch (_: Exception) { false }
 
     /** Dem PC eine Erinnerung mitgeben (er spricht sie zur Zeit, falls er dann läuft). Ohne auf Antwort zu warten. */
     fun remindPc(ctx: Context, title: String, at: Long) {
