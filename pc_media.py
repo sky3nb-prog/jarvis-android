@@ -129,6 +129,18 @@ def top(kind: str, n: int = 8) -> list:
     return [k for k, _ in sorted(score.items(), key=lambda kv: -kv[1])[:n]]
 
 
+def hours_week() -> float:
+    """Ungefähre Musik-Hörzeit der letzten 7 Tage (jeder Eintrag ~ ein Lied, im Schnitt gut 3 Minuten)."""
+    week = [i for i in _load() if i.get("k") == "music" and time.time() - i.get("ts", 0) < 7 * 86400]
+    seen, n = set(), 0
+    for i in week:   # dasselbe Lied innerhalb von 3 Minuten nur einmal zählen
+        k = (i.get("t"), int(i.get("ts", 0) // 180))
+        if k not in seen:
+            seen.add(k)
+            n += 1
+    return round(n * 3.3 / 60, 1)
+
+
 def summary() -> dict:
     """Für die Handy-App: was du am PC hörst und schaust."""
     return {"music": top("music", 8), "video": top("video", 8)}

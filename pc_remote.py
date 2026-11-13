@@ -136,6 +136,9 @@ def execute(cmd: dict) -> str:
     if t == "hud" and ON_HUD:
         ON_HUD()
         return "HUD umgeschaltet."
+    if t == "screen":   # vom Handy: "schau mal auf meinen PC"
+        import pc_sehen
+        return pc_sehen.look(str(cmd.get("frage") or ""))
     if t == "remind":   # Termin am Handy eingetragen: der PC erinnert dich auch
         import pc_handy
         pc_handy.remind_here(str(cmd.get("text") or ""), float(cmd.get("at") or 0))

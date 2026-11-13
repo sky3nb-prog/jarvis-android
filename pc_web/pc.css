@@ -189,3 +189,16 @@ body.asleep .st-ring::before{border-top-color:#555;border-right-color:#333}
 .ndot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff5a5a;box-shadow:0 0 8px #ff5a5a;margin-left:7px;vertical-align:middle;flex:0 0 8px}
 .pst .ndot{margin-left:auto}
 .top .gear{position:relative}.top .gear.hasnew::after{content:"";position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:#ff5a5a;box-shadow:0 0 8px #ff5a5a}
+
+/* Schreiben statt reden */
+.typebar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;width:min(620px,86vw);z-index:6}
+body.handy .typebar{bottom:96px}
+#pv-fokus .talk{display:block}
+.tb-row{display:flex;gap:8px;padding:6px;border-radius:26px;background:rgba(10,7,3,.9);border:1px solid rgba(255,170,40,.35);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.tb-row input{flex:1;background:transparent;border:0;outline:none;color:var(--txt);font-size:14.5px;padding:8px 14px;font-family:inherit}
+.tb-row input::placeholder{color:#8a7a5c}
+.tb-row button{width:40px;height:40px;border-radius:50%;border:1px solid var(--gold);background:#3a2608;color:var(--gold-l);font-size:16px;cursor:pointer}
+.tb-reply{display:none;margin-bottom:8px;max-height:34vh;overflow-y:auto;padding:12px 16px;border-radius:18px;background:rgba(14,10,4,.94);border:1px solid #5a3e14;font-size:14.5px;line-height:1.45;color:#ffe9c4;white-space:pre-wrap}
+.tb-reply.on{display:block}.tb-reply .who{margin-bottom:4px}
+#pv-steuern .st-wrap{padding-bottom:96px}#pv-info .col{bottom:84px;overflow-y:auto}
+#pv-fokus .talk{max-height:24vh;overflow-y:auto}

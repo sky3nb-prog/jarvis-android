@@ -404,6 +404,9 @@ class WebHud:
         if name == "cmd" and str(body.get("text") or "").strip():
             self.run_text(str(body["text"]).strip())
             return {"ok": True}
+        if name == "ask" and str(body.get("text") or "").strip():   # getippt: still antworten (nur Text)
+            self.run_text(str(body["text"]).strip()[:2000], True)
+            return {"ok": True}
         if name == "mode":
             m = body.get("mode")
             if m == "flug":

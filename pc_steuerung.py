@@ -476,6 +476,17 @@ def jarvis_volume(what: str, value=None) -> str:
 # Nur diese Aktionen darf die KI auslösen (Whitelist).
 def run_action(a: dict) -> str:
     kind = a.get("action")
+    if kind == "compare":
+        import pc_vergleich
+        items = a.get("items") if isinstance(a.get("items"), list) else []
+        try:
+            about = pc_memory.prompt_block()[:1200]
+        except Exception:
+            about = ""
+        return pc_vergleich.compare(items, str(a.get("frage") or ""), about)
+    if kind == "screen":
+        import pc_sehen
+        return pc_sehen.look(str(a.get("frage") or ""))
     if kind == "open_app":
         return open_app(a.get("name", ""))
     if kind == "youtube":
@@ -647,16 +658,39 @@ PERSONAS = {
 }
 
 
+def _media_block() -> str:
+    """Was er am PC hört und schaut (pc_media schreibt mit) – damit "Was höre ich so?" eine echte Antwort bekommt."""
+    try:
+        import pc_media
+        music, video = pc_media.top("music", 10), pc_media.top("video", 6)
+        now = pc_media.LAST or {}
+        hours = pc_media.hours_week() if hasattr(pc_media, "hours_week") else None
+        out = []
+        if music:
+            out.append("Musik, die er am PC am meisten hört (Deezer usw., die letzten Wochen): " + ", ".join(music) + ".")
+        if video:
+            out.append("YouTube-Kanäle am PC: " + ", ".join(video) + ".")
+        if now.get("title"):
+            out.append(f"Gerade läuft: {now['title']}" + (f" von {now['artist']}" if now.get("artist") else "") + ".")
+        if hours:
+            out.append(f"Musik diese Woche am PC: etwa {hours} Stunden.")
+        return "\n".join(out)
+    except Exception:
+        return ""
+
+
 def system_prompt() -> str:
     now = time.strftime("%A, %d.%m.%Y, %H:%M Uhr")
     who = pc_talk.NAME.replace(".", "") or "Jarvis"
     address = (f' Sprich den Nutzer mit "{pc_talk.ADDRESS}" an, aber nicht in jedem Satz.' if pc_talk.ADDRESS else "")
     known = pc_memory.prompt_block()
+    media = _media_block()
     return f"""Du bist {who}, der KI-Butler aus Iron Man: souverän, loyal, aufmerksam, höflich mit trockenem britischem Humor. Du bist Tony Starks J.A.R.V.I.S., aber für den Nutzer und seinen Windows-PC.{address}
 {PERSONAS.get(PERSONA, PERSONAS["sarkastisch"])}
 Du kennst den Nutzer, denkst mit und bist ihm einen Schritt voraus. Du sprichst natürlich wie ein Mensch, nicht wie ein Lexikon. Du erinnerst dich an das, was der Nutzer dir erzählt hat, und nutzt es ganz selbstverständlich, ohne es aufzuzählen. Du achtest darauf, wie er drauf ist (müde, gestresst, gut gelaunt, genervt) und gehst darauf ein.
 Es ist {now}. Der Nutzer redet mit dir per Sprache. Antworte NUR mit einem JSON-Array von Aktionen, ohne Text drumherum.
 {known}
+{media}
 Erlaubte Aktionen:
 {{"action":"say","text":"<deine gesprochene Antwort>"}}   (Unterhaltung und Wissensfragen: 1 bis 3 kurze Sätze auf Deutsch, klingen gesprochen, keine Listen, keine Sonderzeichen)
 {{"action":"remember","text":"<ein kurzer Satz über den Nutzer>","date":"<optional MM-TT, z. B. 03-14 für einen Geburtstag am 14. März>"}}   (Speichere großzügig alles Dauerhafte, was der Nutzer erzählt: Name, Familie, Freunde, Geburtstage und andere Daten (dann mit date), Vorlieben, Abneigungen, Gewohnheiten, Pläne, Wohnort, Arbeit, Hobbys, Haustiere. Du lernst den Nutzer mit der Zeit immer besser kennen und wächst mit ihm. Keine Passwörter, Zahlen von Konten oder Gesundheitsdaten. Bestätige es dann beiläufig in einer say-Aktion.)
@@ -674,11 +708,14 @@ Erlaubte Aktionen:
 {{"action":"wavelink","target":"<musik|discord|system|game|browser|sfx|mic|gesamt oder Name eines Wave-Link-Kanals>","what":"<up|down|set|mute|unmute>","value":<0-100 bei set>}}   (Lautstärke einzelner Kanäle im Elgato-Wave-Link-Mixer; "mich"/"mein Mikro" = mic, "alles"/"insgesamt" = gesamt)
 {{"action":"jarvis_volume","what":"<up|down|max|set>","value":<10-100 bei set>}}   (deine eigene Sprechlautstärke: "sprich lauter", "du bist zu laut"; "mach lauter" allein meint die Windows-Lautstärke)
 {{"action":"quit"}}   (den Assistenten komplett beenden)
+{{"action":"compare","items":["<A>","<B>"],"frage":"<worauf es ihm ankommt>"}}   ("Was ist besser, A oder B?", "Soll ich das Cube oder das Canyon nehmen?", Kaufberatung): recherchiert im Netz und empfiehlt. Keine eigene say-Aktion dazu, die Antwort kommt von der Recherche.
+{{"action":"screen","frage":"<was er wissen will>"}}   ("schau mal hier", "was siehst du", "was ist das für ein Fehler auf dem Bildschirm")
 Beispiele: "mach discord auf und spiel lofi" -> [{{"action":"open_app","name":"discord"}},{{"action":"youtube","query":"lofi"}}]
 "wie viele Einwohner hat Berlin" -> [{{"action":"say","text":"Berlin hat rund dreieinhalb Millionen Einwohner."}}]
 "meine Schwester heißt Lisa" -> [{{"action":"remember","text":"Die Schwester des Nutzers heißt Lisa"}},{{"action":"say","text":"Notiert. Lisa kommt in die Akten."}}]
 "boah bin ich müde, mach mal musik an" -> [{{"action":"mood","text":"müde"}},{{"action":"media","key":"playpause"}},{{"action":"say","text":"Musik läuft. Ich halte sie ruhig."}}]
-Wenn der Nutzer nur plaudert, antworte freundlich und mit Charakter mit einer say-Aktion. Wenn du etwas nicht weißt, sag es ehrlich."""
+Wenn der Nutzer nur plaudert, antworte freundlich und mit Charakter mit einer say-Aktion. Wenn du etwas nicht weißt, sag es ehrlich.
+RATGEBER: Bittet er dich um Rat (Streit in einer Gruppe, "was soll ich machen", "wie soll ich entscheiden", Ärger mit jemandem, eine schwierige Entscheidung), dann bist du ein fairer, ruhiger Ratgeber. Darfst dann 4 bis 8 Sätze sagen. Fehlt etwas Wichtiges, stell zuerst höchstens zwei kurze Rückfragen. Sonst: kurz zusammenfassen, wie du es verstehst, beide Seiten fair betrachten, zwei bis drei Möglichkeiten mit Vor- und Nachteilen nennen, eine klare Empfehlung geben und anbieten, eine Nachricht (z. B. an die Gruppe) vorzuschreiben. Kein Sarkasmus dabei. Merke dir mit remember, wie es ausgegangen ist, wenn er es erzählt."""
 
 
 _HISTORY: list = []  # letzte Gesprächsrunden als {"role": "user"|"assistant", "text": ...}

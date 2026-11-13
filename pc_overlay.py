@@ -84,6 +84,7 @@ import pc_flights
 import pc_map as pc_globe  # die Weltlage ist jetzt eine Satellitenkarte
 import pc_news
 import pc_handy
+import pc_sehen
 import pc_media
 import pc_remote
 import pc_themen
@@ -660,7 +661,7 @@ class UI:
         self.web = None   # neues HUD (wie am Handy) im Edge-Fenster
         try:
             if settings.get("hud_style", "neu") == "neu" and pc_webhud.available():
-                self.web = pc_webhud.WebHud(self, lambda t: on_hud_command(t))
+                self.web = pc_webhud.WebHud(self, lambda t, silent=False: on_hud_command(t, silent))
         except Exception as e:
             print(f"Neues HUD nicht verfügbar ({e}), nehme das klassische.")
             self.web = None
@@ -1138,7 +1139,8 @@ def world_command(command: str, ui: "UI"):
     return None
 
 
-def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknown: bool = False, out: list = None) -> bool:
+def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknown: bool = False, out: list = None,
+                silent: bool = False) -> bool:
     """Führt einen Befehl aus. Gibt False zurück, wenn er im leisen Modus nichts damit anfangen konnte."""
     ai_available = pc_ai.available()  # zählt live, auch wenn der Schlüssel erst jetzt eingetragen wurde
     gen = pc_cancel.GEN
@@ -1157,6 +1159,8 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
     result = pc_input.handle(command)  # "trag meine E-Mail ein", "drück Enter"
     if result is None:
         result = pc_voiceset.handle(command, ui.settings)  # Einstellungen per Sprache ("dein Aktivierungswort ist ...")
+    if result is None:
+        result = pc_sehen.handle(command)  # "schau mal hier": Bildschirm ansehen (PC oder Handy)
     if result is None:
         result = pc_handy.plan_route(command)  # smarter Wegeplaner (Zwischenstopps, Bahn, "wann muss ich los") übers Handy
     if result is None:
@@ -1210,13 +1214,14 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
         out.append(result)
         ui.post("Assistent", result, 3000, glow=True, log=True)
         return True
-    if SPEAK:
+    talk = SPEAK and not silent   # getippt (silent): nur als Text antworten
+    if talk:
         ui.post("Assistent", result, glow=True, log=True)
         speak(spoken(result))
     if pc_steuerung.QUIT_REQUESTED:
         shutdown()
         return True
-    ui.post("Assistent", result, 2500 if SPEAK else 4000, glow=True, log=not SPEAK)
+    ui.post("Assistent", result, 2500 if talk else 8000, glow=True, log=not talk)
     return True
 
 
@@ -1708,7 +1713,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-13 17:10"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-13 18:20"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -1736,8 +1741,8 @@ def main():
     ai_available = pc_ai.available()
     stop = threading.Event()
 
-    def hud_command(cmd: str):  # Klick auf einen Knopf im HUD
-        threading.Thread(target=run_command, args=(cmd, ui, ai_available, shutdown), daemon=True).start()
+    def hud_command(cmd: str, silent: bool = False):  # Klick auf einen Knopf im HUD, getippte Frage (silent)
+        threading.Thread(target=run_command, args=(cmd, ui, ai_available, shutdown), kwargs={"silent": silent}, daemon=True).start()
 
     ui = UI(hud_command, settings)
     icon = start_tray(ui, stop)

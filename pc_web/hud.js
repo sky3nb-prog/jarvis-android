@@ -19,7 +19,7 @@
 
   // Größe und Lage der Kugeln je nach Fenstergröße
   function layout() {
-    const W = innerWidth, H = innerHeight - 46 - (document.body.classList.contains("handy") ? 92 : 0);
+    const W = innerWidth, H = innerHeight - 46 - (document.body.classList.contains("handy") ? 92 : 0) - 70;   // 70 = Schreibfeld
     const fs = Math.min(W * .4, H * .62), is = Math.min(W * .3, H * .5);
     Object.assign($("f-sph").style, { width: fs + "px", height: fs + "px", left: (W - fs) / 2 + "px", top: H * .06 + "px" });
     $("f-name").style.top = H * .06 + fs - 6 + "px"; $("f-state").style.top = H * .06 + fs + 36 + "px"; $("f-talk").style.top = H * .06 + fs + 70 + "px";
@@ -37,6 +37,8 @@
     document.querySelectorAll("#modes span, #pnav div").forEach((e) => e.classList.toggle("on", e.dataset.m === m));
     if (m === "steuern" && window.JHandy) window.JHandy.shown();
     $("strand").style.display = m === "lage" ? "none" : "";
+    $("typebar").style.display = m === "lage" ? "none" : "";
+    $("tb-reply").classList.remove("on");
     if (m === "lage" && window.JLage) window.JLage.shown();
     if (m === "info") info(true);
     if (save) window.PC.post("mode", { mode: m });
@@ -103,6 +105,9 @@
   }
   function onEvent(type, d) {
     if (type === "state") setState(d.state);
+    else if (type === "msg" && typedAt && Date.now() - typedAt < 120000 && d.role === "Assistent" && d.text && !/^(Denke nach|Einen Moment)/.test(d.text)) {
+      tbShow(d.text); if (d.text) { $("f-jar").textContent = $("s-jar").textContent = d.text; }
+    }
     else if (type === "msg") {
       if (d.role === "Du" && d.text) { $("f-you").textContent = $("s-you").textContent = d.text; addLog(d.text); }
       else if (d.role === "Assistent" && d.text) $("f-jar").textContent = $("s-jar").textContent = d.text;
@@ -124,6 +129,20 @@
     else if (type === "open_settings") { if (window.JSettings && !window.JSettings.isOpen()) window.JSettings.open(); }
   }
   window.jarvis = { onEvent };
+  // Schreiben statt reden
+  let typedAt = 0;
+  function tbShow(t) { if (mode === "fokus") return;   // auf Fokus steht die Antwort im Gesprächsfeld
+ const r = $("tb-reply"); r.innerHTML = '<span class="who jar">JARVIS</span>' + esc(t); r.classList.add("on"); clearTimeout(tbShow.j); tbShow.j = setTimeout(() => r.classList.remove("on"), 60000); }
+  function tbSend() {
+    const t = $("tb-in").value.trim(); if (!t) return;
+    $("tb-in").value = ""; typedAt = Date.now();
+    $("f-you").textContent = $("s-you").textContent = t;
+    if (mode === "fokus") $("f-jar").textContent = "denkt nach …";
+    else { const r = $("tb-reply"); r.innerHTML = '<span class="who jar">JARVIS</span>denkt nach …'; r.classList.add("on"); }
+    window.PC.post("ask", { text: t });
+  }
+  $("tb-send").addEventListener("click", tbSend);
+  $("tb-in").addEventListener("keydown", (e) => { if (e.key === "Enter") tbSend(); if (e.key === "Escape") { $("tb-reply").classList.remove("on"); $("tb-in").blur(); } });
   function tourList(data) {
     const pts = data.brennpunkte || [];
     const idx = pts.map((p, i) => i).filter((i) => pts[i].im_briefing).slice(0, 6);
