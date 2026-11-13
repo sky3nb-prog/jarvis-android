@@ -39,7 +39,9 @@
   }
 
   // Wave-Link-Regler (Mix wählbar, Werte live vom PC)
+  let drag = false, again = null;   // während ein Regler gezogen wird, nicht neu aufbauen
   function wave(wl) {
+    if (drag) { again = wl; return; }
     const on = !!(wl && wl.channels && wl.channels.length);
     $("wl").style.display = $("wl-head").style.display = on ? "" : "none";
     if (!on) return;
@@ -56,7 +58,13 @@
       <span class="mu">${r.muted ? "🔇" : "🔈"}</span></div>`).join("");
     $("wl").querySelectorAll(".ch").forEach((row) => {
       const inp = row.querySelector("input"), pc = row.querySelector(".pc"), ch = row.dataset.ch, mixed = row.dataset.mixed === "1";
-      inp.addEventListener("input", () => (pc.textContent = inp.value));
+      const paint = () => inp.style.setProperty("--p", inp.value + "%");
+      paint();
+      inp.addEventListener("pointerdown", () => (drag = true));
+      inp.addEventListener("touchstart", (e) => { drag = true; e.stopPropagation(); }, { passive: true });
+      inp.addEventListener("input", () => { paint(); pc.textContent = inp.value; });
+      const end = () => { if (!drag) return; drag = false; if (again) { const w = again; again = null; setTimeout(() => wave(w), 600); } };
+      ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach((t) => inp.addEventListener(t, end));
       inp.addEventListener("change", () => cmd({ type: "wl", ch, mix: mixed ? mix : null, level: inp.value / 100 }, `${row.querySelector(".nm").textContent} auf ${inp.value} %`));
       row.querySelector(".mu").addEventListener("click", () => {
         const m = !row.classList.contains("muted"); row.classList.toggle("muted", m); pc.textContent = m ? "aus" : inp.value;

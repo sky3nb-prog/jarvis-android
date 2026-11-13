@@ -56,7 +56,7 @@
     let x0 = 0, y0 = 0, t0 = 0, dx = 0, mode = 0, nb = null, dir = 0;   // mode: 0 offen, 1 waagrecht, 2 senkrecht
     const app = $("app");
     app.addEventListener("touchstart", (e) => {
-      if (e.touches.length !== 1 || $("settings").classList.contains("on") || e.target.closest("nav")) { mode = 2; return; }
+      if (e.touches.length !== 1 || $("settings").classList.contains("on") || e.target.closest("nav") || e.target.closest("input[type=range], .mix")) { mode = 2; return; }
       if (view === "lage" && window.JLage && !window.JLage.swipeOk(e.target, e.touches[0].clientX)) { mode = 2; return; }
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = performance.now(); dx = 0; mode = 0; nb = null;
     }, { passive: true });
