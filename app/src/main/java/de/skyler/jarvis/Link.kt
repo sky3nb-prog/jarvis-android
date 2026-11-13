@@ -262,9 +262,12 @@ object Link {
     fun fernInfo(ctx: Context, refresh: Boolean): JSONObject {
         val p = prefs(ctx)
         if (refresh && paired(ctx)) try {
-            latestStatus(ctx, "24h")?.let { st ->
-                p.edit().putString("pc_fern", (st.optJSONObject("fern") ?: JSONObject()).toString()).putLong("pc_fern_ts", st.optLong("ts")).apply()
-            }
+            // Antwort des PCs: {kind:"status", ts, status:{…, fern:{ip, port, cam}}}
+            fun fernOf(m: JSONObject?) = m?.optJSONObject("status")?.optJSONObject("fern")
+            var m = latestStatus(ctx, "24h")
+            if (fernOf(m)?.optString("ip").isNullOrBlank())   // noch keine Adresse: den PC direkt fragen
+                command(ctx, JSONObject().put("type", "status"), 15_000)?.let { if (fernOf(it) != null) m = it }
+            m?.let { x -> p.edit().putString("pc_fern", (fernOf(x) ?: JSONObject()).toString()).putLong("pc_fern_ts", x.optLong("ts")).apply() }
         } catch (_: Exception) {}
         val f = try { JSONObject(p.getString("pc_fern", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
         return f.put("token", if (paired(ctx)) fernToken(ctx) else "").put("paired", paired(ctx)).put("seen", p.getLong("pc_fern_ts", 0L))
