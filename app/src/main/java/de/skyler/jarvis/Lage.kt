@@ -136,7 +136,7 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
     private fun geoFile(ctx: Context) = File(ctx.filesDir, "orte_genau.json")
     private var geoMem: JSONObject? = null
 
-    fun geocode(ctx: Context, query: String): Pair<Double, Double>? {
+    fun geocode(ctx: Context, query: String, near: Pair<Double, Double>? = null): Pair<Double, Double>? {
         val k = query.lowercase().trim(); if (k.isEmpty()) return null
         synchronized(lock) {
             if (geoMem == null) geoMem = try { JSONObject(geoFile(ctx).readText()) } catch (_: Exception) { JSONObject() }
@@ -145,7 +145,8 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
         }
         var hit: Pair<Double, Double>? = null; var failed = false
         try {
-            val f = JSONObject(fetch("https://photon.komoot.io/api/?q=${enc(query)}&limit=1&lang=de")).optJSONArray("features")
+            val bias = near?.let { "&lat=${it.first}&lon=${it.second}&location_bias_scale=0.5&zoom=12" } ?: ""
+            val f = JSONObject(fetch("https://photon.komoot.io/api/?q=${enc(query)}&limit=1&lang=de$bias")).optJSONArray("features")
             f?.optJSONObject(0)?.optJSONObject("geometry")?.optJSONArray("coordinates")?.let { hit = it.getDouble(1) to it.getDouble(0) }
         } catch (_: Exception) { failed = true }
         if (hit == null) try {
@@ -169,7 +170,7 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
         val todo = (0 until pts.length()).map { pts.getJSONObject(it) }
             .filter { it.optString("suche").isNotBlank() && it.optString("genau") in setOf("punkt", "strasse", "stadtteil") }
         val fs = todo.map { p -> pool.submit {
-            val hit = geocode(ctx, p.optString("suche"))
+            val hit = geocode(ctx, p.optString("suche"), p.optDouble("lat") to p.optDouble("lon"))
             if (hit == null || km(hit.first, hit.second, p.optDouble("lat"), p.optDouble("lon")) > 80) p.put("genau", "stadt")
             else { p.put("lat", hit.first).put("lon", hit.second).put("genau_ok", true) }
         } }
@@ -178,12 +179,14 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
 
     private fun cacheFile(ctx: Context, key: String) = File(ctx.cacheDir, "lage_" + key.replace(Regex("[^a-z0-9]"), "_") + ".json")
 
-    fun city(ctx: Context): String = Memory.snap(ctx).optString("city").ifBlank { "Leonberg" }
+    fun city(ctx: Context): String = (ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("city", "") ?: "")
+        .ifBlank { Memory.snap(ctx).optString("city") }.ifBlank { "Leonberg" }
 
     /** Lage (ort leer = Welt + Wohnort). Liefert {briefing, brennpunkte, zeit, ort, lat, lon}. */
     fun get(ctx: Context, key: String, ort: String = "", maxAge: Long = MAX_AGE): JSONObject {
         val city = city(ctx)
-        val place = ort.trim().trim('.', '?', '!')
+        var place = ort.trim().trim('.', '?', '!')
+        if (place.lowercase() in setOf("hier", "hier in der nähe", "in der nähe", "um mich herum")) place = Here.name(ctx).ifBlank { city }
         val k = if (place.isBlank() || place.equals(city, true)) "welt" else place.lowercase()
         synchronized(lock) {
             val m = mem[k] ?: try { JSONObject(cacheFile(ctx, k).readText()).also { mem[k] = it } } catch (_: Exception) { null }

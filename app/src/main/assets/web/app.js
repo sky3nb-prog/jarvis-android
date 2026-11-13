@@ -135,7 +135,7 @@
       else if (type === "error") { toast(data.text); setState("ended"); }
       else if (type === "model" || type === "info" || type === "synced") toast(data.text);
       else if (type === "power") showPower(!!data.on);
-      else if (type === "lage") { if (data.tour) show("lage"); if (window.JLage) window.JLage.onData(data.data, !!data.tour); }
+      else if (type === "lage") { if (data.tour && prefsUi.lage_jump !== false) show("lage"); if (window.JLage) window.JLage.onData(data.data, !!data.tour); }
       else if (type === "lage_focus") { if (window.JLage) window.JLage.onFocus(data.i, data.n, data.of); }
       else if (type === "lage_error") { if (window.JLage) window.JLage.onError(data.text); }
     },
@@ -183,6 +183,18 @@
     if (k && k.trim().length > 20 && A) { A.setGroqKey(k.trim()); A.startTalk(); }
     else if (k !== null) toast("Das sah nicht nach einem Groq-Schlüssel aus.");
   }
+  // Schalter (an/aus) in den Einstellungen
+  const sw = (id, on) => { const e = $(id); if (on === undefined) return e.classList.contains("on"); e.classList.toggle("on", !!on); };
+  document.querySelectorAll(".sheet .sw").forEach((e) => e.addEventListener("click", () => {
+    e.classList.toggle("on");
+    if (e.id === "set-loc" && e.classList.contains("on") && A && A.askLocation) A.askLocation();
+  }));
+  document.querySelectorAll("#stabs span").forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll("#stabs span").forEach((x) => x.classList.toggle("on", x === t));
+    document.querySelectorAll(".spane").forEach((p) => p.classList.toggle("on", p.id === "sp-" + t.dataset.p));
+  }));
+  const perm = (id, ok, txt) => { const e = $(id); e.textContent = ok ? "erlaubt" : (txt || "Erlauben"); e.classList.toggle("ok", !!ok); };
+
   function openSettings() {
     if (!A) return;
     $("set-mode").value = A.getVoiceMode();
@@ -196,21 +208,28 @@
     } catch (e) {}
     try {
       const c = JSON.parse(A.getSettings());
-      $("set-bg").value = c.background ? "1" : "0";
+      sw("set-bg", c.background);
       $("set-wake").value = c.wake_words || "jarvis";
       $("set-level").value = String(c.wake_level);
       $("set-cloud").value = c.wake_cloud ? "1" : "0";
       $("set-jvol").value = c.jarvis_volume || 70;
       $("set-orte").value = c.lage_orte || "";
+      $("set-name").value = c.assistant_name || "";
+      $("set-anrede").value = c.anrede || "";
+      $("set-city").value = c.city || "";
+      $("set-addr").value = c.address || "";
+      sw("set-loc", c.use_location);
+      $("set-locstate").innerHTML = c.here ? "Gerade: <b style='color:#6effcd'>" + c.here + "</b>" : (c.use_location ? "Standort wird beim nächsten Mal ermittelt." : "");
+      sw("set-ljump", c.lage_jump !== false); sw("set-lzoom", c.lage_zoom !== false); sw("set-lspin", c.lage_spin !== false);
+      sw("set-lorbit", c.lage_orbits !== false); sw("set-llabels", c.lage_labels !== false); sw("set-strand", c.strand !== false);
+      perm("set-overlay", c.overlay); perm("set-usage", c.usage); perm("set-media", !!c.media_ok);
       $("set-mediastate").textContent = c.media || "";
       $("set-link").value = c.link_code || "";
       $("set-linkstate").textContent = c.link_code
         ? (c.synced ? "Gekoppelt · zuletzt abgeglichen " + new Date(c.synced).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + " · " + c.facts + " Dinge über dich"
                     : "Code eingetragen – warte auf den PC (Jarvis am PC muss laufen).")
         : "Noch nicht gekoppelt. Ohne Code merkt sich das Handy alles nur für sich.";
-      $("set-status").textContent = (c.model ? "Spracherkennung fürs Aktivierungswort ist geladen." : "Spracherkennung wird noch geladen (45 MB, einmalig) – bis dahin prüft Groq.") +
-        (c.overlay ? " Leuchtrand über anderen Apps: erlaubt." : " Leuchtrand über anderen Apps: noch nicht erlaubt.") +
-        (c.usage ? " Farben passen sich der offenen App an." : " Farben: nur vom Hintergrundbild (für App-Farben unten den Knopf antippen).");
+      $("set-status").textContent = c.model ? "Spracherkennung fürs Aktivierungswort ist geladen." : "Spracherkennung wird noch geladen (45 MB, einmalig) – bis dahin prüft Groq.";
     } catch (e) {}
     $("set-key").value = "";
     $("set-version").textContent = "Version " + A.version() + (A.hasGroqKey() ? " · Groq-Schlüssel ist gespeichert" : " · noch kein Groq-Schlüssel");
@@ -218,6 +237,7 @@
   }
   $("btn-settings").addEventListener("click", openSettings);
   $("set-overlay").addEventListener("click", () => A.askOverlay());
+  $("set-overlay2").addEventListener("click", () => A.askOverlay());
   $("set-battery").addEventListener("click", () => A.askBattery());
   $("set-media").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-usage").addEventListener("click", () => { A.askUsage(); toast("Bei „Jarvis“ den Nutzungszugriff einschalten."); });
@@ -227,18 +247,33 @@
     A.setTtsVoice($("set-voice").value);
     const k = $("set-key").value.trim();
     if (k) A.setGroqKey(k);
-    A.saveSettings(JSON.stringify({
-      background: $("set-bg").value === "1",
+    const o = {
+      background: sw("set-bg"),
       wake_words: $("set-wake").value.trim() || "jarvis",
       wake_level: parseInt($("set-level").value, 10),
       wake_cloud: $("set-cloud").value === "1",
       link_code: $("set-link").value.trim(),
       jarvis_volume: parseInt($("set-jvol").value, 10),
       lage_orte: $("set-orte").value.trim(),
-    }));
+      assistant_name: $("set-name").value.trim(), anrede: $("set-anrede").value.trim(),
+      city: $("set-city").value.trim(), address: $("set-addr").value.trim(), use_location: sw("set-loc"),
+      lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
+      lage_labels: sw("set-llabels"), strand: sw("set-strand"),
+    };
+    A.saveSettings(JSON.stringify(o));
+    applyPrefs(o);
+    showPower(o.background);
     $("settings").classList.remove("on");
     toast("Gespeichert.");
   });
+  // Anzeige-Einstellungen sofort anwenden
+  let prefsUi = {};
+  function applyPrefs(c) {
+    prefsUi = c || {};
+    $("strand").style.display = prefsUi.strand === false ? "none" : "";
+    if (window.JLage) window.JLage.prefs(prefsUi);
+  }
+  try { if (A) applyPrefs(JSON.parse(A.getSettings())); } catch (e) {}
 
   // --- Wetter (Open-Meteo, Leonberg) und Uhr ---
   function clock() {

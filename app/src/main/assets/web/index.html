@@ -61,6 +61,7 @@
   <!-- 3) LAGE -->
   <section id="v-lage" class="view">
     <div id="lmap"></div>
+    <canvas id="lorb"></canvas>
     <div class="lhud">
       <div class="lvig"></div><div class="lscan"></div>
       <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div>
@@ -96,52 +97,77 @@
   <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
   <div class="toast" id="toast"></div>
 
-  <!-- Einstellungen -->
+  <!-- Einstellungen (wie am PC: Reiter oben, darunter Blöcke) -->
   <div class="modal" id="settings">
     <div class="sheet">
-      <div class="ctitle">EINSTELLUNGEN</div>
-      <label>Stimme beim Reden</label>
-      <select id="set-mode">
-        <option value="free">Kostenlos (Handy-Stimme + Groq)</option>
-        <option value="auto">George (ElevenLabs) beim Gespräch-Knopf, sonst kostenlos</option>
-      </select>
-      <label>Handy-Stimme (kostenlose Variante)</label>
-      <select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select>
-      <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache →
-        Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
-      <label>Lautstärke von Jarvis (eigene, unabhängig von der Musik)</label>
-      <input id="set-jvol" type="range" min="10" max="100" step="5">
-      <div class="note">Tipp: Drück die Lautstärketasten, während er spricht – das merkt er sich als seine Lautstärke.</div>
-      <label>Kopplungscode vom PC (PC: Einstellungen → Handy-App)</label>
-      <input id="set-link" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off">
-      <div class="note" id="set-linkstate"></div>
-      <label>Lieblingsorte für die Lage (mit Komma trennen)</label>
-      <input id="set-orte" type="text" placeholder="Stuttgart, Seoul">
-      <label>Im Hintergrund zuhören</label>
-      <select id="set-bg"><option value="1">Ja – auf das Aktivierungswort hören</option><option value="0">Nein</option></select>
-      <label>Aktivierungswort(e) – mehrere mit Komma trennen</label>
-      <input id="set-wake" type="text" placeholder="jarvis">
-      <label>Wie genau muss ich das Wort sagen?</label>
-      <select id="set-level">
-        <option value="0">Streng – nur ziemlich genau</option>
-        <option value="1">Normal – kleine Abweichungen okay</option>
-        <option value="2">Locker – auch nuschelig (öfter Fehlalarm)</option>
-      </select>
-      <label>Erkennung</label>
-      <select id="set-cloud">
-        <option value="0">Sparsam – Handy hört vor, Groq prüft nur Treffer</option>
-        <option value="1">Genau – Groq prüft jeden kurzen Satz (mehr Datenverbrauch)</option>
-      </select>
-      <div class="btnrow"><button id="set-overlay">Leuchtrand über anderen Apps</button><button id="set-battery">Akku: nicht einschränken</button></div>
-      <div class="btnrow"><button id="set-usage">Leuchtrand-Farben wie die offene App</button></div>
-      <label>Was ich schaue und höre (YouTube, Musik)</label>
-      <div class="btnrow"><button id="set-media">Erlauben: Jarvis lernt deine Interessen</button></div>
-      <div class="note" id="set-mediastate"></div>
-      <div class="note" id="set-status"></div>
-      <label>Groq-Schlüssel (kostenlos, console.groq.com)</label>
-      <input id="set-key" type="password" placeholder="gsk_…  (leer lassen = nicht ändern)">
-      <div class="btnrow"><button id="set-cancel">Abbrechen</button><button id="set-save" class="gold">Speichern</button></div>
-      <div class="note" id="set-version"></div>
+      <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="anz">Anzeige</span></div>
+      <div class="spanes">
+      <div class="spane on" id="sp-allg">
+        <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
+          <div class="f"><label>Name des Assistenten</label><input id="set-name" type="text" placeholder="Jarvis"></div>
+          <div class="f"><label>Anrede</label><input id="set-anrede" type="text" placeholder="z. B. Sir oder dein Name (leer = keine)"></div>
+        </div>
+        <div class="sec" style="--c:#6effcd"><h3>STANDORT</h3>
+          <div class="f"><label>Wohnort</label><input id="set-city" type="text" placeholder="Leonberg"></div>
+          <div class="f"><label>Meine Adresse (für Routen, optional)</label><input id="set-addr" type="text" placeholder="Straße, Hausnummer"></div>
+          <div class="srow"><div>Aktuellen Standort des Handys nutzen<small>Dann weiß Jarvis, wo du gerade bist – „Was ist hier los?“</small></div><div class="sw" id="set-loc"></div></div>
+          <div class="note" id="set-locstate"></div>
+        </div>
+        <div class="sec"><h3>KI & SCHLÜSSEL</h3>
+          <div class="f"><label>Groq-Schlüssel (kostenlos, console.groq.com)</label><input id="set-key" type="password" placeholder="gsk_…  (leer lassen = nicht ändern)"></div>
+          <div class="note" id="set-version"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-hoer">
+        <div class="sec"><h3>AKTIVIERUNG</h3>
+          <div class="srow"><div>Im Hintergrund zuhören<small>Gleich wie der Schalter oben rechts</small></div><div class="sw" id="set-bg"></div></div>
+          <div class="f"><label>Aktivierungswort(e) – mehrere mit Komma trennen</label><input id="set-wake" type="text" placeholder="jarvis"></div>
+          <div class="f"><label>Wie genau muss ich das Wort sagen?</label>
+            <select id="set-level"><option value="0">Streng – nur ziemlich genau</option><option value="1">Normal – kleine Abweichungen okay</option><option value="2">Locker – auch nuschelig (öfter Fehlalarm)</option></select></div>
+          <div class="f"><label>Erkennung</label>
+            <select id="set-cloud"><option value="0">Sparsam – Handy hört vor, Groq prüft nur Treffer</option><option value="1">Genau – Groq prüft jeden kurzen Satz (mehr Daten)</option></select></div>
+        </div>
+        <div class="sec" style="--c:#6effcd"><h3>VERBINDUNGEN</h3>
+          <div class="f"><label>Kopplungscode vom PC (PC: Einstellungen → Handy-App)</label><input id="set-link" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off"></div>
+          <div class="note" id="set-linkstate"></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>BERECHTIGUNGEN</h3>
+          <div class="srow"><div>Leuchtrand über anderen Apps</div><div class="sbtn" id="set-overlay">–</div></div>
+          <div class="srow"><div>Leuchtrand-Farben wie die offene App</div><div class="sbtn" id="set-usage">–</div></div>
+          <div class="srow"><div>Was ich schaue und höre<small id="set-mediastate"></small></div><div class="sbtn" id="set-media">–</div></div>
+          <div class="srow"><div>Akku nicht einschränken</div><div class="sbtn" id="set-battery">Erlauben</div></div>
+          <div class="note" id="set-status"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-stimme">
+        <div class="sec"><h3>STIMME</h3>
+          <div class="f"><label>Stimme beim Reden</label><select id="set-mode"><option value="free">Kostenlos (Handy-Stimme + Groq)</option><option value="auto">George (ElevenLabs) beim Gespräch-Knopf, sonst kostenlos</option></select></div>
+          <div class="f"><label>Handy-Stimme (kostenlose Variante)</label><select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select></div>
+          <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache → Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
+          <div class="f"><label>Lautstärke von Jarvis (eigene, unabhängig von der Musik)</label><input id="set-jvol" type="range" min="10" max="100" step="5"></div>
+          <div class="note">Tipp: Drück die Lautstärketasten, während er spricht – das merkt er sich als seine Lautstärke.</div>
+        </div>
+      </div>
+      <div class="spane" id="sp-lage">
+        <div class="sec" style="--c:#ffa03c"><h3>WELTLAGE</h3>
+          <div class="note" style="margin:0 0 6px">Nachrichten von tagesschau, DW, BBC und aus deiner Gegend – alle 15 Minuten frisch.</div>
+          <div class="f"><label>Lieblingsorte (mit Komma trennen)</label><input id="set-orte" type="text" placeholder="Stuttgart, Seoul"></div>
+          <div class="srow"><div>Bei „Wie ist die Lage?“ zur Lage springen</div><div class="sw" id="set-ljump"></div></div>
+          <div class="srow"><div>Bei der Tour auf jeden Ort zoomen<small>z. B. Polizeirevier, Engelbergtunnel</small></div><div class="sw" id="set-lzoom"></div></div>
+          <div class="srow"><div>Erde langsam drehen (echter Tag und Nacht)</div><div class="sw" id="set-lspin"></div></div>
+          <div class="srow"><div>Satelliten-Bahnen um die Erde</div><div class="sw" id="set-lorbit"></div></div>
+          <div class="srow"><div>Ortsnamen auf der Karte</div><div class="sw" id="set-llabels"></div></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-anz">
+        <div class="sec" style="--c:#ffd678"><h3>ANZEIGE</h3>
+          <div class="srow"><div>Jarvis-Strang im Hintergrund</div><div class="sw" id="set-strand"></div></div>
+          <div class="srow"><div>Leuchtrand über anderen Apps einrichten</div><div class="sbtn" id="set-overlay2">Öffnen</div></div>
+        </div>
+      </div>
+      </div>
+      <button class="ssave" id="set-save">Speichern</button>
     </div>
   </div>
 

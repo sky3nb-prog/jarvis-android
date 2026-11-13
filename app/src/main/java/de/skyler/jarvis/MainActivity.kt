@@ -42,6 +42,11 @@ class MainActivity : ComponentActivity() {
         pendingTalk = false
     }
 
+    private val locPerm = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        if (res.values.any { it }) Here.refresh(this, force = true)
+        else send("info", JSONObject().put("text", "Ohne Standort-Erlaubnis nutze ich deinen Wohnort."))
+    }
+
     private fun hasMic() = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     private val busListener: (String, JSONObject) -> Unit = { type, data -> send(type, data) }
@@ -209,6 +214,14 @@ class MainActivity : ComponentActivity() {
             .put("synced", prefs.getLong("snap_got", 0L))
             .put("facts", Memory.facts(this@MainActivity).size)
             .put("lage_orte", prefs.getString("lage_orte", "Stuttgart"))
+            .put("assistant_name", prefs.getString("assistant_name", ""))
+            .put("anrede", prefs.getString("anrede", ""))
+            .put("city", prefs.getString("city", "").let { if (it.isNullOrBlank()) Lage.city(this@MainActivity) else it })
+            .put("address", prefs.getString("address", ""))
+            .put("use_location", prefs.getBoolean("use_location", false))
+            .put("here", Here.name(this@MainActivity))
+            .put("media_ok", Interests.hasAccess(this@MainActivity))
+            .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) put(k, prefs.getBoolean(k, true)) }
             .toString()
 
         @JavascriptInterface
@@ -222,6 +235,12 @@ class MainActivity : ComponentActivity() {
                 .putString("link_code", o.optString("link_code", "").trim().uppercase())
                 .putInt("jarvis_volume", o.optInt("jarvis_volume", 70).coerceIn(10, 100))
                 .putString("lage_orte", o.optString("lage_orte", "Stuttgart").trim())
+                .putString("assistant_name", o.optString("assistant_name").trim())
+                .putString("anrede", o.optString("anrede").trim())
+                .putString("city", o.optString("city").trim())
+                .putString("address", o.optString("address").trim())
+                .putBoolean("use_location", o.optBoolean("use_location", false))
+                .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) putBoolean(k, o.optBoolean(k, true)) }
                 .apply()
             if (Link.paired(this@MainActivity) && !JarvisService.running) Thread({
                 try { if (Link.pull(this@MainActivity)) send("synced", JSONObject().put("text", "Gedächtnis vom PC übernommen.")) }
@@ -328,6 +347,11 @@ class MainActivity : ComponentActivity() {
                     send("lage", JSONObject().put("data", d).put("tour", false))
                 } catch (e: Exception) { send("lage_error", JSONObject().put("text", e.message ?: "Lage nicht erreichbar.")) }
             }, "jarvis-lage").start()
+        }
+
+        @JavascriptInterface
+        fun askLocation() = runOnUiThread {
+            locPerm.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
         }
 
         @JavascriptInterface
