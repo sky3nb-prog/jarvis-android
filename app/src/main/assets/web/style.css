@@ -239,3 +239,35 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .seg span { padding: 6px 7px; font-size: 9.5px; }
 .seg span { white-space: nowrap; }
 .lttl { max-width: 40vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Steuern: PC-Fernbedienung */
+.pcbar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; border: 1px solid rgba(110,255,205,.45); background: rgba(4,20,16,.85); margin: 0 0 4px; }
+.pcbar .dot { width: 10px; height: 10px; border-radius: 50%; background: #4dffb8; box-shadow: 0 0 10px #4dffb8; flex: 0 0 10px; }
+.pcbar b { color: var(--green); font-size: 13px; letter-spacing: 1px; } .pcbar small { display: block; color: #8fbfae; font-size: 11.5px; margin-top: 2px; }
+.pcbar .r { margin-left: auto; text-align: right; font: 600 10.5px monospace; color: #9fd8c4; line-height: 1.5; }
+.pcbar.off { border-color: rgba(150,160,170,.35); background: rgba(14,16,18,.85); } .pcbar.off .dot { background: #6c6c74; box-shadow: none; } .pcbar.off b { color: #9aa4ac; }
+.tile { cursor: pointer; transition: transform .12s, background .2s; } .tile:active { transform: scale(.96); }
+.tile small { font-size: 9.5px; color: #7fae9c; font-weight: 500; margin-top: 1px; }
+.tile.warn { border-color: rgba(255,106,74,.55); } .tile.warn i { color: #ff8a6a; }
+.tile.busy { background: rgba(20,60,46,.85); } .tile.muted i { color: #ff8a6a !important; }
+.now { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 14px; border: 1px solid rgba(110,255,205,.35); background: rgba(4,16,20,.85); margin-bottom: 9px; }
+.now .cov { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg,#1f5a46,#3a8a6a); display: flex; align-items: center; justify-content: center; color: #dfffee; font-size: 18px; flex: 0 0 38px; }
+.now .nt { min-width: 0; } .now .t { font-size: 13px; color: #eaf6f0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .now .a { font-size: 11.5px; color: #8fbfae; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now .ctl { margin-left: auto; display: flex; gap: 14px; color: var(--green); font-size: 20px; } .now .ctl span { cursor: pointer; }
+.gtitle { display: flex; align-items: center; gap: 6px; }
+.wseg { display: flex; gap: 4px; background: rgba(4,10,16,.8); border: 1px solid #1f4a3c; border-radius: 16px; padding: 3px; margin-left: auto; }
+.wseg span { padding: 5px 11px; border-radius: 13px; font-size: 11px; font-weight: 700; color: #8fbfae; }
+.wseg span.on { background: #0a3a2c; color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+.mix { border: 1px solid rgba(110,255,205,.35); border-radius: 16px; background: rgba(4,16,20,.85); padding: 6px 12px; }
+.mix .ch { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(120,180,160,.1); } .mix .ch:first-child { border-top: 0; }
+.mix .ch.total { border-top: 1px solid rgba(110,255,205,.35); } .mix .ch.total .nm { color: var(--green); font-weight: 700; }
+.mix .ic { width: 22px; text-align: center; font-size: 15px; color: var(--green); } .mix .nm { width: 64px; font-size: 12.5px; color: #d8efe6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mix input[type=range] { flex: 1; accent-color: #6effcd; height: 28px; }
+.mix .pc { width: 30px; text-align: right; font: 600 11px monospace; color: #9fd8c4; }
+.mix .mu { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #2a5a4a; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.mix .ch.muted .nm { color: #7a8a86; } .mix .ch.muted .mu { border-color: #ff6a4a; } .mix .ch.muted input { accent-color: #556; }
+.warnsheet { border-top-color: #6a2a1a; } .warnsheet h3 { margin: 0 0 6px; color: #ffb4a0; } .warnsheet p { color: #b9a49a; font-size: 13px; line-height: 1.4; }
+.btnrow button.red { border-color: #ff6a4a; background: #2a0a06; color: #ffb4a0; }
+#ask-aus .sheet, #ask-text .sheet { height: auto; padding: 18px 18px 30px; border-radius: 22px 22px 0 0; display: block; }
+.toast.ok { background: #04140f; border-color: #1f8f6a; color: #cdeee2; }
+#info-pc .row { font-size: 13px; } #info-pc .row b { white-space: nowrap; }

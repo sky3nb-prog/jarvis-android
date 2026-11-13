@@ -26,6 +26,7 @@
   function mark(v) {
     view = v; strandTarget = ORDER.indexOf(v); dragging = false;
     if (v === "lage" && window.JLage) window.JLage.shown();
+    if (window.JSteuern && (v === "steuern" || v === "info")) window.JSteuern.refresh(v === "steuern");
     document.querySelectorAll(".view").forEach((e) => { e.classList.toggle("active", e.id === "v-" + v); e.classList.remove("peek", "slide"); e.style.transform = ""; });
     document.querySelectorAll(".tab").forEach((e) => e.classList.toggle("on", e.dataset.v === v));
     document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", ORDER[i] === v));
@@ -43,6 +44,7 @@
     view = v;   // die neue Kugel läuft schon während des Gleitens
     strandTarget = ORDER.indexOf(v); dragging = false;
     if (v === "lage" && window.JLage) window.JLage.shown();
+    if (window.JSteuern && (v === "steuern" || v === "info")) window.JSteuern.refresh(v === "steuern");
     document.querySelectorAll(".tab").forEach((e) => e.classList.toggle("on", e.dataset.v === v));
     document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", ORDER[i] === v));
     setTimeout(() => { if (view === v) mark(v); }, 300);
@@ -141,12 +143,15 @@
       else if (type === "lage") { if (data.tour && prefsUi.lage_jump !== false) show("lage"); if (window.JLage) window.JLage.onData(data.data, !!data.tour); }
       else if (type === "lage_focus") { if (window.JLage) window.JLage.onFocus(data.i, data.n, data.of); }
       else if (type === "lage_error") { if (window.JLage) window.JLage.onError(data.text, data.ort); }
+      else if (type === "pc_reply") { if (window.JSteuern) window.JSteuern.onReply(data); }
+      else if (type === "pc_status") { if (window.JSteuern) window.JSteuern.onStatus(data); }
       else if (type === "think") { const k = data.kinds || []; Object.values(brains).forEach((b) => b.think(k, data.ms || 4000)); }
       else if (type === "tle") { if (window.JLage) window.JLage.tle(data.text); }
       else if (type === "home") { if (window.JLage) window.JLage.home(); }
     },
     back() {
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
+      for (const id of ["ask-aus", "ask-text"]) if ($(id) && $(id).classList.contains("on")) { $(id).classList.remove("on"); return true; }
       if (view !== "fokus") { show("fokus"); return true; } return false;
     },
   };

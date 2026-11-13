@@ -69,6 +69,9 @@
   ];
   const LABEL_IDS = ["road-names", "poi", "places", "countries"];
 
+  // Zoom, bei dem die ganze Erde schön ins Fenster passt (Handy: etwa 1, großer PC-Bildschirm: etwas mehr)
+  function worldZoom() { const h = ($("lmap") && $("lmap").clientHeight) || 700; return Math.max(1, Math.log2(h * .36 * 2 * Math.PI / 512)); }
+
   function init() {
     if (map || !window.maplibregl) return;
     const h = home();
@@ -92,7 +95,7 @@
           ...LABELS,
         ],
       },
-      center: [h ? h.lon : 10, 30], zoom: 1,
+      center: [h ? h.lon : 10, 30], zoom: worldZoom(),
     });
     setInterval(() => { try { map.getSource("night").setData(nightData()); } catch (e) {} }, 60000);
     map.on("move", readout);
@@ -204,7 +207,7 @@
     document.querySelectorAll(".lcd").forEach((e) => e.classList.remove("hi"));
     const c = center();
     if ((mode === "stadt" || mode === "orte") && c) fly(c[1], c[0], mode === "orte" ? 11.5 : 12.3, 0);
-    else { const h = home(); fly(h ? h.lon : 10, 30, 1, 0); }
+    else { const h = home(); fly(h ? h.lon : 10, 30, worldZoom(), 0); }
   }
 
   // Erster Tipp auf eine Meldung: hinfliegen. Zweiter Tipp auf dieselbe: wieder raus.
@@ -295,7 +298,8 @@
     const g = orb.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, W, H);
     const z = map.getZoom();
     // nur wenn man (fast) die ganze Erde sieht; beim Reinzoomen ausblenden
-    const fade = Math.max(0, Math.min(1, (2.3 - z) / .6));
+    const Rg = 512 * Math.pow(2, z) / (2 * Math.PI), Hc = map.getContainer().clientHeight;
+    const fade = Math.max(0, Math.min(1, (Hc * .62 - Rg) / (Hc * .2)));   // nur wenn man (fast) die ganze Erde sieht
     if (fade <= 0 || P.lage_orbits === false || !sats.length || map.getPitch() > 5) return;
     const c = map.getCenter(), lat0 = c.lat * Math.PI / 180, lon0 = c.lng;
     const p0 = map.project(c), R = 512 * Math.pow(2, z) / (2 * Math.PI);   // Radius der Erde auf dem Bildschirm

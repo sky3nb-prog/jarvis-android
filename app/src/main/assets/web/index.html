@@ -41,10 +41,11 @@
         <div class="row"><span>gefühlt</span><b id="w-feel">–</b></div>
         <div class="row"><span>Regen</span><b id="w-rain">–</b></div>
       </div>
-      <div class="card green">
+      <div class="card green" id="info-pc">
         <div class="ctitle">PC ZUHAUSE</div>
-        <div class="row"><span>Status</span><b>kommt bald</b></div>
-        <div class="row"><span>Verbindung</span><b>Etappe 4</b></div>
+        <div class="row"><span>Status</span><b id="ipc-st">–</b></div>
+        <div class="row"><span>Läuft</span><b id="ipc-run">–</b></div>
+        <div class="row"><span>Leistung</span><b id="ipc-perf">–</b></div>
       </div>
     </div>
     <div class="card">
@@ -86,17 +87,40 @@
   <section id="v-steuern" class="view">
     <div class="sphere-wrap tiny" id="sphere-steuern"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
     <div class="sub">Sag es – oder tipp drauf</div>
-    <div class="gtitle gold">HANDY <small>· Etappe 3</small></div>
+    <div class="pcbar off" id="pcbar"><span class="dot"></span><div><b id="pc-head">PC ZUHAUSE · …</b><small id="pc-sub">frage den PC …</small></div><div class="r" id="pc-perf"></div></div>
+    <div class="gtitle gold">HANDY</div>
     <div class="tiles">
-      <div class="tile off"><i>♪</i>Musik</div><div class="tile off"><i>◷</i>Wecker</div><div class="tile off"><i>➜</i>Navigation</div>
-      <div class="tile off"><i>☎</i>Anrufen</div><div class="tile off"><i>✉</i>WhatsApp</div><div class="tile off"><i>▶</i>YouTube</div>
+      <div class="tile" data-tile="musik"><i>♪</i>Musik</div><div class="tile" data-tile="wecker"><i>◷</i>Wecker</div><div class="tile" data-tile="navigation"><i>➜</i>Navigation</div>
+      <div class="tile" data-tile="anrufen"><i>☎</i>Anrufen</div><div class="tile" data-tile="whatsapp"><i>✉</i>WhatsApp</div><div class="tile" data-tile="videos"><i>▶</i>Videos</div>
     </div>
-    <div class="gtitle green">PC ZUHAUSE <small>· Etappe 4</small></div>
+    <div class="gtitle green">PC ZUHAUSE <small id="pc-note">· läuft gerade</small></div>
+    <div class="now" id="pc-now"><div class="cov">♪</div><div class="nt"><div class="t" id="pc-title">–</div><div class="a" id="pc-artist">nichts läuft</div></div>
+      <div class="ctl"><span data-pc='{"type":"media","key":"prevtrack"}'>⏮</span><span data-pc='{"type":"media","key":"playpause"}' id="pc-pp">⏯</span><span data-pc='{"type":"media","key":"nexttrack"}'>⏭</span></div></div>
     <div class="tiles">
-      <div class="tile off g"><i>♪</i>Musik am PC</div><div class="tile off g"><i>D</i>Discord</div><div class="tile off g"><i>S</i>Steam</div>
-      <div class="tile off g"><i>✕</i>Stumm</div><div class="tile off g"><i>☾</i>Sperren</div><div class="tile off g"><i>◯</i>Aus</div>
+      <div class="tile g" data-pc='{"type":"app","name":"discord"}' id="t-discord"><i>D</i>Discord<small>–</small></div>
+      <div class="tile g" data-pc='{"type":"app","name":"steam"}' id="t-steam"><i>S</i>Steam<small>–</small></div>
+      <div class="tile g" data-pc='{"type":"discord","what":"mic"}' id="t-mic"><i>🎙</i>Mikro<small>–</small></div>
+      <div class="tile g" data-pc='{"type":"media","key":"volumemute"}'><i>✕</i>Stumm<small>PC-Ton</small></div>
+      <div class="tile g" data-pc='{"type":"power","what":"lock"}'><i>☾</i>Sperren</div>
+      <div class="tile warn" id="t-aus"><i>⏻</i>Aus</div>
     </div>
+    <div class="gtitle green" id="wl-head" style="display:none">WAVE LINK <small>· Lautstärke am PC</small><div class="wseg" id="wl-mixes"></div></div>
+    <div class="mix" id="wl" style="display:none"></div>
+    <div class="gtitle green">SCHNELL</div>
+    <div class="tiles">
+      <div class="tile g" data-pc='{"type":"youtube"}'><i>▶</i>YouTube<small>am PC</small></div>
+      <div class="tile g" data-pc='{"type":"hud"}'><i>◐</i>Jarvis-HUD<small>ein/aus</small></div>
+      <div class="tile g" id="t-text"><i>⌨</i>Befehl<small>an den PC</small></div>
+    </div>
+    <div style="height:20px"></div>
   </section>
+
+  <div class="modal" id="ask-aus"><div class="sheet warnsheet"><h3>PC wirklich ausschalten?</h3>
+    <p>Der PC fährt in 30 Sekunden herunter. Offene Programme werden geschlossen – du kannst es am PC noch abbrechen.</p>
+    <div class="btnrow"><button id="aus-no">Abbrechen</button><button id="aus-yes" class="red">Ausschalten</button></div></div></div>
+  <div class="modal" id="ask-text"><div class="sheet"><div class="ctitle">BEFEHL AN DEN PC</div>
+    <input id="pc-text" type="text" placeholder="z. B. Spiel lofi auf YouTube" style="width:100%;padding:12px;border-radius:12px;border:1px solid #16506a;background:#0a2233;color:var(--txt);font-size:15px">
+    <div class="btnrow"><button id="text-no">Abbrechen</button><button id="text-yes" class="gold">Senden</button></div></div></div>
 
   <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
   <div class="toast" id="toast"></div>
@@ -192,5 +216,6 @@
 <script src="satellite.min.js"></script>
 <script src="lage.js"></script>
 <script src="app.js"></script>
+<script src="steuern.js"></script>
 </body>
 </html>

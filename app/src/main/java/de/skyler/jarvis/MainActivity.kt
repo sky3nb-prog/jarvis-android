@@ -245,6 +245,7 @@ class MainActivity : ComponentActivity() {
                 .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) putBoolean(k, o.optBoolean(k, true)) }
                 .apply()
             Lage.updateHome(this@MainActivity) { send("home", JSONObject()) }
+            Link.pushSettings(this@MainActivity)   // gleiche Einstellungen am PC
             if (o.optBoolean("use_location", false)) Here.refresh(this@MainActivity, force = true)
             if (Link.paired(this@MainActivity) && !JarvisService.running) Thread({
                 try { if (Link.pull(this@MainActivity)) send("synced", JSONObject().put("text", "Gedächtnis vom PC übernommen.")) }
@@ -403,6 +404,57 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun themenSelbst(csv: String) { Themen.setManual(this@MainActivity, csv) }
+
+        /** Befehl an den PC (Fernbedienung). Antwort kommt als Ereignis "pc_reply". */
+        @JavascriptInterface
+        fun pcCmd(json: String) {
+            val cmd = try { JSONObject(json) } catch (_: Exception) { return }
+            if (!Link.paired(this@MainActivity)) { send("pc_reply", JSONObject().put("ok", false).put("text", "Handy und PC sind noch nicht gekoppelt (Einstellungen → Zuhören → Kopplungscode).")); return }
+            Thread({
+                val r = try { Link.command(this@MainActivity, cmd) } catch (e: Exception) { null }
+                if (r == null) send("pc_reply", JSONObject().put("ok", false).put("text", "Der PC antwortet nicht. Läuft Jarvis am PC?"))
+                else {
+                    r.optJSONObject("status")?.let { prefs.edit().putString("pc_status", it.toString()).apply() }
+                    send("pc_reply", r)
+                }
+            }, "jarvis-pc").start()
+        }
+
+        /** Letzter bekannter PC-Status (sofort) – und im Hintergrund frisch holen (force = PC direkt fragen). */
+        @JavascriptInterface
+        fun pcStatus(force: Boolean): String {
+            if (Link.paired(this@MainActivity)) Thread({
+                try {
+                    val r = if (force) Link.command(this@MainActivity, JSONObject().put("type", "status")) else Link.latestStatus(this@MainActivity)
+                    r?.optJSONObject("status")?.let {
+                        prefs.edit().putString("pc_status", it.toString()).apply()
+                        send("pc_status", it)
+                    } ?: send("pc_status", JSONObject().put("online", false).put("unknown", true))
+                } catch (_: Exception) {}
+            }, "jarvis-pcstatus").start()
+            return prefs.getString("pc_status", "") ?: ""
+        }
+
+        @JavascriptInterface
+        fun paired(): Boolean = Link.paired(this@MainActivity)
+
+        /** Handy-Kacheln: Musik/Videos/WhatsApp öffnen, Wecker/Navigation/Anruf über die normalen Apps */
+        @JavascriptInterface
+        fun openTile(kind: String) = runOnUiThread {
+            val pm = packageManager
+            fun launch(vararg pkgs: String): Boolean { for (p in pkgs) { val i = pm.getLaunchIntentForPackage(p) ?: continue; startActivity(i); return true }; return false }
+            try {
+                when (kind) {
+                    "musik" -> if (!launch("deezer.android.app", "com.spotify.music", "com.google.android.apps.youtube.music")) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.deezer.com")))
+                    "videos" -> if (!launch("com.google.android.youtube")) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com")))
+                    "whatsapp" -> if (!launch("com.whatsapp")) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://web.whatsapp.com")))
+                    "wecker" -> startActivity(Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS))
+                    "navigation" -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=")).setPackage("com.google.android.apps.maps").takeIf { it.resolveActivity(pm) != null }
+                        ?: Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0")))
+                    "anrufen" -> startActivity(Intent(Intent.ACTION_DIAL))
+                }
+            } catch (_: Exception) { send("info", JSONObject().put("text", "Das konnte ich nicht öffnen.")) }
+        }
 
         @JavascriptInterface
         fun lageFavorites(): String { Lage.warmFavorites(this@MainActivity); return org.json.JSONArray(Lage.favorites(this@MainActivity)).toString() }

@@ -107,9 +107,103 @@ object Link {
         if (snap.optLong("ts") <= p.getLong("snap_ts", 0L)) return false
         p.edit().putString("brain_snap", snap.toString()).putLong("snap_ts", snap.optLong("ts"))
             .putLong("snap_got", System.currentTimeMillis()).apply()
+        applySettings(ctx, snap)
         Memory.prune(ctx, snap)
         Log.i(TAG, "Stand vom PC: ${snap.optJSONArray("facts")?.length()} Fakten")
         return true
+    }
+
+    // --- Gemeinsame Einstellungen: wer zuletzt geändert hat, gewinnt ------------------------------------------
+    private val BOOL_KEYS = setOf("lage_spin", "lage_labels", "lage_jump", "lage_zoom", "lage_orbits")
+
+    /** Einstellungen vom PC übernehmen, wenn sie neuer sind als die am Handy. */
+    private fun applySettings(ctx: Context, snap: JSONObject) {
+        val s = snap.optJSONObject("settings") ?: return
+        val ts = snap.optLong("settings_ts")
+        val p = prefs(ctx)
+        if (ts <= p.getLong("settings_ts", 0L)) return
+        val e = p.edit()
+        for (k in s.keys()) {
+            when {
+                k in BOOL_KEYS -> e.putBoolean(k, s.optBoolean(k, true))
+                k == "themen_selbst" -> Themen.setManual(ctx, s.optString(k))
+                k == "anrede" || k == "assistant_name" || k == "city" || k == "address" || k == "lage_orte" -> e.putString(k, s.optString(k))
+            }
+        }
+        e.putLong("settings_ts", ts).apply()
+        Log.i(TAG, "Einstellungen vom PC übernommen")
+    }
+
+    /** Geänderte Einstellungen ans PC schicken. */
+    fun pushSettings(ctx: Context) {
+        val c = code(ctx); if (!paired(ctx)) return
+        val p = prefs(ctx)
+        val ts = System.currentTimeMillis() / 1000
+        p.edit().putLong("settings_ts", ts).apply()
+        val set = JSONObject()
+        set.put("city", Lage.city(ctx)).put("address", p.getString("address", "") ?: "").put("anrede", p.getString("anrede", "") ?: "")
+            .put("lage_orte", p.getString("lage_orte", "Stuttgart") ?: "")
+        (p.getString("assistant_name", "") ?: "").takeIf { it.isNotBlank() }?.let { set.put("assistant_name", it) }
+        set.put("themen_selbst", Themen.manual(ctx).joinToString(", "))
+        for (k in BOOL_KEYS) set.put(k, p.getBoolean(k, true))
+        post(c, topic(c), JSONObject().put("kind", "settings").put("from", "phone").put("ts", ts).put("settings", set))
+    }
+
+    /** Gelernte Themen ans PC schicken (damit der PC-Jarvis dieselben Interessen kennt). */
+    fun pushThemen(ctx: Context, themen: JSONArray) {
+        val c = code(ctx); if (!paired(ctx)) return
+        post(c, topic(c), JSONObject().put("kind", "themen").put("from", "phone").put("ts", System.currentTimeMillis() / 1000).put("themen", themen))
+    }
+
+    private fun post(c: String, t: String, msg: JSONObject) {
+        Thread({
+            try {
+                http.newCall(Request.Builder().url(SERVER + t).post(encrypt(msg, c).toRequestBody("text/plain".toMediaType())).build()).execute().close()
+            } catch (e: Exception) { Log.w(TAG, "post: $e") }
+        }, "jarvis-post").start()
+    }
+
+    // --- Fernbedienung für den PC (eigener Kanal) --------------------------------------------------------------
+    private fun remoteTopic(c: String) = "jr" + hex(sha("jarvis-remote:" + norm(c))).take(30)
+
+    /** Befehl an den PC schicken und bis zu 15 Sekunden auf die Antwort warten. Antwort: {ok, text, status} oder null. */
+    fun command(ctx: Context, cmd: JSONObject): JSONObject? {
+        val c = code(ctx); if (!paired(ctx)) return null
+        val id = java.util.UUID.randomUUID().toString().take(12)
+        val sent = System.currentTimeMillis() / 1000
+        val msg = JSONObject().put("kind", "cmd").put("from", "phone").put("id", id).put("ts", sent).put("cmd", cmd)
+        http.newCall(Request.Builder().url(SERVER + remoteTopic(c)).post(encrypt(msg, c).toRequestBody("text/plain".toMediaType())).build()).execute().close()
+        val until = System.currentTimeMillis() + 15_000
+        while (System.currentTimeMillis() < until) {
+            Thread.sleep(1500)
+            val r = latestStatus(ctx, "${sent - 2}", id)
+            if (r != null) return r
+        }
+        return null
+    }
+
+    /** Letzter Status des PCs (Lebenszeichen kommt alle 30 Minuten). re = nur die Antwort auf diesen Befehl. */
+    fun latestStatus(ctx: Context, since: String = "45m", re: String? = null): JSONObject? {
+        val c = code(ctx); if (!paired(ctx)) return null
+        val body = http.newCall(Request.Builder().url(SERVER + remoteTopic(c) + "/json?poll=1&since=$since").build()).execute().use {
+            if (!it.isSuccessful) return null
+            it.body?.string() ?: ""
+        }
+        var best: JSONObject? = null
+        for (line in body.lines()) {
+            val ev = try { JSONObject(line) } catch (_: Exception) { continue }
+            if (ev.optString("event") != "message") continue
+            var text = ev.optString("message")
+            val att = ev.optJSONObject("attachment")
+            if (!text.startsWith("J1.") && att != null) text = try {
+                http.newCall(Request.Builder().url(att.optString("url")).build()).execute().use { it.body?.string() ?: "" }
+            } catch (_: Exception) { "" }
+            val m = try { decrypt(text, c) } catch (_: Exception) { null } ?: continue
+            if (m.optString("kind") != "status" || m.optString("from") != "pc") continue
+            if (re != null && m.optString("re") != re) continue
+            if (m.optLong("ts") >= (best?.optLong("ts") ?: 0L)) best = m
+        }
+        return best
     }
 
     /** Neues ans PC schicken (Fakten, Stimmungen, Vergessen). */
