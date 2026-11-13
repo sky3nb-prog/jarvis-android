@@ -104,6 +104,8 @@ class JarvisService : Service() {
         alive = true
         Thread({ audioLoop() }, "jarvis-audio").start()
         Thread({ Link.listenPc(this, { alive }) { m -> onPcTask(m) } }, "jarvis-pc").start()
+        // dem PC einmal den aktuellen Stand melden (Seite "Steuern" am PC zeigt ihn dann sofort)
+        Thread({ try { Thread.sleep(8000); if (alive && Link.paired(this)) Link.replyPc(this, "", true, "", PhoneCtl.status(this)) } catch (_: Exception) {} }, "jarvis-hallo").start()
         main.post(syncTask)
     }
 

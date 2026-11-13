@@ -200,9 +200,28 @@
     e.classList.toggle("on");
     if (e.id === "set-loc" && e.classList.contains("on") && A && A.askLocation) A.askLocation();
   }));
+  // Neue Einstellungen: kleiner roter Punkt (am Zahnrad und am Bereich), bis du den Bereich einmal geöffnet hast.
+  // Bei jedem Update ergänzen: Bereich -> Kennung des Updates
+  const NEW_TABS = { wege: "wege1" };
+  const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };
+  const seenAdd = (k) => { try { const s = seenGet(); if (!s.includes(k)) { s.push(k); localStorage.setItem("seen_new", JSON.stringify(s)); } } catch (e) {} };
+  function newDots() {
+    const seen = seenGet();
+    let any = false;
+    document.querySelectorAll("#stabs span").forEach((t) => {
+      const n = NEW_TABS[t.dataset.p] && !seen.includes(NEW_TABS[t.dataset.p]);
+      any = any || !!n;
+      let d = t.querySelector(".ndot");
+      if (n && !d) t.insertAdjacentHTML("beforeend", '<b class="ndot"></b>');
+      if (!n && d) d.remove();
+    });
+    $("btn-settings").classList.toggle("hasnew", any);
+  }
+  newDots();
   document.querySelectorAll("#stabs span").forEach((t) => t.addEventListener("click", () => {
     document.querySelectorAll("#stabs span").forEach((x) => x.classList.toggle("on", x === t));
     document.querySelectorAll(".spane").forEach((p) => p.classList.toggle("on", p.id === "sp-" + t.dataset.p));
+    if (NEW_TABS[t.dataset.p]) { seenAdd(NEW_TABS[t.dataset.p]); setTimeout(newDots, 1500); }
   }));
   const perm = (id, ok, txt) => { const e = $(id); e.textContent = ok ? "erlaubt" : (txt || "Erlauben"); e.classList.toggle("ok", !!ok); };
 
