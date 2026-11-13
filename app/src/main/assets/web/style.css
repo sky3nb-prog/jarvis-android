@@ -237,3 +237,5 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .tchips span b { margin-left: 6px; color: #c8965a; font-weight: 700; }
 .tchips .none { border: 0; background: transparent; color: #6f8fa0; padding: 0; }
 .seg span { padding: 6px 7px; font-size: 9.5px; }
+.seg span { white-space: nowrap; }
+.lttl { max-width: 40vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
