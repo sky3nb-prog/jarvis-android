@@ -76,6 +76,25 @@ CAL_ADD = re.compile(r"\b(trag|trage|erstell|erstelle|leg|lege|mach|mache|füg|f
                      r"|^neuer termin\b", re.I)
 
 
+FILLER = r"\b(?:mal|bitte|doch|jetzt|gleich|kurz|schnell|einfach|für mich)\b"
+
+
+def call_name(text: str):
+    """„Ruf über mein Handy Mama an“ -> „Mama“, „kannst du Lisa anrufen“ -> „Lisa“. Sonst None."""
+    low = text.lower().strip(" .!?")
+    low = re.sub(r"\b(?:über|übers|mit|vom|von|auf|am)\s+(?:mein(?:em|en)?|das|dem|den)?\s*(?:handy|telefon|smartphone|samsung)\b", " ", low)
+    low = re.sub(r"^(?:jarvis|hey|okay|ok)[ ,]+", "", low)
+    low = re.sub(FILLER, " ", low)
+    low = re.sub(r"\s+", " ", low).strip()
+    m = re.search(r"\bruf\w*\s+(.+?)\s+an$", low) or re.search(r"(?:^|\b(?:du|sie|bitte)\s+)(.+?)\s+anrufen$", low) \
+        or re.search(r"\btelefonier\w*\s+mit\s+(.+)$", low)
+    if not m:
+        return None
+    name = re.sub(r"^(?:kannst du|könntest du|würdest du|du)\s+", "", m.group(1)).strip(" ,")
+    name = re.sub(r"^(?:mein|meine|meinen|meinem|meiner|die|den|der)\s+", "", name)
+    return name.title() if name else None
+
+
 def handle(text: str):
     """Gibt die Antwort zurück, wenn der Satz ans Handy geht, sonst None."""
     if not paired():
@@ -83,6 +102,12 @@ def handle(text: str):
     low = text.lower().strip()
     if MEDIA.search(low):
         return send_media()
+    who = call_name(text) if CALL.search(low) and not re.search(r"discord|teams|skype|zoom", low) else None
+    if who:   # Anruf: direkt ans Handy, ohne Umweg über die KI (schnell und zuverlässig)
+        r = ask("call", wait=20, who=who)
+        if r is None:
+            return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
+        return r["text"] or f"Ich rufe {who} über dein Handy an."
     via_phone = re.search(r"\b" + PHONE + r"\b", low) is not None
     if via_phone or (CALL.search(low) and not re.search(r"discord|teams|skype|zoom", low)):
         r = ask("do", text=text)
