@@ -139,6 +139,12 @@ def execute(cmd: dict) -> str:
     if t == "screen":   # vom Handy: "schau mal auf meinen PC"
         import pc_sehen
         return pc_sehen.look(str(cmd.get("frage") or ""))
+    if t == "wa_send":   # vom Handy (Anruf-Butler): "Kann gerade nicht …" per WhatsApp am PC
+        import pc_messages
+        r = pc_messages.send_whatsapp(str(cmd.get("to") or ""), str(cmd.get("text") or ""))
+        if not r.startswith("Erledigt"):
+            raise RuntimeError(r)
+        return r
     if t == "remind":   # Termin am Handy eingetragen: der PC erinnert dich auch
         import pc_handy
         pc_handy.remind_here(str(cmd.get("text") or ""), float(cmd.get("at") or 0))
@@ -204,10 +210,26 @@ def _listen(stop: threading.Event):
                         continue
                     if ev.get("event") != "message":
                         continue
+                    body = ev.get("message") or ""
+                    att = ev.get("attachment") or {}
+                    if not body.startswith("J1.") and att.get("url"):   # große Nachricht (z. B. mit Sprachnachricht) kommt als Anhang
+                        try:
+                            body = urllib.request.urlopen(urllib.request.Request(att["url"], headers={"User-Agent": "Jarvis-PC"}),
+                                                          timeout=30).read().decode("utf-8", "replace")
+                        except Exception:
+                            body = ""
                     try:
-                        msg = pc_link.decrypt(ev.get("message") or "", c)
+                        msg = pc_link.decrypt(body, c)
                     except Exception:
                         msg = None
+                    if msg and msg.get("from") == "phone" and msg.get("kind") == "wa_msg":
+                        if abs(time.time() - float(msg.get("ts", 0))) < 600:
+                            try:
+                                import pc_nachrichten
+                                pc_nachrichten.incoming(msg)
+                            except Exception as e:
+                                print(f"Nachricht vom Handy: {e}")
+                        continue
                     if msg and msg.get("from") == "phone" and msg.get("kind") == "phone_reply":
                         try:
                             import pc_handy

@@ -97,6 +97,8 @@ DEFAULTS = {
     "meine_orte": "",   # "Opa: Musterstraße 5, Rutesheim" je Zeile (gleich wie am Handy)
     "meine_wege": "",   # "oberer Feldweg: 48.80, 8.96" je Zeile
     "route_an": "",     # Google-Maps-Link per WhatsApp an diesen Kontakt
+    "wichtige_leute": "Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis",   # Namen wie in WhatsApp, mit Komma: deren Nachrichten sagt Jarvis an
+    "absage_text": "",      # Anruf-Butler: leer = "Kann gerade nicht, rufe später zurück."
     "hud_layout": "pc",  # "pc" = Leiste oben, "handy" = wie die App (Fokus, Info, Lage, Steuern unten)
     "sphere_color": "Gold",  # Farbe der Kugel: Gold, Cyan, Rot, Grün, Violett, Weiß
     "hud_borderless": False,  # (nicht mehr benutzt) HUD hat wieder die normale, eingefärbte Titelleiste

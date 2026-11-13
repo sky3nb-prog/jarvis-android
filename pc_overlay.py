@@ -84,6 +84,7 @@ import pc_flights
 import pc_map as pc_globe  # die Weltlage ist jetzt eine Satellitenkarte
 import pc_news
 import pc_handy
+import pc_nachrichten
 import pc_sehen
 import pc_media
 import pc_remote
@@ -1145,7 +1146,8 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
     ai_available = pc_ai.available()  # zählt live, auch wenn der Schlüssel erst jetzt eingetragen wurde
     gen = pc_cancel.GEN
     print(f"Befehl: {command}")
-    ui.post("Du", command, glow=True, log=True)
+    if command != "__nachricht__":   # Ansage einer Nachricht: kein "Du hast gesagt"
+        ui.post("Du", command, glow=True, log=True)
     try:
         pc_themen.note(command)   # daraus lernt Jarvis (zusammen mit dem Handy), was dich interessiert
         ui.think(pc_webhud.think_for(command))   # passende Symbole im Gehirn der Kugel leuchten auf
@@ -1156,7 +1158,9 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
         pc_live.REQUEST.set()
         return True
     t_start = time.time()
-    result = pc_input.handle(command)  # "trag meine E-Mail ein", "drück Enter"
+    result = pc_nachrichten.handle(command)  # Nachrichten von wichtigen Leuten: vorlesen, abspielen, antworten
+    if result is None:
+        result = pc_input.handle(command)  # "trag meine E-Mail ein", "drück Enter"
     if result is None:
         result = pc_voiceset.handle(command, ui.settings)  # Einstellungen per Sprache ("dein Aktivierungswort ist ...")
     if result is None:
@@ -1467,46 +1471,51 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
                     pc_live.REQUEST.clear()
                     live_talk()
                     continue
-                gen = pc_cancel.GEN
-                raw, sess = listen_live(q, threshold, wake_handler, live_rec, max_wait=1)
-                if raw is None:
-                    continue
-                if pc_audio.busy_recently():  # das war wohl meine eigene Stimme (z. B. eine Erinnerung)
-                    continue
-                print("Zeit: Satzende erkannt, starte Spracherkennung")
-                text = transcribe(recognizer, raw)
-                if pc_cancel.changed(gen):
-                    drain(q)
-                    continue
-                wake = None
-                if text:
-                    print(f"Gehört: {text}")
-                    low = text.lower()
-                    wake = next((w for w in WAKE_WORDS if w in low), None)
-                if not wake:
-                    if sess.woke:  # Live-Anzeige war schon da, am Ende passte es aber nicht
-                        ui.post("Nicht verstanden", "Bitte nochmal", 2000, glow=True)
-                    continue
-
-                command = text[low.index(wake) + len(wake):].strip(" ,.!?")
-                if not (sess.woke and EARLY_CHIME):
+                if pc_nachrichten.take_announce():   # Nachricht von einem wichtigen Menschen: ansagen wie eine Antwort
+                    gen = pc_cancel.GEN
                     play_chime()
-
-                if not command:
-                    ui.post("Ich höre …", "Sag deinen Befehl", glow=True)
-                    time.sleep(0.7)  # Sound ausklingen lassen, damit das Mikrofon ihn nicht hört
-                    drain(q)
-                    raw, _ = listen_live(q, threshold, follow_handler, live_rec, max_wait=6)
+                    command = "__nachricht__"
+                else:
+                    gen = pc_cancel.GEN
+                    raw, sess = listen_live(q, threshold, wake_handler, live_rec, max_wait=1)
+                    if raw is None:
+                        continue
+                    if pc_audio.busy_recently():  # das war wohl meine eigene Stimme (z. B. eine Erinnerung)
+                        continue
+                    print("Zeit: Satzende erkannt, starte Spracherkennung")
+                    text = transcribe(recognizer, raw)
                     if pc_cancel.changed(gen):
                         drain(q)
                         continue
-                    if raw is None:
-                        ui.post("Nichts gehört", "", 1500, glow=True)
+                    wake = None
+                    if text:
+                        print(f"Gehört: {text}")
+                        low = text.lower()
+                        wake = next((w for w in WAKE_WORDS if w in low), None)
+                    if not wake:
+                        if sess.woke:  # Live-Anzeige war schon da, am Ende passte es aber nicht
+                            ui.post("Nicht verstanden", "Bitte nochmal", 2000, glow=True)
                         continue
-                    command = transcribe(recognizer, raw).strip()
+
+                    command = text[low.index(wake) + len(wake):].strip(" ,.!?")
+                    if not (sess.woke and EARLY_CHIME):
+                        play_chime()
+
                     if not command:
-                        ui.post("Nicht verstanden", "Bitte nochmal", 2000, glow=True)
-                        continue
+                        ui.post("Ich höre …", "Sag deinen Befehl", glow=True)
+                        time.sleep(0.7)  # Sound ausklingen lassen, damit das Mikrofon ihn nicht hört
+                        drain(q)
+                        raw, _ = listen_live(q, threshold, follow_handler, live_rec, max_wait=6)
+                        if pc_cancel.changed(gen):
+                            drain(q)
+                            continue
+                        if raw is None:
+                            ui.post("Nichts gehört", "", 1500, glow=True)
+                            continue
+                        command = transcribe(recognizer, raw).strip()
+                        if not command:
+                            ui.post("Nicht verstanden", "Bitte nochmal", 2000, glow=True)
+                            continue
                 def run_barge(cmd, quiet_unknown=False):
                     """Befehl ausführen; wird er beim Reden unterbrochen, gleich den neuen Befehl nehmen."""
                     ok = False
@@ -1534,7 +1543,9 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
                     continue
 
                 # Weiterhören: ohne Aktivierungswort weitersprechen, solange die Zeit läuft
-                deadline = time.time() + follow_seconds() if follow_seconds() > 0 else 0
+                def _fs():   # nach einer Nachrichten-Ansage länger zuhören (Antwort ohne Aktivierungswort)
+                    return max(follow_seconds(), 12) if pc_nachrichten.awaiting() else follow_seconds()
+                deadline = time.time() + _fs() if _fs() > 0 else 0
                 while time.time() < deadline and not stop.is_set() and not pc_steuerung.QUIT_REQUESTED:
                     ui.post("Ich höre …", "", int((deadline - time.time()) * 1000) + 300, glow=True)
                     raw, _ = listen_live(q, threshold, follow_handler, live_rec, max_wait=max(0.5, deadline - time.time()))
@@ -1551,7 +1562,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
                         play_chime()
                     follow = (heard[low2.index(wake2) + len(wake2):] if wake2 else heard).strip(" ,.!?")
                     if not follow:  # nur das Aktivierungswort gesagt: Zeit neu starten
-                        deadline = time.time() + follow_seconds()
+                        deadline = time.time() + _fs()
                         continue
                     if follow.lower() in END_PHRASES and not pc_steuerung.awaiting():
                         ui.post("Assistent", "Gern.", 1500, glow=True)
@@ -1568,7 +1579,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
                         gen = pc_cancel.GEN
                     if ok:
                         drain(q)
-                        deadline = time.time() + follow_seconds()  # nach jedem Befehl erneut die volle Zeit
+                        deadline = time.time() + _fs()  # nach jedem Befehl erneut die volle Zeit
     except Exception as e:
         print(f"Fehler im Assistenten: {e}")
         ui.post("Fehler", str(e), 8000)
@@ -1713,7 +1724,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-13 18:20"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-13 19:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -1770,6 +1781,11 @@ def main():
     threading.Thread(target=pc_audio.windows_voices, daemon=True).start()  # Windows-Stimmen für die Einstellungen
     pc_link.ON_SETTINGS = lambda new: ui.q.put(("apply", new))  # Einstellungen, die am Handy geändert wurden
     pc_link.start(stop)  # Gedächtnis und Persönlichkeit mit der Handy-App abgleichen
+    def _status(t):
+        ui.post("Assistent", t, glow=True)
+        if SPEAK:
+            speak(t)
+    pc_nachrichten.ON_STATUS = _status   # "Einen Moment, ich formuliere …"
     pc_remote.ON_TEXT = hud_command  # "Befehl an den PC" vom Handy
     pc_remote.ON_HUD = lambda: ui.q.put(("hud", "toggle"))
     pc_remote.start(stop)  # Handy als Fernbedienung

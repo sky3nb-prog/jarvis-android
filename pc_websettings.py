@@ -29,7 +29,7 @@ def _same(names):
 
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
-NEW = ["meine_orte", "meine_wege", "route_an", "hud_layout"]
+NEW = ["meine_orte", "meine_wege", "route_an", "hud_layout", "wichtige_leute", "absage_text"]
 
 
 def unseen(s: dict) -> list:
@@ -167,6 +167,17 @@ def schema(s: dict) -> dict:
                  tx("route_an", "Google-Maps-Link per WhatsApp an", "Name aus deinen Kontakten, leer = an niemanden. Gilt auch am Handy."),
                  note("Fragst du am PC, öffnet sich die Route am PC und auf dem Handy, und der PC schickt den Link per WhatsApp.")),
         ]},
+        {"id": "leute", "n": "Leute", "i": "☺", "items": [
+            card("Wichtige Leute",
+                 tx("wichtige_leute", "Namen wie in WhatsApp", "Mit Komma, z. B. Mama, Saya, Opa. Gilt auch am Handy."),
+                 note("Schreiben sie dir, sagt Jarvis es hier an – auch mitten im Spiel. Sprachnachrichten: „vorlesen“ oder „abspielen“. "
+                      "Danach: „antworte du“ (Vorschlag, du sagst ja oder nein) oder „ich antworte“ (du diktierst). "
+                      "Gesendet wird über die Benachrichtigung am Handy, WhatsApp geht nicht auf.")),
+            card("Anruf-Butler",
+                 tx("absage_text", "Absage-Text", "Leer = „Kann gerade nicht, rufe später zurück.“ Gilt auch am Handy."),
+                 note("Steht das Handy auf „Nicht stören“, drückt Jarvis Anrufe aus deinen Kontakten weg und schickt diesen Text – "
+                      "per WhatsApp hier am PC, wenn er läuft, sonst per SMS. Ein- und ausschalten in der Handy-App.")),
+        ]},
         {"id": "anz", "n": "Anzeige", "i": "◐", "items": [
             card("HUD",
                  {"k": "hud_layout", "t": "choice", "l": "Aufbau", "o": [
@@ -256,6 +267,7 @@ def schema(s: dict) -> dict:
         "show_notifications": bool(g("show_notifications")),
         "gemini_api_key": s.get("gemini_api_key", "") or "",
         "meine_orte": s.get("meine_orte", "") or "", "meine_wege": s.get("meine_wege", "") or "", "route_an": s.get("route_an", "") or "",
+        "wichtige_leute": s.get("wichtige_leute", "") or "", "absage_text": s.get("absage_text", "") or "",
     }
     for k, n in LISTS.items():
         values[k] = ", ".join(s.get(k) or (d.get(k) or []))
@@ -287,7 +299,7 @@ def save(s: dict, v: dict) -> dict:
             new[k] = num(k)
     for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
-              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an"):
+              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device"):

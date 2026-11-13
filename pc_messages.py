@@ -16,6 +16,7 @@ Ohne Nummer sucht er den Namen in der WhatsApp-Suche.
 
 import os
 import re
+import threading
 import time
 import urllib.parse
 
@@ -37,6 +38,10 @@ PATTERNS = [
     re.compile(rf"^{LEAD}\s+{FILLER}(?:(?:eine?|ne)\s+(?:nachricht|message|dm)\s+)?(?:an\s+)?(?P<to>.+?)\s+(?:auf|per|über|bei|in|mit)\s+{APP_WORDS}\s+(?P<text>.+)$", re.I),
     # schick eine Nachricht an Mama: ...  (ohne App = WhatsApp)
     re.compile(rf"^{LEAD}\s+{FILLER}(?:(?:eine?|ne)\s+)?(?:nachricht|sms|message)\s+(?:an|für)\s+(?P<to>.+?){SEP}(?P<text>.+)$", re.I),
+    # schick Opa eine WhatsApp: ...  /  schreib Opa eine Nachricht, dass ...
+    re.compile(rf"^{LEAD}\s+{FILLER}(?:an\s+)?(?P<to>(?!mir\b|uns\b|das\b|es\b)[\wäöüß-]+(?:\s+[\wäöüß-]+)?)\s+(?:eine?|ne)\s+(?:{APP_WORDS}(?:[- ]?nachricht)?|nachricht|message)(?:{SEP}|\s+)(?P<text>.+)$", re.I),
+    # schreib Opa, dass ...  /  schreib Opa: ...  (ohne App = WhatsApp)
+    re.compile(r"^(?:schreib|schreibe|schick|schicke)\s+(?:mal\s+|bitte\s+)*(?:an\s+)?(?P<to>(?!mir\b|uns\b|das\b|es\b|was\b|ein\b|eine\b|mal\b)[\wäöüß-]+(?:\s+[\wäöüß-]+)?)(?:\s*,?\s+dass\s+|\s*:\s*)(?P<text>.+)$", re.I),
 ]
 TRAILING = re.compile(r"\s+(?:und\s+)?(?:schick|schicke|sende|send)\w*\s+(?:sie|es|ihn|das)?\s*(?:auch\s+)?(?:gleich\s+)?(?:ab|los|weg)\s*$", re.I)
 
@@ -64,6 +69,28 @@ def polish(text: str) -> str:
             return out
     except Exception as e:
         print(f"Nachricht konnte nicht überarbeitet werden: {e}")
+    return text
+
+
+def _rephrase(text: str, to: str, as_jarvis: bool) -> str:
+    """Aus indirekter Rede („dass er heute anrufen soll“) eine richtige Nachricht machen."""
+    try:
+        import pc_ai
+        if not (pc_ai.gemini_key() or pc_ai.groq_key()):
+            return text
+        who = ("Die Nachricht schreibt Jarvis, der Assistent des Nutzers Skyler, und spricht über Skyler in der dritten Person "
+               "(z. B. „Skyler bittet dich, …“). Beginne NICHT mit „Hier ist Jarvis“.") if as_jarvis else \
+              "Die Nachricht ist in der Ich-Form des Nutzers, locker, wie man an Familie und Freunde schreibt."
+        system = ("Der Nutzer hat in indirekter Rede gesagt, was in einer WhatsApp an " + to + " stehen soll. Mach daraus die fertige, "
+                  "kurze Nachricht in direkter Rede (Empfänger mit du ansprechen). " + who +
+                  " Nichts hinzuerfinden. Gib NUR den Nachrichtentext zurück, ohne Anführungszeichen.")
+        out = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": "dass " + text}]}], system, json_mode=False,
+                                    max_tokens=200, timeout=12, fast=True)
+        out = (out or "").strip().strip('"„“').strip()
+        if 1 <= len(out) <= 500:
+            return out
+    except Exception as e:
+        print(f"Nachricht konnte nicht umformuliert werden: {e}")
     return text
 
 
@@ -277,7 +304,22 @@ def handle(command: str):
                 return send(app, to, text)
             if low in NO:
                 return "Okay, ich schicke nichts."
-    parsed = parse(command)
+    as_jarvis = re.search(r"\b(?:unter|in|mit)\s+deinem\s+namen\b|\bals\s+jarvis\b|\bvon\s+dir\s+aus\b|\bals\s+du\b", low)
+    cmd = re.sub(r",?\s*(?:unter|in|mit)\s+deinem\s+namen\b|,?\s*als\s+jarvis\b|,?\s*von\s+dir\s+aus\b|,?\s*als\s+du\b", "", command, flags=re.I) if as_jarvis else command
+    parsed = parse(cmd)
     if not parsed:
         return None
+    if re.search(r"\bdass\b", cmd, re.I):   # „dass er anrufen soll“ -> richtige Nachricht formulieren
+        parsed = (parsed[0], parsed[1], _rephrase(parsed[2], parsed[1], bool(as_jarvis)))
+    if as_jarvis:   # „Schreib Opa unter deinem Namen …“ -> „Hier ist Jarvis. …“; Antworten in dem Chat sagt er an
+        app, to, text = parsed
+        text = re.sub(r"^(?:hier ist jarvis[.,!]?\s*)", "", text, flags=re.I)
+        parsed = (app, to, "Hier ist Jarvis. " + text[0].upper() + text[1:])
+        try:
+            import pc_handy
+            if pc_handy.paired():   # das Handy meldet Antworten aus diesem Chat (24 Stunden lang)
+                threading.Thread(target=lambda: pc_handy._send({"kind": "watch", "from": "pc", "name": to, "hours": 24,
+                                                                "ts": int(time.time()), "id": "w"}), daemon=True).start()
+        except Exception:
+            pass
     return start(*parsed)
