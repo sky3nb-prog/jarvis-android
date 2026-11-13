@@ -1544,7 +1544,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
 
                 # Weiterhören: ohne Aktivierungswort weitersprechen, solange die Zeit läuft
                 def _fs():   # nach einer Nachrichten-Ansage länger zuhören (Antwort ohne Aktivierungswort)
-                    return max(follow_seconds(), 12) if pc_nachrichten.awaiting() else follow_seconds()
+                    return max(follow_seconds(), 20) if pc_nachrichten.awaiting() else follow_seconds()
                 deadline = time.time() + _fs() if _fs() > 0 else 0
                 while time.time() < deadline and not stop.is_set() and not pc_steuerung.QUIT_REQUESTED:
                     ui.post("Ich höre …", "", int((deadline - time.time()) * 1000) + 300, glow=True)
@@ -1552,6 +1552,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
                     if raw is None or pc_cancel.changed(gen):
                         break
                     heard = transcribe(recognizer, raw).strip()
+                    print(f"Gehört (weiter): {heard}")
                     if pc_cancel.changed(gen):
                         break
                     if not heard:
@@ -1724,7 +1725,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-13 19:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-13 20:10"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():

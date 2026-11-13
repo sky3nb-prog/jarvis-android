@@ -48,6 +48,9 @@ def _idle_seconds() -> float:
 
 def incoming(msg: dict):
     """Vom Handy: {sender, chat, text, voice, transcript, audio(b64 ogg), key}."""
+    for k in ("sender", "chat", "text", "transcript"):
+        if isinstance(msg.get(k), str):
+            msg[k] = re.sub(r"[\u200e\u200f\u202a-\u202e]", "", msg[k]).strip()
     if _idle_seconds() > 20 * 60:   # niemand am PC: nicht in den leeren Raum reden
         print(f"Nachricht von {msg.get('sender')}: PC unbenutzt, keine Ansage")
         return
@@ -116,21 +119,99 @@ def _play(m: dict) -> str:
         return ""
 
 
-def _draft(m: dict) -> str:
-    """Antwortvorschlag in seinem Namen (kurz, passend, wie er schreibt)."""
-    import pc_ai
-    import pc_memory
-    content = m.get("transcript") or m.get("text") or ""
-    sys_ = ("Du schreibst für den Nutzer eine kurze WhatsApp-Antwort in seinem Namen (Ich-Form, locker, wie ein Jugendlicher "
-            "an Familie und Freunde schreibt, ohne Emojis-Flut, höchstens ein Emoji). Nur den Antworttext, sonst nichts.\n"
-            + (pc_memory.prompt_block() or "")[:1500])
+def _transcribe(m: dict) -> str:
+    """Sprachnachricht am PC in Text umwandeln (Groq Whisper), falls das Handy keinen Text mitgeschickt hat."""
+    if m.get("transcript") or not m.get("audio"):
+        return m.get("transcript") or ""
     try:
-        out = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": f"Nachricht von {_who(m)}: {content}"}]}],
-                                    sys_, json_mode=False, max_tokens=200, timeout=15, fast=True)
+        import json
+        import urllib.request
+        import uuid
+        import pc_ai
+        key = pc_ai.groq_key()
+        if not key:
+            return ""
+        audio = base64.b64decode(m["audio"])
+        for model in ("whisper-large-v3-turbo", "whisper-large-v3"):
+            b = "----jarvis" + uuid.uuid4().hex
+            parts = []
+            for k, v in (("model", model), ("language", "de"), ("response_format", "json")):
+                parts.append(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+            parts.append(f'--{b}\r\nContent-Disposition: form-data; name="file"; filename="sprachnachricht.ogg"\r\n'
+                         f'Content-Type: audio/ogg\r\n\r\n'.encode() + audio + b"\r\n")
+            parts.append(f"--{b}--\r\n".encode())
+            req = urllib.request.Request("https://api.groq.com/openai/v1/audio/transcriptions", data=b"".join(parts),
+                                         headers={"Authorization": f"Bearer {key}", "User-Agent": "Jarvis",
+                                                  "Content-Type": f"multipart/form-data; boundary={b}"})
+            try:
+                with urllib.request.urlopen(req, timeout=40) as r:
+                    t = json.loads(r.read().decode("utf-8")).get("text", "").strip()
+                    if t:
+                        m["transcript"] = t
+                        return t
+            except Exception as e:
+                print(f"Sprachnachricht umwandeln mit {model} ging nicht: {e}")
+    except Exception as e:
+        print(f"Sprachnachricht umwandeln ging nicht: {e}")
+    return ""
+
+
+def _draft(m: dict, wish: str = "") -> str:
+    """Antwortvorschlag in seinem Namen. wish = Wunsch dazu ("auf Altdeutsch", "kürzer", "sag dass ich gleich komme")."""
+    import pc_ai
+    content = (_transcribe(m) if m.get("voice") else "") or m.get("text") or ""
+    if m.get("voice") and not m.get("transcript"):
+        content = "(eine Sprachnachricht, deren Inhalt ich nicht kenne)"
+    sys_ = ("Du schreibst für den Nutzer (Skyler) eine kurze WhatsApp-Antwort in seinem Namen: Ich-Form, locker, wie ein "
+            "Jugendlicher an Familie und Freunde schreibt, höchstens ein Emoji, meist 1 bis 2 Sätze. Geh NUR auf die Nachricht "
+            "ein. Erfinde nichts über ihn (keine Pläne, Orte, Gefühle oder Erlebnisse), was nicht in der Nachricht oder im "
+            "Wunsch steht. Wenn ein Wunsch angegeben ist, setze ihn genau um (Sprache, Stil, Länge, Inhalt). "
+            "Gib nur den Antworttext zurück, sonst nichts.")
+    prompt = f"Nachricht von {_who(m)}: {content}"
+    if m.get("draft"):
+        prompt += f"\nBisheriger Vorschlag: {m['draft']}"
+    if wish:
+        prompt += f"\nWunsch des Nutzers für die Antwort: {wish}"
+    try:
+        out = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": prompt}]}],
+                                    sys_, json_mode=False, max_tokens=300, timeout=15, fast=True)
         return re.sub(r'^["„“]|["“”]$', "", (out or "").strip())
     except Exception as e:
         print(f"Antwortvorschlag ging nicht: {e}")
         return ""
+
+
+# "antworte auf Altdeutsch", "mach's kürzer", "netter", "sag noch, dass …" = Wunsch an den Vorschlag, kein Nachrichtentext
+WISH = re.compile(r"^(?:auf|in|im|mit|ohne|als|so|kurz|kürzer|länger|netter|nett|freundlich\w*|lustig\w*|locker\w*|förmlich\w*|"
+                  r"ernst\w*|höflich\w*|cooler|anders|nochmal|noch mal|neu|besser|mehr|weniger|englisch|deutsch|\w+deutsch|"
+                  r"frag\w*|sag noch|schreib noch|und noch|aber)\b", re.I)
+CHANGE = re.compile(r"^(?:mach(?:'s| es| das| sie)?|formulier\w*(?: es| das)?|änder\w*(?: es| das)?|schreib(?:'s| es| das| sie) |"
+                    r"nimm|lieber|eher)\b", re.I)
+
+
+def _propose(m: dict, wish: str = ""):
+    if ON_STATUS:
+        try:
+            ON_STATUS("Einen Moment, ich formuliere …")
+        except Exception:
+            pass
+    d = _draft(m, wish)
+    if not d:
+        m["stage"] = "dictate"
+        return "Mir fällt gerade nichts Gutes ein. Was soll ich schreiben?"
+    m.update(stage="confirm", draft=d)
+    return f"Ich würde schreiben: {_end(d)} Passt das?"
+
+
+def _literal(text: str, m: dict) -> str:
+    """Diktierter Text; "dass er anrufen soll" wird zu einer richtigen Nachricht."""
+    if re.match(r"^dass\b", text, re.I) or re.search(r"\bdass\b", text[:12], re.I):
+        try:
+            import pc_messages
+            return pc_messages._rephrase(re.sub(r"^dass\s+", "", text, flags=re.I), str(m.get("sender") or ""), False)
+        except Exception:
+            pass
+    return text
 
 
 def send(m: dict, text: str) -> str:
@@ -156,7 +237,13 @@ def handle(text: str):
         return None
     m, low = PENDING, (text or "").lower().strip(" .!?")
     m["t"] = time.time()
-    direct = re.match(r"^(?:dann\s+)?(?:antworte|schreib|schreibe|sag|sende)\w*\s*(?:ihm|ihr|zurück|ihnen)?\s*[:,]?\s+(?:dass\s+)?(.{2,})$", text.strip(), re.I)
+    print(f"Nachrichten-Dialog ({m.get('stage')}): {text}")
+    # "antworte/schreib ihm: …" – Rest ist entweder der Text oder ein Wunsch ("auf Altdeutsch")
+    direct = re.match(r"^(?:dann\s+|ok(?:ay)?\s+|ja\s+)?(?:antworte|antwort|schreib|schreibe|sag|sende)\w*\s*(?:ihm|ihr|ihnen|zurück)?\s*[:,]?\s+(.{2,})$",
+                      text.strip(), re.I)
+    rest = direct.group(1).strip() if direct else ""
+    if direct and re.match(r"^du\b", rest, re.I):   # "antworte du (auf Englisch)"
+        return _propose(m, re.sub(r"^du\b[,\s]*", "", rest, flags=re.I))
     if m.get("stage") == "voice":
         if re.search(r"abspiel|anmach|anhör|play|spiel", low):
             r = _play(m)
@@ -164,46 +251,44 @@ def handle(text: str):
             return (r + " " if r else "") + "Willst du antworten, oder soll ich?"
         if re.search(r"vorles|lies|transkri|text", low):
             m["stage"] = "after"
-            t = m.get("transcript") or "Ich konnte sie leider nicht in Text umwandeln."
+            t = _transcribe(m) or "Ich konnte sie leider nicht in Text umwandeln."
             return f"{m.get('sender')} sagt: {_end(t)} Willst du antworten, oder soll ich?"
         if NO.match(low):
             PENDING = None
             return "Okay, später."
-        return None
+        m["stage"] = "after"   # gleich zur Antwort ("antworte du") – sonst unten weiter
     if m.get("stage") == "dictate":
         PENDING = None
-        return send(m, text.strip())
+        return send(m, _literal(rest or text.strip(), m))
     if m.get("stage") == "confirm":
-        if YES.match(low):
+        if YES.match(low) and not CHANGE.match(low):
             PENDING = None
             return send(m, m.get("draft", ""))
-        if direct:
+        nm = re.match(r"^(?:nein|nee|ne|nö)[,.!]?\s*(?:schreib|antworte|sag)\w*\s*(?:stattdessen\s+)?[:,]?\s*(.{2,})$", text.strip(), re.I)
+        if nm and not WISH.match(nm.group(1)):
             PENDING = None
-            return send(m, direct.group(1).strip())
-        nm = re.match(r"^(?:nein|nee|ne|nö)[,.!]?\s*(?:schreib|antworte|sag)\w*\s*[:,]?\s*(.{2,})$", text.strip(), re.I)
-        if nm:
-            PENDING = None
-            return send(m, nm.group(1).strip())
-        if NO.match(low):
+            return send(m, _literal(nm.group(1).strip(), m))
+        if re.match(r"^(?:nein|nee|ne|nö)\W*$", low):
             m["stage"] = "dictate"
-            return "Okay. Was soll ich schreiben?"
-        return None
+            return "Okay. Was soll ich stattdessen schreiben?"
+        if NO.match(low) and len(low.split()) <= 3:
+            PENDING = None
+            return "Okay, ich schicke nichts."
+        if direct and not WISH.match(rest) and not CHANGE.match(text.strip()):
+            PENDING = None
+            return send(m, _literal(rest, m))
+        # alles andere ist ein Änderungswunsch: "auf Altdeutsch", "mach's kürzer", "sag noch, dass ich später komme"
+        wish = re.sub(r"^(?:nein|nee|ne|nö)[,.!]?\s*", "", text.strip(), flags=re.I)
+        return _propose(m, wish)
     # stage "after": antworten?
-    if direct and not re.match(r"^(?:antworte|schreib)\w*\s+du\b", low):
+    if direct:
+        if WISH.match(rest) or CHANGE.match(rest):
+            return _propose(m, rest)
         PENDING = None
-        return send(m, direct.group(1).strip())
-    if re.search(r"\b(?:antworte du|schreib du|mach du|du antwortest|antworte mal|antworte für mich|schlag was vor)\b", low):
-        if ON_STATUS:
-            try:
-                ON_STATUS("Einen Moment, ich formuliere …")
-            except Exception:
-                pass
-        d = _draft(m)
-        if not d:
-            m["stage"] = "dictate"
-            return "Mir fällt gerade nichts Gutes ein. Was soll ich schreiben?"
-        m.update(stage="confirm", draft=d)
-        return f"Ich würde schreiben: {_end(d)} Passt das?"
+        return send(m, _literal(rest, m))
+    if re.search(r"\b(?:antworte du|schreib du|mach du|du antwortest|antworte mal|antworte für mich|schlag was vor|du)\b", low) \
+            and not re.search(r"\bich\b", low):
+        return _propose(m, re.sub(r"^.*?\b(?:antworte du|schreib du|mach du|du antwortest|du)\b[,\s]*", "", text, flags=re.I).strip())
     if re.search(r"\b(?:ich antworte|ich schreib|ich sag dir|ich diktier)\w*", low) or YES.match(low):
         m["stage"] = "dictate"
         return "Was soll ich schreiben?"
