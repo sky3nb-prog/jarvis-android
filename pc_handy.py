@@ -133,6 +133,12 @@ def handle(text: str):
     low = text.lower().strip()
     if MEDIA.search(low):
         return send_media()
+    if re.search(r"\b(?:ich )?(?:fahr|fahre|geh|gehe|bin)\w* (?:jetzt |gleich |dann )*(?:los|unterwegs) (?:zu|nach|zum|zur)\b", low):
+        # "ich fahr jetzt los zu Oma und Opa": das Handy merkt sich das Ziel und sagt kurz vor der Ankunft Bescheid
+        r = ask("do", wait=25, text=text)
+        if r is None:
+            return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
+        return r.get("text") or "Gute Fahrt!"
     who = call_name(text) if CALL.search(low) and not re.search(r"discord|teams|skype|zoom", low) else None
     if who:   # Anruf: direkt ans Handy, ohne Umweg über die KI (schnell und zuverlässig)
         r = ask("call", wait=20, who=who)

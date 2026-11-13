@@ -1729,7 +1729,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-13 20:55"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-13 23:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
