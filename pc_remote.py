@@ -136,6 +136,10 @@ def execute(cmd: dict) -> str:
     if t == "hud" and ON_HUD:
         ON_HUD()
         return "HUD umgeschaltet."
+    if t == "remind":   # Termin am Handy eingetragen: der PC erinnert dich auch
+        import pc_handy
+        pc_handy.remind_here(str(cmd.get("text") or ""), float(cmd.get("at") or 0))
+        return ""
     if t == "text" and str(cmd.get("text") or "").strip():
         if ON_TEXT:
             ON_TEXT(str(cmd["text"]).strip()[:300])
@@ -169,6 +173,8 @@ def _handle(msg: dict):
     print(f"Handy-Fernbedienung: {cmd} -> {text}")
     if cmd.get("type") in ("wl", "media", "discord"):
         time.sleep(0.4)   # Wave Link / Discord kurz nachziehen lassen, damit der Status stimmt
+    if cmd.get("type") == "remind":
+        return   # keine Antwort nötig (spart Nachrichten)
     try:
         reply(msg.get("id", ""), ok, text)
     except Exception as e:

@@ -73,7 +73,7 @@ def on_reply(msg: dict):
                 pass
     w = _waiting.get(str(msg.get("re") or ""))
     if w:
-        w[1] = {"ok": bool(msg.get("ok", True)), "text": str(msg.get("text") or ""), "url": msg.get("url")}
+        w[1] = dict(msg, ok=bool(msg.get("ok", True)), text=str(msg.get("text") or ""))
         w[0].set()
 
 
@@ -83,8 +83,24 @@ MEDIA = re.compile(r"(?:schick|send|leg|übertrag|übergib|mach|spiel|pack|bring
                    r"das lied|den song|den titel|das video|die musik|was (?:gerade |grad )?läuft|das hier)\b.{0,30}\b(?:handy|telefon)\b|"
                    r"(?:handy|telefon)\b.{0,30}\b(?:weiter ?hören|weiter ?schauen|weiter ?spielen)", re.I)
 CALL = re.compile(r"\bruf\w*\b.{1,40}\ban\b|\banrufen\b|\btelefonier\w*\b|\bwähl\w*\b.{0,30}\bnummer\b", re.I)
-CAL_ADD = re.compile(r"\b(trag|trage|erstell|erstelle|leg|lege|mach|mache|füg|füge|setz|setze|schreib|schreibe)\w*\b.*\b(termin|kalender\w*)\b"
-                     r"|^neuer termin\b", re.I)
+CAL_VERB = re.compile(r"\b(?:ein)?trag\w*|\beinträg\w*|\bschreib\w*|\bnotier\w*|\berstell\w*|\banleg\w*|\bsetz\w*|\bfüg\w*|"
+                      r"\bplan\w*|\bleg\w*\b.*\ban\b|\bin (?:den |meinen |dein |deinen )?kalender\b.*\bein\b|\bmach\w*\b.*\btermin|\bmerk\w*\b.*\bkalender|\berinner\w*", re.I)
+CAL_WORD = re.compile(r"\bkalender\w*|\btermin\w*", re.I)
+CAL_QUESTION = re.compile(r"^(?:was|welche\w*|wann|wie viele|hab ich|habe ich|steht|zeig\w*|lies|sag mir was)\b", re.I)
+
+
+class _CalAdd:
+    """„Trag … in den Kalender ein“, „kannst du mir was im Kalender eintragen in 48 Stunden“, „neuer Termin …“"""
+    @staticmethod
+    def search(low: str):
+        low = re.sub(r"^(?:jarvis|friday|hey|okay|ok)[ ,]+", "", low.strip())
+        low = re.sub(r"^(?:kannst du|könntest du|würdest du|bitte)\s+(?:mir\s+)?", "", low)
+        if CAL_QUESTION.match(low) and not re.search(r"\b(?:ein)?trag|einträg", low):
+            return None
+        return CAL_WORD.search(low) and CAL_VERB.search(low) or re.match(r"^neuer termin\b", low)
+
+
+CAL_ADD = _CalAdd()
 
 
 FILLER = r"\b(?:mal|bitte|doch|jetzt|gleich|kurz|schnell|einfach|für mich)\b"
@@ -125,10 +141,17 @@ def handle(text: str):
         if r is None:
             return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
         return r["text"] or ("Erledigt, am Handy." if r["ok"] else "Am Handy ging das nicht.")
+    if re.match(r"^(?:jarvis |friday )?(?:kannst du mich |bitte )?erinner\w* mich\b", low) and not CAL_ADD.search(low):
+        # „Erinnere mich in 2 Stunden an …“: der PC erinnert selbst (pc_remind), das Handy trägt es zusätzlich ein
+        threading.Thread(target=lambda: ask("termin", wait=30, text=text), daemon=True).start()
+        return None
     if CAL_ADD.search(low):
-        r = ask("do", wait=20, text=text)
+        # Das Handy trägt in deinen Kalender ein (Google, synchron) und prüft nach; der PC erinnert dich zusätzlich.
+        r = ask("termin", wait=30, text=text)
         if r is None:
-            return None   # Handy nicht erreichbar: der PC trägt es wie bisher selbst ein
+            return None   # Handy nicht erreichbar: der PC macht es wie bisher selbst
+        if r.get("ok") and r.get("remind_at"):
+            remind_here(str(r.get("title") or ""), float(r["remind_at"]))
         return r["text"] or "Steht im Kalender auf deinem Handy."
     return None
 
@@ -199,3 +222,14 @@ def plan_route(text: str):
         except Exception:
             pass
     return r.get("text") or "Den Weg konnte ich gerade nicht planen."
+
+
+def remind_here(title: str, at: float):
+    """Erinnerung am PC (wird gesprochen, wenn der PC dann läuft). Doppelte werden nicht angelegt."""
+    import pc_remind
+    if not title or at <= time.time():
+        return
+    for i in pc_remind.upcoming():
+        if i.get("kind") == "reminder" and i.get("text") == title and abs(i.get("due", 0) - at) < 120:
+            return
+    pc_remind.add("reminder", at, title)
