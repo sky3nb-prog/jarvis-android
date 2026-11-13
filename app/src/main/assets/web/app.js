@@ -202,7 +202,7 @@
   }));
   // Neue Einstellungen: kleiner roter Punkt (am Zahnrad und am Bereich), bis du den Bereich einmal geöffnet hast.
   // Bei jedem Update ergänzen: Bereich -> Kennung des Updates
-  const NEW_TABS = { wege: "wege1" };
+  const NEW_TABS = { wege: "wege1", allg: "kal1" };
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };
   const seenAdd = (k) => { try { const s = seenGet(); if (!s.includes(k)) { s.push(k); localStorage.setItem("seen_new", JSON.stringify(s)); } } catch (e) {} };
   function newDots() {
@@ -250,6 +250,11 @@
       $("set-anrede").value = c.anrede || "";
       $("set-city").value = c.city || "";
       $("set-addr").value = c.address || "";
+      const cals = c.calendars || [];
+      $("set-cal").innerHTML = '<option value="-1">Automatisch (Google-Hauptkalender)</option>' + cals.map((k) =>
+        `<option value="${k.id}">${String(k.name).replace(/</g, "")} · ${k.kind}${k.account && k.account !== k.name ? " (" + String(k.account).replace(/</g, "") + ")" : ""}</option>`).join("");
+      $("set-cal").value = String(c.calendar_id != null ? c.calendar_id : -1);
+      if (!$("set-cal").value) $("set-cal").value = "-1";
       $("set-morte").value = c.orte || ""; $("set-mwege").value = c.wege || ""; $("set-routean").value = c.route_an || "";
       sw("set-loc", c.use_location);
       $("set-locstate").innerHTML = c.here ? "Gerade: <b style='color:#6effcd'>" + c.here + "</b>" : (c.use_location ? "Standort wird beim nächsten Mal ermittelt." : "");
@@ -291,6 +296,7 @@
       themen_selbst: $("set-tselbst").value.trim(),
       assistant_name: $("set-name").value.trim(), anrede: $("set-anrede").value.trim(),
       city: $("set-city").value.trim(), address: $("set-addr").value.trim(), use_location: sw("set-loc"),
+      calendar_id: parseInt($("set-cal").value || "-1", 10),
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),

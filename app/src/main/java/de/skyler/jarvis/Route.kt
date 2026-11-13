@@ -123,7 +123,13 @@ Antworte NUR mit dem JSON."""
 
         val start = resolve(j.optString("start", "hier"), "Start") ?: return Result("Ich weiß nicht, wo du losfährst. Schalte am Handy den Standort ein oder trag deine Adresse ein.", null)
         val zielName = j.optString("ziel_name").ifBlank { j.optString("ziel") }
-        val ziel = resolve(j.optString("ziel"), zielName) ?: return Result("Das Ziel ${j.optString("ziel")} finde ich nicht.", null)
+        // Personen ("Oma und Opa", "mein Bruder") nur aus den gespeicherten Orten oder mit echter Adresse – nicht raten
+        val PERSON = Regex("\\b(oma|opa|großeltern|grosseltern|mama|papa|mutter|vater|eltern|bruder|schwester|tante|onkel|cousin\\w*|freund\\w*|kumpel|freundin)\\b", RegexOption.IGNORE_CASE)
+        val zq = j.optString("ziel")
+        if ((PERSON.containsMatchIn(zq) || PERSON.containsMatchIn(zielName)) && mine(ctx, zq) == null && mine(ctx, zielName) == null && !zq.any { it.isDigit() })
+            return Result("Wo wohnen ${zielName.ifBlank { zq }}? Trag die Adresse einmal in den Einstellungen unter Wege bei Meine Orte ein, " +
+                "zum Beispiel: Oma und Opa: Straße und Hausnummer, Ort. Dann finde ich sie immer.", null)
+        val ziel = resolve(zq, zielName) ?: return Result("Das Ziel $zq finde ich nicht.", null)
 
         // Stopps: feste Orte zuerst, Ketten danach entlang der Strecke zwischen ihren Nachbarn
         val st = j.optJSONArray("stopps") ?: JSONArray()
@@ -133,7 +139,13 @@ Antworte NUR mit dem JSON."""
         for (i in 0 until st.length()) {
             val s = st.optJSONObject(i) ?: continue
             dwell[i] = if (s.optString("art") == "weg") 0 else s.optInt("minuten", 5).coerceIn(0, 60)
-            if (s.optString("art") != "kette") pts[i] = resolve(s.optString("ort"), s.optString("was").ifBlank { s.optString("ort") })
+            if (s.optString("art") == "weg") {
+                // Wege nur aus den Einstellungen – sonst sucht die Karte irgendeinen Feldweg in Deutschland
+                val name = s.optString("ort").ifBlank { s.optString("was") }
+                val v = mine(ctx, name) ?: mine(ctx, s.optString("was"))
+                pts[i] = v?.let { resolve0(it, s.optString("was").ifBlank { name }) }
+                if (pts[i] == null) notes.add("„$name“ kenne ich noch nicht, trag ihn unter Einstellungen, Wege ein; ich nehme so lange den normalen Weg")
+            } else if (s.optString("art") != "kette") pts[i] = resolve(s.optString("ort"), s.optString("was").ifBlank { s.optString("ort") })
                 .also { if (it == null) notes.add("${s.optString("was").ifBlank { s.optString("ort") }} habe ich nicht gefunden") }
         }
         for (i in 0 until st.length()) {

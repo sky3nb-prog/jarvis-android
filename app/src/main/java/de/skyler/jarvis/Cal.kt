@@ -29,7 +29,26 @@ object Cal {
         return null
     }
 
-    /** Ein beschreibbarer Kalender, am liebsten der Haupt-Kalender des Google-Kontos. */
+    /** Alle Kalender, in die er schreiben darf (für die Auswahl in den Einstellungen). */
+    fun writable(ctx: Context): org.json.JSONArray {
+        val out = org.json.JSONArray()
+        if (!can(ctx, Manifest.permission.READ_CALENDAR)) return out
+        val cols = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Calendars.ACCOUNT_NAME, CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL)
+        try {
+            ctx.contentResolver.query(CalendarContract.Calendars.CONTENT_URI, cols, null, null, null)?.use { c ->
+                while (c.moveToNext()) {
+                    if (c.getInt(4) < CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR) continue
+                    val type = c.getString(3) ?: ""
+                    val kind = when { type == "com.google" -> "Google"; type.contains("samsung", true) || type.contains("osp", true) || type == "LOCAL" -> "Samsung / Handy"; else -> type.substringAfterLast('.') }
+                    out.put(JSONObject().put("id", c.getLong(0)).put("name", c.getString(1) ?: "Kalender").put("account", c.getString(2) ?: "").put("kind", kind))
+                }
+            }
+        } catch (_: Exception) {}
+        return out
+    }
+
+    /** Ein beschreibbarer Kalender: der in den Einstellungen gewählte, sonst der Haupt-Kalender des Google-Kontos. */
     private fun calendarId(ctx: Context): Long? {
         val cols = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.IS_PRIMARY,
             CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.VISIBLE)
