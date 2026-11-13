@@ -54,8 +54,11 @@ object Route {
     /** "Opa: Musterstraße 5, Rutesheim" je Zeile (Einstellungen → Wege, gleich wie am PC) */
     fun lines(ctx: Context, key: String): Map<String, String> =
         (ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString(key, "") ?: "").lines().mapNotNull { l ->
-            val i = l.indexOfFirst { it == ':' || it == '=' }
-            if (i <= 0) null else l.substring(0, i).trim().lowercase() to l.substring(i + 1).trim()
+            // "Name: Adresse", "Name = …" oder ohne Doppelpunkt "Oberer Feldweg 48,79, 8,97" (Name bis zur ersten Zahl)
+            var i = l.indexOfFirst { it == ':' || it == '=' }
+            var j = i + 1
+            if (i <= 0) { i = Regex("\\s-?\\d").find(l)?.range?.first ?: -1; j = i }
+            if (i <= 0) null else l.substring(0, i).trim().lowercase() to l.substring(j).trim()
         }.filter { it.first.isNotBlank() && it.second.isNotBlank() }.toMap()
 
     private fun mine(ctx: Context, q: String): String? {
@@ -109,7 +112,11 @@ Antworte NUR mit dem JSON."""
         val near = home?.let { it.lat to it.lon }
 
         fun resolve0(s: String, label: String): P? {
-            Regex("^(-?\\d+\\.\\d+)\\s*,\\s*(-?\\d+\\.\\d+)$").find(s.trim())?.let { return P(it.groupValues[1].toDouble(), it.groupValues[2].toDouble(), label) }
+            // Koordinaten mit Punkt oder Komma: "48.79, 8.97", "48,7969, 8,9759", "48,7969 8,9759"
+            Regex("^(-?\\d{1,3})[.,](\\d+)\\s*[,;\\s]\\s*(-?\\d{1,3})[.,](\\d+)$").find(s.trim())?.let {
+                val g = it.groupValues
+                return P("${g[1]}.${g[2]}".toDouble(), "${g[3]}.${g[4]}".toDouble(), label)
+            }
             return Lage.geocode(ctx, s, near)?.let { P(it.first, it.second, label.ifBlank { s }) }
         }
 
