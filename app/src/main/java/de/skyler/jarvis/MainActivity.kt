@@ -242,6 +242,8 @@ class MainActivity : ComponentActivity() {
                 .putBoolean("use_location", o.optBoolean("use_location", false))
                 .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) putBoolean(k, o.optBoolean(k, true)) }
                 .apply()
+            Lage.updateHome(this@MainActivity) { send("home", JSONObject()) }
+            if (o.optBoolean("use_location", false)) Here.refresh(this@MainActivity, force = true)
             if (Link.paired(this@MainActivity) && !JarvisService.running) Thread({
                 try { if (Link.pull(this@MainActivity)) send("synced", JSONObject().put("text", "Gedächtnis vom PC übernommen.")) }
                 catch (_: Exception) { send("synced", JSONObject().put("text", "PC gerade nicht erreichbar.")) }
@@ -354,8 +356,40 @@ class MainActivity : ComponentActivity() {
             locPerm.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
         }
 
+        /** Zuhause-Punkt (aus Wohnort/Adresse der Einstellungen) als {lat, lon} oder null */
         @JavascriptInterface
-        fun lageFavorites(): String = org.json.JSONArray(Lage.favorites(this@MainActivity)).toString()
+        fun home(): String {
+            val p = prefs; val want = "${(p.getString("address", "") ?: "").trim()}|${Lage.city(this@MainActivity)}"
+            if (p.getString("home_for", "") != want) Lage.updateHome(this@MainActivity) { send("home", JSONObject()) }
+            val la = p.getFloat("home_lat", 999f); val lo = p.getFloat("home_lon", 999f)
+            return if (la > 90f) "null" else JSONObject().put("lat", la.toDouble()).put("lon", lo.toDouble()).toString()
+        }
+
+        /** Wo das Handy gerade ist (nur wenn erlaubt) */
+        @JavascriptInterface
+        fun here(): String {
+            Here.refresh(this@MainActivity)
+            val h = Here.latLon(this@MainActivity) ?: return "null"
+            return JSONObject().put("lat", h.first).put("lon", h.second).put("name", Here.name(this@MainActivity)).toString()
+        }
+
+        /** Bahndaten der Satelliten (frisch alle 12 Stunden; neue Daten kommen als Ereignis "tle") */
+        @JavascriptInterface
+        fun tle(): String {
+            Sats.refresh(this@MainActivity) { t -> send("tle", JSONObject().put("text", t)) }
+            return Sats.cached(this@MainActivity)
+        }
+
+        /** Ort -> Koordinaten aus dem Speicher (sonst null und im Hintergrund suchen) */
+        @JavascriptInterface
+        fun geocode(q: String): String {
+            val hit = Lage.geocodeCached(this@MainActivity, q)
+            if (hit == null) Thread({ try { Lage.geocode(this@MainActivity, q) } catch (_: Exception) {} }).start()
+            return hit?.let { JSONObject().put("lat", it.first).put("lon", it.second).toString() } ?: "null"
+        }
+
+        @JavascriptInterface
+        fun lageFavorites(): String { Lage.warmFavorites(this@MainActivity); return org.json.JSONArray(Lage.favorites(this@MainActivity)).toString() }
 
         @JavascriptInterface
         fun city(): String = Lage.city(this@MainActivity)

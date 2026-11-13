@@ -138,6 +138,8 @@
       else if (type === "lage") { if (data.tour && prefsUi.lage_jump !== false) show("lage"); if (window.JLage) window.JLage.onData(data.data, !!data.tour); }
       else if (type === "lage_focus") { if (window.JLage) window.JLage.onFocus(data.i, data.n, data.of); }
       else if (type === "lage_error") { if (window.JLage) window.JLage.onError(data.text); }
+      else if (type === "tle") { if (window.JLage) window.JLage.tle(data.text); }
+      else if (type === "home") { if (window.JLage) window.JLage.home(); }
     },
     back() {
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }

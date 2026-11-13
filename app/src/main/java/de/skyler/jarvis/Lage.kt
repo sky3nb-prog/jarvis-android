@@ -136,6 +136,44 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
     private fun geoFile(ctx: Context) = File(ctx.filesDir, "orte_genau.json")
     private var geoMem: JSONObject? = null
 
+    /** Nur aus dem Speicher (ohne Internet) – für schnelle Antworten an die Oberfläche. */
+    fun geocodeCached(ctx: Context, query: String): Pair<Double, Double>? {
+        val k = query.lowercase().trim(); if (k.isEmpty()) return null
+        synchronized(lock) {
+            if (geoMem == null) geoMem = try { JSONObject(geoFile(ctx).readText()) } catch (_: Exception) { JSONObject() }
+            return geoMem!!.optJSONArray(k)?.let { it.getDouble(0) to it.getDouble(1) }
+        }
+    }
+
+    /** Zuhause aus den Einstellungen (Adresse + Wohnort, sonst nur Wohnort) neu bestimmen. */
+    @Volatile private var homeBusy = false
+    @Volatile private var warmed = ""
+    fun updateHome(ctx: Context, onDone: () -> Unit = {}) {
+        if (homeBusy) return
+        homeBusy = true
+        val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        val city = city(ctx); val addr = (p.getString("address", "") ?: "").trim()
+        Thread({
+            try {
+                val hit = (if (addr.isNotBlank()) geocode(ctx, "$addr, $city") else null) ?: geocode(ctx, city)
+                if (hit != null) {
+                    p.edit().putFloat("home_lat", hit.first.toFloat()).putFloat("home_lon", hit.second.toFloat())
+                        .putString("home_for", "$addr|$city").apply()
+                    homeBusy = false
+                    onDone()   // nur bei Erfolg melden (sonst würde die Oberfläche es endlos neu versuchen)
+                }
+            } catch (_: Exception) {} finally { homeBusy = false }
+        }, "jarvis-home").start()
+    }
+
+    /** Lieblingsorte schon mal im Voraus finden (damit ein Tipp sofort hinfliegt). */
+    fun warmFavorites(ctx: Context) {
+        val list = favorites(ctx); val key = list.joinToString(",")
+        if (key == warmed) return
+        warmed = key
+        Thread({ for (f in list) try { geocode(ctx, f) } catch (_: Exception) {} }, "jarvis-orte").start()
+    }
+
     fun geocode(ctx: Context, query: String, near: Pair<Double, Double>? = null): Pair<Double, Double>? {
         val k = query.lowercase().trim(); if (k.isEmpty()) return null
         synchronized(lock) {
