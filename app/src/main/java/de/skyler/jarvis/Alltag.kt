@@ -516,6 +516,20 @@ object Alltag {
                 ", du bist gegen ${clock(leave + (min * 60_000).toLong())} da.")
     }
 
+    /** Offene "denk an …"-Notizen für diesen Ort (werden erst bei der Ankunft gelöscht). */
+    private fun remindersFor(ctx: Context, place: String): List<String> {
+        val a = try { JSONArray(prefs(ctx).getString("ort_erinnerungen", "[]")) } catch (_: Exception) { return emptyList() }
+        val p = Chats.norm(place)
+        return list(a).filter { o -> val w = Chats.norm(o.optString("ort")); w.isNotBlank() && (w == p || p.contains(w) || w.contains(p) && p.length >= 3) }
+            .map { it.optString("text") }
+    }
+
+    /**
+     * Feste Wege, z. B. "Donnerstag 15:50 zu Opa, zurück 18:00" (alles am Handy, ohne dass du etwas tun musst):
+     *  - 5 Minuten vor der Abfahrt (15:45): Briefing – Rad oder Bahn (Regen), wie kalt, was anziehen, worauf achten, "denk an …"
+     *  - Abfahrt: Ziel wird gemerkt, ca. 5 Minuten vor der Ankunft geht automatisch die SMS raus (Standort)
+     *  - Rückweg ("zurück 18:00" = dann bei Oma und Opa losfahren): 15 und 5 Minuten vorher Bescheid, mit Wetter und Anziehen
+     */
     private fun routines(ctx: Context, s: JSONObject, say: (String) -> Unit) {
         val now = System.currentTimeMillis()
         val c = Calendar.getInstance()
@@ -525,48 +539,40 @@ object Alltag {
             val home = Route.home(ctx) ?: continue
             val dest = Route.place(ctx, f.to) ?: continue
             val id = "fest|${f.to}|${today()}"
+            val back = if (f.backH >= 0) todayAt(f.backH, f.backM) else 0L
             // Plan ca. 30 Minuten vorher (Wetter, Bahn)
             if (now in leave - 35 * 60_000L..leave + 10 * 60_000L && !done(s, "$id|plan")) {
                 mark(s, "$id|plan")
                 s.put("fest_plan", tripPlan(ctx, home, dest, leave, f.to).put("id", id))
             }
-            val pl = s.optJSONObject("fest_plan")?.takeIf { it.optString("id") == id } ?: continue
-            val prep = prepMinutes(s)
-            if (now in leave - prep * 60_000L until leave && !done(s, "$id|ready")) {
-                mark(s, "$id|ready"); s.put("last_ready", now)
-                // kurzes Rad-Briefing, immer am Handy: los um …, Wetter hin und zurück, Anziehen, worauf achten
-                val back = if (f.backH >= 0) todayAt(f.backH, f.backM) else 0L
-                val t = rideBriefing(ctx, "In $prep Minuten musst du los zu ${f.to}, um ${clock(leave)}.", home, leave, back, pl)
+            val pl = s.optJSONObject("fest_plan")?.takeIf { it.optString("id") == id }
+            if (pl != null && now in leave - 5 * 60_000L until leave + 10 * 60_000L && !done(s, "$id|brief")) {
+                mark(s, "$id|brief"); s.put("last_ready", now)
+                val t = rideBriefing(ctx, "Um ${clock(leave)} geht's los zu ${f.to}.", home, leave, back, pl, remindersFor(ctx, f.to), false) +
+                    (if (whoFor(ctx, f.to) != null) " Ich sag Bescheid, kurz bevor du da bist." else "")
                 notify(ctx, 332, "Gleich los zu ${f.to}", t); say(t)
             }
-            if (now in leave..leave + 20 * 60_000L && !done(s, "$id|los")) {
+            if (pl != null && now in leave..leave + 30 * 60_000L && !done(s, "$id|los")) {   // still: Ziel für die Ankunfts-SMS
                 mark(s, "$id|los")
-                val t = "Jetzt los zu ${f.to}! ${pl.optString("text")}" + (if (whoFor(ctx, f.to) != null) " Ich sag Bescheid, wenn du gleich da bist." else "")
-                notify(ctx, 333, "Jetzt los zu ${f.to}", t); say(t)
-                if (!s.has("ziel")) s.put("ziel", JSONObject().put("name", f.to).put("start", now).put("min", pl.optDouble("min", 20.0)).put("km", pl.optDouble("km", 5.0)))
+                if (!s.has("ziel")) s.put("ziel", JSONObject().put("name", f.to).put("start", leave).put("min", pl.optDouble("min", 20.0)).put("km", pl.optDouble("km", 5.0)))
             }
-            // Rückweg: rechtzeitig los, um zur genannten Zeit zuhause zu sein
-            if (f.backH >= 0) {
-                val back = todayAt(f.backH, f.backM)
+            // Rückweg: um "back" bei Oma und Opa losfahren – 15 und 5 Minuten vorher Bescheid
+            if (back > 0) {
                 val from = fixP()?.takeIf { Route.distKm(it, home) > 0.3 } ?: dest
-                val keyB = "$id|zurueck"
-                if (now in back - 90 * 60_000L..back && !done(s, "$keyB|plan")) {
-                    // Plan für den Rückweg (Abfahrt so, dass du um "back" da bist)
-                    val km = Route.distKm(from, home)
-                    val est = learned(ctx, "zuhause", "rad") ?: (Route.bikeMinutes(from, home) + 3)
-                    val goAt = back - ((est + 5) * 60_000).toLong()
-                    if (now >= goAt - 45 * 60_000L) {
-                        mark(s, "$keyB|plan")
-                        val p2 = tripPlan(ctx, from, home, goAt, "zuhause")
-                        val go = if (p2.optString("mode") == "transit") goAt else back - ((p2.optDouble("min", est) + 5) * 60_000).toLong()
-                        s.put("fest_back", p2.put("id", id).put("go", go).put("km", km))
-                    }
+                if (now in back - 30 * 60_000L..back && !done(s, "$id|bplan")) {
+                    mark(s, "$id|bplan")
+                    s.put("fest_back", tripPlan(ctx, from, home, back, "zuhause").put("id", id))
                 }
-                val pb = s.optJSONObject("fest_back")?.takeIf { it.optString("id") == id }
-                if (pb != null && now >= pb.optLong("go") && now < back && !done(s, keyB) && s.optBoolean("away")) {
-                    mark(s, keyB)
-                    val t = rideBriefing(ctx, "Zeit für den Heimweg, damit du um ${clock(back)} zuhause bist.", from, now, 0L, pb)
-                    notify(ctx, 334, "Heimweg", t); say(t)
+                val pb = s.optJSONObject("fest_back")?.takeIf { it.optString("id") == id } ?: continue
+                if (now in back - 15 * 60_000L until back - 5 * 60_000L && !done(s, "$id|b15")) {
+                    mark(s, "$id|b15")
+                    val t = rideBriefing(ctx, "In 15 Minuten, um ${clock(back)}, musst du los nach Hause.", from, back, 0L, pb, remindersFor(ctx, f.to), false)
+                    notify(ctx, 334, "In 15 Minuten heim", t); say(t)
+                }
+                if (now in back - 5 * 60_000L until back + 5 * 60_000L && !done(s, "$id|b5")) {
+                    mark(s, "$id|b5")
+                    val t = rideBriefing(ctx, "In 5 Minuten musst du los nach Hause.", from, back, 0L, pb, emptyList(), true)
+                    notify(ctx, 335, "In 5 Minuten heim", t); say(t)
                 }
             }
         }
@@ -587,8 +593,10 @@ object Alltag {
     } catch (_: Exception) { "" }
 
     /** Kurzes Rad-Briefing (gesprochen): Abfahrt, Wetter hin und zurück, Anziehen nach seinen Regeln, worauf er achten muss. */
-    private fun rideBriefing(ctx: Context, intro: String, from: Route.P, leave: Long, back: Long, pl: JSONObject): String {
-        val plain = "$intro ${pl.optString("text")}"
+    private fun rideBriefing(ctx: Context, intro: String, from: Route.P, leave: Long, back: Long, pl: JSONObject,
+                             remind: List<String> = emptyList(), short: Boolean = false): String {
+        val denk = if (remind.isNotEmpty()) " Denk an: ${remind.joinToString(", ")}." else ""
+        val plain = "$intro ${pl.optString("text")}$denk Gute Fahrt!"
         val key = prefs(ctx).getString("groq_key", "") ?: ""
         if (key.isBlank()) return plain
         val w1 = hourWeather(from.lat, from.lon, leave)
@@ -596,8 +604,11 @@ object Alltag {
         if (w1.isBlank()) return plain
         val data = "Ansage: $intro\nVerkehrsmittel: ${pl.optString("text")}\nWetter bei der Abfahrt (${clock(leave)}): $w1" +
             (if (w2.isNotBlank()) "\nWetter auf dem Rückweg (${clock(back)}): $w2" else "") +
-            "\nSeine Anzieh-Regeln:\n" + ((prefs(ctx).getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT })
-        val sys = "Du bist Jarvis und gibst Skyler ein kurzes, gesprochenes Briefing für seine Fahrt (3 bis 5 kurze Sätze, ohne Listen und Sonderzeichen). " +
+            "\nSeine Anzieh-Regeln:\n" + ((prefs(ctx).getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }) +
+            (if (remind.isNotEmpty()) "\nEr wollte daran erinnert werden: ${remind.joinToString("; ")}" else "")
+        val sys = "Du bist Jarvis und gibst Skyler ein kurzes, gesprochenes Briefing für seine Fahrt (" +
+            (if (short) "höchstens 2 kurze Sätze: Ansage, Rad oder Bahn, das Wichtigste zum Aufpassen" else "3 bis 5 kurze Sätze") + ", ohne Listen und Sonderzeichen). " +
+            "Wenn er an etwas erinnert werden wollte, sag \"Denk an …\". Schließe mit einem kurzen \"Gute Fahrt\" oder \"Viel Erfolg\". " +
             "Beginne mit der Ansage (wann er los muss) und dem Verkehrsmittel (Bahn wegen Regen oder Rad). Dann: wie kalt es ist, was er anziehen soll " +
             "(genau nach seinen Regeln, auch für den Rückweg, wenn es dann kälter oder dunkel ist), und worauf er auf dem Rad achten muss " +
             "(Glätte bei 2 Grad und weniger, starker Wind oder Böen, nasse Straße, Dunkelheit: Licht an). Erfinde nichts, was nicht in den Daten steht."
