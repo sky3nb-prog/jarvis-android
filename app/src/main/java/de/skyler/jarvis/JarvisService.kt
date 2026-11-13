@@ -474,6 +474,11 @@ class JarvisService : Service() {
                 }
                 Link.replyPc(this, id, !r.contains("nicht"), r)
             }
+            "route" -> worker.execute {
+                val key = prefs.getString("groq_key", "") ?: ""
+                val r = try { Route.plan(this, key, m.optString("text"), fromPc = true) } catch (e: Exception) { Route.Result("Den Weg konnte ich gerade nicht planen.", null) }
+                Link.replyPc(this, id, r.url != null, r.say, url = r.url)
+            }
             "status" -> worker.execute { Link.replyPc(this, id, true, "", PhoneCtl.status(this)) }
             "ctl" -> Thread {
                 val r = try { PhoneCtl.ctl(this, m) } catch (e: Exception) { "Ging nicht: ${e.message ?: ""}" }

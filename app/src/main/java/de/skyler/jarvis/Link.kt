@@ -238,11 +238,12 @@ object Link {
     }
 
     /** Antwort auf einen Auftrag des PCs (der PC spricht sie dann). */
-    fun replyPc(ctx: Context, re: String, ok: Boolean, text: String, status: JSONObject? = null) {
+    fun replyPc(ctx: Context, re: String, ok: Boolean, text: String, status: JSONObject? = null, url: String? = null) {
         val c = code(ctx); if (!paired(ctx)) return
         val m = JSONObject().put("kind", "phone_reply").put("from", "phone").put("re", re).put("ok", ok)
             .put("text", text).put("ts", System.currentTimeMillis() / 1000)
         if (status != null) m.put("status", status)
+        if (url != null) m.put("url", url)
         post(c, remoteTopic(c), m)
     }
 
