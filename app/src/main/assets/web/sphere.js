@@ -40,7 +40,7 @@
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const w = this.c.clientWidth, h = this.c.clientHeight;
       if (!w) return false;
-      if (this.c.width !== Math.round(w * dpr)) { this.c.width = Math.round(w * dpr); this.c.height = Math.round(h * dpr); }
+      if (this.c.width !== Math.round(w * dpr) || this.c.height !== Math.round(h * dpr)) { this.c.width = Math.round(w * dpr); this.c.height = Math.round(h * dpr); }
       return true;
     }
     draw(dt) {

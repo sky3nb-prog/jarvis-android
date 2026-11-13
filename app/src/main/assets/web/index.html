@@ -11,7 +11,7 @@
 
   <!-- 1) FOKUS -->
   <section id="v-fokus" class="view active">
-    <div class="powerbtn on" id="powerbtn"><span class="dot"></span><span id="power-txt">Jarvis an</span></div>
+    <div class="switch on" id="powerbtn" role="switch" aria-label="Jarvis an oder aus"><span class="knob"></span></div>
     <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Jarvis zu reden</div>
     <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas></div>
     <div class="name">J.A.R.V.I.S.</div>
@@ -86,6 +86,7 @@
     </div>
   </section>
 
+  <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
   <div class="toast" id="toast"></div>
 
   <!-- Einstellungen -->
@@ -142,6 +143,7 @@
     <div class="tab" data-v="steuern"><i>✦</i><span>STEUERN</span></div>
   </nav>
 </div>
+<script src="sphere3d.js"></script>
 <script src="sphere.js"></script>
 <script src="app.js"></script>
 </body>

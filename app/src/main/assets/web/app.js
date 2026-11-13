@@ -4,22 +4,87 @@
   const A = window.Android || null;   // Brücke zur App (Kotlin)
   const { Sphere, Rings, Globe } = window.JarvisGfx;
 
+  // Echte 3D-Kugel (WebGL); falls das Handy kein WebGL kann, die alte flache Kugel
+  const mkSphere = (c, seed) => { try { return new window.Sphere3D(c, seed); } catch (e) { return new Sphere(c, seed); } };
   const spheres = {
-    fokus: new Sphere(document.querySelector("#sphere-fokus canvas"), 3),
-    info: new Sphere(document.querySelector("#sphere-info canvas"), 5),
-    steuern: new Sphere(document.querySelector("#sphere-steuern canvas"), 7),
+    fokus: mkSphere(document.querySelector("#sphere-fokus canvas"), 3),
+    info: mkSphere(document.querySelector("#sphere-info canvas"), 5),
+    steuern: mkSphere(document.querySelector("#sphere-steuern canvas"), 7),
   };
+  let powerOn = true;
   const rings = new Rings(document.querySelector("#sphere-info canvas.rings"));
   const globe = new Globe($("globe"));
   let view = "fokus", talking = false, level = 0, target = 0;
 
   // --- Tabs ---
-  function show(v) {
+  const ORDER = ["fokus", "info", "lage", "steuern"];
+  const el = (v) => $("v-" + v);
+  function mark(v) {
     view = v;
-    document.querySelectorAll(".view").forEach((e) => e.classList.toggle("active", e.id === "v-" + v));
+    document.querySelectorAll(".view").forEach((e) => { e.classList.toggle("active", e.id === "v-" + v); e.classList.remove("peek", "slide"); e.style.transform = ""; });
     document.querySelectorAll(".tab").forEach((e) => e.classList.toggle("on", e.dataset.v === v));
+    document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", ORDER[i] === v));
+  }
+  // Seite wechseln, mit Gleiten in die richtige Richtung
+  function show(v, fromDx) {
+    if (v === view) { mark(v); return; }
+    const a = el(view), b = el(v), W = window.innerWidth, dir = ORDER.indexOf(v) > ORDER.indexOf(view) ? 1 : -1;
+    const dx = fromDx || 0;
+    b.classList.add("peek"); b.style.transform = `translateX(${dir * W + dx}px)`;
+    a.style.transform = `translateX(${dx}px)`;
+    void b.offsetWidth;
+    a.classList.add("slide"); b.classList.add("slide");
+    a.style.transform = `translateX(${-dir * W}px)`; b.style.transform = "translateX(0)";
+    view = v;   // die neue Kugel läuft schon während des Gleitens
+    document.querySelectorAll(".tab").forEach((e) => e.classList.toggle("on", e.dataset.v === v));
+    document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", ORDER[i] === v));
+    setTimeout(() => { if (view === v) mark(v); }, 300);
   }
   document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => show(t.dataset.v)));
+
+  // --- Wischen zwischen Fokus / Info / Lage / Steuern ---
+  (function swipe() {
+    let x0 = 0, y0 = 0, t0 = 0, dx = 0, mode = 0, nb = null, dir = 0;   // mode: 0 offen, 1 waagrecht, 2 senkrecht
+    const app = $("app");
+    app.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1 || $("settings").classList.contains("on") || e.target.closest("nav")) { mode = 2; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = performance.now(); dx = 0; mode = 0; nb = null;
+    }, { passive: true });
+    app.addEventListener("touchmove", (e) => {
+      if (mode === 2) return;
+      const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (mode === 0) {
+        if (Math.abs(mx) < 12 && Math.abs(my) < 12) return;
+        mode = Math.abs(mx) > Math.abs(my) * 1.2 ? 1 : 2;
+        if (mode === 2) return;
+      }
+      const W = window.innerWidth, i = ORDER.indexOf(view);
+      dir = mx < 0 ? 1 : -1;
+      const nv = ORDER[i + dir];
+      dx = nv ? mx : mx * 0.3;   // am Rand nur ein bisschen nachgeben
+      const cur = el(view);
+      cur.classList.add("dragging"); cur.style.transform = `translateX(${dx}px)`;
+      const nEl = nv ? el(nv) : null;
+      if (nb && nb !== nEl) { nb.classList.remove("peek", "dragging"); nb.style.transform = ""; }
+      nb = nEl;
+      if (nb) { nb.classList.add("peek", "dragging"); nb.style.transform = `translateX(${dx + dir * W}px)`; }
+    }, { passive: true });
+    const end = () => {
+      if (mode !== 1) { mode = 0; return; }
+      mode = 0;
+      const W = window.innerWidth, v = Math.abs(dx) / Math.max(1, performance.now() - t0);
+      const i = ORDER.indexOf(view), nv = ORDER[i + dir];
+      document.querySelectorAll(".view").forEach((e) => e.classList.remove("dragging"));
+      if (nv && (Math.abs(dx) > W * 0.22 || v > 0.5)) show(nv, dx);
+      else {   // zurückschnappen
+        const cur = el(view); cur.classList.add("slide"); cur.style.transform = "translateX(0)";
+        if (nb) { nb.classList.add("slide"); nb.style.transform = `translateX(${dir * W}px)`; }
+        const keep = view; setTimeout(() => { if (view === keep) mark(keep); }, 300);
+      }
+      nb = null;
+    };
+    app.addEventListener("touchend", end); app.addEventListener("touchcancel", end);
+  })();
 
   // --- Reden ---
   function toggleTalk() {
@@ -37,13 +102,14 @@
   function setState(st) {
     curState = st;
     talking = st !== "ended" && st !== "idle";
-    $("fokus-state").textContent = STATES[st] || st;
+    $("fokus-state").textContent = !talking && !powerOn ? "schläft" : (STATES[st] || st);
     $("callbtn").textContent = talking ? "Gespräch beenden" : "Gespräch starten";
     $("callbtn").classList.toggle("live", talking);
     $("fokus-hint").textContent = talking ? "Sprich einfach – du kannst ihn jederzeit unterbrechen"
                                           : "Tipp auf die Kugel, um mit Jarvis zu reden";
     Object.values(spheres).forEach((s) => (s.state = st));
     if (!talking) target = 0;
+    applyLook();
   }
 
   let toastTimer = 0;
@@ -71,16 +137,24 @@
 
   // --- Ein/Aus: Jarvis hört im Hintergrund zu oder ist ganz aus ---
   function showPower(on) {
-    const b = $("powerbtn");
-    if (!b) return;
-    b.classList.toggle("on", on);
-    $("power-txt").textContent = on ? "Jarvis an" : "Jarvis aus";
+    powerOn = on;
+    $("powerbtn").classList.toggle("on", on);
+    applyLook();
+  }
+  // Aus = Kugel grau und "schläft" (solange er nicht gerade redet)
+  function applyLook() {
+    const awake = powerOn || talking;
+    Object.values(spheres).forEach((s) => (s.power = awake));
+    $("v-fokus").classList.toggle("asleep", !awake);
+    $("fokus-hint").classList.toggle("gone", !awake);
+    if (!talking) $("fokus-state").textContent = powerOn ? "bereit" : "schläft";
   }
   function readPower() {
     try { showPower(!!JSON.parse(A.getSettings()).background); } catch (e) {}
   }
-  if ($("powerbtn")) {
-    $("powerbtn").addEventListener("click", () => {
+  {
+    $("powerbtn").addEventListener("click", (e) => {
+      e.stopPropagation();
       if (!A) return;
       const on = !$("powerbtn").classList.contains("on");
       A.setPower(on);

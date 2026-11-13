@@ -6,7 +6,9 @@
 html, body { margin: 0; height: 100%; background: #000; color: var(--txt); overflow: hidden;
   font-family: "Roboto", "Segoe UI", sans-serif; user-select: none; }
 #app { position: relative; height: 100%; }
-.view { position: absolute; inset: 0 0 92px 0; padding: 14px 18px; display: none; overflow-y: auto; }
+.view { position: absolute; inset: 0 0 102px 0; padding: 14px 18px; display: none; overflow-y: auto; touch-action: pan-y; will-change: transform; }
+.view.peek { display: block; }
+#v-fokus.peek { display: flex; }
 .view.active { display: block; }
 .view.info { background: radial-gradient(circle at 50% 22%, rgba(60, 28, 0, .55), transparent 45%), #02080e; }
 #v-fokus { background: radial-gradient(circle at 50% 42%, rgba(70, 32, 0, .65), transparent 55%), #000;
@@ -14,8 +16,9 @@ html, body { margin: 0; height: 100%; background: #000; color: var(--txt); overf
 #v-fokus.active { display: flex; }
 #v-steuern { background: #02080e; }
 
-.hint { color: #96734a; font-size: 13px; text-align: center; margin-top: 4px; }
-.sphere-wrap { position: relative; width: 86vw; height: 86vw; max-width: 460px; max-height: 460px; margin: 10px auto 0; }
+.hint { color: #96734a; font-size: 13px; text-align: center; margin-top: 40px; min-height: 17px; transition: opacity .4s; }
+.hint.gone { opacity: 0; }
+.sphere-wrap { position: relative; width: 82vw; height: 82vw; aspect-ratio: 1 / 1; max-width: 440px; max-height: 440px; margin: 6px auto 0; flex: 0 0 auto; }
 .sphere-wrap.small { width: 52vw; height: 52vw; }
 .sphere-wrap.tiny { width: 30vw; height: 30vw; }
 .sphere-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -93,11 +96,22 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .btnrow button.gold { border-color: var(--gold); background: #3a2608; color: var(--gold-l); }
 .sheet input[type=range] { padding: 0; height: 34px; accent-color: #ffb43c; border: none; background: transparent; }
 
-.powerbtn { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 8px; z-index: 5;
-  padding: 9px 15px; border-radius: 20px; border: 1.5px solid #4a2a2a; background: #140808; color: #d79a9a;
-  font-size: 14px; letter-spacing: .5px; }
-.powerbtn .dot { width: 10px; height: 10px; border-radius: 50%; background: #ff5a5a; box-shadow: 0 0 8px #ff5a5a; }
-.powerbtn.on { border-color: #1f6b52; background: #04140f; color: #8ff0cc; }
-.powerbtn.on .dot { background: #4dffb8; box-shadow: 0 0 10px #4dffb8; }
-.powerbtn:active { transform: scale(.96); }
+
+/* Ein/Aus-Schalter oben rechts (gold = an, grau = aus) */
+.switch { position: absolute; top: 16px; right: 16px; width: 50px; height: 28px; border-radius: 14px; z-index: 5;
+  background: #1a1a1e; border: 1.5px solid #3c3c44; transition: background .3s, border-color .3s, box-shadow .3s; }
+.switch .knob { position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #6c6c74;
+  transition: transform .3s cubic-bezier(.3,1.4,.5,1), background .3s, box-shadow .3s; }
+.switch.on { background: #3a2608; border-color: var(--gold); box-shadow: 0 0 12px rgba(255,170,40,.35); }
+.switch.on .knob { transform: translateX(22px); background: var(--gold-l); box-shadow: 0 0 10px var(--gold); }
 #v-fokus { position: relative; }
+#v-fokus .name, #v-fokus .state { transition: color .6s; }
+#v-fokus.asleep .name { color: #8a8a92; }
+#v-fokus.asleep .state { color: #6c6c74; }
+
+/* Wischen zwischen den Seiten */
+.view.dragging { transition: none !important; }
+.view.slide { transition: transform .28s cubic-bezier(.2,.8,.3,1), opacity .28s; }
+.dots { position: absolute; left: 0; right: 0; bottom: 88px; display: flex; justify-content: center; gap: 7px; pointer-events: none; z-index: 4; }
+.dots i { width: 6px; height: 6px; border-radius: 3px; background: #4a3c24; transition: width .25s, background .25s; }
+.dots i.on { width: 18px; background: var(--gold); }
