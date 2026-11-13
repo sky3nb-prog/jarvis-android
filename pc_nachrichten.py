@@ -21,6 +21,7 @@ import threading
 import time
 
 PENDING = None            # aktuelle Nachricht + Gesprächsstand
+ON_SHOW = None            # vom Programm gesetzt: längeren Text im HUD zeigen (Wochenrückblick)
 ON_STATUS = None          # vom Programm gesetzt: kurze Zwischenmeldung ("Einen Moment …") anzeigen und sagen
 _announce = []            # Nachrichten, die noch angesagt werden müssen
 _lock = threading.Lock()
@@ -51,13 +52,16 @@ def incoming(msg: dict):
     for k in ("sender", "chat", "text", "transcript"):
         if isinstance(msg.get(k), str):
             msg[k] = re.sub(r"[\u200e\u200f\u202a-\u202e]", "", msg[k]).strip()
-    if _idle_seconds() > 20 * 60:   # niemand am PC: nicht in den leeren Raum reden
+    if not msg.get("force") and _idle_seconds() > 20 * 60:   # niemand am PC: nicht in den leeren Raum reden
         print(f"Nachricht von {msg.get('sender')}: PC unbenutzt, keine Ansage")
         return
     with _lock:
         _announce.append(dict(msg, t=time.time()))
         del _announce[:-5]
-    print(f"Nachricht von {msg.get('sender')} ({'Sprachnachricht' if msg.get('voice') else 'Text'}) – wird angesagt")
+    if msg.get("kind") in ("say", "offer"):
+        print(f"Ansage vom Handy: {msg.get('question') or msg.get('text')}")
+    else:
+        print(f"Nachricht von {msg.get('sender')} ({'Sprachnachricht' if msg.get('voice') else 'Text'}) – wird angesagt")
 
 
 def take_announce() -> bool:
@@ -87,7 +91,13 @@ def announce_text() -> str:
             return "Keine neue Nachricht."
         m = _announce.pop(0)
     m["t"] = time.time()
+    if m.get("kind") == "say":   # Briefing, Begrüßung, "jetzt los" …
+        PENDING = None
+        return m.get("text") or "…"
     PENDING = m
+    if m.get("kind") == "offer":   # "Dein Wochenrückblick ist da. Soll ich ihn vorlesen?"
+        m["stage"] = "offer"
+        return m.get("question") or "Soll ich?"
     if m.get("voice"):
         m["stage"] = "voice"
         return f"{_who(m)} hat dir eine Sprachnachricht geschickt. Soll ich sie vorlesen oder abspielen?"
@@ -238,6 +248,22 @@ def handle(text: str):
     m, low = PENDING, (text or "").lower().strip(" .!?")
     m["t"] = time.time()
     print(f"Nachrichten-Dialog ({m.get('stage')}): {text}")
+    if m.get("stage") == "offer":
+        if YES.match(low) or re.search(r"\b(?:vorlesen|lies|zeig|öffne|mach)\b", low):
+            PENDING = None
+            if m.get("action") == "shutdown":
+                import pc_alltag
+                return pc_alltag.shutdown_sequence()
+            if ON_SHOW and m.get("text"):
+                try:
+                    ON_SHOW(m.get("title") or "Jarvis", m["text"])
+                except Exception:
+                    pass
+            return m.get("text") or "Okay."
+        if NO.match(low):
+            PENDING = None
+            return "Okay, " + ("der PC bleibt an." if m.get("action") == "shutdown" else "später.")
+        return None
     # "antworte/schreib ihm: …" – Rest ist entweder der Text oder ein Wunsch ("auf Altdeutsch")
     direct = re.match(r"^(?:dann\s+|ok(?:ay)?\s+|ja\s+)?(?:antworte|antwort|schreib|schreibe|sag|sende)\w*\s*(?:ihm|ihr|ihnen|zurück)?\s*[:,]?\s+(.{2,})$",
                       text.strip(), re.I)

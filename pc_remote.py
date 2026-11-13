@@ -22,6 +22,7 @@ import pc_link
 SERVER = pc_link.SERVER
 HEARTBEAT = 30 * 60
 ON_TEXT = None   # vom Programm gesetzt: führt einen Text aus, als hättest du ihn gesagt
+SETTINGS = None  # vom Programm gesetzt: aktuelle Einstellungen
 ON_HUD = None    # vom Programm gesetzt: HUD ein/aus
 STARTED_AT = time.time()
 STATUS = ""
@@ -139,6 +140,19 @@ def execute(cmd: dict) -> str:
     if t == "screen":   # vom Handy: "schau mal auf meinen PC"
         import pc_sehen
         return pc_sehen.look(str(cmd.get("frage") or ""))
+    if t in ("say", "offer"):   # vom Handy: Briefing, "jetzt los", Wochenrückblick
+        import pc_nachrichten
+        if cmd.get("need_active") and pc_nachrichten._idle_seconds() > 20 * 60:
+            raise RuntimeError("niemand am PC")
+        pc_nachrichten.incoming({"kind": t, "force": True, "text": str(cmd.get("text") or ""),
+                                 "question": str(cmd.get("question") or ""), "title": str(cmd.get("title") or "")})
+        return "Wird angesagt."
+    if t == "weg":    # Handy hat das Heim-WLAN verlassen
+        import pc_alltag
+        return pc_alltag.away(SETTINGS() if SETTINGS else None)
+    if t == "heim":
+        import pc_alltag
+        return pc_alltag.home()
     if t == "wa_send":   # vom Handy (Anruf-Butler): "Kann gerade nicht …" per WhatsApp am PC
         import pc_messages
         r = pc_messages.send_whatsapp(str(cmd.get("to") or ""), str(cmd.get("text") or ""))

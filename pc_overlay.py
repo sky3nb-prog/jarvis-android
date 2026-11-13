@@ -1725,7 +1725,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-13 20:10"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-13 20:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -1789,6 +1789,8 @@ def main():
     pc_nachrichten.ON_STATUS = _status   # "Einen Moment, ich formuliere …"
     pc_remote.ON_TEXT = hud_command  # "Befehl an den PC" vom Handy
     pc_remote.ON_HUD = lambda: ui.q.put(("hud", "toggle"))
+    pc_remote.SETTINGS = lambda: ui.settings
+    pc_nachrichten.ON_SHOW = lambda title, text: ui.post(title, text, 60000, glow=True, log=True)
     pc_remote.start(stop)  # Handy als Fernbedienung
     pc_media.start(stop)  # mitschreiben, was du hörst und schaust (für deine Interessen)
     threading.Thread(target=assistant_runner, args=(ui, stop, shutdown), daemon=True).start()
