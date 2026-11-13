@@ -67,6 +67,9 @@ object Groq {
         return live.ifEmpty { chatModels }
     }
 
+    /** Ein Groq-Modell, das Bilder versteht (falls Groq gerade eins anbietet). */
+    fun visionModel(key: String): String? = models(key).firstOrNull { Regex("llama-4|vision|scout|maverick", RegexOption.IGNORE_CASE).containsMatchIn(it) }
+
     private fun thinks(model: String) = model.contains("gpt-oss") || model.contains("qwen") || model.contains("deepseek")
 
     fun chat(key: String, messages: JSONArray, maxTokens: Int = 400, json: Boolean = false): String {

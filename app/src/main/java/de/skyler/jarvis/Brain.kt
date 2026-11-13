@@ -42,10 +42,12 @@ class Brain(private val ctx: Context) {
 ${Memory.persona(ctx)}$ortInfo
 Du kennst den Nutzer, denkst mit und bist ihm einen Schritt voraus. Du weißt, was er gerade schaut und hört, und bringst das persönlich ein, wenn es passt (z. B. "Passend zu dem, was du gerade hörst ..."). Du nutzt, was er dir erzählt hat, ganz selbstverständlich, ohne es aufzuzählen, und achtest darauf, wie er drauf ist.
 Du handelst selbstständig: Wenn der Nutzer etwas will, tust du es direkt mit den Aktionen unten, statt nachzufragen oder ihm zu erklären, wie es geht. Fehlende Kleinigkeiten ergänzt du sinnvoll (Termin ohne Dauer = 1 Stunde, "morgen früh" = 9 Uhr, "nachmittags" = 15 Uhr, "abends" = 19 Uhr). Nur wenn wirklich etwas Wichtiges fehlt (z. B. wen anrufen), fragst du kurz nach.
-Antworten kurz und gesprochen (1 bis 2 Sätze), Deutsch, keine Listen, keine Sonderzeichen. Es ist $now (ISO: $iso).
+Antworten kurz und gesprochen (1 bis 2 Sätze), Deutsch, keine Listen, keine Sonderzeichen.
+RATGEBER: Bittet er dich um Rat (Streit in einer Gruppe, "was soll ich machen", "wie soll ich entscheiden", Ärger mit jemandem, schwierige Entscheidung), dann bist du ein fairer, ruhiger Ratgeber und darfst 4 bis 8 Sätze sagen: fehlt Wichtiges, zuerst höchstens zwei kurze Rückfragen; sonst kurz zusammenfassen, beide Seiten fair betrachten, zwei bis drei Möglichkeiten mit Vor- und Nachteilen, eine klare Empfehlung, und anbieten, eine Nachricht vorzuschreiben. Kein Witz dabei. Es ist $now (ISO: $iso).
 $cal
 ${Memory.block(ctx)}
 ${Interests.block(ctx)}
+${snap.optJSONObject("pc_media")?.let { pm -> val m = pm.optJSONArray("music"); if (m == null || m.length() == 0) "" else "Am PC hört er vor allem: " + (0 until m.length()).joinToString(", ") { m.optString(it) } + "." } ?: ""}
 ${Themen.summary(ctx).let { if (it.isBlank()) "" else "Seine Interessen (gelernt): $it. Bring sie ein, wenn es passt." }}
 Antworte NUR mit einem JSON-Objekt: {"actions":[ ... ], "say":"<was du sagst>"}
 Mögliche Aktionen (mehrere nacheinander sind erlaubt):
@@ -61,6 +63,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"route","text":"<der ganze Wegewunsch des Nutzers, wörtlich>"}   (für JEDE Frage nach Weg, Route, Dauer, "wann muss ich los", Bahn/Bus-Verbindung, auch mit Zwischenstopps wie Bäcker oder Supermarkt; plant smart und öffnet Google Maps)
 {"action":"navigate","to":"<Ziel>","mode":"<d|b|w>"}   (d Auto, b Fahrrad, w zu Fuß)
 {"action":"call","who":"<Name aus den Kontakten oder Nummer>"}
+{"action":"screen","frage":"<was er wissen will>","geraet":"handy" | "pc"}   (wenn er sagt "schau mal hier", "was siehst du", "guck mal auf den Bildschirm", "was ist das hier"; "pc" nur wenn er den PC-Bildschirm meint)
 {"action":"pc","text":"<Befehl an den Jarvis am PC, so wie man ihn dort sagen würde>"}   (alles, was am PC passieren soll: "mach am PC Musik an", "sperr den PC", "schick mir das Lied vom PC aufs Handy" -> text "schick mir was ich gerade höre aufs handy")
 {"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>"}
 {"action":"sms","to":"<Name>","text":"<Nachricht>"}
@@ -69,6 +72,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"musik"}   (seine Lieblingssongs und Musikrichtung gerade plus passende neue Songs von Deezer – für "was höre ich so?", "schlag mir Musik vor", "was passt dazu?")
 {"action":"lage","ort":"<leer = Welt und Wohnort; \"hier\" = wo das Handy gerade ist; sonst Stadt oder Land>"}   (Lagebericht mit Karte: "wie ist die Lage?", "was ist los in der Welt?", "was gibt es Neues in Leonberg?", "was ist in Seoul los?", Nachrichten)
 {"action":"fuerdich"}   (Neuigkeiten passend zu seinen Interessen: "was gibt's Neues für mich?", "was interessiert mich heute?", "Neuigkeiten zu meinen Themen")
+{"action":"vergleich","items":["<A>","<B>"],"frage":"<worauf es ihm ankommt>"}   ("Was ist besser, A oder B?", "Soll ich das Cube oder das Canyon nehmen?", Kaufberatung: recherchiert im Netz und empfiehlt klar; "say" dann leer lassen)
 {"action":"web","query":"<Suchanfrage>"}   (im Internet nachschauen: Nachrichten, Öffnungszeiten, Fakten, "schau mal nach ...", alles Aktuelle)
 {"action":"spotify","query":"<Suche>"}
 {"action":"search","query":"<Google-Suche>"}
@@ -143,6 +147,9 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
                 "navigate" -> think("lage")
             }
             val r = when (a.optString("action")) {
+                "vergleich" -> { onStatus?.invoke("Jarvis vergleicht …"); think("web")
+                    val items = a.optJSONArray("items")?.let { arr -> (0 until arr.length()).map { arr.optString(it) } } ?: emptyList()
+                    Cards.compare(ctx, key, items, a.optString("frage").ifBlank { text }) }
                 "web" -> { onStatus?.invoke("Jarvis sucht im Web …"); Cards.web(key, a.optString("query").ifBlank { text }) }
                 "musik" -> { onStatus?.invoke("Schaue, was du hörst …"); Cards.music(ctx) }
                 "lage", "fuerdich" -> {
@@ -158,6 +165,11 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
                     } catch (e: Exception) { e.message ?: "Die Lage kann ich gerade nicht abrufen." }
                 }
                 "youtube_neu" -> { onStatus?.invoke("Schaue bei deinen Kanälen …"); Cards.youtube(ctx, key, a.optInt("days", 7).coerceIn(1, 30)) }
+                "screen" -> { onStatus?.invoke("Jarvis schaut hin …"); think("web")
+                    if (a.optString("geraet") == "pc") {
+                        val r = try { Link.command(ctx, JSONObject().put("type", "screen").put("frage", a.optString("frage").ifBlank { text }), 45_000) } catch (_: Exception) { null }
+                        r?.optString("text")?.takeIf { it.isNotBlank() } ?: "Der PC antwortet gerade nicht."
+                    } else try { Vision.screen(ctx, a.optString("frage").ifBlank { text }) } catch (e: Exception) { "Das Anschauen ging nicht." } }
                 "route" -> { onStatus?.invoke("Jarvis plant den Weg …"); think("lage")
                     try { Route.plan(ctx, key, a.optString("text").ifBlank { text }).say } catch (e: Exception) { "Den Weg konnte ich gerade nicht planen." } }
                 else -> actions.run(a)

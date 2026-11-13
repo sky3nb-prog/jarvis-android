@@ -130,6 +130,19 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.style.display = "none"), 5000);
   }
 
+  // Schreiben statt reden: getippt = leise Antwort als Text
+  function tbSend() {
+    const t = $("tb-in").value.trim(); if (!t || !A || !A.askText) return;
+    $("tb-in").value = ""; $("tb-in").blur();
+    $("last-you").textContent = t; $("last-jar").textContent = "denkt nach …";
+    $("talkbox").classList.add("long");
+    A.askText(t);
+  }
+  if ($("tb-send")) {
+    $("tb-send").addEventListener("click", tbSend);
+    $("tb-in").addEventListener("keydown", (e) => { if (e.key === "Enter") tbSend(); });
+  }
+
   window.jarvis = {
     onEvent(type, data) {
       if (type === "state") setState(data.state);
@@ -202,7 +215,7 @@
   }));
   // Neue Einstellungen: kleiner roter Punkt (am Zahnrad und am Bereich), bis du den Bereich einmal geöffnet hast.
   // Bei jedem Update ergänzen: Bereich -> Kennung des Updates
-  const NEW_TABS = { wege: "wege1", allg: "kal1" };
+  const NEW_TABS = { wege: "wege1", allg: "schau1" };
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };
   const seenAdd = (k) => { try { const s = seenGet(); if (!s.includes(k)) { s.push(k); localStorage.setItem("seen_new", JSON.stringify(s)); } } catch (e) {} };
   function newDots() {
@@ -223,6 +236,7 @@
     document.querySelectorAll(".spane").forEach((p) => p.classList.toggle("on", p.id === "sp-" + t.dataset.p));
     if (NEW_TABS[t.dataset.p]) { seenAdd(NEW_TABS[t.dataset.p]); setTimeout(newDots, 1500); }
   }));
+  if ($("set-screen")) $("set-screen").addEventListener("click", () => { if (A && A.openScreenAccess) A.openScreenAccess(); });
   const perm = (id, ok, txt) => { const e = $(id); e.textContent = ok ? "erlaubt" : (txt || "Erlauben"); e.classList.toggle("ok", !!ok); };
 
   function openSettings() {
@@ -260,6 +274,8 @@
       $("set-locstate").innerHTML = c.here ? "Gerade: <b style='color:#6effcd'>" + c.here + "</b>" : (c.use_location ? "Standort wird beim nächsten Mal ermittelt." : "");
       sw("set-ljump", c.lage_jump !== false); sw("set-lzoom", c.lage_zoom !== false); sw("set-lspin", c.lage_spin !== false);
       sw("set-lorbit", c.lage_orbits !== false); sw("set-llabels", c.lage_labels !== false); sw("set-strand", c.strand !== false);
+      perm("set-screen", c.screen_ok, "Einrichten");
+      $("set-gstate").textContent = c.has_gemini ? "● gespeichert" : "";
       perm("set-overlay", c.overlay); perm("set-usage", c.usage); perm("set-media", !!c.media_ok);
       $("set-mediastate").textContent = c.media || "";
       $("set-link").value = c.link_code || "";
@@ -297,6 +313,7 @@
       assistant_name: $("set-name").value.trim(), anrede: $("set-anrede").value.trim(),
       city: $("set-city").value.trim(), address: $("set-addr").value.trim(), use_location: sw("set-loc"),
       calendar_id: parseInt($("set-cal").value || "-1", 10),
+      gemini_key: $("set-gkey").value.trim(),
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),

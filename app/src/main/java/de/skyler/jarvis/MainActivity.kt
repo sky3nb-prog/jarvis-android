@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
@@ -66,8 +67,11 @@ class MainActivity : ComponentActivity() {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
+    private val textBrain by lazy { Brain(this) }   // für getippte Fragen
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        showOverLock(intent)
         web = WebView(this)
         web.setBackgroundColor(Color.BLACK)
         web.overScrollMode = View.OVER_SCROLL_NEVER
@@ -101,6 +105,22 @@ class MainActivity : ComponentActivity() {
         setContentView(root)
         Bus.add(busListener)
         askPermissions()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        showOverLock(intent)
+    }
+
+    /** Vom Weckwort geöffnet: über dem Sperrbildschirm zeigen und Bildschirm anschalten (nur solange Jarvis offen ist). */
+    private fun showOverLock(i: Intent?) {
+        val wake = i?.getBooleanExtra("wake", false) == true
+        if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(wake); setTurnScreenOn(wake) }
+        else {
+            @Suppress("DEPRECATION") val f = android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            if (wake) window.addFlags(f) else window.clearFlags(f)
+        }
     }
 
     override fun onResume() {
@@ -199,6 +219,25 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun interrupt() = runOnUiThread { JarvisService.start(this@MainActivity, JarvisService.ACTION_TALK) }
 
+        /** Bedienungshilfen öffnen, damit "Jarvis – Schau mal hier" eingeschaltet werden kann. */
+        @JavascriptInterface
+        fun openScreenAccess() {
+            try { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
+        }
+
+        /** Getippte Frage: Jarvis antwortet leise als Text (gleiche Fähigkeiten wie gesprochen). */
+        @JavascriptInterface
+        fun askText(text: String) {
+            val key = prefs.getString("groq_key", "") ?: ""
+            if (key.isBlank()) { send("needkey", JSONObject()); return }
+            Thread({
+                send("state", JSONObject().put("state", "thinking"))
+                val r = try { textBrain.handle(key, text.take(2000)) } catch (e: Exception) { "Das hat nicht geklappt: ${e.message ?: ""}" }
+                send("agent", JSONObject().put("text", r))
+                send("state", JSONObject().put("state", "ended"))
+            }, "jarvis-text").start()
+        }
+
         @JavascriptInterface
         fun getSettings(): String = JSONObject()
             .put("wake_words", prefs.getString("wake_words", "jarvis"))
@@ -219,6 +258,7 @@ class MainActivity : ComponentActivity() {
             .put("anrede", prefs.getString("anrede", ""))
             .put("city", prefs.getString("city", "").let { if (it.isNullOrBlank()) Lage.city(this@MainActivity) else it })
             .put("address", prefs.getString("address", ""))
+            .put("screen_ok", ScreenService.enabled()).put("has_gemini", !(prefs.getString("gemini_key", "") ?: "").isBlank())
             .put("calendars", Cal.writable(this@MainActivity)).put("calendar_id", prefs.getLong("calendar_id", -1L))
             .put("orte", prefs.getString("orte", "")).put("wege", prefs.getString("wege", "")).put("route_an", prefs.getString("route_an", ""))
             .put("use_location", prefs.getBoolean("use_location", false))
@@ -244,6 +284,7 @@ class MainActivity : ComponentActivity() {
                 .putString("city", o.optString("city").trim())
                 .putString("address", o.optString("address").trim())
                 .putLong("calendar_id", o.optLong("calendar_id", -1L))
+                .apply { o.optString("gemini_key").trim().takeIf { it.isNotBlank() }?.let { putString("gemini_key", it) } }
                 .putString("orte", o.optString("orte").trim()).putString("wege", o.optString("wege").trim())
                 .putString("route_an", o.optString("route_an").trim())
                 .putBoolean("use_location", o.optBoolean("use_location", false))

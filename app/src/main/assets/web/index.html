@@ -23,6 +23,7 @@
       <div class="line"><span class="who jar">JARVIS</span><span id="last-jar">Guten Abend. Ich bin bereit.</span></div>
     </div>
     <button class="callbtn" id="callbtn">Gespräch starten</button>
+    <div class="typebar"><input id="tb-in" placeholder="Oder schreib Jarvis … (Antwort leise als Text)" autocomplete="off" enterkeyhint="send"><button id="tb-send">➤</button></div>
   </section>
 
   <!-- 2) INFO -->
@@ -148,6 +149,8 @@
         </div>
         <div class="sec"><h3>KI & SCHLÜSSEL</h3>
           <div class="f"><label>Groq-Schlüssel (kostenlos, console.groq.com)</label><input id="set-key" type="password" placeholder="gsk_…  (leer lassen = nicht ändern)"></div>
+          <div class="f"><label>Gemini-Schlüssel für „Schau mal hier“ (kostenlos, aistudio.google.com)</label><input id="set-gkey" type="password" placeholder="leer lassen = nicht ändern"><div class="note" id="set-gstate"></div></div>
+          <div class="srow"><div>Bildschirm-Zugriff für „Schau mal hier“<small>Einmal in den Bedienungshilfen „Jarvis – Schau mal hier“ einschalten. Er schaut nur hin, wenn du es sagst.</small></div><div class="sbtn" id="set-screen">Einrichten</div></div>
           <div class="note" id="set-version"></div>
         </div>
       </div>

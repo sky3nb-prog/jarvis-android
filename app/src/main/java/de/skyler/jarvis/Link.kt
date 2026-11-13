@@ -168,13 +168,13 @@ object Link {
     private fun remoteTopic(c: String) = "jr" + hex(sha("jarvis-remote:" + norm(c))).take(30)
 
     /** Befehl an den PC schicken und bis zu 15 Sekunden auf die Antwort warten. Antwort: {ok, text, status} oder null. */
-    fun command(ctx: Context, cmd: JSONObject): JSONObject? {
+    fun command(ctx: Context, cmd: JSONObject, waitMs: Long = 15_000): JSONObject? {
         val c = code(ctx); if (!paired(ctx)) return null
         val id = java.util.UUID.randomUUID().toString().take(12)
         val sent = System.currentTimeMillis() / 1000
         val msg = JSONObject().put("kind", "cmd").put("from", "phone").put("id", id).put("ts", sent).put("cmd", cmd)
         http.newCall(Request.Builder().url(SERVER + remoteTopic(c)).post(encrypt(msg, c).toRequestBody("text/plain".toMediaType())).build()).execute().close()
-        val until = System.currentTimeMillis() + 15_000
+        val until = System.currentTimeMillis() + waitMs
         while (System.currentTimeMillis() < until) {
             Thread.sleep(1500)
             val r = latestStatus(ctx, "${sent - 2}", id)

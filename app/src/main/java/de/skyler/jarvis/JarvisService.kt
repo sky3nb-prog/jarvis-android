@@ -292,6 +292,20 @@ class JarvisService : Service() {
         else endTalk()
     }
 
+    /** Weckwort bei gesperrtem Handy: Bildschirm an und Jarvis über dem Sperrbildschirm zeigen (ohne zu entsperren). */
+    @Suppress("DEPRECATION")
+    private fun wakeScreen() {
+        try {
+            val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+            val km = getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager
+            if (pm.isInteractive && !km.isKeyguardLocked) return
+            pm.newWakeLock(android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK or android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                android.os.PowerManager.ON_AFTER_RELEASE, "jarvis:weckwort").acquire(15_000)
+            startActivity(Intent(this, MainActivity::class.java).putExtra("wake", true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+        } catch (e: Exception) { Log.w(tag, "Bildschirm: $e") }
+    }
+
     private fun buzz() {
         try {
             val v = getSystemService(Vibrator::class.java)
@@ -421,6 +435,7 @@ class JarvisService : Service() {
                     val strict = if (am.isMusicActive) 0 else level   // läuft ein Video/Musik: nur ganz genaues "Jarvis"
                     val cmd = Wake.commandAfter(text, words, strict) ?: return@execute
                     buzz()
+                    main.post { wakeScreen() }
                     Bus.emit("user", JSONObject().put("text", text))
                     if (cmd.isBlank()) {   // nur das Aktivierungswort: auf den Befehl warten
                         mode = Mode.COMMAND
@@ -486,6 +501,10 @@ class JarvisService : Service() {
                 val r = try { Route.plan(this, key, m.optString("text"), fromPc = true) } catch (e: Exception) { Route.Result("Den Weg konnte ich gerade nicht planen.", null) }
                 Link.replyPc(this, id, r.url != null, r.say, url = r.url,
                     extra = JSONObject().put("send_to", r.sendTo ?: "").put("message", r.message))
+            }
+            "screen" -> worker.execute {
+                val r = try { Vision.screen(this, m.optString("frage")) } catch (e: Exception) { "Das Anschauen ging nicht." }
+                Link.replyPc(this, id, true, r)
             }
             "status" -> worker.execute { Link.replyPc(this, id, true, "", PhoneCtl.status(this)) }
             "ctl" -> Thread {

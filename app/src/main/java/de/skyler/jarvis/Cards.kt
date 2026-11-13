@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 object Cards {
     @Volatile var pending: JSONObject? = null
     private val http = OkHttpClient.Builder().callTimeout(20, TimeUnit.SECONDS).build()
+    private val slow = OkHttpClient.Builder().callTimeout(50, TimeUnit.SECONDS).build()   // Recherche dauert länger
 
     private fun get(url: String): String = http.newCall(Request.Builder().url(url)
         .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) Jarvis").build()).execute().use { it.body?.string() ?: "" }
@@ -111,6 +112,35 @@ object Cards {
     }
 
     // --- Websuche (Groq mit eingebauter Suche) -----------------------------------------------------------
+    /** "Was ist besser, A oder B?": Websuche (Groq compound) + klare Empfehlung; ausführlich im Fenster. */
+    fun compare(ctx: android.content.Context, key: String, items: List<String>, frage: String): String {
+        val things = items.filter { it.isNotBlank() }.joinToString(" oder ").ifBlank { frage }
+        val about = try { Memory.facts(ctx).takeLast(25).joinToString("; ") } catch (_: Exception) { "" }
+        val msgs = JSONArray()
+            .put(JSONObject().put("role", "system").put("content",
+                "Du bist Jarvis und hilfst bei einem Vergleich oder einer Kaufentscheidung. Suche im Internet nach aktuellen Tests, Daten und Preisen. " +
+                "Antworte auf Deutsch ohne Markdown in 5 bis 8 Sätzen: erst die wichtigsten Unterschiede (Preis, Qualität, Ausstattung, was für ihn zählt), " +
+                "dann eine klare Empfehlung mit Begründung (Ich würde … nehmen, weil …). Hängt es von etwas ab (z. B. Budget), sag es kurz. Erfinde keine Zahlen."))
+            .put(JSONObject().put("role", "user").put("content", "Vergleich: $things. $frage" + if (about.isNotBlank()) "\nWas ich über den Nutzer weiß: $about" else ""))
+        for (model in listOf("groq/compound", "groq/compound-mini", "compound-beta")) {
+            try {
+                val body = JSONObject().put("model", model).put("messages", msgs).put("max_tokens", 1200)
+                val resp = slow.newCall(Request.Builder().url("https://api.groq.com/openai/v1/chat/completions")
+                    .header("Authorization", "Bearer $key")
+                    .post(body.toString().toRequestBody("application/json".toMediaType())).build()).execute().use {
+                    if (!it.isSuccessful) null else it.body?.string()
+                } ?: continue
+                val text = JSONObject(resp).getJSONArray("choices").getJSONObject(0).getJSONObject("message").optString("content")
+                    .replace(Regex("<think>.*?</think>", RegexOption.DOT_MATCHES_ALL), "").replace(Regex("[*#`]"), "")
+                    .replace(Regex("\\[(\\d+)\\]"), "").trim()
+                if (text.isBlank()) continue
+                pending = JSONObject().put("kind", "web").put("text", text.take(1800)).put("sources", JSONArray())
+                return text
+            } catch (_: Exception) {}
+        }
+        return "Die Recherche klappt gerade nicht. Versuch es gleich nochmal."
+    }
+
     fun web(key: String, query: String): String {
         if (query.isBlank()) return "WEB: Wonach soll ich suchen?"
         val msgs = JSONArray()

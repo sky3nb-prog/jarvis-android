@@ -282,3 +282,11 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .ndot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff5a5a; box-shadow: 0 0 6px #ff5a5a; margin-left: 6px; vertical-align: 2px; }
 #btn-settings { position: relative; }
 #btn-settings.hasnew::after { content: ""; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #ff5a5a; box-shadow: 0 0 8px #ff5a5a; }
+
+/* Schreiben statt reden */
+.typebar { display: flex; gap: 8px; width: 100%; margin-top: 10px; padding: 5px; border-radius: 26px; background: #0e0a04; border: 1px solid rgba(255,170,40,.35); }
+.typebar input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--txt); font-size: 15px; padding: 8px 12px; font-family: inherit; }
+.typebar input::placeholder { color: #8a7a5c; }
+.typebar button { flex: 0 0 40px; height: 40px; border-radius: 50%; border: 1px solid var(--gold); background: #3a2608; color: var(--gold-l); font-size: 16px; }
+.talkbox.long { max-height: 34vh; overflow-y: auto; }
+.talkbox #last-jar { white-space: pre-wrap; }
