@@ -85,6 +85,8 @@ import pc_map as pc_globe  # die Weltlage ist jetzt eine Satellitenkarte
 import pc_news
 import pc_handy
 import pc_nachrichten
+import pc_ets2
+import pc_fern
 import pc_sehen
 import pc_media
 import pc_remote
@@ -1160,6 +1162,8 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
     t_start = time.time()
     result = pc_nachrichten.handle(command)  # Nachrichten von wichtigen Leuten: vorlesen, abspielen, antworten
     if result is None:
+        result = pc_ets2.handle(command)  # ETS2-Beifahrer: "wie weit noch?", "wie viel Sprit?"
+    if result is None:
         result = pc_input.handle(command)  # "trag meine E-Mail ein", "drück Enter"
     if result is None:
         result = pc_voiceset.handle(command, ui.settings)  # Einstellungen per Sprache ("dein Aktivierungswort ist ...")
@@ -1725,7 +1729,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-13 20:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-13 20:55"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -1792,6 +1796,13 @@ def main():
     pc_remote.SETTINGS = lambda: ui.settings
     pc_nachrichten.ON_SHOW = lambda title, text: ui.post(title, text, 60000, glow=True, log=True)
     pc_remote.start(stop)  # Handy als Fernbedienung
+    pc_ets2.ON_SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "force": True, "text": t})   # dezent, wie eine Nachricht
+    pc_ets2.start(stop)  # ETS2-Beifahrer (Telemetrie-Plugin)
+    pc_fern.HUD_PORT = lambda: (ui.web.port if getattr(ui, "web", None) else 0)
+    pc_fern.SETTINGS = lambda: ui.settings
+    pc_fern.ON_WATCH = lambda on: ui.post("Fernzugriff", "Die Webcam wird gerade von unterwegs angesehen." if on else "Webcam aus.",
+                                          0 if on else 4000, glow=True, log=True)
+    pc_fern.start(stop)  # HUD, Webcam und Handy-Kamera über Tailscale
     pc_media.start(stop)  # mitschreiben, was du hörst und schaust (für deine Interessen)
     threading.Thread(target=assistant_runner, args=(ui, stop, shutdown), daemon=True).start()
     try:

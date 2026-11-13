@@ -79,6 +79,13 @@ def status() -> dict:
     g = _gpu()
     if g:
         st["gpu"] = g
+    try:
+        import pc_fern
+        f = pc_fern.info()
+        if f:
+            st["fern"] = f
+    except Exception:
+        pass
     st.update(_procs())
     try:
         import pc_steuerung

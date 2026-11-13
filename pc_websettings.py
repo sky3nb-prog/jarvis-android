@@ -24,12 +24,23 @@ def _opts(pairs):
     return [[n, v] for n, v in pairs]
 
 
+def FERN_STATUS() -> str:
+    try:
+        import pc_fern
+        import pc_ets2
+        ip = pc_fern.tailscale_ip()
+        t = (f"Tailscale läuft, dein PC hat die Adresse {ip}." if ip else "Tailscale ist auf diesem PC noch nicht aktiv.")
+        return t + (f" ETS2: {pc_ets2.PLUGIN_STATUS}." if pc_ets2.PLUGIN_STATUS else "")
+    except Exception:
+        return ""
+
+
 def _same(names):
     return [[n, n] for n in names]
 
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
-NEW = ["meine_orte", "meine_wege", "route_an", "hud_layout", "wichtige_leute", "absage_text"]
+NEW = ["meine_orte", "meine_wege", "route_an", "hud_layout", "wichtige_leute", "absage_text", "webcam_fern", "ets2_quicksave"]
 
 
 def unseen(s: dict) -> list:
@@ -178,6 +189,20 @@ def schema(s: dict) -> dict:
                  note("Steht das Handy auf „Nicht stören“, drückt Jarvis Anrufe aus deinen Kontakten weg und schickt diesen Text – "
                       "per WhatsApp hier am PC, wenn er läuft, sonst per SMS. Ein- und ausschalten in der Handy-App.")),
         ]},
+        {"id": "fern", "n": "Fernzugriff", "i": "⌁", "items": [
+            card("Von unterwegs (Tailscale)",
+                 note("Einmal einrichten: Tailscale auf PC und Handy installieren (tailscale.com, kostenlos) und auf beiden mit demselben "
+                      "Konto anmelden. Dann zeigt die Handy-App unter Einstellungen → Fern die Knöpfe für HUD, Webcam und Handy-Kamera. "
+                      "Nur deine eigenen Geräte im Tailscale-Netz mit deinem Kopplungscode kommen rein. Beim ersten Mal fragt die "
+                      "Windows-Firewall – auf „Zulassen“ klicken."),
+                 note(FERN_STATUS()),
+                 sw("webcam_fern", "Webcam von unterwegs ansehen erlauben",
+                    "Standard aus. Solange jemand zuschaut, steht das groß am Bildschirm. Sag deiner Familie Bescheid.")),
+            card("ETS2-Beifahrer",
+                 note("Liest Tank, Ziel, Ruhezeit und Auftrag aus dem Spiel (Telemetrie-Plugin, wird automatisch in ETS2 installiert; "
+                      "beim nächsten Spielstart einmal die Meldung zu den SDK-Funktionen mit OK bestätigen). Die Fahrt steht im HUD unter INFO."),
+                 tx("ets2_quicksave", "Taste fürs Schnellspeichern", "Wird gedrückt, bevor der PC herunterfährt, weil du weg bist. Standard f5.")),
+        ]},
         {"id": "anz", "n": "Anzeige", "i": "◐", "items": [
             card("HUD",
                  {"k": "hud_layout", "t": "choice", "l": "Aufbau", "o": [
@@ -265,6 +290,7 @@ def schema(s: dict) -> dict:
         "calendar_url": s.get("calendar_url", "") or "", "announce_events": bool(g("announce_events")),
         "show_performance": bool(g("show_performance")), "show_pc_temps": bool(g("show_pc_temps")),
         "show_notifications": bool(g("show_notifications")),
+        "webcam_fern": bool(s.get("webcam_fern", False)), "ets2_quicksave": s.get("ets2_quicksave", "f5") or "f5",
         "gemini_api_key": s.get("gemini_api_key", "") or "",
         "meine_orte": s.get("meine_orte", "") or "", "meine_wege": s.get("meine_wege", "") or "", "route_an": s.get("route_an", "") or "",
         "wichtige_leute": s.get("wichtige_leute", "") or "", "absage_text": s.get("absage_text", "") or "",
@@ -291,7 +317,7 @@ def save(s: dict, v: dict) -> dict:
     num = lambda k: int(float(v.get(k) if v.get(k) not in (None, "") else d.get(k, 0)))  # noqa: E731
     for k in ("autostart", "greet_on_start", "show_hud_on_start", "confirm_messages", "speak", "early_chime", "lage_spin",
               "lage_orbits", "map_labels", "lage_sat_tour", "globe_auto_open", "briefing_on_start", "hud_topmost",
-              "hud_animation", "show_weather", "announce_events", "show_performance", "show_pc_temps", "show_notifications"):
+              "hud_animation", "show_weather", "announce_events", "show_performance", "show_pc_temps", "show_notifications", "webcam_fern"):
         if k in v:
             new[k] = bool(v[k])
     for k in ("followup_seconds", "voice_volume", "voice_pitch", "voice_rate", "chime_volume", "orb_size"):
@@ -299,7 +325,7 @@ def save(s: dict, v: dict) -> dict:
             new[k] = num(k)
     for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
-              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text"):
+              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device"):

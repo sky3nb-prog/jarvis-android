@@ -84,12 +84,37 @@
     $("i-gpu").textContent = s.gpu ? `${s.gpu.util} % · ${s.gpu.temp} °C` : "–";
     $("i-ram").textContent = s.ram_used != null ? `${s.ram_used} / ${s.ram_total} GB` : "–";
     $("i-handy").textContent = s.handy || "Kopplung aktiv – Stand kommt alle paar Minuten.";
+    ets2();
     if (force) {
       const t = window.PC.get("termine") || [];
       $("i-termine").innerHTML = t.length ? t.map((e) => `<div class="row"><span>${esc(e.when)}</span><b>${esc(e.title)}</b></div>`).join("") : "Keine Termine in den nächsten 7 Tagen.";
       weather();
     }
   }
+  // Fahrtenseite ETS2 (nur sichtbar, wenn das Spiel läuft)
+  function ets2() {
+    let e = {}; try { e = window.PC.get("ets2") || {}; } catch (x) {}
+    const card = $("i-ets2"); if (!card) return;
+    card.style.display = e.aktiv ? "" : "none";
+    if (!e.aktiv) return;
+    const hm = (m) => m > 0 ? (m >= 60 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : m + " min") : "–";
+    $("e-head").textContent = "FAHRT · " + (e.spiel || "ETS2") + (e.pause ? " · PAUSE" : "");
+    $("e-kmh").textContent = e.kmh + " km/h" + (e.limit ? "  ·  max " + e.limit : "");
+    $("e-job").textContent = e.ladung ? `${e.ladung}: ${e.von} → ${e.nach}${e.nach_firma ? " (" + e.nach_firma + ")" : ""}` : (e.lkw || "kein Auftrag");
+    $("e-tank").textContent = `${e.tank_pct} % · ${e.reichweite_km} km`;
+    $("e-tank").style.color = e.tank_pct <= 15 ? "#ff6b5a" : "";
+    $("e-ziel").textContent = e.rest_km ? `${e.rest_km} km · ${hm(e.rest_min)}` : "–";
+    $("e-ruhe").textContent = hm(e.ruhe_min);
+    $("e-lohn").textContent = e.lohn ? e.lohn.toLocaleString("de-DE") + " €" : "–";
+  }
+  setInterval(() => { if (mode === "info") ets2(); }, 2000);
+  // Handy-Kamera (kommt über den Fernzugriff, nur solange die Jarvis-App am Handy sendet)
+  let camOn = false;
+  setInterval(() => {
+    let live = false; try { live = !!(window.PC.get("phonecam") || {}).live; } catch (x) {}
+    if (live !== camOn) { camOn = live; $("phcam").style.display = live ? "" : "none"; }
+  }, 2000);
+  setInterval(() => { if (camOn) $("phcam-img").src = "/phonecam.jpg?t=" + Date.now(); }, 300);
   setInterval(() => { if (mode === "info") info(false); }, 5000);
   setInterval(() => { if (mode === "info") info(true); }, 10 * 60000);
   const log = [];

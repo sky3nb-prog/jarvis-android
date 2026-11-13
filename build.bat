@@ -26,6 +26,8 @@ py -m pip install soundfile >nul 2>&1
 rem Optional: erkennen, was gerade laeuft (Musik/YouTube) fuer deine Interessen und die Handy-Fernbedienung
 py -m pip install winsdk >nul 2>&1
 py -m pip install winrt-runtime winrt-Windows.Media.Control winrt-Windows.Foundation >nul 2>&1
+rem Optional: Webcam fuer den Fernzugriff (Tailscale)
+py -m pip install opencv-python-headless >nul 2>&1
 rem Eigenes HUD-Fenster (statt Edge): pywebview mit der in Windows eingebauten Anzeige WebView2
 py -m pip install -U pywebview >nul 2>&1
 set EXTRA=--add-data "pc_web;pc_web"

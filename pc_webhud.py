@@ -259,6 +259,9 @@ class WebHud:
                 qs = dict(urllib.parse.parse_qsl(u.query))
                 if u.path == "/events":
                     return hud._events(self)
+                if u.path == "/phonecam.jpg":   # Bild der Handy-Kamera (kommt über den Fernzugriff)
+                    import pc_fern
+                    return self._send(200, pc_fern.PHONE_FRAME["jpg"], "image/jpeg")
                 if u.path.startswith("/api/"):
                     try:
                         return self._send(200, json.dumps(hud.api(u.path[5:], qs), ensure_ascii=False))
@@ -333,6 +336,12 @@ class WebHud:
             return {"lat": hit[0], "lon": hit[1]} if hit else None
         if name == "tle":
             return {"text": tle_text()}
+        if name == "phonecam":
+            import pc_fern
+            return {"live": time.time() - pc_fern.PHONE_FRAME["t"] < 4}
+        if name == "ets2":   # Fahrtenseite (ETS2-Beifahrer)
+            import pc_ets2
+            return pc_ets2.STATE
         if name == "geocode":
             hit = geocode(qs.get("q", ""))
             return {"lat": hit[0], "lon": hit[1]} if hit else None

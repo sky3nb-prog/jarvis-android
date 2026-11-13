@@ -98,7 +98,8 @@ DEFAULTS = {
     "meine_wege": "",   # "oberer Feldweg: 48.80, 8.96" je Zeile
     "route_an": "",     # Google-Maps-Link per WhatsApp an diesen Kontakt
     "wichtige_leute": "Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis",   # Namen wie in WhatsApp, mit Komma: deren Nachrichten sagt Jarvis an
-    "ets2_quicksave": "f5",  # Taste fürs Schnellspeichern in ETS2 (wenn du weggehst)
+    "ets2_quicksave": "f5",
+    "webcam_fern": False,    # Webcam von unterwegs (Tailscale) ansehen erlauben  # Taste fürs Schnellspeichern in ETS2 (wenn du weggehst)
     "absage_text": "",      # Anruf-Butler: leer = "Kann gerade nicht, rufe später zurück."
     "hud_layout": "pc",  # "pc" = Leiste oben, "handy" = wie die App (Fokus, Info, Lage, Steuern unten)
     "sphere_color": "Gold",  # Farbe der Kugel: Gold, Cyan, Rot, Grün, Violett, Weiß

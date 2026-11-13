@@ -25,6 +25,10 @@
     <div class="card"><div class="ct" id="i-city">WETTER</div><div class="big" id="i-temp">–°</div><div class="row"><span>gefühlt</span><b id="i-feel">–</b></div><div class="row"><span>Regen</span><b id="i-rain">–</b></div></div>
     <div class="card" style="--c:var(--green)"><div class="ct">SYSTEM</div><div class="row"><span>CPU</span><b id="i-cpu">–</b></div><div class="row"><span>GPU</span><b id="i-gpu">–</b></div><div class="row"><span>RAM</span><b id="i-ram">–</b></div></div>
     <div class="card" style="--c:#d7a8ff"><div class="ct">HANDY</div><div class="muted" id="i-handy">–</div></div>
+    <div class="card" style="--c:#ffa03c;display:none" id="i-ets2"><div class="ct" id="e-head">FAHRT · ETS2</div>
+      <div class="big" id="e-kmh">–</div><div class="muted" id="e-job">–</div>
+      <div class="row"><span>Tank</span><b id="e-tank">–</b></div><div class="row"><span>Ziel</span><b id="e-ziel">–</b></div>
+      <div class="row"><span>Schlafen in</span><b id="e-ruhe">–</b></div><div class="row"><span>Lohn</span><b id="e-lohn">–</b></div></div>
   </div>
   <div class="col right">
     <div class="card"><div class="ct">TERMINE</div><div id="i-termine" class="muted">–</div></div>
@@ -102,6 +106,8 @@
   <div class="ps-ask" id="ps-ask"><div><b>Änderungen speichern?</b><div class="ps-askrow"><button id="ps-ask-no">Weiter bearbeiten</button><button id="ps-ask-drop">Verwerfen</button><button class="gold" id="ps-ask-save">Speichern</button></div></div></div>
 </div></div>
 <div class="toast" id="toast"></div>
+<div id="phcam" style="display:none;position:fixed;right:18px;bottom:96px;z-index:60;width:300px;border:1px solid #ffa03c;border-radius:14px;overflow:hidden;background:#04121a;box-shadow:0 0 24px rgba(255,160,60,.35)">
+  <div style="font:600 11px/1 system-ui;letter-spacing:.14em;color:#ffcf8a;padding:8px 10px">HANDY-KAMERA · LIVE</div><img id="phcam-img" style="display:block;width:100%" alt=""></div>
 </div>
 <script src="hud-bridge.js"></script>
 <script src="maplibre-gl.js"></script><script src="satellite.min.js"></script>
