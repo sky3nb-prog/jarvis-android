@@ -283,6 +283,8 @@
       sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
       sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "18:00";
       perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
+      sw("wk-an", c.wecker_an !== false); $("wk-schule").value = (c.wecker_schule || "07:10").padStart(5, "0"); $("wk-we").value = c.wecker_we ? c.wecker_we.padStart(5, "0") : "";
+      $("wk-vorher").value = c.wecker_vorher || "25, 20, 10, 5"; wkInfo();
       perm("set-butlerok", c.butler_ok); perm("set-files", c.files_ok); perm("set-media2", !!c.media_ok);
       perm("set-overlay", c.overlay); perm("set-usage", c.usage); perm("set-media", !!c.media_ok);
       $("set-mediastate").textContent = c.media || "";
@@ -306,6 +308,14 @@
   $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
+  // Wecker: Vorschau, welche Wecker bei der Aufsteh-Zeit gestellt werden
+  function wkInfo() {
+    const up = $("wk-schule").value; if (!up) { $("wk-info").textContent = ""; return; }
+    const [h, m] = up.split(":").map(Number), off = ($("wk-vorher").value || "25,20,10,5").split(/[,; ]+/).map((x) => Math.abs(parseInt(x, 10))).filter((x) => x > 0).sort((a, b) => b - a);
+    const t = off.map((o) => { const v = (h * 60 + m - o + 1440) % 1440; return Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); });
+    $("wk-info").textContent = `Schultage: Wecker um ${t.join(", ")} – aufstehen um ${h}:${String(m).padStart(2, "0")}, dann kommt dein Tages-Update.`;
+  }
+  ["wk-schule", "wk-vorher"].forEach((id) => $(id).addEventListener("input", wkInfo));
   // Fester Weg (jede Woche) und einmalige Termine
   function fwShow() {
     let f = {}; try { f = JSON.parse(A.festGet() || "{}"); } catch (e) {}
@@ -394,6 +404,7 @@
       gemini_key: $("set-gkey").value.trim(),
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       wichtig: $("set-wichtig").value.trim(), absage: $("set-absage").value.trim(), butler: sw("set-butler"),
+      wecker_an: sw("wk-an"), wecker_schule: $("wk-schule").value, wecker_we: $("wk-we").value, wecker_vorher: $("wk-vorher").value.trim(),
       heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"),
       ankunft: $("set-ankunft").value.trim(), anzieh: $("set-anzieh").value.trim(),
       brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "21:00",

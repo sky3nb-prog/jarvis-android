@@ -362,3 +362,8 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .fp-btns { display: flex; gap: 10px; margin-top: 14px; }
 .fp-btn { flex: 1; text-align: center; padding: 12px; border-radius: 24px; border: 1px solid var(--gold); background: #3a2608; color: var(--gold-l); font-weight: 600; font-size: 14px; }
 .fp-btn.o { background: transparent; border-color: #2a5a78; color: #9fd6f5; }
+
+.fp-read { display: flex; gap: 8px; margin: 2px 0 10px; position: sticky; top: 0; z-index: 2; padding: 4px 0; background: linear-gradient(#000 70%, transparent); }
+.fp-rb { flex: 1; text-align: center; padding: 9px 6px; border-radius: 20px; border: 1px solid #5a3e14; background: #140d04; color: var(--gold-l); font-size: 13px; font-weight: 600; }
+.fp-rb:last-child { flex: 0 0 48px; }
+.fp-card.reading, .fp-hero.reading { box-shadow: 0 0 0 2px var(--gold), 0 0 22px rgba(255,170,40,.35); transition: box-shadow .3s; }

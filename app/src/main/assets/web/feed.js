@@ -13,6 +13,7 @@
     fahrt: ["🚲", "#0b2a3c", "fahrt"], heimweg: ["🏠", "#3a2608", "fahrt"], ankunft: ["💬", "#0b2a22", "fahrt"],
     morgen: ["☀️", "#1f1430", "brief"], abend: ["🌙", "#1f1430", "brief"], woche: ["📊", "#2a1a05", "brief"],
     anruf: ["📞", "#2a1306", "anruf"], erinnerung: ["📌", "#2a1a05", "brief"], test: ["🧪", "#0b2a3c", "fahrt"],
+    vorschau: ["🗓️", "#0b2a3c", "brief"], wecker: ["⏰", "#2a1a05", "brief"],
   };
   const FILTERS = [["alle", "Alle"], ["fahrt", "Fahrten"], ["brief", "Updates"], ["anruf", "Anrufe"]];
   let filter = "alle", stack = [];
@@ -29,6 +30,14 @@
   const WARN = [[/glatt|glätte|eis|frost/i, "❄️"], [/wind|böe/i, "💨"], [/licht|dunkel/i, "💡"], [/nass|regen/i, "💧"], [/hitze|sonne/i, "🧴"]];
   const warnIcon = (t) => (WARN.find(([r]) => r.test(t)) || [0, "⚠️"])[1];
 
+  // Anziehen: Jacke, Oberteil, Hose, Extras (genau nach deinen Regeln)
+  function outfit(o, list) {
+    if (!o) return list && list.length ? card("👕 ANZIEHEN", "#d7a8ff", chips(list)) : "";
+    const row = (ic, k, v) => (v && !/^keine?$/i.test(v) ? `<div class="fp-row"><span class="z">${ic} ${k}</span><span>${esc(v)}</span></div>` : "");
+    const ex = (o.extras || []).filter((x) => x && x !== "null");
+    return card("👕 ANZIEHEN", "#d7a8ff", row("🧥", "Jacke", o.jacke) + row("👕", "Oben", o.oben) + row("👖", "Hose", o.hose) +
+      (ex.length ? `<div style="margin-top:8px">${chips(ex)}</div>` : ""));
+  }
   const card = (title, color, inner) => `<div class="fp-card" style="--c:${color}"><h3>${title}</h3>${inner}</div>`;
   const chips = (a) => (a && a.length ? `<div class="fp-chips">${a.map((x) => `<span class="fp-chip">${clothIcon(x)} ${esc(x)}</span>`).join("")}</div>` : "");
   const warns = (a) => (a || []).map((x) => `<div class="fp-warn"><span>${warnIcon(x)}</span><span>${esc(x)}</span></div>`).join("");
@@ -53,7 +62,7 @@
       <b>${bahn ? esc(p.line) + " ab " + esc(p.stop) : veh + " · etwa " + Math.round(p.ride || p.min || 0) + " Min."}</b>
       <small>${bahn ? "Losgehen um " + hm(p.go) + ", an um " + hm(p.arr) : p.learned ? "gelernt aus deinen letzten " + p.learned + " Fahrten" : "geschätzt – wird mit jeder Fahrt genauer"}</small></div></div></div>`;
     if (d.wx_hin || d.wx_back) h += card("🌡️ WETTER", "var(--cyan)", `<div class="fp-wx">${wxBox(home ? "LOS " + hm(p.go) : "HIN " + hm(p.go || d.leave), d.wx_hin)}${wxBox("ZURÜCK " + hm(d.back), d.wx_back)}</div>`);
-    if (d.anziehen && d.anziehen.length) h += card("👕 ANZIEHEN", "#d7a8ff", chips(d.anziehen));
+    h += outfit(d.outfit, d.anziehen);
     if (d.achtung && d.achtung.length) h += card("⚠️ PASS AUF", "var(--gold)", warns(d.achtung));
     if (d.denk && d.denk.length) h += card("🎒 DENK AN", "var(--gold-l)", todos(d.denk));
     if (d.sms_to) h += `<div class="fp-card"><div class="fp-sms"><i></i>SMS an ${esc(d.sms_to)} geht automatisch raus, ca. 5 Min. bevor du da bist.</div></div>`;
@@ -71,7 +80,7 @@
       <div class="fp-tb"><small>${d.wecker ? "WECKER" : "DUNKEL AB"}</small><b>${d.wecker ? hm(d.wecker) : w && w.sunset ? esc(w.sunset) : "–"}</b></div></div></div>`;
     if (w && w.hours && w.hours.length) h += card("🌡️ WETTER ÜBER DEN TAG", "var(--cyan)",
       `<div class="fp-wx">${w.hours.map((x) => `<div class="fp-w"><small>${x.h}:00</small><div class="i">${wxIcon(x.code, x.dark)}</div><b>${x.temp}°</b><div class="f">gefühlt ${x.feel}° · ${x.rain_pct} %</div></div>`).join("")}</div>`);
-    if (d.anziehen && d.anziehen.length) h += card("👕 ANZIEHEN", "#d7a8ff", chips(d.anziehen));
+    h += outfit(d.outfit, d.anziehen);
     if (d.achtung && d.achtung.length) h += card("⚠️ PASS AUF", "var(--gold)", warns(d.achtung));
     if (d.termine && d.termine.length) h += card("📅 TERMINE", "var(--green)", d.termine.map((t) => `<div class="fp-row"><span class="z">${esc(t.zeit)}</span><span>${esc(t.titel)}${t.ort ? `<span class="o">${esc(t.ort)}</span>` : ""}</span></div>`).join(""));
     if (d.mitnehmen && d.mitnehmen.length) h += card("🎒 MITNEHMEN", "var(--gold-l)", todos(d.mitnehmen));
@@ -81,13 +90,29 @@
   function viewWeek(m) {
     const d = m.data || {};
     const visits = (d.besuche || []).reduce((s, b) => s + b.n, 0);
-    let h = `<div class="fp-hero"><div class="fp-orb"></div><div class="k">WOCHEN-UPDATE · ${esc(d.von)} – ${esc(d.bis)}</div><h1>${esc(m.title)}</h1>
+    let h = `<div class="fp-hero"><div class="fp-orb"></div><div class="k">LETZTE 7 TAGE · ${esc(d.von)} – ${esc(d.bis)}</div><h1>${esc(m.title)}</h1>
       <div class="s">So lief deine Woche.</div></div>`;
     h += `<div class="fp-card"><div class="fp-tiles"><div class="fp-tile"><b>${visits}</b><small>Besuche</small></div>
       <div class="fp-tile"><b>${Math.round(d.rad_km || 0)}</b><small>km Rad</small></div>
       <div class="fp-tile"><b>${Math.floor((d.musik_min || 0) / 60)}<span style="font-size:14px">h ${(d.musik_min || 0) % 60}m</span></b><small>Musik</small></div></div></div>`;
     if (d.besuche && d.besuche.length) h += card("📍 BESUCHE", "var(--green)", d.besuche.map((b) => `<div class="fp-row"><span class="z">${b.n}×</span><span>${esc(b.ort)}</span></div>`).join(""));
-    if (d.termine && d.termine.length) h += card("📅 NÄCHSTE WOCHE", "var(--cyan)", d.termine.map((t) => `<div class="fp-row"><span class="z">${esc(t.zeit)}</span><span>${esc(t.titel)}${t.ort ? `<span class="o">${esc(t.ort)}</span>` : ""}</span></div>`).join(""));
+    if (d.termine && d.termine.length) h += card(d.richtung === "zurueck" ? "📅 WAS LOS WAR" : "📅 NÄCHSTE WOCHE", "var(--cyan)", d.termine.map((t) => `<div class="fp-row"><span class="z">${esc(t.zeit)}</span><span>${esc(t.titel)}${t.ort ? `<span class="o">${esc(t.ort)}</span>` : ""}</span></div>`).join(""));
+    if (d.mitnehmen && d.mitnehmen.length) h += card("🎒 VORBEREITEN", "var(--gold-l)", todos(d.mitnehmen));
+    return h + say(m.text);
+  }
+
+  function viewAhead(m) {
+    const d = m.data || {};
+    let h = `<div class="fp-hero blue"><div class="k">NÄCHSTE 7 TAGE · ${esc(d.von)} – ${esc(d.bis)}</div><h1>${esc(m.title)}</h1>
+      <div class="s">Tag für Tag: Wetter und Termine.</div></div>`;
+    for (const t of d.tage || []) {
+      const w = t.wx;
+      h += `<div class="fp-card"><div style="display:flex;align-items:center;gap:12px">
+        <div style="flex:0 0 74px"><b style="color:var(--gold-l);font-size:15px">${esc(t.tag)}</b><div style="color:var(--dim);font-size:12px">${esc(t.datum)}</div></div>
+        ${w ? `<div style="font-size:26px">${wxIcon(w.code, false)}</div><div style="font-size:13px;color:#dff3ff">${w.min}° / ${w.max}°<div style="color:var(--dim);font-size:11.5px">Regen ${w.rain_pct} %</div></div>` : ""}</div>
+        ${(t.termine || []).map((x) => `<div class="fp-row"><span class="z">${esc(x.zeit)}</span><span>${esc(x.titel)}${x.ort ? `<span class="o">${esc(x.ort)}</span>` : ""}</span></div>`).join("") ||
+          '<div style="color:var(--dim);font-size:13px;margin-top:6px">keine Termine</div>'}</div>`;
+    }
     if (d.mitnehmen && d.mitnehmen.length) h += card("🎒 VORBEREITEN", "var(--gold-l)", todos(d.mitnehmen));
     return h + say(m.text);
   }
@@ -102,9 +127,57 @@
     return h + say(m.text);
   }
 
+  // --- Vorlesen: Punkt für Punkt, "Friday, weiter" oder ⏭ springt weiter ---
+  let current = null, autoRead = true, reading = false, readKeys = [];
+  const readBar = () => `<div class="fp-read"><div class="fp-rb" id="rd-play">🔊 Vorlesen</div><div class="fp-rb" id="rd-next">⏭ Weiter</div><div class="fp-rb" id="rd-stop">⏹</div></div>`;
+  function hookRead() {
+    $("rd-play").addEventListener("click", readNow);
+    $("rd-next").addEventListener("click", () => A.readNext && A.readNext());
+    $("rd-stop").addEventListener("click", () => A.readStop && A.readStop());
+  }
+  function partsOf(m) {
+    const d = m.data || {}, out = [], cards = [];
+    const o = d.outfit, list = d.anziehen || [];
+    const outfitText = o ? ["Anziehen:", o.jacke && !/^keine?$/i.test(o.jacke) ? o.jacke + "," : "", o.oben ? o.oben + "," : "", o.hose || "", (o.extras || []).length ? ", dazu " + o.extras.join(", ") : ""].join(" ")
+      : list.length ? "Anziehen: " + list.join(", ") : "";
+    const add = (sel, t) => { if (t && t.trim()) { out.push(t); cards.push(sel); } };
+    if (m.kind === "morgen" || m.kind === "abend") {
+      const w = d.wx;
+      add("hero", (m.kind === "morgen" ? "Guten Morgen. " : "Kurz zu morgen. ") + (w ? `${w.min} bis ${w.max} Grad, ${w.rain_pct >= 50 ? "Regen wahrscheinlich" : "eher trocken"}.` : ""));
+      add("ANZIEHEN", outfitText);
+      add("PASS AUF", (d.achtung || []).length ? "Pass auf: " + d.achtung.join(". ") : "");
+      add("TERMINE", (d.termine || []).length ? "Termine: " + d.termine.map((t) => t.zeit + " " + t.titel).join(". ") : "Keine Termine.");
+      add("MITNEHMEN", (d.mitnehmen || []).length ? "Mitnehmen: " + d.mitnehmen.join(", ") : "");
+      if (d.wecker) add("hero", "Dein Wecker klingelt um " + hm(d.wecker) + ".");
+    } else if (m.kind === "vorschau") {
+      add("hero", "Deine nächste Woche.");
+      (d.tage || []).forEach((t, i) => add("#day" + i, t.tag + ": " + (t.wx ? `${t.wx.min} bis ${t.wx.max} Grad. ` : "") + ((t.termine || []).map((x) => x.zeit + " " + x.titel).join(". ") || "keine Termine")));
+      add("VORBEREITEN", (d.mitnehmen || []).length ? "Vorbereiten: " + d.mitnehmen.join(", ") : "");
+    } else if (m.kind === "woche") {
+      const v = (d.besuche || []).reduce((s, b) => s + b.n, 0);
+      add("hero", `Deine letzten 7 Tage: ${v} Besuche, ${Math.round(d.rad_km || 0)} Kilometer Rad, ${Math.floor((d.musik_min || 0) / 60)} Stunden Musik.`);
+      add("WAS LOS WAR", (d.termine || []).length ? "Was los war: " + d.termine.map((t) => t.zeit + " " + t.titel).join(". ") : "");
+    } else {
+      add("JARVIS SAGT", m.text);
+    }
+    if (!out.length) add("JARVIS SAGT", m.text);
+    readKeys = cards;
+    return out;
+  }
+  function readNow() { if (!current || !A.readStart) return; reading = true; A.readStart(JSON.stringify(partsOf(current))); }
+  function highlight(i) {
+    const body = $("fp-body"), key = readKeys[i] || "hero";
+    body.querySelectorAll(".reading").forEach((c) => c.classList.remove("reading"));
+    let c = null;
+    if (key === "hero") c = body.querySelector(".fp-hero");
+    else if (key.startsWith("#day")) c = body.querySelectorAll(".fp-card")[+key.slice(4)];
+    else c = [...body.querySelectorAll(".fp-card")].find((x) => (x.querySelector("h3") || {}).textContent && x.querySelector("h3").textContent.includes(key));
+    if (c) { c.classList.add("reading"); c.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  }
+
   // --- Seite ---
   function open() { $("feed").classList.add("on"); stack = []; list(); }
-  function close() { $("feed").classList.remove("on"); }
+  function close() { $("feed").classList.remove("on"); if (reading && A.readStop) A.readStop(); }
   function list() {
     $("fp-ttl").textContent = "MITTEILUNGEN";
     let a = []; try { a = JSON.parse(A.feedList() || "[]"); } catch (e) {}
@@ -112,7 +185,8 @@
     if (a.length) setSeen(a[0].ts);
     dots(false);
     const shown = a.filter((m) => filter === "alle" || (KIND[m.kind] || [])[2] === filter);
-    let h = `<div class="fp-now"><div data-now="heute">☀️ Tages-Update<small>für heute</small></div><div data-now="morgen">🌙 Für morgen<small>Update</small></div><div data-now="woche">📊 Woche<small>Rückblick</small></div></div>
+    let h = `<div class="fp-now"><div data-now="heute">☀️ Heute<small>Tages-Update</small></div><div data-now="morgen">🌙 Morgen<small>Update</small></div></div>
+      <div class="fp-now"><div data-now="woche">🗓️ Nächste Woche<small>7 Tage voraus</small></div><div data-now="rueckblick">📊 Letzte Woche<small>Rückblick</small></div></div>
       <div class="fp-seg">${FILTERS.map(([k, n]) => `<span data-f="${k}" class="${k === filter ? "on" : ""}">${n}</span>`).join("")}</div>`;
     if (!shown.length) h += '<div class="fp-empty">Noch keine Mitteilungen.<br>Briefings, Fahrten und Anrufe erscheinen hier.</div>';
     let lastDay = "";
@@ -137,8 +211,13 @@
     if (push) stack.push("list");
     $("fp-ttl").textContent = "MITTEILUNG";
     const v = m.kind === "fahrt" || m.kind === "heimweg" || m.kind === "test" ? viewFahrt(m)
-      : m.kind === "morgen" || m.kind === "abend" ? viewDay(m) : m.kind === "woche" ? viewWeek(m) : viewSimple(m);
-    $("fp-body").innerHTML = v; $("fp-body").scrollTop = 0;
+      : m.kind === "morgen" || m.kind === "abend" ? viewDay(m) : m.kind === "woche" ? viewWeek(m) : m.kind === "vorschau" ? viewAhead(m) : viewSimple(m);
+    current = m;
+    $("fp-body").innerHTML = readBar() + v;
+    hookRead();
+    if (/^(morgen|abend|woche|vorschau)$/.test(m.kind) && autoRead) readNow();
+    autoRead = true;
+    $("fp-body").scrollTop = 0;
     $("fp-body").querySelectorAll("[data-maps]").forEach((e) => e.addEventListener("click", () => {
       const d = m.data || {}; const z = d.ziel === "zuhause" ? (d.home_addr || "") : d.ziel || "";
       location.href = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(z) + "&travelmode=" + e.dataset.maps;
@@ -154,6 +233,7 @@
   $("fp-back").addEventListener("click", () => back());
   function back() {
     if (!$("feed").classList.contains("on")) return false;
+    if (reading && A.readStop) A.readStop();
     if (stack.length) { stack.pop(); list(); } else close();
     return true;
   }
@@ -164,6 +244,8 @@
   const prevBack = window.jarvis && window.jarvis.back;
   if (window.jarvis) {
     window.jarvis.onEvent = function (type, data) {
+      if (type === "read_pos") { highlight(data.i); return; }
+      if (type === "read_end") { reading = false; document.querySelectorAll(".reading").forEach((c) => c.classList.remove("reading")); return; }
       if (type === "feed_open") { $("feed").classList.add("on"); stack = ["list"]; detail(data.id, false); setSeen(Date.now()); dots(false); return; }
       return prev && prev.call(window.jarvis, type, data);
     };

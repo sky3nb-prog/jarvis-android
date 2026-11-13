@@ -51,7 +51,9 @@ class MainActivity : ComponentActivity() {
 
     private fun hasMic() = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
-    private val busListener: (String, JSONObject) -> Unit = { type, data -> send(type, data) }
+    private val busListener: (String, JSONObject) -> Unit = { type, data ->
+        if (type == "read_next") ReadAloud.next() else if (type == "read_stop") ReadAloud.stop() else send(type, data)
+    }
 
     private fun askPermissions() {
         val want = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE,
@@ -296,6 +298,8 @@ class MainActivity : ComponentActivity() {
             .put("brief_morgen", prefs.getBoolean("brief_morgen", true)).put("brief_abend", prefs.getBoolean("brief_abend", true))
             .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "21:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
             .put("rueckblick_zeit", prefs.getString("rueckblick_zeit", "18:00"))
+            .put("wecker_an", prefs.getBoolean("wecker_an", true)).put("wecker_schule", prefs.getString("wecker_schule", "7:10"))
+            .put("wecker_we", prefs.getString("wecker_we", "")).put("wecker_vorher", prefs.getString("wecker_vorher", "25, 20, 10, 5"))
             .apply { for (k in listOf("bi_wetter", "bi_anzieh", "bi_termine", "bi_mitnehmen")) put(k, prefs.getBoolean(k, true)) }
             .put("loc_always", android.os.Build.VERSION.SDK_INT < 29 || ContextCompat.checkSelfPermission(this@MainActivity,
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED)
@@ -332,6 +336,9 @@ class MainActivity : ComponentActivity() {
                 .putString("brief_abend_zeit", o.optString("brief_abend_zeit", "21:00").trim().ifBlank { "21:00" })
                 .putBoolean("rueckblick", o.optBoolean("rueckblick", true))
                 .putString("rueckblick_zeit", o.optString("rueckblick_zeit", "18:00").trim().ifBlank { "18:00" })
+                .putBoolean("wecker_an", o.optBoolean("wecker_an", true)).putString("wecker_schule", o.optString("wecker_schule").trim())
+                .putString("wecker_we", o.optString("wecker_we").trim()).putString("wecker_vorher", o.optString("wecker_vorher").trim().ifBlank { "25, 20, 10, 5" })
+                .apply { if (o.optString("wecker_schule").trim() != prefs.getString("wecker_schule", "7:10") || o.optString("wecker_we").trim() != prefs.getString("wecker_we", "")) remove("wecker_tag") }
                 .apply { for (k in listOf("bi_wetter", "bi_anzieh", "bi_termine", "bi_mitnehmen")) putBoolean(k, o.optBoolean(k, true)) }
                 .putBoolean("use_location", o.optBoolean("use_location", false))
                 .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) putBoolean(k, o.optBoolean(k, true)) }
@@ -381,6 +388,16 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun fernInfo(refresh: Boolean): String = Link.fernInfo(this@MainActivity, refresh).toString()
 
+        /** Mitteilung vorlesen (Punkte als JSON-Liste), weiter, stopp */
+        @JavascriptInterface
+        fun readStart(json: String) = ReadAloud.start(this@MainActivity, json)
+
+        @JavascriptInterface
+        fun readNext() = ReadAloud.next()
+
+        @JavascriptInterface
+        fun readStop() = ReadAloud.stop()
+
         /** Mitteilungen */
         @JavascriptInterface
         fun feedList(): String = Feed.list(this@MainActivity).toString()
@@ -393,7 +410,8 @@ class MainActivity : ComponentActivity() {
         fun feedNow(kind: String) {
             Thread({
                 val r = try {
-                    when (kind) { "woche" -> Alltag.weekBrief(this@MainActivity); "morgen" -> Alltag.dayBrief(this@MainActivity, 1); else -> Alltag.dayBrief(this@MainActivity, 0) }
+                    when (kind) { "woche" -> Alltag.weekAhead(this@MainActivity); "rueckblick" -> Alltag.weekBack(this@MainActivity)
+                        "morgen" -> Alltag.dayBrief(this@MainActivity, 1); else -> Alltag.dayBrief(this@MainActivity, 0) }
                 } catch (_: Exception) { null }
                 if (r != null) send("feed_open", JSONObject().put("id", r.second))
                 else send("info", JSONObject().put("text", "Das Update ging gerade nicht (Groq-Schlüssel? Internet?)."))

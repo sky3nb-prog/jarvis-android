@@ -104,6 +104,48 @@ object Wecker {
         return Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, o.optInt("h")); set(Calendar.MINUTE, o.optInt("m")); set(Calendar.SECOND, 0) }.timeInMillis
     }
 
+    // --- Automatisch: "An Schultagen will ich um 7:10 aufstehen" -> jeden Abend die Wecker für morgen ---------
+    /** Minuten vor dem Aufstehen, z. B. "25, 20, 10, 5" -> 6:45, 6:50, 7:00, 7:05 bei 7:10. */
+    fun offsets(ctx: Context): List<Int> = (prefs(ctx).getString("wecker_vorher", "25, 20, 10, 5") ?: "").split(',', ';', ' ')
+        .mapNotNull { it.trim().removePrefix("-").toIntOrNull() }.filter { it in 1..180 }.distinct().sortedDescending().ifEmpty { listOf(25, 20, 10, 5) }
+
+    /** Aufsteh-Zeit für einen Tag (Schultag Mo–Fr oder Wochenende) laut Einstellung, sonst null. */
+    fun planFor(ctx: Context, dow: Int): Pair<Int, Int>? {
+        val p = prefs(ctx)
+        if (!p.getBoolean("wecker_an", true)) return null
+        val v = if (dow == Calendar.SATURDAY || dow == Calendar.SUNDAY) p.getString("wecker_we", "") else p.getString("wecker_schule", "7:10")
+        return hm(v ?: "")
+    }
+
+    fun timesFor(ctx: Context, up: Pair<Int, Int>): List<String> = offsets(ctx).map { o ->
+        val t = up.first * 60 + up.second - o; "%d:%02d".format(((t + 1440) % 1440) / 60, ((t + 1440) % 1440) % 60)
+    }
+
+    /** Per Sprache: Aufsteh-Zeit für Schultage oder Wochenende festlegen (und, wenn es schon Abend ist, gleich für morgen stellen). */
+    fun setPlan(ctx: Context, aufstehen: String, tage: String, vorher: String = ""): String {
+        val up = hm(aufstehen) ?: return "Um wie viel Uhr willst du aufstehen?"
+        val we = tage.lowercase().contains("wochenende")
+        prefs(ctx).edit().putString(if (we) "wecker_we" else "wecker_schule", "%d:%02d".format(up.first, up.second)).putBoolean("wecker_an", true)
+            .apply { if (vorher.isNotBlank()) putString("wecker_vorher", vorher) }.apply()
+        prefs(ctx).edit().remove("wecker_tag").apply()   // heute Abend neu stellen
+        val ts = timesFor(ctx, up)
+        return "Okay: ${if (we) "am Wochenende" else "an Schultagen"} aufstehen um ${"%d:%02d".format(up.first, up.second)}. " +
+            "Ich stelle dir jeden Abend die Wecker für den nächsten Tag: ${ts.joinToString(", ")}. Dein Tages-Update kommt um ${"%d:%02d".format(up.first, up.second)}."
+    }
+
+    /** Aus dem Hintergrund (jede Minute): ab 19 Uhr die Wecker für morgen stellen, wenn morgen ein Tag mit Aufsteh-Zeit ist. */
+    fun tick(ctx: Context, frei: (Long) -> Boolean): String? {
+        val c = Calendar.getInstance()
+        if (c.get(Calendar.HOUR_OF_DAY) < 19) return null
+        val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }
+        val key = SimpleDateFormat("yyyy-MM-dd", de).format(tomorrow.time)
+        if (prefs(ctx).getString("wecker_tag", "") == key) return null
+        prefs(ctx).edit().putString("wecker_tag", key).apply()
+        val up = planFor(ctx, tomorrow.get(Calendar.DAY_OF_WEEK)) ?: return null
+        if (frei(tomorrow.timeInMillis)) return "Morgen ist frei (Ferien/Feiertag im Kalender) – ich stelle keinen Wecker."
+        return set(ctx, timesFor(ctx, up), "%d:%02d".format(up.first, up.second), "")
+    }
+
     fun openApp(ctx: Context): String = try {
         ctx.startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); "Hier sind deine Wecker."
     } catch (_: Exception) { "Die Uhr-App geht gerade nicht auf." }

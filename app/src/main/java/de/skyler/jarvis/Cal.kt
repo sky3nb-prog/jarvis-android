@@ -109,7 +109,19 @@ object Cal {
         return if (allDay) "Eingetragen: $title am $day." else "Eingetragen: $title am $day um ${SimpleDateFormat("H:mm", de).format(start)} Uhr."
     }
 
-    data class Ev(val id: Long, val title: String, val begin: Long, val allDay: Boolean, val place: String)
+    data class Ev(val id: Long, val title: String, val begin: Long, val allDay: Boolean, val place: String, val end: Long = 0L)
+
+    /** "Sonntag 15.11.", "Sonntag 15.11., 14:00" oder bei mehrtägigen "Sonntag 15.11. bis Dienstag 17.11." */
+    fun whenText(e: Ev, pattern: String = "EEEE d.M."): String {
+        val f = SimpleDateFormat(pattern, de).apply { if (e.allDay) timeZone = java.util.TimeZone.getTimeZone("UTC") }
+        val endIncl = if (e.allDay) e.end - 1 else e.end
+        val multi = e.end > 0 && (if (e.allDay) e.end - e.begin > 86_400_000L else f.format(Date(e.begin)) != f.format(Date(maxOf(e.begin, endIncl))))
+        return when {
+            multi -> f.format(Date(e.begin)) + " bis " + f.format(Date(endIncl))
+            e.allDay -> f.format(Date(e.begin))
+            else -> f.format(Date(e.begin)) + ", " + SimpleDateFormat("H:mm", de).format(Date(e.begin))
+        }
+    }
 
     fun events(ctx: Context, from: Long, to: Long): List<Ev> {
         if (!can(ctx, Manifest.permission.READ_CALENDAR)) return emptyList()
@@ -117,11 +129,11 @@ object Cal {
             ContentUris.appendId(it, from); ContentUris.appendId(it, to)
         }.build()
         val cols = arrayOf(CalendarContract.Instances.EVENT_ID, CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN,
-            CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.EVENT_LOCATION)
+            CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.EVENT_LOCATION, CalendarContract.Instances.END)
         val out = mutableListOf<Ev>()
         try {
             ctx.contentResolver.query(uri, cols, null, null, CalendarContract.Instances.BEGIN + " ASC")?.use { c ->
-                while (c.moveToNext()) out.add(Ev(c.getLong(0), c.getString(1) ?: "Termin", c.getLong(2), c.getInt(3) == 1, c.getString(4) ?: ""))
+                while (c.moveToNext()) out.add(Ev(c.getLong(0), c.getString(1) ?: "Termin", c.getLong(2), c.getInt(3) == 1, c.getString(4) ?: "", c.getLong(5)))
             }
         } catch (_: Exception) {}
         return out
@@ -131,10 +143,8 @@ object Cal {
         time = d; set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }.timeInMillis
 
-    fun describe(list: List<Ev>): String = list.take(15).joinToString("; ") { e ->
-        val d = Date(e.begin)
-        SimpleDateFormat("EEEE d.M.", de).format(d) + (if (e.allDay) " ganztägig" else " " + SimpleDateFormat("H:mm", de).format(d)) +
-            " " + e.title + (if (e.place.isNotBlank()) " (${e.place})" else "")
+    fun describe(list: List<Ev>): String = list.distinctBy { it.id to it.begin }.take(15).joinToString("; ") { e ->
+        whenText(e) + (if (e.allDay) " (ganztägig)" else "") + " " + e.title + (if (e.place.isNotBlank()) " (${e.place})" else "")
     }
 
     fun list(ctx: Context, from: String, days: Int): String {

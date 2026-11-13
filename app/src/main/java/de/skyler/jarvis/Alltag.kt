@@ -45,8 +45,15 @@ object Alltag {
     private val de = Locale.GERMANY
     @Volatile var fix: Location? = null
 
-    const val ANZIEH_DEFAULT = "unter 5 Grad: Winterjacke, Mütze, Handschuhe\n5 bis 12 Grad: Jacke\n12 bis 18 Grad: Pulli oder leichte Jacke\n" +
-        "über 18 Grad: T-Shirt\nRegen: Regenjacke, auf dem Rad auch Regenhose\nWind über 30 km/h: winddichte Jacke"
+    const val ANZIEH_DEFAULT = "Nach der gefühlten Temperatur:\n" +
+        "unter 0 Grad: Winterjacke, Pulli, dicke lange Hose, Mütze, Handschuhe, Schal\n" +
+        "0 bis 7 Grad: Winterjacke, Pulli, lange Hose, Mütze, Handschuhe\n" +
+        "7 bis 12 Grad: Softshelljacke, Pulli, lange Hose\n" +
+        "12 bis 17 Grad: dünne Jacke, T-Shirt, lange Hose\n" +
+        "17 bis 22 Grad: T-Shirt, dünne lange Hose, dünne Jacke zum Mitnehmen\n" +
+        "über 22 Grad: T-Shirt, kurze Hose\n" +
+        "Regen: Regenjacke drüber, auf dem Rad Regenhose\n" +
+        "Wind über 30 km/h: winddichte Softshelljacke"
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
     private fun on(ctx: Context, k: String, def: Boolean = true) = prefs(ctx).getBoolean(k, def)
@@ -280,6 +287,10 @@ object Alltag {
         try { leaveInTime(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "losfahren: $e") }
         try { routines(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "feste wege: $e") }
         try { alarms(ctx, s) } catch (_: Exception) {}
+        try {   // Wecker für morgen (Aufsteh-Zeit an Schultagen/Wochenende)
+            Wecker.tick(ctx) { day -> Cal.events(ctx, day, day + 86_400_000L).any { it.allDay && Regex("(?i)ferien|feiertag|frei\\b|urlaub").containsMatchIn(it.title) } }
+                ?.let { msg -> notify(ctx, 345, "Wecker für morgen", msg, feed = Feed.add(ctx, "wecker", "Wecker für morgen", msg, msg)) }
+        } catch (e: Exception) { Log.w(TAG, "wecker: $e") }
         try {   // Aufsteh-Zeit erreicht und Handy ist an: Tages-Update (auch ohne neues Entsperren)
             val up = Wecker.upToday(ctx); val now = System.currentTimeMillis()
             val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
@@ -789,7 +800,7 @@ object Alltag {
         val sys = "Du bist Jarvis und gibst Skyler ein Briefing für seine Fahrt. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochenes Briefing, " + (if (short) "höchstens 2 kurze Sätze" else "3 bis 5 kurze Sätze") +
             ", ohne Listen und Sonderzeichen: Ansage, Verkehrsmittel (Bahn wegen Regen oder Rad), wie kalt, was anziehen, worauf achten, ggf. 'Denk an …', am Ende 'Gute Fahrt'\", " +
-            "\"anziehen\": [\"kurze Stichworte genau nach seinen Regeln, z. B. Winterjacke\"], " +
+            "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"], " +
             "\"achtung\": [\"kurze Hinweise: Glätte bei 2 Grad und weniger, starker Wind/Böen, nasse Straße, Dunkelheit: Licht an – nur wenn zutreffend\"]}. " +
             "Erfinde nichts, was nicht in den Daten steht."
         val ai = if (w1 != null) aiJson(ctx, sys, data, 500) else null
@@ -798,7 +809,7 @@ object Alltag {
         val d = JSONObject().put("intro", intro).put("plan", pl).put("leave", leave).put("back", back)
             .put("wx_hin", w1 ?: JSONObject.NULL).put("wx_back", w2 ?: JSONObject.NULL)
             .put("anziehen", strs(ai?.optJSONArray("anziehen"))).put("achtung", strs(ai?.optJSONArray("achtung")))
-            .put("denk", JSONArray(remind))
+            .put("outfit", ai?.optJSONObject("outfit") ?: JSONObject.NULL).put("denk", JSONArray(remind))
         for (k in extra.keys()) d.put(k, extra.get(k))
         val sub = listOfNotNull(if (pl.optString("mode") == "transit") "Bahn" else if (pl.optString("vehicle") == "rad") "Fahrrad" else if (pl.optString("vehicle") == "fuss") "zu Fuß" else "E-Bike",
             w1?.let { "${it.optInt("temp")}°" }, strs(ai?.optJSONArray("anziehen")).let { a -> (0 until minOf(3, a.length())).joinToString(", ") { a.optString(it) }.ifBlank { null } }).joinToString(" · ")
@@ -919,16 +930,18 @@ object Alltag {
         val sys = "Du bist Jarvis und gibst Skyler sein ${if (day == 0) "Tages-Update für heute" else "Update für morgen"}. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 4 bis 6 kurze Sätze. Inhalt: $topics" +
             (if (wecker != null) ", zum Schluss wann sein Wecker klingelt" else "") + ". Beginne mit " + (if (day == 0) "'Guten Morgen'" else "'Kurz zu morgen'") + "\", " +
-            "\"anziehen\": [\"Stichworte nach seinen Regeln\"], \"achtung\": [\"kurze Hinweise fürs Rad: Glätte, Wind, Regen, früh dunkel – nur wenn zutreffend\"], " +
+            "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"], \"achtung\": [\"kurze Hinweise fürs Rad: Glätte, Wind, Regen, früh dunkel – nur wenn zutreffend\"], " +
             "\"mitnehmen\": [\"was mitnehmen/vorbereiten, nur wenn es aus den Terminen folgt\"]}. Keine Bahn-Verbindungen. Erfinde nichts."
         val ai = aiJson(ctx, sys, parts.joinToString("\n\n"), 700) ?: return null
         val text = ai.optString("text").replace(Regex("[*#`]"), "").trim().ifBlank { return null }
         val termine = JSONArray()
-        for (e in evs.take(8)) termine.put(JSONObject().put("zeit", if (e.allDay) "ganztägig" else SimpleDateFormat("H:mm", de).format(Date(e.begin)))
+        for (e in evs.distinctBy { it.id to it.begin }.take(8)) termine.put(JSONObject().put("zeit",
+            if (e.allDay) (if (e.end - e.begin > 86_400_000L) Cal.whenText(e, "EE d.M.") else "ganztägig") else SimpleDateFormat("H:mm", de).format(Date(e.begin)))
             .put("titel", e.title).put("ort", e.place))
         for (f in if (day == 0) todayWege(ctx) else emptyList()) termine.put(JSONObject().put("zeit", "%d:%02d".format(f.h, f.m)).put("titel", "Los zu ${f.label}").put("ort", ""))
         val d = JSONObject().put("day", day).put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date(dayStart)))
             .put("wx", wx ?: JSONObject.NULL).put("anziehen", strs(ai.optJSONArray("anziehen"))).put("achtung", strs(ai.optJSONArray("achtung")))
+            .put("outfit", ai.optJSONObject("outfit") ?: JSONObject.NULL)
             .put("mitnehmen", strs(ai.optJSONArray("mitnehmen"))).put("termine", termine).put("wecker", wecker ?: 0L)
         val sub = listOfNotNull(wx?.let { "${it.optInt("min")}–${it.optInt("max")}°" + (if (it.optInt("rain_pct") >= 50) ", Regen" else ", trocken") },
             strs(ai.optJSONArray("anziehen")).optString(0).ifBlank { null }, "${termine.length()} Termin" + (if (termine.length() == 1) "" else "e")).joinToString(" · ")
@@ -950,7 +963,8 @@ object Alltag {
         if (now < t0 || now > t0 + 4 * 3_600_000L || done(s, key)) return
         mark(s, key)
         Thread({
-            val (t, fid) = weekBrief(ctx) ?: return@Thread
+            val (t, fid) = weekBack(ctx) ?: return@Thread
+            try { weekAhead(ctx) } catch (_: Exception) {}
             notify(ctx, 350, "Dein Wochenrückblick", t, feed = fid)
             try {
                 if (Link.paired(ctx)) Link.command(ctx, JSONObject().put("type", "offer").put("need_active", true).put("title", "Wochenrückblick")
@@ -959,37 +973,88 @@ object Alltag {
         }, "jarvis-woche").start()
     }
 
-    fun weekText(ctx: Context): String? = weekBrief(ctx)?.first
+    fun weekText(ctx: Context): String? = weekBack(ctx)?.first
+    fun weekBrief(ctx: Context): Pair<String, String>? = weekBack(ctx)
 
-    /** Wochen-Update: Besuche, Rad-Kilometer, Musik, Termine nächste Woche + was mitnehmen. Gibt (Text, Mitteilungs-ID) zurück. */
-    fun weekBrief(ctx: Context): Pair<String, String>? {
-        val since = System.currentTimeMillis() - 7 * 86_400_000L
+    /** Wochenrückblick: genau die letzten 7 Tage – Besuche, Rad-Kilometer, Musik, was los war. */
+    fun weekBack(ctx: Context): Pair<String, String>? {
+        val now = System.currentTimeMillis()
+        val since = now - 7 * 86_400_000L
         val week = list(trips(ctx)).filter { it.optLong("end") >= since }
         val visits = week.groupingBy { it.optString("to") }.eachCount().filterKeys { it != "zuhause" }
         val radKm = week.filter { it.optString("mode") == "rad" }.sumOf { it.optDouble("km") }
         val music = Interests.musicMinutes(ctx, since)
-        val now = System.currentTimeMillis()
-        val next = Cal.events(ctx, now, now + 7 * 86_400_000L)
+        val past = Cal.events(ctx, since, now).distinctBy { it.id to it.begin }
         val data = "Besuche (Fahrten zu gespeicherten Orten): ${visits.entries.joinToString { "${it.key}: ${it.value}x" }.ifBlank { "keine erfasst" }}\n" +
             "Rad-Kilometer: ${"%.1f".format(radKm)}\nFahrten: ${week.size}\nMusik gehört (Handy): etwa ${music / 60} Stunden ${music % 60} Minuten\n" +
-            "Termine nächste Woche:\n${Cal.describe(next).ifBlank { "keine" }}\n" +
-            "Feste Wege: ${festeWege(ctx).joinToString { "${it.label} jeden ${listOf("", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa")[it.day]}" }}\n" +
-            "Was du über ihn weißt:\n" + Memory.facts(ctx).takeLast(30).joinToString("\n") { "- $it" }
-        val sys = "Du bist Jarvis und machst Skylers Wochen-Update. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 5 bis 8 Sätze, ohne Listen: " +
-            "wie oft er bei Oma und Opa war, wie viele Kilometer er Rad gefahren ist, wie lange er Musik gehört hat (keine Liedliste), dann die nächste Woche\", " +
-            "\"mitnehmen\": [\"was er für die Termine der nächsten Woche mitnehmen oder vorbereiten sollte, nur wenn es daraus folgt\"]}. Erfinde nichts."
-        val ai = aiJson(ctx, sys, data, 700) ?: return null
+            "Termine der letzten 7 Tage:\n${Cal.describe(past).ifBlank { "keine" }}"
+        val sys = "Du bist Jarvis und machst Skylers Wochenrückblick über die letzten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
+            "ohne Listen: wie oft er bei Oma und Opa war, wie viele Kilometer er Rad gefahren ist, wie lange er Musik gehört hat (keine Liedliste), was sonst los war\"}. Erfinde nichts."
+        val ai = aiJson(ctx, sys, data, 500) ?: return null
         val text = ai.optString("text").replace(Regex("[*#`]"), "").trim().ifBlank { return null }
         val termine = JSONArray()
-        for (e in next.take(12)) termine.put(JSONObject().put("zeit", SimpleDateFormat(if (e.allDay) "EE d.M." else "EE d.M., H:mm", de).format(Date(e.begin)))
-            .put("titel", e.title).put("ort", e.place))
+        for (e in past.take(14)) termine.put(JSONObject().put("zeit", Cal.whenText(e, "EE d.M.")).put("titel", e.title).put("ort", e.place))
         val besuche = JSONArray(); for ((k, v) in visits) besuche.put(JSONObject().put("ort", k).put("n", v))
-        val d = JSONObject().put("besuche", besuche).put("rad_km", Math.round(radKm * 10) / 10.0).put("fahrten", week.size).put("musik_min", music)
-            .put("termine", termine).put("mitnehmen", strs(ai.optJSONArray("mitnehmen")))
-            .put("von", SimpleDateFormat("d.M.", de).format(Date(since))).put("bis", SimpleDateFormat("d.M.", de).format(Date(now)))
+        val d = JSONObject().put("richtung", "zurueck").put("besuche", besuche).put("rad_km", Math.round(radKm * 10) / 10.0).put("fahrten", week.size)
+            .put("musik_min", music).put("termine", termine)
+            .put("von", SimpleDateFormat("EE d.M.", de).format(Date(since))).put("bis", SimpleDateFormat("EE d.M.", de).format(Date(now)))
         val sub = "${visits.values.sum()} Besuche · ${"%.0f".format(radKm)} km Rad · ${music / 60} h Musik"
-        val id = Feed.add(ctx, "woche", "Dein Wochen-Update", sub, text, d)
-        return text to id
+        return text to Feed.add(ctx, "woche", "Dein Wochenrückblick", sub, text, d)
+    }
+
+    /** Wochenvorschau: genau die nächsten 7 Tage – Tag für Tag Wetter und Termine (mehrtägige mit "bis"), was vorbereiten. */
+    fun weekAhead(ctx: Context): Pair<String, String>? {
+        val now = System.currentTimeMillis()
+        val start = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        val evs = Cal.events(ctx, now, start + 7 * 86_400_000L).distinctBy { it.id to it.begin }
+        // Wetter für 7 Tage
+        val wxDays = HashMap<String, JSONObject>()
+        try {
+            val home = Route.home(ctx)
+            if (home != null) {
+                val js = JSONObject(http.newCall(Request.Builder().url("https://api.open-meteo.com/v1/forecast?latitude=${home.lat}&longitude=${home.lon}" +
+                    "&daily=weather_code,temperature_2m_min,temperature_2m_max,precipitation_probability_max&timezone=auto&forecast_days=8").build())
+                    .execute().use { it.body?.string() ?: "{}" }).getJSONObject("daily")
+                val t = js.getJSONArray("time")
+                for (i in 0 until t.length()) wxDays[t.getString(i)] = JSONObject().put("code", js.getJSONArray("weather_code").optInt(i))
+                    .put("min", Math.round(js.getJSONArray("temperature_2m_min").optDouble(i))).put("max", Math.round(js.getJSONArray("temperature_2m_max").optDouble(i)))
+                    .put("rain_pct", js.getJSONArray("precipitation_probability_max").optInt(i))
+            }
+        } catch (_: Exception) {}
+        val days = JSONArray()
+        val iso = SimpleDateFormat("yyyy-MM-dd", de)
+        val isoUtc = SimpleDateFormat("yyyy-MM-dd", de).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+        for (k in 0 until 7) {
+            val d0 = start + k * 86_400_000L; val d1 = d0 + 86_400_000L
+            val dayStr = iso.format(Date(d0))
+            val dow = Calendar.getInstance().apply { timeInMillis = d0 }.get(Calendar.DAY_OF_WEEK)
+            val te = JSONArray()
+            for (e in evs) {
+                val eEnd = if (e.end > 0) e.end else e.begin + 1
+                val startsToday = (if (e.allDay) isoUtc.format(Date(e.begin)) == dayStr else e.begin in d0 until d1) ||
+                    (k == 0 && (if (e.allDay) isoUtc.format(Date(e.begin)) < dayStr else e.begin < d0))   // läuft schon seit vorher
+                if (startsToday) te.put(JSONObject().put("zeit", if (e.allDay) (if (e.end - e.begin > 86_400_000L) "bis " + Cal.whenText(e, "EE d.M.").substringAfter(" bis ") else "ganztägig")
+                    else SimpleDateFormat("H:mm", de).format(Date(e.begin)) + (if (eEnd - e.begin > 86_400_000L) " – " + SimpleDateFormat("EE d.M.", de).format(Date(eEnd)) else ""))
+                    .put("titel", e.title).put("ort", e.place))
+            }
+            for (f in festeWege(ctx).filter { it.day == dow }) te.put(JSONObject().put("zeit", "%d:%02d".format(f.h, f.m)).put("titel", "Los zu ${f.label}").put("ort", ""))
+            days.put(JSONObject().put("tag", SimpleDateFormat("EEEE", de).format(Date(d0))).put("datum", SimpleDateFormat("d.M.", de).format(Date(d0)))
+                .put("wx", wxDays[dayStr] ?: JSONObject.NULL).put("termine", te))
+        }
+        val data = "Die nächsten 7 Tage:\n" + (0 until days.length()).joinToString("\n") { i ->
+            val d = days.getJSONObject(i); val w = d.optJSONObject("wx")
+            "${d.optString("tag")} ${d.optString("datum")}: " + (if (w != null) "${w.optInt("min")}–${w.optInt("max")} Grad, Regen ${w.optInt("rain_pct")} %. " else "") +
+                (0 until d.getJSONArray("termine").length()).joinToString("; ") { j -> d.getJSONArray("termine").getJSONObject(j).let { "${it.optString("zeit")} ${it.optString("titel")}" } }
+        } + "\nWas du über ihn weißt:\n" + Memory.facts(ctx).takeLast(30).joinToString("\n") { "- $it" }
+        val sys = "Du bist Jarvis und gibst Skyler die Vorschau auf die nächsten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
+            "ohne Listen: die wichtigsten Termine und wie das Wetter wird (wann Regen, wann kalt)\", \"mitnehmen\": [\"was er für die Termine mitnehmen oder vorbereiten sollte, " +
+            "mit Tag, z. B. 'Di: Sportsachen' – nur wenn es daraus folgt\"]}. Erfinde nichts."
+        val ai = aiJson(ctx, sys, data, 600) ?: return null
+        val text = ai.optString("text").replace(Regex("[*#`]"), "").trim().ifBlank { return null }
+        val n = (0 until days.length()).sumOf { days.getJSONObject(it).getJSONArray("termine").length() }
+        val d = JSONObject().put("richtung", "vor").put("tage", days).put("mitnehmen", strs(ai.optJSONArray("mitnehmen")))
+            .put("von", SimpleDateFormat("EE d.M.", de).format(Date(start))).put("bis", SimpleDateFormat("EE d.M.", de).format(Date(start + 6 * 86_400_000L)))
+        return text to Feed.add(ctx, "vorschau", "Deine nächste Woche", "$n Termine · ${days.length()} Tage", text, d)
     }
 }
 

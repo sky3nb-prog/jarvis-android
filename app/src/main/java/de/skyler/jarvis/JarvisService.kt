@@ -594,6 +594,16 @@ class JarvisService : Service() {
     }
 
     private fun answer(key: String, cmd: String) {
+        // Vorlesen einer Mitteilung läuft: "weiter" / "eins weiter" springt zum nächsten Punkt, "stopp" beendet
+        if (ReadAloud.active) {
+            val low = cmd.lowercase().trim().trim('.', '!', '?')
+            if (Regex("^(?:(?:noch )?eins |einen |mach )?(?:weiter|nächste[rns]?(?: punkt)?|überspring\\w*|skip)\\b").containsMatchIn(low)) {
+                Bus.emit("read_next", JSONObject()); main.post { setState("idle") }; return
+            }
+            if (Regex("^(?:stopp?|halt|aufhören|hör auf|ruhe|genug|danke)\\b").containsMatchIn(low)) {
+                Bus.emit("read_stop", JSONObject()); main.post { setState("idle") }; return
+            }
+        }
         setState("thinking")
         brain.onStatus = { t -> main.post { overlay?.panel?.state("searching", t) } }
         val reply = try { brain.handle(key, cmd) } catch (e: Exception) { "Das hat nicht geklappt. ${e.message ?: ""}" }

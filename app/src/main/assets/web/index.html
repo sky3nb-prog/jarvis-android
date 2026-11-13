@@ -240,6 +240,13 @@
           <div class="f"><label>Heim-WLAN</label><div style="display:flex;gap:8px"><input id="set-wlan" type="text" placeholder="Name deines WLANs" style="flex:1"><div class="sbtn" id="set-wlanget">Aktuelles</div></div></div>
           <div class="srow"><div>PC herunterfahren, wenn ich weg bin<small>5 Minuten aus dem Haus: Hinweis mit „Abbrechen“, 2 Minuten später Musik aus, ETS2 speichern, Programme schließen, PC aus. Sitzt jemand dran, fragt er. Wieder da: „Willkommen zurück“ am PC.</small></div><div class="sw" id="set-wegauto"></div></div>
         </div>
+        <div class="sec" style="--c:#d7a8ff"><h3>WECKER</h3>
+          <div class="srow"><div>Wecker automatisch stellen<small>Jeden Abend ab 19 Uhr stellt Jarvis die Wecker für morgen in der Samsung Uhr. Steht morgen „Ferien“ oder „Feiertag“ im Kalender, lässt er es.</small></div><div class="sw" id="wk-an"></div></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Aufstehen an Schultagen</label><input id="wk-schule" type="time"></div>
+            <div class="f" style="flex:1"><label>Am Wochenende (leer = kein Wecker)</label><input id="wk-we" type="time"></div></div>
+          <div class="f"><label>Wecker so viele Minuten vorher</label><input id="wk-vorher" type="text" placeholder="25, 20, 10, 5"></div>
+          <div class="note" id="wk-info">–</div>
+        </div>
         <div class="sec" style="--c:#ffd678"><h3>FESTER WEG (JEDE WOCHE)</h3>
           <div class="srow"><div>An<small>Briefing 5 Minuten vor dem Losfahren, SMS kurz vor der Ankunft, Heimweg passend zur Zeit „zuhause sein“</small></div><div class="sw" id="fw-an"></div></div>
           <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Tag</label><select id="fw-tag"><option value="mo">Montag</option><option value="di">Dienstag</option><option value="mi">Mittwoch</option><option value="do">Donnerstag</option><option value="fr">Freitag</option><option value="sa">Samstag</option><option value="so">Sonntag</option></select></div>

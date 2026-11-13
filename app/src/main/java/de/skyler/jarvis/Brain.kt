@@ -57,6 +57,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"jarvis_volume","what":"<up|down|max|set>","value":<10-100 bei set>}   (deine eigene Sprechlautstärke, z. B. "sprich lauter", "du bist zu laut")
 {"action":"wecker","zeiten":["HH:mm", …],"aufstehen":"HH:mm oder leer","tage":"" | "werktags" | "täglich" | "wochenende","aus":false}   (Wecker stellen, auch mehrere: "Wecker um 6", "ich will um 7:30 aufstehen, Wecker um 6:45, 6:50, 7 und 7:05", "werktags Wecker um 6:30"; aus true = Wecker ausschalten, zeiten leer = alle von Jarvis)
 {"action":"wecker_zeigen"}   ("zeig meine Wecker")
+{"action":"wecker_plan","aufstehen":"HH:mm","tage":"schultage" | "wochenende","vorher":"z. B. 25, 20, 10, 5 (Minuten, optional)"}   ("an Schultagen will ich um 7:10 aufstehen" – Jarvis stellt dann jeden Abend die Wecker für den nächsten Tag selbst)
 {"action":"timer","seconds":<Sekunden>,"label":"<optional>"}
 {"action":"calendar_add","title":"<Titel>","start":"<yyyy-MM-ddTHH:mm oder yyyy-MM-dd für ganztägig>","minutes":<Dauer, Standard 60>,"location":"<optional>","remind":<Minuten vorher erinnern, Standard 30>}   (trägt direkt in den Kalender ein; auch für "erinnere mich morgen um 9 an ..." mit remind 0)
 {"action":"calendar_list","from":"<yyyy-MM-dd>","days":<Anzahl Tage>}   (Termine nachschauen, wenn die Frage über heute und morgen hinausgeht)
@@ -73,7 +74,8 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"losfahren","ziel":"<gespeicherter Ort, z. B. Opa>"}   ("ich fahr jetzt los zu Oma und Opa", "bin unterwegs zu Opa": Wetter-Tipp Rad/Bahn und kurz vor der Ankunft per SMS Bescheid geben)
 {"action":"ort_erinnerung","ort":"<gespeicherter Ort wie Opa, oder zuhause>","text":"<woran erinnern>"}   ("erinnere mich, wenn ich bei Opa bin, an das Ladekabel", "wenn ich zu Opa fahre, denk an …", "Donnerstag bei Opa an … denken", "wenn ich heimkomme, erinnere mich an …")
 {"action":"briefing","tag":"heute" | "morgen"}   ("gib mir das Briefing", "was ist morgen los und was zieh ich an?")
-{"action":"rueckblick"}   ("wie war meine Woche?", "Wochenrückblick")
+{"action":"rueckblick"}   ("wie war meine Woche?", "Wochenrückblick", die letzten 7 Tage)
+{"action":"wochenvorschau"}   ("was steht nächste Woche an?", "Wochen-Update", die nächsten 7 Tage)
 {"action":"youtube","query":"<Suche>"}
 {"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut, plus passende neue Kanäle – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")
 {"action":"musik"}   (seine Lieblingssongs und Musikrichtung gerade plus passende neue Songs von Deezer – für "was höre ich so?", "schlag mir Musik vor", "was passt dazu?")
