@@ -73,7 +73,7 @@ def on_reply(msg: dict):
                 pass
     w = _waiting.get(str(msg.get("re") or ""))
     if w:
-        w[1] = {"ok": bool(msg.get("ok", True)), "text": str(msg.get("text") or "")}
+        w[1] = {"ok": bool(msg.get("ok", True)), "text": str(msg.get("text") or ""), "url": msg.get("url")}
         w[0].set()
 
 
@@ -175,3 +175,27 @@ def command(text: str) -> dict:
 def call(who: str) -> dict:
     r = ask("call", wait=20, who=who)
     return r or {"ok": False, "text": "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"}
+
+
+# --- Wege planen (rechnet das Handy: kennt Standort, Gedächtnis, Läden entlang der Strecke) --------------------
+ROUTE = re.compile(r"wann muss ich\b.*\b(?:los|aufbrechen|starten)|"
+                   r"\bich (?:möchte|will|muss|würde gern|wollte|mag)\b.*\b\w*(?:fahr|radel|lauf|geh|los|hin|rüber)\w*\b.*\b(?:nach|zu|zum|zur|ins|in die)\b|"
+                   r"\b(?:vorbei|zwischenstopp)\w*\b.*\b(?:nach|zu|zum|zur)\b|\b(?:nach|zu|zum|zur)\b.*\bvorbei\w*\b|"
+                   r"\b(?:bahn|s-bahn|zug|bus)\b.*\b(?:nach|zu|zum|zur)\b|"
+                   r"(?:wie\s+(?:lange|weit)|route|wege?\b|wie\s+komme\s+ich|navigier\w*|fahrzeit).*\b(?:nach|zu|zum|zur)\b", re.I)
+
+
+def plan_route(text: str):
+    """Wegewunsch ans Handy, Google Maps am PC öffnen. None, wenn das Handy nicht antwortet (dann plant der PC selbst)."""
+    if not paired() or not ROUTE.search(text):
+        return None
+    r = ask("route", wait=45, text=text)
+    if r is None:
+        return None
+    if r.get("url"):
+        try:
+            import webbrowser
+            webbrowser.open(r["url"])
+        except Exception:
+            pass
+    return r.get("text") or "Den Weg konnte ich gerade nicht planen."

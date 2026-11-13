@@ -1162,6 +1162,8 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
     if result is None:
         result = pc_download.handle(command)  # Dateien und Programme herunterladen
     if result is None:
+        result = pc_handy.plan_route(command)  # smarter Wegeplaner (Zwischenstopps, Bahn, "wann muss ich los") übers Handy
+    if result is None:
         result = pc_route.handle(command)  # Routen ("wie lange mit dem Fahrrad nach ...") und aufs Handy schicken
     if result is None and re.search(r"wo bin ich|wo befinde ich mich|mein standort", command.lower()):
         result = pc_phone.where_text()
