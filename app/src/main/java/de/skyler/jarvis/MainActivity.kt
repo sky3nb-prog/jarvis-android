@@ -372,6 +372,19 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun fernInfo(refresh: Boolean): String = Link.fernInfo(this@MainActivity, refresh).toString()
 
+        /** Fester Weg heute (spontan ändern). */
+        @JavascriptInterface
+        fun todayGet(): String = Alltag.todayInfo(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun todaySet(json: String): String {
+            val o = JSONObject(json)
+            return Alltag.setToday(this@MainActivity, o.optString("ziel"), o.optString("los"), o.optString("zuhause"), o.optBoolean("aus"))
+        }
+
+        @JavascriptInterface
+        fun todayReset() { prefs.edit().remove("fest_heute").apply() }
+
         /** Testnachricht: so sieht die Donnerstag-Nachricht aus (kommt als Benachrichtigung). */
         @JavascriptInterface
         fun testAlltag() {

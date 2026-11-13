@@ -306,6 +306,18 @@
   $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
+  // Fester Weg heute (spontan)
+  function heuteShow() {
+    let h = {}; try { h = JSON.parse(A.todayGet() || "{}"); } catch (e) {}
+    $("heute-ziel").value = h.ziel || ""; $("heute-los").value = h.los || ""; $("heute-heim").value = h.zuhause || "";
+    $("heute-state").textContent = h.aus ? "Heute fällt der feste Weg aus." : h.has
+      ? `Heute${h.geaendert ? " (geändert)" : ""}: um ${h.los} zu ${h.ziel}${h.zuhause ? ", zuhause um " + h.zuhause : ""}. Briefing 5 Minuten vorher.`
+      : "Heute ist kein fester Weg eingetragen – hier kannst du einen für heute anlegen.";
+  }
+  document.querySelector('[data-p="alltag"]').addEventListener("click", heuteShow);
+  $("heute-ok").addEventListener("click", () => { toast(A.todaySet(JSON.stringify({ ziel: $("heute-ziel").value.trim(), los: $("heute-los").value, zuhause: $("heute-heim").value }))); heuteShow(); });
+  $("heute-aus").addEventListener("click", () => { toast(A.todaySet(JSON.stringify({ aus: true }))); heuteShow(); });
+  $("heute-reset").addEventListener("click", () => { A.todayReset(); toast("Heute wieder wie immer."); heuteShow(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
   // --- Fernzugriff über Tailscale ---
   let fern = {};

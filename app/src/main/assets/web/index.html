@@ -235,6 +235,14 @@
           <div class="f"><label>Heim-WLAN</label><div style="display:flex;gap:8px"><input id="set-wlan" type="text" placeholder="Name deines WLANs" style="flex:1"><div class="sbtn" id="set-wlanget">Aktuelles</div></div></div>
           <div class="srow"><div>PC herunterfahren, wenn ich weg bin<small>5 Minuten aus dem Haus: Hinweis mit „Abbrechen“, 2 Minuten später Musik aus, ETS2 speichern, Programme schließen, PC aus. Sitzt jemand dran, fragt er. Wieder da: „Willkommen zurück“ am PC.</small></div><div class="sw" id="set-wegauto"></div></div>
         </div>
+        <div class="sec" style="--c:#ff9a8a"><h3>HEUTE</h3>
+          <div class="note" id="heute-state" style="margin:0 0 8px">–</div>
+          <div class="f"><label>Ziel</label><input id="heute-ziel" type="text" placeholder="Opa"></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Losfahren um</label><input id="heute-los" type="time"></div>
+            <div class="f" style="flex:1"><label>Zuhause sein um</label><input id="heute-heim" type="time"></div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="sbtn" id="heute-ok">Für heute übernehmen</div><div class="sbtn" id="heute-aus">Heute fällt aus</div><div class="sbtn" id="heute-reset">Wie immer</div></div>
+          <div class="note">Gilt nur heute, sonst rechnet Jarvis alles selbst. Geht auch per Sprache: „Friday, heute will ich um 19 Uhr zuhause sein.“</div>
+        </div>
         <div class="sec" style="--c:#ffd678"><h3>RECHTZEITIG LOS</h3>
           <div class="srow"><div>Erinnern, wann ich los muss<small>Termine mit Ort: „Fertig machen“ und „Jetzt los“. Regen (DWD, ECMWF, GFS) → Bahn, sonst Rad. Lernt deine echten Zeiten.</small></div><div class="sw" id="set-losfahren"></div></div>
           <div class="f"><label>Feste Wege (eine Zeile pro Weg)</label><textarea id="set-feste" rows="2" placeholder="Donnerstag 15:50 zu Opa, zuhause 18:20"></textarea></div>

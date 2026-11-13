@@ -527,6 +527,41 @@ object Alltag {
 
     class Fest(val day: Int, val h: Int, val m: Int, val to: String, val backH: Int, val backM: Int)
 
+    /** Feste Wege für heute, mit spontaner Änderung ("heute um 16:10 los", "heute erst um 19 Uhr zuhause", "heute fällt aus"). */
+    fun todayWege(ctx: Context): List<Fest> {
+        val dow = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        val base = festeWege(ctx).filter { it.day == dow }
+        val o = try { JSONObject(prefs(ctx).getString("fest_heute", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
+        if (o.optString("date") != today()) return base
+        if (o.optBoolean("aus")) return emptyList()
+        fun hm(k: String) = Regex("(\\d{1,2})[:.](\\d{2})").find(o.optString(k))?.groupValues?.let { it[1].toInt() to it[2].toInt() }
+        val los = hm("los"); val heim = hm("zuhause"); val ziel = o.optString("ziel").trim()
+        val f0 = base.firstOrNull()
+        if (f0 == null && (ziel.isBlank() || los == null)) return base
+        val f = Fest(dow, los?.first ?: f0!!.h, los?.second ?: f0!!.m, ziel.ifBlank { f0!!.to },
+            heim?.first ?: f0?.backH ?: -1, heim?.second ?: f0?.backM ?: 0)
+        return listOf(f) + base.drop(1)
+    }
+
+    /** Spontan für heute ändern (aus der App oder per Sprache). Leere Werte = wie immer. */
+    fun setToday(ctx: Context, ziel: String, los: String, zuhause: String, aus: Boolean): String {
+        val o = JSONObject().put("date", today()).put("ziel", ziel.trim()).put("los", los.trim()).put("zuhause", zuhause.trim()).put("aus", aus)
+        prefs(ctx).edit().putString("fest_heute", o.toString()).apply()
+        if (aus) return "Okay, heute keine Erinnerungen für den festen Weg."
+        val f = todayWege(ctx).firstOrNull() ?: return "Für heute ist kein fester Weg eingetragen. Sag mir Ziel und Uhrzeit, z. B. „heute um 16 Uhr zu Opa“."
+        val los2 = "%d:%02d".format(f.h, f.m)
+        return "Okay, heute: um ${"%d:%02d".format(maxOf(0, f.h * 60 + f.m - 5) / 60, maxOf(0, f.h * 60 + f.m - 5) % 60)} bekommst du das Briefing, " +
+            "um $los2 geht's los zu ${f.to}" + (if (f.backH >= 0) ", zuhause willst du um ${"%d:%02d".format(f.backH, f.backM)} sein – ich schick dich passend los." else ".")
+    }
+
+    fun todayInfo(ctx: Context): JSONObject {
+        val f = todayWege(ctx).firstOrNull()
+        val o = try { JSONObject(prefs(ctx).getString("fest_heute", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
+        return JSONObject().put("has", f != null).put("ziel", f?.to ?: "").put("los", f?.let { "%02d:%02d".format(it.h, it.m) } ?: "")
+            .put("zuhause", f?.takeIf { it.backH >= 0 }?.let { "%02d:%02d".format(it.backH, it.backM) } ?: "")
+            .put("geaendert", o.optString("date") == today()).put("aus", o.optString("date") == today() && o.optBoolean("aus"))
+    }
+
     fun festeWege(ctx: Context): List<Fest> = (prefs(ctx).getString("feste_wege", null)
         ?.let { if (it.trim() == "Donnerstag 15:50 zu Opa, zurück 18:00") FESTE_DEFAULT else it } ?: FESTE_DEFAULT).lines().mapNotNull { l ->
         val r = Regex("(?i)^\\s*(mo|di|mi|do|fr|sa|so)\\w*\\.?\\s+(\\d{1,2})[:.](\\d{2})\\s*(?:uhr)?\\s*(?:zu|zur|zum|nach)?\\s+(.+?)(?:\\s*[,;]?\\s*(?:zurück|heim|wieder zuhause|zuhause|daheim)\\s*(?:an|um|bis)?\\s*(\\d{1,2})[:.](\\d{2}))?\\s*(?:uhr)?\\s*$").find(l)
@@ -568,7 +603,7 @@ object Alltag {
     private fun routines(ctx: Context, s: JSONObject, say: (String) -> Unit) {
         val now = System.currentTimeMillis()
         val c = Calendar.getInstance()
-        for (f in festeWege(ctx)) {
+        for (f in todayWege(ctx)) {
             if (c.get(Calendar.DAY_OF_WEEK) != f.day) continue
             val leave = todayAt(f.h, f.m)
             val home = Route.home(ctx) ?: continue
