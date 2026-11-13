@@ -235,19 +235,33 @@
           <div class="f"><label>Heim-WLAN</label><div style="display:flex;gap:8px"><input id="set-wlan" type="text" placeholder="Name deines WLANs" style="flex:1"><div class="sbtn" id="set-wlanget">Aktuelles</div></div></div>
           <div class="srow"><div>PC herunterfahren, wenn ich weg bin<small>5 Minuten aus dem Haus: Hinweis mit „Abbrechen“, 2 Minuten später Musik aus, ETS2 speichern, Programme schließen, PC aus. Sitzt jemand dran, fragt er. Wieder da: „Willkommen zurück“ am PC.</small></div><div class="sw" id="set-wegauto"></div></div>
         </div>
-        <div class="sec" style="--c:#ff9a8a"><h3>HEUTE</h3>
-          <div class="note" id="heute-state" style="margin:0 0 8px">–</div>
-          <div class="f"><label>Ziel</label><input id="heute-ziel" type="text" placeholder="Opa"></div>
-          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Losfahren um</label><input id="heute-los" type="time"></div>
-            <div class="f" style="flex:1"><label>Zuhause sein um</label><input id="heute-heim" type="time"></div></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="sbtn" id="heute-ok">Für heute übernehmen</div><div class="sbtn" id="heute-aus">Heute fällt aus</div><div class="sbtn" id="heute-reset">Wie immer</div></div>
-          <div class="note">Gilt nur heute, sonst rechnet Jarvis alles selbst. Geht auch per Sprache: „Friday, heute will ich um 19 Uhr zuhause sein.“</div>
+        <div class="sec" style="--c:#ffd678"><h3>FESTER WEG (JEDE WOCHE)</h3>
+          <div class="srow"><div>An<small>Briefing 5 Minuten vor dem Losfahren, SMS kurz vor der Ankunft, Heimweg passend zur Zeit „zuhause sein“</small></div><div class="sw" id="fw-an"></div></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Tag</label><select id="fw-tag"><option value="mo">Montag</option><option value="di">Dienstag</option><option value="mi">Mittwoch</option><option value="do">Donnerstag</option><option value="fr">Freitag</option><option value="sa">Samstag</option><option value="so">Sonntag</option></select></div>
+            <div class="f" style="flex:1"><label>Fahrzeug</label><select id="fw-mode"><option value="ebike">E-Bike</option><option value="rad">Fahrrad</option><option value="fuss">Zu Fuß</option></select></div></div>
+          <div class="f"><label>Ziel – Adresse</label><input id="fw-ziel" type="text" placeholder="Straße Hausnummer, Ort"></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Name</label><input id="fw-name" type="text" placeholder="Oma und Opa"></div>
+            <div class="f" style="flex:1"><label>SMS kurz vorher an</label><input id="fw-wer" type="text" placeholder="Opa"></div></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Hier losfahren um</label><input id="fw-los" type="time"></div>
+            <div class="f" style="flex:1"><label>Zuhause sein um</label><input id="fw-heim" type="time"></div></div>
+          <div class="note">Regnet es, sagt er dir im Briefing „Heute fährst du Bahn“ und wann du dafür losgehen musst. Wie lange du hin und zurück brauchst und wie lange du zum Fertigmachen brauchst, lernt er selbst. Wird mit „Speichern“ übernommen.</div>
+          <div class="srow"><div>Testnachricht<small>So sieht das Briefing aus (mit dem Wetter von jetzt)</small></div><div class="sbtn" id="set-test">Senden</div></div>
+        </div>
+        <div class="sec" style="--c:#ff9a8a"><h3>EINMALIGER TERMIN</h3>
+          <div class="note" style="margin:0 0 8px">Für einen bestimmten Tag – läuft genauso wie der feste Weg, nur einmal.</div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Datum</label><input id="em-datum" type="date"></div>
+            <div class="f" style="flex:1"><label>Fahrzeug</label><select id="em-mode"><option value="ebike">E-Bike</option><option value="rad">Fahrrad</option><option value="fuss">Zu Fuß</option></select></div></div>
+          <div style="display:flex;gap:6px;margin:-4px 0 8px"><div class="sbtn" data-em="0">Heute</div><div class="sbtn" data-em="1">Morgen</div><div class="sbtn" data-em="2">Übermorgen</div></div>
+          <div class="f"><label>Ziel – Adresse</label><input id="em-ziel" type="text" placeholder="Straße Hausnummer, Ort"></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Name</label><input id="em-name" type="text" placeholder="z. B. Zahnarzt"></div>
+            <div class="f" style="flex:1"><label>SMS kurz vorher an</label><input id="em-wer" type="text" placeholder="optional"></div></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Hier losfahren um</label><input id="em-los" type="time"></div>
+            <div class="f" style="flex:1"><label>Zuhause sein um</label><input id="em-heim" type="time"></div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="sbtn" id="em-add">Eintragen</div><div class="sbtn" id="em-aus">An dem Tag fällt der feste Weg aus</div></div>
+          <div id="em-list" style="margin-top:8px"></div>
         </div>
         <div class="sec" style="--c:#ffd678"><h3>RECHTZEITIG LOS</h3>
           <div class="srow"><div>Erinnern, wann ich los muss<small>Termine mit Ort: „Fertig machen“ und „Jetzt los“. Regen (DWD, ECMWF, GFS) → Bahn, sonst Rad. Lernt deine echten Zeiten.</small></div><div class="sw" id="set-losfahren"></div></div>
-          <div class="f"><label>Feste Wege (eine Zeile pro Weg)</label><textarea id="set-feste" rows="2" placeholder="Donnerstag 15:50 zu Opa, zuhause 18:20"></textarea></div>
-          <div class="note">Alles am Handy, du musst nichts tun: 5 Minuten vor der Abfahrt ein kurzes Briefing (Rad oder Bahn bei Regen, wie kalt, was anziehen, worauf achten, „denk an …“). Kurz vor der Ankunft SMS an die Person unter „Ankunft“. „zuhause 18:20“ = da willst du zuhause sein: Jarvis lernt aus deinen echten Fahrten, wie lange du brauchst, und schickt dich passend los.</div>
-          <div class="srow"><div>Testnachricht<small>So sieht die Nachricht vor der Fahrt aus (mit dem Wetter von jetzt)</small></div><div class="sbtn" id="set-test">Senden</div></div>
         </div>
         <div class="sec" style="--c:#3cc8ff"><h3>ANKUNFT ANKÜNDIGEN</h3>
           <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Ort aus „Meine Orte“, Doppelpunkt, wer Bescheid bekommt. Etwa 5 Minuten vorher geht eine SMS raus: „Hier ist Jarvis. Skyler ist um … da“.</div>

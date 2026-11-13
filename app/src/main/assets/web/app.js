@@ -277,7 +277,7 @@
       perm("set-screen", c.screen_ok, "Einrichten");
       $("set-gstate").textContent = c.has_gemini ? "● gespeichert" : "";
       $("set-wichtig").value = c.wichtig || ""; $("set-absage").value = c.absage || ""; sw("set-butler", c.butler !== false);
-      $("set-wlan").value = c.heim_wlan || ""; sw("set-wegauto", c.weg_auto !== false); sw("set-losfahren", c.losfahren !== false); $("set-feste").value = c.feste_wege || "";
+      $("set-wlan").value = c.heim_wlan || ""; sw("set-wegauto", c.weg_auto !== false); sw("set-losfahren", c.losfahren !== false); fwShow();
       $("set-ankunft").value = c.ankunft || ""; $("set-anzieh").value = c.anzieh || "";
       sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "21:00";
       sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
@@ -306,18 +306,30 @@
   $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
-  // Fester Weg heute (spontan)
-  function heuteShow() {
-    let h = {}; try { h = JSON.parse(A.todayGet() || "{}"); } catch (e) {}
-    $("heute-ziel").value = h.ziel || ""; $("heute-los").value = h.los || ""; $("heute-heim").value = h.zuhause || "";
-    $("heute-state").textContent = h.aus ? "Heute fällt der feste Weg aus." : h.has
-      ? `Heute${h.geaendert ? " (geändert)" : ""}: um ${h.los} zu ${h.ziel}${h.zuhause ? ", zuhause um " + h.zuhause : ""}. Briefing 5 Minuten vorher.`
-      : "Heute ist kein fester Weg eingetragen – hier kannst du einen für heute anlegen.";
+  // Fester Weg (jede Woche) und einmalige Termine
+  function fwShow() {
+    let f = {}; try { f = JSON.parse(A.festGet() || "{}"); } catch (e) {}
+    sw("fw-an", f.an !== false); $("fw-tag").value = f.tag || "do"; $("fw-mode").value = f.mode || "ebike";
+    $("fw-ziel").value = f.ziel || ""; $("fw-name").value = f.name || ""; $("fw-wer").value = f.wer || "";
+    $("fw-los").value = f.los || ""; $("fw-heim").value = f.zuhause || "";
+    emList();
   }
-  document.querySelector('[data-p="alltag"]').addEventListener("click", heuteShow);
-  $("heute-ok").addEventListener("click", () => { toast(A.todaySet(JSON.stringify({ ziel: $("heute-ziel").value.trim(), los: $("heute-los").value, zuhause: $("heute-heim").value }))); heuteShow(); });
-  $("heute-aus").addEventListener("click", () => { toast(A.todaySet(JSON.stringify({ aus: true }))); heuteShow(); });
-  $("heute-reset").addEventListener("click", () => { A.todayReset(); toast("Heute wieder wie immer."); heuteShow(); });
+  const isoDay = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString("sv-SE"); };
+  function emList() {
+    let a = []; try { a = JSON.parse(A.einmaligGet() || "[]"); } catch (e) {}
+    const fmt = (d) => new Date(d + "T12:00").toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
+    $("em-list").innerHTML = a.length ? a.map((o, i) => `<div class="srow"><div>${fmt(o.datum)}: ${o.aus ? "fester Weg fällt aus"
+      : `${String(o.name || o.ziel).replace(/</g, "")}, los ${o.los}${o.zuhause ? ", zuhause " + o.zuhause : ""}`}</div><div class="sbtn" data-del="${i}">×</div></div>`).join("")
+      : '<div class="note">Keine einmaligen Termine.</div>';
+    $("em-list").querySelectorAll("[data-del]").forEach((e) => e.addEventListener("click", () => { A.einmaligRemove(+e.dataset.del); emList(); }));
+  }
+  document.querySelector('[data-p="alltag"]').addEventListener("click", fwShow);
+  $("em-datum").value = isoDay(0);
+  document.querySelectorAll("[data-em]").forEach((e) => e.addEventListener("click", () => { $("em-datum").value = isoDay(+e.dataset.em); }));
+  const emData = () => ({ datum: $("em-datum").value || isoDay(0), ziel: $("em-ziel").value.trim(), name: $("em-name").value.trim(),
+    wer: $("em-wer").value.trim(), los: $("em-los").value, zuhause: $("em-heim").value, mode: $("em-mode").value });
+  $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
+  $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
   // --- Fernzugriff über Tailscale ---
   let fern = {};
@@ -382,7 +394,7 @@
       gemini_key: $("set-gkey").value.trim(),
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       wichtig: $("set-wichtig").value.trim(), absage: $("set-absage").value.trim(), butler: sw("set-butler"),
-      heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"), feste_wege: $("set-feste").value.trim(),
+      heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"),
       ankunft: $("set-ankunft").value.trim(), anzieh: $("set-anzieh").value.trim(),
       brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "21:00",
       bi_wetter: sw("set-biwetter"), bi_anzieh: sw("set-bianzieh"), bi_termine: sw("set-bitermine"), bi_mitnehmen: sw("set-bimit"),
@@ -391,6 +403,8 @@
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
     };
     A.saveSettings(JSON.stringify(o));
+    A.festSet(JSON.stringify({ an: sw("fw-an"), tag: $("fw-tag").value, mode: $("fw-mode").value, ziel: $("fw-ziel").value.trim(),
+      name: $("fw-name").value.trim(), wer: $("fw-wer").value.trim(), los: $("fw-los").value, zuhause: $("fw-heim").value }));
     applyPrefs(o);
     showPower(o.background);
     $("settings").classList.remove("on");

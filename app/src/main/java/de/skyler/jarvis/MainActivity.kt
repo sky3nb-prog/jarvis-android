@@ -282,7 +282,7 @@ class MainActivity : ComponentActivity() {
             .put("butler", prefs.getBoolean("butler", true)).put("butler_ok", Butler.ready(this@MainActivity))
             .put("files_ok", Chats.filesOk())
             .put("heim_wlan", prefs.getString("heim_wlan", "")).put("weg_auto", prefs.getBoolean("weg_auto", true))
-            .put("losfahren", prefs.getBoolean("losfahren", true)).put("feste_wege", prefs.getString("feste_wege", null) ?: Alltag.FESTE_DEFAULT).put("ankunft", prefs.getString("ankunft", ""))
+            .put("losfahren", prefs.getBoolean("losfahren", true)).put("ankunft", prefs.getString("ankunft", ""))
             .put("anzieh", prefs.getString("anzieh", "").let { if (it.isNullOrBlank()) Alltag.ANZIEH_DEFAULT else it })
             .put("brief_morgen", prefs.getBoolean("brief_morgen", true)).put("brief_abend", prefs.getBoolean("brief_abend", true))
             .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "21:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
@@ -317,7 +317,7 @@ class MainActivity : ComponentActivity() {
                 .putString("wichtig", o.optString("wichtig").trim()).putString("absage", o.optString("absage").trim())
                 .putBoolean("butler", o.optBoolean("butler", true))
                 .putString("heim_wlan", o.optString("heim_wlan").trim()).putBoolean("weg_auto", o.optBoolean("weg_auto", true))
-                .putBoolean("losfahren", o.optBoolean("losfahren", true)).putString("feste_wege", o.optString("feste_wege").trim()).putString("ankunft", o.optString("ankunft").trim())
+                .putBoolean("losfahren", o.optBoolean("losfahren", true)).putString("ankunft", o.optString("ankunft").trim())
                 .putString("anzieh", o.optString("anzieh").trim().let { if (it == Alltag.ANZIEH_DEFAULT) "" else it })
                 .putBoolean("brief_morgen", o.optBoolean("brief_morgen", true)).putBoolean("brief_abend", o.optBoolean("brief_abend", true))
                 .putString("brief_abend_zeit", o.optString("brief_abend_zeit", "21:00").trim().ifBlank { "21:00" })
@@ -372,18 +372,22 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun fernInfo(refresh: Boolean): String = Link.fernInfo(this@MainActivity, refresh).toString()
 
-        /** Fester Weg heute (spontan ändern). */
+        /** Fester Weg (jede Woche) */
         @JavascriptInterface
-        fun todayGet(): String = Alltag.todayInfo(this@MainActivity).toString()
+        fun festGet(): String = Alltag.festerWeg(this@MainActivity).toString()
 
         @JavascriptInterface
-        fun todaySet(json: String): String {
-            val o = JSONObject(json)
-            return Alltag.setToday(this@MainActivity, o.optString("ziel"), o.optString("los"), o.optString("zuhause"), o.optBoolean("aus"))
-        }
+        fun festSet(json: String) { prefs.edit().putString("fester_weg", JSONObject(json).toString()).apply() }
+
+        /** Einmalige Termine (an einem Datum) */
+        @JavascriptInterface
+        fun einmaligGet(): String = Alltag.einmalig(this@MainActivity).toString()
 
         @JavascriptInterface
-        fun todayReset() { prefs.edit().remove("fest_heute").apply() }
+        fun einmaligAdd(json: String): String = Alltag.einmaligAdd(this@MainActivity, JSONObject(json))
+
+        @JavascriptInterface
+        fun einmaligRemove(i: Int) = Alltag.einmaligRemove(this@MainActivity, i)
 
         /** Testnachricht: so sieht die Donnerstag-Nachricht aus (kommt als Benachrichtigung). */
         @JavascriptInterface

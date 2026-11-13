@@ -152,13 +152,17 @@ object Alltag {
     fun testMessage(ctx: Context): String {
         val f = festeWege(ctx).firstOrNull()
         val to = f?.to ?: "Opa"
+        val label = f?.label ?: to
         val home = Route.home(ctx) ?: return "Trag erst deine Adresse ein (Allgemein → Standort)."
-        val dest = Route.place(ctx, to) ?: return "$to steht noch nicht unter Wege → Meine Orte."
+        val dest = Route.place(ctx, to) ?: return "Das Ziel „$to“ finde ich nicht. Trag eine genaue Adresse ein."
         val now = System.currentTimeMillis()
-        val pl = tripPlan(ctx, home, dest, now + 5 * 60_000L, to)
-        val t = "[Test] " + rideBriefing(ctx, "Um ${clock(now + 5 * 60_000L)} geht's los zu $to.", home, now + 5 * 60_000L, now + 2 * 3_600_000L, pl,
-            remindersFor(ctx, to), false) + (if (whoFor(ctx, to) != null) " Ich sag Bescheid, kurz bevor du da bist." else "")
-        notify(ctx, 339, "Gleich los zu $to (Test)", t)
+        val leave = now + 5 * 60_000L
+        val pl = tripPlan(ctx, home, dest, leave, to, f?.mode ?: "ebike")
+        val wer = f?.wer?.ifBlank { null } ?: whoFor(ctx, label)?.second
+        val intro = if (pl.optString("mode") == "transit") "Zu $label:" else "Um ${clock(leave)} geht's los zu $label."
+        val t = "[Test] " + rideBriefing(ctx, intro, home, pl.optLong("go", leave), now + 2 * 3_600_000L, pl, remindersFor(ctx, label), false) +
+            (if (wer != null) " Ich sag $wer Bescheid, kurz bevor du da bist." else "")
+        notify(ctx, 339, "Gleich los zu $label (Test)", t)
         return t
     }
 
@@ -358,7 +362,7 @@ object Alltag {
             }
             return
         }
-        for (name in Route.lines(ctx, "orte").keys) {
+        for (name in (Route.lines(ctx, "orte").keys + todayWege(ctx).map { it.to }).distinct()) {
             val p = Route.place(ctx, name) ?: continue
             if (Route.distKm(here, p) < 0.15) {
                 finishTrip(ctx, s, name)
@@ -384,7 +388,7 @@ object Alltag {
         val start = z.optLong("start"); val name = z.optString("name")
         if (now - start > 3 * 3_600_000L || name.isBlank()) { s.remove("ziel"); return }
         if (s.optString("at_place").equals(name, true)) { s.remove("ziel"); return }   // schon da
-        val (place, who) = whoFor(ctx, name) ?: return
+        val (place, who) = z.optString("wer").takeIf { it.isNotBlank() }?.let { name to it } ?: whoFor(ctx, z.optString("label").ifBlank { name }) ?: whoFor(ctx, name) ?: return
         val key = "ankunft|$place|${today()}"
         if (done(s, key)) return
         val dest = Route.place(ctx, name) ?: return
@@ -520,69 +524,119 @@ object Alltag {
             .put("leave_text", "Jetzt los zu $title, um ${clock(e.begin)} geht's los. $info")
     }
 
-    // --- Feste Wege: "Donnerstag 15:50 zu Opa, zurück 18:00" -------------------------------------------------
+    // --- Feste Wege (jede Woche) und einmalige Termine (an einem Datum) ---------------------------------------
     const val FESTE_DEFAULT = "Donnerstag 15:50 zu Opa, zuhause 18:20"
     private val DAYS = mapOf("mo" to Calendar.MONDAY, "di" to Calendar.TUESDAY, "mi" to Calendar.WEDNESDAY, "do" to Calendar.THURSDAY,
         "fr" to Calendar.FRIDAY, "sa" to Calendar.SATURDAY, "so" to Calendar.SUNDAY)
 
-    class Fest(val day: Int, val h: Int, val m: Int, val to: String, val backH: Int, val backM: Int)
+    /** to = Ziel (gespeicherter Ort oder Adresse), name = wie Jarvis es nennt, mode = ebike/rad/fuss, wer = SMS kurz vor der Ankunft an. */
+    class Fest(val day: Int, val h: Int, val m: Int, val to: String, val backH: Int, val backM: Int,
+               val mode: String = "ebike", val wer: String = "", val name: String = "", val key: String = "") {
+        val label get() = name.ifBlank { to }
+    }
 
-    /** Feste Wege für heute, mit spontaner Änderung ("heute um 16:10 los", "heute erst um 19 Uhr zuhause", "heute fällt aus"). */
+    private fun hmOf(v: String?): Pair<Int, Int>? = Regex("(\\d{1,2})[:.](\\d{2})").find(v ?: "")?.groupValues?.let { it[1].toInt() to it[2].toInt() }
+
+    private fun festOf(o: JSONObject, day: Int, key: String): Fest? {
+        val los = hmOf(o.optString("los")) ?: return null
+        val ziel = o.optString("ziel").trim().ifBlank { return null }
+        val heim = hmOf(o.optString("zuhause"))
+        return Fest(day, los.first, los.second, ziel, heim?.first ?: -1, heim?.second ?: 0,
+            o.optString("mode", "ebike").ifBlank { "ebike" }, o.optString("wer").trim(), o.optString("name").trim(), key)
+    }
+
+    /** Der feste Weg aus der App (Tag, Ziel, Zeiten, Fahrzeug, SMS an). */
+    fun festerWeg(ctx: Context): JSONObject {
+        prefs(ctx).getString("fester_weg", null)?.let { try { return JSONObject(it) } catch (_: Exception) {} }
+        return JSONObject().put("tag", "do").put("ziel", "Opa").put("name", "Oma und Opa").put("los", "15:50").put("zuhause", "18:20")
+            .put("mode", "ebike").put("wer", "").put("an", true)
+    }
+
+    fun festeWege(ctx: Context): List<Fest> {
+        val o = festerWeg(ctx)
+        if (!o.optBoolean("an", true)) return emptyList()
+        val day = DAYS[o.optString("tag", "do").lowercase().take(2)] ?: return emptyList()
+        return listOfNotNull(festOf(o, day, "fest"))
+    }
+
+    // Einmalige Termine: [{datum:"2026-11-19", ziel, name, los, zuhause, mode, wer} | {datum, aus:true}]
+    fun einmalig(ctx: Context): JSONArray {
+        val a = try { JSONArray(prefs(ctx).getString("einmalig", "[]")) } catch (_: Exception) { JSONArray() }
+        val keep = JSONArray()
+        for (o in list(a)) if (o.optString("datum") >= today()) keep.put(o)   // Vergangenes fällt weg
+        return keep
+    }
+
+    fun einmaligAdd(ctx: Context, o: JSONObject): String {
+        val a = einmalig(ctx)
+        val d = o.optString("datum").ifBlank { today() }
+        o.put("datum", d)
+        if (o.optBoolean("aus")) {
+            val keep = JSONArray(); for (x in list(a)) if (!(x.optString("datum") == d && x.optBoolean("aus"))) keep.put(x)
+            keep.put(JSONObject().put("datum", d).put("aus", true))
+            prefs(ctx).edit().putString("einmalig", keep.toString()).apply()
+            return "Okay, am ${dayName(d)} fällt der feste Weg aus."
+        }
+        if (hmOf(o.optString("los")) == null || o.optString("ziel").isBlank()) return "Gib Ziel und Losfahr-Zeit an."
+        a.put(o)
+        prefs(ctx).edit().putString("einmalig", a.toString()).apply()
+        val los = hmOf(o.optString("los"))!!
+        val brief = los.first * 60 + los.second - 5
+        return "Eingetragen für ${dayName(d)}: um ${"%d:%02d".format(brief / 60, brief % 60)} bekommst du das Briefing, um ${o.optString("los")} geht's los zu " +
+            o.optString("name").ifBlank { o.optString("ziel") } +
+            (if (hmOf(o.optString("zuhause")) != null) ", zuhause willst du um ${o.optString("zuhause")} sein – ich schick dich passend los." else ".")
+    }
+
+    fun einmaligRemove(ctx: Context, i: Int) {
+        val a = einmalig(ctx); val keep = JSONArray()
+        for (k in 0 until a.length()) if (k != i) keep.put(a.get(k))
+        prefs(ctx).edit().putString("einmalig", keep.toString()).apply()
+    }
+
+    private fun dayName(d: String): String = try {
+        val t = SimpleDateFormat("yyyy-MM-dd", de).parse(d)!!.time
+        val diff = Math.round((t - SimpleDateFormat("yyyy-MM-dd", de).parse(today())!!.time) / 86_400_000.0)
+        when (diff) { 0L -> "heute"; 1L -> "morgen"; 2L -> "übermorgen"; else -> SimpleDateFormat("EEEE, d. MMMM", de).format(Date(t)) }
+    } catch (_: Exception) { d }
+
+    /** Alle Wege für heute: fester Weg (falls nicht "fällt aus") + einmalige Termine von heute. */
     fun todayWege(ctx: Context): List<Fest> {
         val dow = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
-        val base = festeWege(ctx).filter { it.day == dow }
-        val o = try { JSONObject(prefs(ctx).getString("fest_heute", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
-        if (o.optString("date") != today()) return base
-        if (o.optBoolean("aus")) return emptyList()
-        fun hm(k: String) = Regex("(\\d{1,2})[:.](\\d{2})").find(o.optString(k))?.groupValues?.let { it[1].toInt() to it[2].toInt() }
-        val los = hm("los"); val heim = hm("zuhause"); val ziel = o.optString("ziel").trim()
-        val f0 = base.firstOrNull()
-        if (f0 == null && (ziel.isBlank() || los == null)) return base
-        val f = Fest(dow, los?.first ?: f0!!.h, los?.second ?: f0!!.m, ziel.ifBlank { f0!!.to },
-            heim?.first ?: f0?.backH ?: -1, heim?.second ?: f0?.backM ?: 0)
-        return listOf(f) + base.drop(1)
+        val day = list(einmalig(ctx)).filter { it.optString("datum") == today() }
+        val base = if (day.any { it.optBoolean("aus") }) emptyList() else festeWege(ctx).filter { it.day == dow }
+        return base + day.filter { !it.optBoolean("aus") }.mapIndexedNotNull { i, o -> festOf(o, dow, "einmal$i") }
     }
 
-    /** Spontan für heute ändern (aus der App oder per Sprache). Leere Werte = wie immer. */
-    fun setToday(ctx: Context, ziel: String, los: String, zuhause: String, aus: Boolean): String {
-        val o = JSONObject().put("date", today()).put("ziel", ziel.trim()).put("los", los.trim()).put("zuhause", zuhause.trim()).put("aus", aus)
-        prefs(ctx).edit().putString("fest_heute", o.toString()).apply()
-        if (aus) return "Okay, heute keine Erinnerungen für den festen Weg."
-        val f = todayWege(ctx).firstOrNull() ?: return "Für heute ist kein fester Weg eingetragen. Sag mir Ziel und Uhrzeit, z. B. „heute um 16 Uhr zu Opa“."
-        val los2 = "%d:%02d".format(f.h, f.m)
-        return "Okay, heute: um ${"%d:%02d".format(maxOf(0, f.h * 60 + f.m - 5) / 60, maxOf(0, f.h * 60 + f.m - 5) % 60)} bekommst du das Briefing, " +
-            "um $los2 geht's los zu ${f.to}" + (if (f.backH >= 0) ", zuhause willst du um ${"%d:%02d".format(f.backH, f.backM)} sein – ich schick dich passend los." else ".")
-    }
-
-    fun todayInfo(ctx: Context): JSONObject {
-        val f = todayWege(ctx).firstOrNull()
-        val o = try { JSONObject(prefs(ctx).getString("fest_heute", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
-        return JSONObject().put("has", f != null).put("ziel", f?.to ?: "").put("los", f?.let { "%02d:%02d".format(it.h, it.m) } ?: "")
-            .put("zuhause", f?.takeIf { it.backH >= 0 }?.let { "%02d:%02d".format(it.backH, it.backM) } ?: "")
-            .put("geaendert", o.optString("date") == today()).put("aus", o.optString("date") == today() && o.optBoolean("aus"))
-    }
-
-    fun festeWege(ctx: Context): List<Fest> = (prefs(ctx).getString("feste_wege", null)
-        ?.let { if (it.trim() == "Donnerstag 15:50 zu Opa, zurück 18:00") FESTE_DEFAULT else it } ?: FESTE_DEFAULT).lines().mapNotNull { l ->
-        val r = Regex("(?i)^\\s*(mo|di|mi|do|fr|sa|so)\\w*\\.?\\s+(\\d{1,2})[:.](\\d{2})\\s*(?:uhr)?\\s*(?:zu|zur|zum|nach)?\\s+(.+?)(?:\\s*[,;]?\\s*(?:zurück|heim|wieder zuhause|zuhause|daheim)\\s*(?:an|um|bis)?\\s*(\\d{1,2})[:.](\\d{2}))?\\s*(?:uhr)?\\s*$").find(l)
-            ?: return@mapNotNull null
-        val g = r.groupValues
-        Fest(DAYS[g[1].lowercase().take(2)] ?: return@mapNotNull null, g[2].toInt(), g[3].toInt(), g[4].trim(),
-            g[5].toIntOrNull() ?: -1, g[6].toIntOrNull() ?: 0)
+    /** Per Sprache: "heute will ich um 19 Uhr zuhause sein", "heute fahr ich nicht zu Opa", "morgen um 14 Uhr zur Musikschule". */
+    fun setToday(ctx: Context, ziel: String, los: String, zuhause: String, aus: Boolean, datum: String = ""): String {
+        val d = datum.ifBlank { today() }
+        if (aus) return einmaligAdd(ctx, JSONObject().put("datum", d).put("aus", true))
+        val dow = Calendar.getInstance().apply { time = SimpleDateFormat("yyyy-MM-dd", de).parse(d) ?: Date() }.get(Calendar.DAY_OF_WEEK)
+        val f = festerWeg(ctx).takeIf { DAYS[it.optString("tag").lowercase().take(2)] == dow && it.optBoolean("an", true) && ziel.isBlank() }
+        val o = JSONObject().put("datum", d).put("ziel", ziel.ifBlank { f?.optString("ziel") ?: "" }).put("name", if (ziel.isBlank()) f?.optString("name") ?: "" else "")
+            .put("los", los.ifBlank { f?.optString("los") ?: "" }).put("zuhause", zuhause.ifBlank { f?.optString("zuhause") ?: "" })
+            .put("mode", f?.optString("mode") ?: "ebike").put("wer", f?.optString("wer") ?: "")
+        if (f != null) {   // der feste Weg wird an dem Tag durch den geänderten ersetzt
+            val keep = einmalig(ctx); keep.put(JSONObject().put("datum", d).put("aus", true))
+            prefs(ctx).edit().putString("einmalig", keep.toString()).apply()
+        }
+        return einmaligAdd(ctx, o)
     }
 
     /** Fahrt planen: Regen -> Bahn (erste Verbindung ab "leave"), sonst Rad. */
-    private fun tripPlan(ctx: Context, from: Route.P, dest: Route.P, leave: Long, name: String): JSONObject {
+    private fun tripPlan(ctx: Context, from: Route.P, dest: Route.P, leave: Long, name: String, vehicle: String = "ebike"): JSONObject {
         val km = Route.distKm(from, dest)
         val rain = rainAt(from.lat, from.lon, leave)
         if (rain && km >= 1.2) Route.bahnFrom(from, dest, leave)?.let { b ->
-            return JSONObject().put("mode", "transit").put("min", (b.arr - leave) / 60_000.0).put("km", km).put("rain", true)
-                .put("text", "Es soll regnen, nimm heute die Bahn: ${b.line} um ${clock(b.rideDep)} ab ${b.stop}, an um ${clock(b.arr)}.")
+            return JSONObject().put("mode", "transit").put("go", b.dep).put("min", (b.arr - b.dep) / 60_000.0).put("km", km).put("rain", true)
+                .put("text", "Heute fährst du Bahn, es soll regnen: geh um ${clock(b.dep)} los, ${b.line} um ${clock(b.rideDep)} ab ${b.stop}, an um ${clock(b.arr)}.")
         }
-        val walk = km < 1.2
-        val min = if (walk) Route.walkMinutes(from, dest) else (learned(ctx, name, "rad") ?: (Route.bikeMinutes(from, dest) + 3))
-        return JSONObject().put("mode", if (walk) "walking" else "bicycling").put("min", min).put("km", km).put("rain", rain)
-            .put("text", (if (walk) "Zu Fuß" else if (rain) "Es soll regnen, aber ich finde keine Bahn – nimm das Rad mit Regensachen" else "Kein Regen, nimm das Rad") +
+        val walk = km < 1.2 || vehicle == "fuss"
+        val bike = if (vehicle == "rad") "dem Fahrrad" else "dem E-Bike"
+        val min = if (walk) Route.walkMinutes(from, dest)
+            else (learned(ctx, name, "rad") ?: (Route.distKm(from, dest) * 1.3 / (if (vehicle == "rad") 16.0 else 22.0) * 60 + 3))
+        return JSONObject().put("mode", if (walk) "walking" else "bicycling").put("go", leave).put("min", min).put("km", km).put("rain", rain)
+            .put("text", (if (walk) "Zu Fuß" else if (rain) "Es soll regnen, aber ich finde keine Bahn – nimm $bike und Regensachen" else "Kein Regen, nimm $bike") +
                 ", du bist gegen ${clock(leave + (min * 60_000).toLong())} da.")
     }
 
@@ -608,23 +662,27 @@ object Alltag {
             val leave = todayAt(f.h, f.m)
             val home = Route.home(ctx) ?: continue
             val dest = Route.place(ctx, f.to) ?: continue
-            val id = "fest|${f.to}|${today()}"
+            val id = "fest|${f.key}|${f.to}|${today()}"
             val back = if (f.backH >= 0) todayAt(f.backH, f.backM) else 0L
+            val wer = f.wer.ifBlank { whoFor(ctx, f.label)?.second ?: whoFor(ctx, f.to)?.second ?: "" }
             // Plan ca. 30 Minuten vorher (Wetter, Bahn)
             if (now in leave - 35 * 60_000L..leave + 10 * 60_000L && !done(s, "$id|plan")) {
                 mark(s, "$id|plan")
-                s.put("fest_plan", tripPlan(ctx, home, dest, leave, f.to).put("id", id))
+                s.put("fest_plan", tripPlan(ctx, home, dest, leave, f.to, f.mode).put("id", id))
             }
             val pl = s.optJSONObject("fest_plan")?.takeIf { it.optString("id") == id }
             if (pl != null && now in leave - 5 * 60_000L until leave + 10 * 60_000L && !done(s, "$id|brief")) {
                 mark(s, "$id|brief"); s.put("last_ready", now)
-                val t = rideBriefing(ctx, "Um ${clock(leave)} geht's los zu ${f.to}.", home, leave, back, pl, remindersFor(ctx, f.to), false) +
-                    (if (whoFor(ctx, f.to) != null) " Ich sag Bescheid, kurz bevor du da bist." else "")
-                notify(ctx, 332, "Gleich los zu ${f.to}", t); say(t)
+                val go = pl.optLong("go", leave)
+                val intro = if (pl.optString("mode") == "transit") "Zu ${f.label}:" else "Um ${clock(leave)} geht's los zu ${f.label}."
+                val t = rideBriefing(ctx, intro, home, go, back, pl, remindersFor(ctx, f.label) + remindersFor(ctx, f.to).let { r -> r }, false) +
+                    (if (wer.isNotBlank()) " Ich sag $wer Bescheid, kurz bevor du da bist." else "")
+                notify(ctx, 332, "Gleich los zu ${f.label}", t); say(t)
             }
-            if (pl != null && now in leave..leave + 30 * 60_000L && !done(s, "$id|los")) {   // still: Ziel für die Ankunfts-SMS
+            if (pl != null && now in pl.optLong("go", leave)..pl.optLong("go", leave) + 30 * 60_000L && !done(s, "$id|los")) {   // still: Ziel für die Ankunfts-SMS
                 mark(s, "$id|los")
-                if (!s.has("ziel")) s.put("ziel", JSONObject().put("name", f.to).put("start", leave).put("min", pl.optDouble("min", 20.0)).put("km", pl.optDouble("km", 5.0)))
+                if (!s.has("ziel")) s.put("ziel", JSONObject().put("name", f.to).put("label", f.label).put("wer", wer).put("start", pl.optLong("go", leave))
+                    .put("min", pl.optDouble("min", 20.0)).put("km", pl.optDouble("km", 5.0)))
             }
             // Rückweg: "zuhause 18:20" = da willst du zuhause ankommen. Jarvis rechnet rückwärts:
             // Ankunft − Fahrzeit (gelernter Durchschnitt) − Fertigmach-Zeit (gelernt, Start 5 Min.) = "Mach dich fertig"-Nachricht
@@ -635,10 +693,11 @@ object Alltag {
                     mark(s, "$id|bplan")
                     val rain = rainAt(from.lat, from.lon, back - 30 * 60_000L)
                     val bahn = if (rain && Route.distKm(from, home) >= 1.2) Route.bahnBy(from, home, back) else null
-                    val ride = learnedRoute(ctx, f.to, "zuhause", "rad") ?: (Route.bikeMinutes(from, home) + 3)
+                    val ride = learnedRoute(ctx, f.to, "zuhause", "rad") ?: learnedRoute(ctx, f.label, "zuhause", "rad")
+                        ?: (Route.distKm(from, home) * 1.3 / (if (f.mode == "rad") 16.0 else 22.0) * 60 + 3)
                     val go = bahn?.dep ?: (back - (ride * 60_000).toLong())
-                    val text = if (bahn != null) "Es soll regnen, nimm die ${bahn.line} um ${clock(bahn.rideDep)} ab ${bahn.stop}, du bist um ${clock(bahn.arr)} da."
-                        else "Mit dem Rad brauchst du etwa ${ride.toInt()} Minuten" + (if (rain) ", nimm Regensachen mit." else ".")
+                    val text = if (bahn != null) "Heute fährst du Bahn, es soll regnen: ${bahn.line} um ${clock(bahn.rideDep)} ab ${bahn.stop}, du bist um ${clock(bahn.arr)} da."
+                        else "Mit dem ${if (f.mode == "rad") "Fahrrad" else "E-Bike"} brauchst du etwa ${ride.toInt()} Minuten" + (if (rain) ", nimm Regensachen mit." else ".")
                     s.put("fest_back", JSONObject().put("id", id).put("go", go).put("msg", go - prepB * 60_000L).put("text", text)
                         .put("ride", ride).put("mode", if (bahn != null) "transit" else "bicycling").put("rain", rain))
                 }
@@ -647,12 +706,12 @@ object Alltag {
                 if (now in msgAt until go + 10 * 60_000L && !done(s, "$id|bmsg")) {
                     mark(s, "$id|bmsg"); s.put("back_msg", now)
                     val t = rideBriefing(ctx, "Mach dich fertig, um ${clock(go)} musst du los, dann bist du um ${clock(back)} zuhause.",
-                        from, go, 0L, pb, remindersFor(ctx, f.to), false)
+                        from, go, 0L, pb, remindersFor(ctx, f.label), false)
                     notify(ctx, 334, "Mach dich fertig – Heimweg", t); say(t)
                 }
                 // Fertigmach-Zeit lernen: wie lange nach der Nachricht bist du wirklich bei Oma und Opa losgefahren?
                 val lp = s.optJSONObject("left_place"); val bm = s.optLong("back_msg")
-                if (lp != null && bm > 0 && near(lp.optString("name"), f.to) && lp.optLong("t") - bm in 0..60 * 60_000L && !done(s, "$id|blearn")) {
+                if (lp != null && bm > 0 && (near(lp.optString("name"), f.to) || near(lp.optString("name"), f.label)) && lp.optLong("t") - bm in 0..60 * 60_000L && !done(s, "$id|blearn")) {
                     mark(s, "$id|blearn")
                     val a = s.optJSONArray("prep_back") ?: JSONArray()
                     a.put(((lp.optLong("t") - bm) / 60_000L).toInt()); while (a.length() > 8) a.remove(0)
