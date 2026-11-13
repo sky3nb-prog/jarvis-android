@@ -85,7 +85,8 @@ object Lage {
    als Suchbegriff für eine Karte, immer mit Stadt, z. B. "Engelbergtunnel, Leonberg", "Hauptbahnhof, Stuttgart";
    bei Ländern nur das Land). Nimm den genauesten Ort, den die Meldung hergibt."""
 
-    private fun prompt(city: String) = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).
+    private fun prompt(city: String, themen: String = "") = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).
+${if (themen.isNotBlank()) "Der Nutzer interessiert sich besonders für: $themen. Meldungen dazu nimmst du bevorzugt auf (art passend, \"fuer_dich\": true)." else ""}
 Meldungen mit [Lokal ...] stammen aus dem Wohnort des Nutzers ($city) und der Umgebung.
 Erstelle:
 1. "briefing": eine kurze gesprochene Einleitung auf Deutsch, 1 bis 2 Sätze, wie ein Butler ("Die Lage, Sir: ..."), die sagt, was heute das Wichtigste ist.
@@ -127,7 +128,8 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
                 .put("lat", lat).put("lon", lon).put("art", p.optString("art", "politik")).put("wichtig", p.optInt("wichtig", 2))
                 .put("im_briefing", p.optBoolean("im_briefing")).put("text", p.optString("text").take(400))
                 .put("genau", p.optString("genau").lowercase().trim()).put("suche", p.optString("suche").trim())
-                .put("link", src?.optString("link") ?: "").put("quelle", src?.optString("quelle") ?: ""))
+                .put("link", src?.optString("link") ?: "").put("quelle", src?.optString("quelle") ?: "")
+                .put("thema", p.optString("thema")).put("warum", p.optString("warum")).put("fuer_dich", p.optBoolean("fuer_dich")))
         }
         return JSONObject().put("briefing", obj.optString("briefing").trim()).put("brennpunkte", pts)
     }
@@ -218,23 +220,26 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
     private fun cacheFile(ctx: Context, key: String) = File(ctx.cacheDir, "lage_" + key.replace(Regex("[^a-z0-9]"), "_") + ".json")
 
     fun city(ctx: Context): String = (ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("city", "") ?: "")
-        .ifBlank { Memory.snap(ctx).optString("city") }.ifBlank { "Leonberg" }
+        .ifBlank { Memory.snap(ctx).optString("city").takeUnless { it.lowercase() in setOf("deutschland", "germany", "de") } ?: "" }.ifBlank { "Leonberg" }
 
     /** Lage (ort leer = Welt + Wohnort). Liefert {briefing, brennpunkte, zeit, ort, lat, lon}. */
     fun get(ctx: Context, key: String, ort: String = "", maxAge: Long = MAX_AGE): JSONObject {
         val city = city(ctx)
         var place = ort.trim().trim('.', '?', '!')
         if (place.lowercase() in setOf("hier", "hier in der nähe", "in der nähe", "um mich herum")) place = Here.name(ctx).ifBlank { city }
-        val k = if (place.isBlank() || place.equals(city, true)) "welt" else place.lowercase()
+        val k = if (place == "@fuerdich") "fuerdich" else if (place.isBlank() || place.equals(city, true)) "welt" else place.lowercase()
         synchronized(lock) {
             val m = mem[k] ?: try { JSONObject(cacheFile(ctx, k).readText()).also { mem[k] = it } } catch (_: Exception) { null }
             if (m != null && System.currentTimeMillis() - m.optLong("zeit") < maxAge) return m
         }
         val data: JSONObject
-        if (k == "welt") {
+        if (k == "fuerdich") {
+            data = personal(ctx, key)
+            data.put("ort", "Für dich")
+        } else if (k == "welt") {
             val items = headlines(city)
             if (items.isEmpty()) throw RuntimeException("Ich komme gerade an keine Nachrichten.")
-            data = summarize(key, items, prompt(city))
+            data = summarize(key, items, prompt(city, Themen.summary(ctx)))
             data.put("ort", city)
             geocode(ctx, city)?.let { data.put("lat", it.first).put("lon", it.second) }
         } else {
@@ -254,10 +259,40 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
         return data
     }
 
+    /** "Für dich": Nachrichten zu den Themen, die dich interessieren (wird mit der Zeit immer persönlicher). */
+    private fun personal(ctx: Context, key: String): JSONObject {
+        Themen.refresh(ctx, key)
+        val themen = Themen.list(ctx).take(7)
+        if (themen.isEmpty()) throw RuntimeException("Ich kenne deine Interessen noch nicht gut genug. Frag mich ein paar Dinge oder trag unter Einstellungen → Lage Themen ein.")
+        val futures = themen.map { t -> pool.submit<List<JSONObject>> {
+            val u = "https://news.google.com/rss/search?q=${enc(t.optString("suche") + " when:4d")}&hl=de&gl=DE&ceid=DE:de"
+            try { parse(fetch(u), "Thema: " + t.optString("name"), 6) } catch (_: Exception) { emptyList() } } }
+        val items = ArrayList<JSONObject>(); val seen = HashSet<String>()
+        for (f in futures) for (it in (try { f.get(15, TimeUnit.SECONDS) } catch (_: Exception) { emptyList() }))
+            if (seen.add(it.optString("titel").lowercase().take(60))) items.add(it)
+        if (items.isEmpty()) throw RuntimeException("Zu deinen Themen gibt es gerade nichts Neues.")
+        val names = themen.joinToString(", ") { it.optString("name") }
+        val sys = """Du bist der persönliche Nachrichten-Butler von J.A.R.V.I.S. Der Nutzer interessiert sich für: $names.
+Unten stehen nummerierte Meldungen zu diesen Themen (#Nummer [Thema: ...] Titel: Text).
+Erstelle:
+1. "briefing": 1 bis 2 gesprochene Sätze auf Deutsch, persönlich ("Passend zu deinen Interessen, Sir: ..."), was es Neues gibt.
+2. "brennpunkte": die 6 bis 12 interessantesten, wirklich neuen Meldungen (keine Werbung, keine Dopplungen), höchstens 3 pro Thema.
+   Die 3 bis 5 besten mit "im_briefing": true zuerst. Für jede: "nr", "titel" (höchstens 6 Wörter), "thema" (welches Thema von oben),
+   "warum" (ganz kurz, warum das zu ihm passt, z. B. "weil du ETS2 spielst"), "ort" (wo es passiert oder wo die Firma/der Verein sitzt),
+   "lat", "lon" (dieser Ort), "art" (gesellschaft, sport, wissenschaft, wirtschaft, politik, lokal), "wichtig" (1 bis 3), "im_briefing",
+   "text" (2 bis 3 gesprochene Sätze, was es Neues gibt; beginnt NICHT mit dem Ortsnamen), "genau" ("punkt", "stadt", "land"), "suche" (Ort für die Karte)
+Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
+        val d = summarize(key, items, sys)
+        val pts = d.getJSONArray("brennpunkte")
+        for (i in 0 until pts.length()) pts.getJSONObject(i).put("fuer_dich", true)
+        d.put("themen", JSONArray(themen.map { it.optString("name") }))
+        return d
+    }
+
     /** Nur aus dem Speicher (für den schnellen Start der Seite). */
     fun cached(ctx: Context, ort: String = ""): JSONObject? {
         val city = city(ctx)
-        val k = if (ort.isBlank() || ort.equals(city, true)) "welt" else ort.lowercase()
+        val k = if (ort == "@fuerdich") "fuerdich" else if (ort.isBlank() || ort.equals(city, true)) "welt" else ort.lowercase()
         synchronized(lock) { return mem[k] ?: try { JSONObject(cacheFile(ctx, k).readText()) } catch (_: Exception) { null } }
     }
 

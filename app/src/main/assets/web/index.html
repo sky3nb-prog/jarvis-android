@@ -52,6 +52,10 @@
       <div class="big" id="clock">--:--</div>
       <div class="row"><span id="date">–</span></div>
     </div>
+    <div class="card" id="info-fuer-card" style="display:none">
+      <div class="ctitle">FÜR DICH</div>
+      <div class="row muted" id="info-fuer"></div>
+    </div>
     <div class="card orange">
       <div class="ctitle">LAGE</div>
       <div class="row muted" id="info-lage">Wisch nach rechts zur Lage – oder frag Jarvis „Wie ist die Lage?“</div>
@@ -69,7 +73,7 @@
     </div>
     <div class="ltop" id="ltop">
       <div><div class="lnum" id="lnum">–</div><div class="lttl" id="lttl">BRENNPUNKTE WELTWEIT</div></div>
-      <div class="seg"><span class="on" data-m="welt">WELT</span><span data-m="stadt" id="seg-stadt">LEONBERG</span><span data-m="orte">ORTE</span></div>
+      <div class="seg"><span class="on" data-m="welt">WELT</span><span data-m="stadt" id="seg-stadt">LEONBERG</span><span data-m="fuer">FÜR DICH</span><span data-m="orte">ORTE</span></div>
     </div>
     <div class="lorte" id="lorte"></div>
     <div class="ljar" id="ljar"><canvas id="lmini"></canvas><div><small>JARVIS</small><span id="ljartxt">holt die Lage …</span></div></div>
@@ -153,6 +157,8 @@
         <div class="sec" style="--c:#ffa03c"><h3>WELTLAGE</h3>
           <div class="note" style="margin:0 0 6px">Nachrichten von tagesschau, DW, BBC und aus deiner Gegend – alle 15 Minuten frisch.</div>
           <div class="f"><label>Lieblingsorte (mit Komma trennen)</label><input id="set-orte" type="text" placeholder="Stuttgart, Seoul"></div>
+          <div class="f"><label>Das interessiert dich (lernt Jarvis von selbst – × zum Entfernen)</label><div class="tchips" id="set-themen"></div></div>
+          <div class="f"><label>Eigene Themen dazu (mit Komma trennen)</label><input id="set-tselbst" type="text" placeholder="z. B. Euro Truck Simulator, VfB Stuttgart, KI"></div>
           <div class="srow"><div>Bei „Wie ist die Lage?“ zur Lage springen</div><div class="sw" id="set-ljump"></div></div>
           <div class="srow"><div>Bei der Tour auf jeden Ort zoomen<small>z. B. Polizeirevier, Engelbergtunnel</small></div><div class="sw" id="set-lzoom"></div></div>
           <div class="srow"><div>Erde langsam drehen (echter Tag und Nacht)</div><div class="sw" id="set-lspin"></div></div>

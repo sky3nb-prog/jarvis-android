@@ -140,11 +140,24 @@
     $("seg-stadt").textContent = city.toUpperCase();
     const list = shown();
     $("lnum").textContent = list.length;
-    $("lttl").textContent = mode === "stadt" ? city.toUpperCase() + " · LOKAL" : mode === "orte" ? ("LAGE · " + (data.ort || "").toUpperCase()) : "BRENNPUNKTE WELTWEIT";
+    $("lttl").textContent = mode === "stadt" ? city.toUpperCase() + " · LOKAL" : mode === "orte" ? ("LAGE · " + (data.ort || "").toUpperCase()) : mode === "fuer" ? "FÜR DICH · " + ((data.themen || []).slice(0, 3).join(" · ").toUpperCase() || "DEINE THEMEN") : "BRENNPUNKTE WELTWEIT";
     $("lcards").innerHTML = list.map((p) => `<div class="lcd" data-i="${p.i}" style="--c:${COL[p.art] || "#ffa03c"}">
-      <div class="k">${(p.art || "").toUpperCase()} · ${esc(p.ort || "")}</div><div class="t">${esc(p.titel)}</div><div class="x">${esc(p.text)}</div></div>`).join("")
+      <div class="k">${p.fuer_dich && p.thema ? "★ " + esc(p.thema).toUpperCase() : (p.art || "").toUpperCase()} · ${esc(p.ort || "")}</div><div class="t">${esc(p.titel)}</div>
+      ${p.warum ? `<div class="w">${esc(p.warum)}</div>` : ""}<div class="x">${esc(p.text)}</div>
+      ${p.fuer_dich ? `<div class="fb"><span data-f="mehr">＋ mehr davon</span><span data-f="weniger">– weniger</span></div>` : ""}</div>`).join("")
       || `<div class="lcd"><div class="t">Gerade keine Meldungen</div></div>`;
-    document.querySelectorAll(".lcd[data-i]").forEach((e) => e.addEventListener("click", () => toggle(+e.dataset.i)));
+    document.querySelectorAll(".lcd[data-i]").forEach((e) => e.addEventListener("click", () => {
+      const p = data.brennpunkte[+e.dataset.i];
+      if (cur !== +e.dataset.i && A && A.lageNote && p) A.lageNote("klick", p.titel + (p.thema ? " (" + p.thema + ")" : " (" + (p.art || "") + ", " + (p.ort || "") + ")"));
+      toggle(+e.dataset.i);
+    }));
+    // "mehr davon" / "weniger": Jarvis lernt daraus, was dich interessiert
+    document.querySelectorAll(".lcd .fb span").forEach((b) => b.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const card = b.closest(".lcd"), p = data.brennpunkte[+card.dataset.i]; if (!p || !A || !A.lageNote) return;
+      A.lageNote(b.dataset.f, (p.thema || "") + ": " + p.titel);
+      card.querySelector(".fb").innerHTML = b.dataset.f === "mehr" ? "<em>✓ Merke ich mir – mehr davon.</em>" : "<em>✓ Verstanden – weniger davon.</em>";
+    }));
     $("lcards").scrollLeft = 0; cur = -1; target(null);
     if (!map) return;
     markers.forEach((m) => m.remove()); markers = []; cluster && cluster.remove(); cluster = null;
@@ -236,7 +249,8 @@
     document.querySelectorAll("#ltop .seg span").forEach((s) => s.classList.toggle("on", s.dataset.m === m));
     $("lorte").classList.toggle("on", m === "orte");
     target(null); cur = -1;
-    if (m === "orte") { const f = favList(); if (f.length && !place) { loadPlace(f[0]); return; } }
+    if (m === "fuer") { place = "@fuerdich"; jar(true, "sucht, was dich interessiert …"); if (A) A.getLage(place, false); return; }
+    if (m === "orte") { const f = favList(); if (f.length && (!place || place === "@fuerdich")) { place = ""; loadPlace(f[0]); return; } }
     if (m !== "orte" && place) { place = ""; load(false); return; }
     render(); if (!quiet) overview();
   }
@@ -315,18 +329,26 @@
   window.JLage = {
     shown() { init(); if (map) setTimeout(() => map.resize(), 50); if (!data) load(false); else homeMarkers(); },
     onData(d, tour) {
+      const fuer = d.ort === "Für dich";
+      if (fuer) {   // kleine Vorschau auf der Info-Seite
+        const c = $("info-fuer-card"); if (c) { c.style.display = ""; $("info-fuer").textContent = d.briefing || ((d.brennpunkte || []).slice(0, 2).map((p) => p.titel).join(" · ")); }
+      }
+      if (!tour && fuer !== (place === "@fuerdich")) return;   // gehört zu einer anderen Ansicht (kam zu spät)
       const first = !data; data = d; jar(false);
-      if (tour) { place = ""; mode = "welt"; document.querySelectorAll("#ltop .seg span").forEach((s) => s.classList.toggle("on", s.dataset.m === "welt")); }
+      if (tour) { place = fuer ? "@fuerdich" : ""; mode = fuer ? "fuer" : "welt"; document.querySelectorAll("#ltop .seg span").forEach((s) => s.classList.toggle("on", s.dataset.m === mode)); }
       render();
-      if (first || tour || mode === "orte") overview();
+      if (first || tour || mode === "orte" || mode === "fuer") overview();
       if (tour) jar(true, "Lagebericht");
-      const ic = $("info-lage"); if (ic) ic.textContent = (d.briefing || "") + ` (${(d.brennpunkte || []).length} Brennpunkte)`;
+      if (!fuer) { const ic = $("info-lage"); if (ic) ic.textContent = (d.briefing || "") + ` (${(d.brennpunkte || []).length} Brennpunkte)`; }
     },
     onFocus(i, n, of) { if (i < 0) { touring = false; jar(false); overview(); return; } focus(i, true, n, of); },
     home() { homeMarkers(); if (data) render(); },
     prefs(c) { P = c || {}; applyPrefs(); homeMarkers(); if (data) render(); },
     tle(txt) { loadTle(txt); },
-    onError(t) { jar(true, t); setTimeout(() => jar(false), 6000); },
+    onError(t, ort) {
+      if (ort === "@fuerdich") { const c = $("info-fuer-card"); if (c) { c.style.display = ""; $("info-fuer").textContent = t; } if (place !== "@fuerdich") return; }
+      jar(true, t); setTimeout(() => jar(false), 7000);
+    },
     draw(dt) {
       if (mini && $("ljar").classList.contains("on")) mini.draw(dt);
       if (!map) return;

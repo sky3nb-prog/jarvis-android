@@ -225,3 +225,15 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 
 .ltgtw { width: 120px; height: 120px; pointer-events: none; z-index: 2; }
 .ltgtw .ltgt { position: relative; left: 0; top: 0; margin: 0; }
+
+.lcd .w { font-size: 11px; color: var(--gold-l); margin: 0 0 3px; font-style: italic; }
+.lcd .fb { display: flex; gap: 8px; margin-top: 6px; }
+.lcd .fb span { padding: 4px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,170,40,.5); color: var(--gold-l); background: rgba(58,38,8,.6); }
+.lcd .fb span[data-f=weniger] { border-color: rgba(150,170,180,.4); color: #9fb6c4; background: transparent; }
+.lcd .fb em { font-size: 11px; color: #6effcd; font-style: normal; }
+.lcd { max-height: 150px; }
+.tchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tchips span { padding: 6px 10px; border-radius: 14px; border: 1px solid rgba(255,170,40,.5); color: var(--gold-l); font-size: 12.5px; background: rgba(20,12,2,.8); }
+.tchips span b { margin-left: 6px; color: #c8965a; font-weight: 700; }
+.tchips .none { border: 0; background: transparent; color: #6f8fa0; padding: 0; }
+.seg span { padding: 6px 7px; font-size: 9.5px; }

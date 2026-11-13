@@ -137,7 +137,7 @@
       else if (type === "power") showPower(!!data.on);
       else if (type === "lage") { if (data.tour && prefsUi.lage_jump !== false) show("lage"); if (window.JLage) window.JLage.onData(data.data, !!data.tour); }
       else if (type === "lage_focus") { if (window.JLage) window.JLage.onFocus(data.i, data.n, data.of); }
-      else if (type === "lage_error") { if (window.JLage) window.JLage.onError(data.text); }
+      else if (type === "lage_error") { if (window.JLage) window.JLage.onError(data.text, data.ort); }
       else if (type === "tle") { if (window.JLage) window.JLage.tle(data.text); }
       else if (type === "home") { if (window.JLage) window.JLage.home(); }
     },
@@ -216,6 +216,8 @@
       $("set-cloud").value = c.wake_cloud ? "1" : "0";
       $("set-jvol").value = c.jarvis_volume || 70;
       $("set-orte").value = c.lage_orte || "";
+      $("set-tselbst").value = c.themen_selbst || "";
+      showThemen();
       $("set-name").value = c.assistant_name || "";
       $("set-anrede").value = c.anrede || "";
       $("set-city").value = c.city || "";
@@ -257,6 +259,7 @@
       link_code: $("set-link").value.trim(),
       jarvis_volume: parseInt($("set-jvol").value, 10),
       lage_orte: $("set-orte").value.trim(),
+      themen_selbst: $("set-tselbst").value.trim(),
       assistant_name: $("set-name").value.trim(), anrede: $("set-anrede").value.trim(),
       city: $("set-city").value.trim(), address: $("set-addr").value.trim(), use_location: sw("set-loc"),
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
@@ -268,6 +271,16 @@
     $("settings").classList.remove("on");
     toast("Gespeichert.");
   });
+  // Gelernte Interessen anzeigen (× = Thema entfernen)
+  function showThemen() {
+    let t = []; try { t = JSON.parse(A.themen ? A.themen() : "[]"); } catch (e) {}
+    const box = $("set-themen");
+    const learned = t.filter((x) => !x.selbst);
+    box.innerHTML = learned.length ? learned.map((x) => `<span data-n="${String(x.name).replace(/"/g, "&quot;")}">${x.name}<b>×</b></span>`).join("")
+      : `<span class="none">Noch nichts gelernt – frag Jarvis einfach Dinge und tipp Meldungen an, dann lernt er dich kennen.</span>`;
+    box.querySelectorAll("span[data-n] b").forEach((b) => b.addEventListener("click", () => { A.themaWeg(b.parentNode.dataset.n); b.parentNode.remove(); }));
+  }
+
   // Anzeige-Einstellungen sofort anwenden
   let prefsUi = {};
   function applyPrefs(c) {
@@ -276,6 +289,8 @@
     if (window.JLage) window.JLage.prefs(prefsUi);
   }
   try { if (A) applyPrefs(JSON.parse(A.getSettings())); } catch (e) {}
+  // "Für dich" einmal im Hintergrund holen (für die Info-Seite; 15 Minuten zwischengespeichert)
+  setTimeout(() => { try { if (A && A.hasGroqKey()) A.getLage("@fuerdich", false); } catch (e) {} }, 4000);
 
   // --- Wetter (Open-Meteo, Leonberg) und Uhr ---
   function clock() {

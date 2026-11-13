@@ -44,6 +44,7 @@ Antworten kurz und gesprochen (1 bis 2 Sätze), Deutsch, keine Listen, keine Son
 $cal
 ${Memory.block(ctx)}
 ${Interests.block(ctx)}
+${Themen.summary(ctx).let { if (it.isBlank()) "" else "Seine Interessen (gelernt): $it. Bring sie ein, wenn es passt." }}
 Antworte NUR mit einem JSON-Objekt: {"actions":[ ... ], "say":"<was du sagst>"}
 Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"open_app","name":"<App-Name, z. B. WhatsApp, Spotify, Instagram, Kamera, Galerie>"}
@@ -63,6 +64,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut, plus passende neue Kanäle – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")
 {"action":"musik"}   (seine Lieblingssongs und Musikrichtung gerade plus passende neue Songs von Deezer – für "was höre ich so?", "schlag mir Musik vor", "was passt dazu?")
 {"action":"lage","ort":"<leer = Welt und Wohnort; \"hier\" = wo das Handy gerade ist; sonst Stadt oder Land>"}   (Lagebericht mit Karte: "wie ist die Lage?", "was ist los in der Welt?", "was gibt es Neues in Leonberg?", "was ist in Seoul los?", Nachrichten)
+{"action":"fuerdich"}   (Neuigkeiten passend zu seinen Interessen: "was gibt's Neues für mich?", "was interessiert mich heute?", "Neuigkeiten zu meinen Themen")
 {"action":"web","query":"<Suchanfrage>"}   (im Internet nachschauen: Nachrichten, Öffnungszeiten, Fakten, "schau mal nach ...", alles Aktuelle)
 {"action":"spotify","query":"<Suche>"}
 {"action":"search","query":"<Google-Suche>"}
@@ -89,6 +91,8 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
     }
 
     private fun run(key: String, text: String): String {
+        Themen.note(ctx, "frage", text)
+        Thread({ Themen.refresh(ctx, key) }, "jarvis-themen").start()
         Thread({ Interests.refreshGenres(ctx, key) }, "jarvis-genres").start()   // höchstens einmal am Tag
         history.put(JSONObject().put("role", "user").put("content", text))
         while (history.length() > 12) history.remove(0)
@@ -110,10 +114,10 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             val r = when (a.optString("action")) {
                 "web" -> { onStatus?.invoke("Jarvis sucht im Web …"); Cards.web(key, a.optString("query").ifBlank { text }) }
                 "musik" -> { onStatus?.invoke("Schaue, was du hörst …"); Cards.music(ctx) }
-                "lage" -> {
+                "lage", "fuerdich" -> {
                     onStatus?.invoke("Jarvis prüft die Lage …")
                     val city = Lage.city(ctx)
-                    val ort = a.optString("ort").trim().let { if (it.equals(city, true)) "" else it }
+                    val ort = if (a.optString("action") == "fuerdich") "@fuerdich" else a.optString("ort").trim().let { if (it.equals(city, true)) "" else it }
                     try {
                         val d = Lage.get(ctx, key, ort)
                         tour = d

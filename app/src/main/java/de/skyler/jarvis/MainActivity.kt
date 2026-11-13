@@ -214,6 +214,7 @@ class MainActivity : ComponentActivity() {
             .put("synced", prefs.getLong("snap_got", 0L))
             .put("facts", Memory.facts(this@MainActivity).size)
             .put("lage_orte", prefs.getString("lage_orte", "Stuttgart"))
+            .put("themen_selbst", Themen.manual(this@MainActivity).joinToString(", "))
             .put("assistant_name", prefs.getString("assistant_name", ""))
             .put("anrede", prefs.getString("anrede", ""))
             .put("city", prefs.getString("city", "").let { if (it.isNullOrBlank()) Lage.city(this@MainActivity) else it })
@@ -235,6 +236,7 @@ class MainActivity : ComponentActivity() {
                 .putString("link_code", o.optString("link_code", "").trim().uppercase())
                 .putInt("jarvis_volume", o.optInt("jarvis_volume", 70).coerceIn(10, 100))
                 .putString("lage_orte", o.optString("lage_orte", "Stuttgart").trim())
+                .apply { if (o.has("themen_selbst")) Themen.setManual(this@MainActivity, o.optString("themen_selbst")) }
                 .putString("assistant_name", o.optString("assistant_name").trim())
                 .putString("anrede", o.optString("anrede").trim())
                 .putString("city", o.optString("city").trim())
@@ -347,7 +349,7 @@ class MainActivity : ComponentActivity() {
                 try {
                     val d = Lage.get(ctx, key, ort, if (force) 0L else Lage.MAX_AGE)
                     send("lage", JSONObject().put("data", d).put("tour", false))
-                } catch (e: Exception) { send("lage_error", JSONObject().put("text", e.message ?: "Lage nicht erreichbar.")) }
+                } catch (e: Exception) { send("lage_error", JSONObject().put("text", e.message ?: "Lage nicht erreichbar.").put("ort", ort)) }
             }, "jarvis-lage").start()
         }
 
@@ -387,6 +389,20 @@ class MainActivity : ComponentActivity() {
             if (hit == null) Thread({ try { Lage.geocode(this@MainActivity, q) } catch (_: Exception) {} }).start()
             return hit?.let { JSONObject().put("lat", it.first).put("lon", it.second).toString() } ?: "null"
         }
+
+        /** Interessen lernen: Tipp auf eine Meldung (klick), "mehr davon" (mehr), "weniger" (weniger) */
+        @JavascriptInterface
+        fun lageNote(kind: String, text: String) { Themen.note(this@MainActivity, kind, text) }
+
+        /** Gelernte + eigene Themen für die Einstellungen */
+        @JavascriptInterface
+        fun themen(): String = org.json.JSONArray(Themen.list(this@MainActivity)).toString()
+
+        @JavascriptInterface
+        fun themaWeg(name: String) { Themen.remove(this@MainActivity, name) }
+
+        @JavascriptInterface
+        fun themenSelbst(csv: String) { Themen.setManual(this@MainActivity, csv) }
 
         @JavascriptInterface
         fun lageFavorites(): String { Lage.warmFavorites(this@MainActivity); return org.json.JSONArray(Lage.favorites(this@MainActivity)).toString() }
