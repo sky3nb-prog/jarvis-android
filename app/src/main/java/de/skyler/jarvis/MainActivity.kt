@@ -97,7 +97,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        pendingFeed = intent?.getStringExtra("feed")
         web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                pageReady = true
+                pendingFeed?.let { id -> pendingFeed = null; send("feed_open", JSONObject().put("id", id)) }
+            }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url
                 if (url.scheme == "file") return false
@@ -121,10 +126,14 @@ class MainActivity : ComponentActivity() {
         askPermissions()
     }
 
+    @Volatile private var pendingFeed: String? = null
+    @Volatile private var pageReady = false
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         showOverLock(intent)
+        intent.getStringExtra("feed")?.let { id -> if (pageReady) send("feed_open", JSONObject().put("id", id)) else pendingFeed = id }
     }
 
     /** Vom Weckwort geöffnet: über dem Sperrbildschirm zeigen und Bildschirm anschalten (nur solange Jarvis offen ist). */
@@ -372,6 +381,25 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun fernInfo(refresh: Boolean): String = Link.fernInfo(this@MainActivity, refresh).toString()
 
+        /** Mitteilungen */
+        @JavascriptInterface
+        fun feedList(): String = Feed.list(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun feedGet(id: String): String = Feed.get(this@MainActivity, id)?.toString() ?: "null"
+
+        /** Tages-, Morgen- oder Wochen-Update jetzt erzeugen (kind: heute, morgen, woche). Antwort kommt als "feed_open". */
+        @JavascriptInterface
+        fun feedNow(kind: String) {
+            Thread({
+                val r = try {
+                    when (kind) { "woche" -> Alltag.weekBrief(this@MainActivity); "morgen" -> Alltag.dayBrief(this@MainActivity, 1); else -> Alltag.dayBrief(this@MainActivity, 0) }
+                } catch (_: Exception) { null }
+                if (r != null) send("feed_open", JSONObject().put("id", r.second))
+                else send("info", JSONObject().put("text", "Das Update ging gerade nicht (Groq-Schlüssel? Internet?)."))
+            }, "jarvis-feed").start()
+        }
+
         /** Fester Weg (jede Woche) */
         @JavascriptInterface
         fun festGet(): String = Alltag.festerWeg(this@MainActivity).toString()
@@ -396,6 +424,7 @@ class MainActivity : ComponentActivity() {
                 send("state", JSONObject().put("state", "thinking"))
                 val t = try { Alltag.testMessage(this@MainActivity) } catch (e: Exception) { "Test ging nicht: ${e.message ?: ""}" }
                 send("agent", JSONObject().put("text", t))
+                Alltag.lastTestFeed?.let { send("feed_open", JSONObject().put("id", it)) }
                 send("state", JSONObject().put("state", "ended"))
             }, "jarvis-test").start()
         }

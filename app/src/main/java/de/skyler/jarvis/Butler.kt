@@ -105,7 +105,9 @@ object Butler {
                 val r = try { Link.command(ctx, JSONObject().put("type", "wa_send").put("to", name).put("text", msg), 25_000) } catch (_: Exception) { null }
                 done = r?.optBoolean("ok") == true
             }
-            if (!done) sms(ctx, number, msg)
+            if (!done) done = sms(ctx, number, msg)
+            Feed.add(ctx, "anruf", "Anruf von $name weggedrückt", "„$msg“ " + if (done) "geschickt" else "– Senden ging nicht", msg,
+                JSONObject().put("name", name).put("text", msg).put("ok", done))
         }, "jarvis-absage").start()
     }
 

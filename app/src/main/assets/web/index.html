@@ -14,6 +14,7 @@
   <!-- 1) FOKUS -->
   <section id="v-fokus" class="view active">
     <div class="switch on" id="powerbtn" role="switch" aria-label="Jarvis an oder aus"><span class="knob"></span></div>
+    <div class="roundbtn feedbtn" id="feedbtn-f" title="Mitteilungen">🔔<i class="fdot"></i></div>
     <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Jarvis zu reden</div>
     <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
     <div class="name">J.A.R.V.I.S.</div>
@@ -31,7 +32,7 @@
     <div class="topbar">
       <div class="roundbtn" id="btn-settings">⚙</div>
       <div class="title">J.A.R.V.I.S.</div>
-      <div class="roundbtn">⌂</div>
+      <div class="roundbtn feedbtn2" id="feedbtn-i" title="Mitteilungen">🔔<i class="fdot"></i></div>
     </div>
     <div class="sphere-wrap small" id="sphere-info"><canvas class="sphere"></canvas><canvas class="brain"></canvas><canvas class="rings"></canvas></div>
     <div class="sub">bereit · tipp auf die Kugel zum Reden</div>
@@ -131,6 +132,10 @@
     <video id="phcam-v" autoplay playsinline muted style="width:100%;border-radius:12px;background:#000"></video>
     <div class="note" id="phcam-s" style="margin:8px 0">–</div>
     <div class="sbtn" id="phcam-x" style="text-align:center">Beenden</div></div></div>
+  <div id="feed" class="feedpage">
+    <div class="fp-top"><div class="fp-back" id="fp-back">‹</div><div class="fp-ttl" id="fp-ttl">MITTEILUNGEN</div></div>
+    <div class="fp-body" id="fp-body"></div>
+  </div>
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
@@ -320,5 +325,6 @@
 <script src="lage.js"></script>
 <script src="app.js"></script>
 <script src="steuern.js"></script>
+<script src="feed.js"></script>
 </body>
 </html>
