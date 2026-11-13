@@ -474,6 +474,12 @@ class JarvisService : Service() {
                 }
                 Link.replyPc(this, id, !r.contains("nicht"), r)
             }
+            "status" -> worker.execute { Link.replyPc(this, id, true, "", PhoneCtl.status(this)) }
+            "ctl" -> Thread {
+                val r = try { PhoneCtl.ctl(this, m) } catch (e: Exception) { "Ging nicht: ${e.message ?: ""}" }
+                Thread.sleep(400)   // Lautstärke usw. nachziehen lassen, damit der Status stimmt
+                Link.replyPc(this, id, !r.contains("nicht"), r, PhoneCtl.status(this))
+            }.start()
             "media" -> main.post {
                 val q = listOf(m.optString("artist"), m.optString("title")).filter { it.isNotBlank() }.joinToString(" ")
                 val video = m.optBoolean("video")

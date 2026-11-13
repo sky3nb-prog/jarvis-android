@@ -238,10 +238,12 @@ object Link {
     }
 
     /** Antwort auf einen Auftrag des PCs (der PC spricht sie dann). */
-    fun replyPc(ctx: Context, re: String, ok: Boolean, text: String) {
+    fun replyPc(ctx: Context, re: String, ok: Boolean, text: String, status: JSONObject? = null) {
         val c = code(ctx); if (!paired(ctx)) return
-        post(c, remoteTopic(c), JSONObject().put("kind", "phone_reply").put("from", "phone").put("re", re).put("ok", ok)
-            .put("text", text).put("ts", System.currentTimeMillis() / 1000))
+        val m = JSONObject().put("kind", "phone_reply").put("from", "phone").put("re", re).put("ok", ok)
+            .put("text", text).put("ts", System.currentTimeMillis() / 1000)
+        if (status != null) m.put("status", status)
+        post(c, remoteTopic(c), m)
     }
 
     /** Neues ans PC schicken (Fakten, Stimmungen, Vergessen). */
