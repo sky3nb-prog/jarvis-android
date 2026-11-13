@@ -66,9 +66,9 @@ class MainActivity : ComponentActivity() {
         if (prefs.getBoolean("background", true)) JarvisService.start(this)
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     private val textBrain by lazy { Brain(this) }   // für getippte Fragen
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showOverLock(intent)
