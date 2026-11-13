@@ -256,6 +256,20 @@ object Link {
         post(c, remoteTopic(c), msg)
     }
 
+    /** Fernzugriff über Tailscale: Schlüssel (aus dem Kopplungscode) und zuletzt gemeldete Adresse des PCs. */
+    fun fernToken(ctx: Context) = hex(sha("jarvis-fern:" + norm(code(ctx)))).take(24)
+
+    fun fernInfo(ctx: Context, refresh: Boolean): JSONObject {
+        val p = prefs(ctx)
+        if (refresh && paired(ctx)) try {
+            latestStatus(ctx, "24h")?.let { st ->
+                p.edit().putString("pc_fern", (st.optJSONObject("fern") ?: JSONObject()).toString()).putLong("pc_fern_ts", st.optLong("ts")).apply()
+            }
+        } catch (_: Exception) {}
+        val f = try { JSONObject(p.getString("pc_fern", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
+        return f.put("token", if (paired(ctx)) fernToken(ctx) else "").put("paired", paired(ctx)).put("seen", p.getLong("pc_fern_ts", 0L))
+    }
+
     /** Läuft der PC gerade? (Lebenszeichen in den letzten 35 Minuten) */
     fun pcOnline(ctx: Context): Boolean = try {
         val s = latestStatus(ctx, "35m"); s != null && System.currentTimeMillis() / 1000 - s.optLong("ts") < 35 * 60

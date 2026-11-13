@@ -127,10 +127,14 @@
   <div class="toast" id="toast"></div>
 
   <!-- Einstellungen (wie am PC: Reiter oben, darunter Blöcke) -->
+  <div class="modal" id="phcam" style="z-index:30"><div class="sheet"><div class="ctitle">HANDY-KAMERA → PC</div>
+    <video id="phcam-v" autoplay playsinline muted style="width:100%;border-radius:12px;background:#000"></video>
+    <div class="note" id="phcam-s" style="margin:8px 0">–</div>
+    <div class="sbtn" id="phcam-x" style="text-align:center">Beenden</div></div></div>
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-allg">
         <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
@@ -251,6 +255,17 @@
         <div class="sec" style="--c:#ff9a8a"><h3>WOCHENRÜCKBLICK</h3>
           <div class="srow"><div>Sonntags Wochenrückblick<small>Besuche bei Opa, Rad-Kilometer, Musik-Zeit, Termine nächste Woche. Karte am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-rueck"></div></div>
           <div class="f"><label>Um</label><input id="set-rueckzeit" type="time"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-fern">
+        <div class="sec" style="--c:#3cc8ff"><h3>VON UNTERWEGS</h3>
+          <div class="note" id="fern-state">–</div>
+          <div class="srow"><div>PC-HUD öffnen<small>Dein PC-HUD im Browser, auch aus der Schule</small></div><div class="sbtn" id="fern-hud">Öffnen</div></div>
+          <div class="srow"><div>PC-Webcam ansehen<small>Nur wenn am PC unter Fernzugriff erlaubt. Am PC steht dann groß, dass zugeschaut wird.</small></div><div class="sbtn" id="fern-cam">Ansehen</div></div>
+          <div class="srow"><div>Handy-Kamera an den PC<small>Nur solange diese Seite offen ist</small></div><div class="sbtn" id="fern-phcam">Starten</div></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>EINRICHTEN (EINMAL)</h3>
+          <div class="note" style="margin:0">1. Tailscale auf dem PC installieren (tailscale.com) und anmelden.<br>2. Tailscale-App auf dem Handy installieren und mit demselben Konto anmelden.<br>3. Am PC beim ersten Mal in der Windows-Firewall „Zulassen“ klicken.<br>Nur deine Geräte mit deinem Kopplungscode kommen rein. Sag deiner Familie, dass die Webcam an sein kann.</div>
         </div>
       </div>
       <div class="spane" id="sp-anz">

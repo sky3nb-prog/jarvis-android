@@ -215,7 +215,7 @@
   }));
   // Neue Einstellungen: kleiner roter Punkt (am Zahnrad und am Bereich), bis du den Bereich einmal geöffnet hast.
   // Bei jedem Update ergänzen: Bereich -> Kennung des Updates
-  const NEW_TABS = { wege: "wege1", allg: "schau1", leute: "leute1", alltag: "alltag1" };
+  const NEW_TABS = { wege: "wege1", allg: "schau1", leute: "leute1", alltag: "alltag1", fern: "fern1" };
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };
   const seenAdd = (k) => { try { const s = seenGet(); if (!s.includes(k)) { s.push(k); localStorage.setItem("seen_new", JSON.stringify(s)); } } catch (e) {} };
   function newDots() {
@@ -306,6 +306,46 @@
   $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
+  // --- Fernzugriff über Tailscale ---
+  let fern = {};
+  function fernShow(refresh) {
+    try { fern = JSON.parse(A.fernInfo(!!refresh) || "{}"); } catch (e) { fern = {}; }
+    $("fern-state").textContent = !fern.paired ? "Erst mit dem PC koppeln (Allgemein → Kopplungscode)."
+      : fern.ip ? `PC erreichbar über Tailscale: ${fern.ip}${fern.cam ? " · Webcam erlaubt" : " · Webcam am PC nicht erlaubt"}`
+      : "Der PC hat noch keine Tailscale-Adresse gemeldet. Tailscale am PC installieren und anmelden – der PC meldet sich alle 30 Minuten.";
+  }
+  const fernUrl = (p) => `http://${fern.ip}:${fern.port || 8765}${p}${p.includes("?") ? "&" : "?"}k=${fern.token}`;
+  document.querySelector('[data-p="fern"]').addEventListener("click", () => { fernShow(false); setTimeout(() => fernShow(true), 50); });
+  $("fern-hud").addEventListener("click", () => { if (!fern.ip) return toast("PC-Adresse fehlt noch."); location.href = fernUrl("/"); });
+  $("fern-cam").addEventListener("click", () => { if (!fern.ip) return toast("PC-Adresse fehlt noch."); location.href = fernUrl("/cam"); });
+  let camStream = null, camTimer = null;
+  function camStop() {
+    if (camTimer) clearInterval(camTimer); camTimer = null;
+    if (camStream) camStream.getTracks().forEach((t) => t.stop()); camStream = null;
+    $("phcam").classList.remove("on");
+  }
+  $("fern-phcam").addEventListener("click", async () => {
+    if (!fern.ip) return toast("PC-Adresse fehlt noch.");
+    $("phcam").classList.add("on"); $("phcam-s").textContent = "Kamera startet …";
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: 960 }, audio: false });
+    } catch (e) { $("phcam-s").textContent = "Kamera nicht erlaubt – erlauben und nochmal tippen."; return; }
+    const v = $("phcam-v"); v.srcObject = camStream;
+    const c = document.createElement("canvas"); let sent = 0, busy = false;
+    camTimer = setInterval(() => {
+      if (busy || !v.videoWidth) return; busy = true;
+      const w = Math.min(960, v.videoWidth); c.width = w; c.height = Math.round(v.videoHeight * w / v.videoWidth);
+      c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob((b) => {
+        fetch(fernUrl("/phonecam"), { method: "POST", body: b, headers: { "Content-Type": "image/jpeg" } })
+          .then(() => { sent++; $("phcam-s").textContent = `Läuft – der PC zeigt es im HUD (${sent} Bilder).`; })
+          .catch(() => { $("phcam-s").textContent = "PC nicht erreichbar – ist Tailscale am Handy an?"; })
+          .finally(() => { busy = false; });
+      }, "image/jpeg", 0.6);
+    }, 350);
+  });
+  $("phcam-x").addEventListener("click", camStop);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) camStop(); });
   $("set-locall").addEventListener("click", () => { A.askLocationAlways(); toast("Erst „Genau“ erlauben, dann beim zweiten Mal „Immer erlauben“."); });
   $("set-wlanget").addEventListener("click", () => { const w = A.currentWifi(); if (w) { $("set-wlan").value = w; toast("Übernommen: " + w); } else toast("Kein WLAN erkannt – erst Standort erlauben, dann nochmal."); });
   $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));

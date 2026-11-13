@@ -83,7 +83,20 @@ class MainActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             allowFileAccessFromFileURLs = true
         }
-        web.webChromeClient = WebChromeClient()
+        web.webChromeClient = object : WebChromeClient() {
+            // Handy-Kamera an den PC (nur in der offenen App): Kamera für die Seite freigeben
+            override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
+                runOnUiThread {
+                    if (request.resources.contains(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE) &&
+                        ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+                        request.grant(arrayOf(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                    else {
+                        perms.launch(arrayOf(Manifest.permission.CAMERA))
+                        request.deny()
+                    }
+                }
+            }
+        }
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url
@@ -354,6 +367,10 @@ class MainActivity : ComponentActivity() {
                 try { startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)) } catch (_: Exception) {}
             }
         }
+
+        /** Fernzugriff: Adresse des PCs im Tailscale-Netz + Schlüssel (refresh = beim PC nachfragen). */
+        @JavascriptInterface
+        fun fernInfo(refresh: Boolean): String = Link.fernInfo(this@MainActivity, refresh).toString()
 
         /** Aktuelles WLAN als Heim-WLAN (braucht genauen Standort, sonst verrät Android den Namen nicht). */
         @JavascriptInterface
