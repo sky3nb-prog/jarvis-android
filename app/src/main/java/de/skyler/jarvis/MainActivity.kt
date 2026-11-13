@@ -372,6 +372,17 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun fernInfo(refresh: Boolean): String = Link.fernInfo(this@MainActivity, refresh).toString()
 
+        /** Testnachricht: so sieht die Donnerstag-Nachricht aus (kommt als Benachrichtigung). */
+        @JavascriptInterface
+        fun testAlltag() {
+            Thread({
+                send("state", JSONObject().put("state", "thinking"))
+                val t = try { Alltag.testMessage(this@MainActivity) } catch (e: Exception) { "Test ging nicht: ${e.message ?: ""}" }
+                send("agent", JSONObject().put("text", t))
+                send("state", JSONObject().put("state", "ended"))
+            }, "jarvis-test").start()
+        }
+
         /** Aktuelles WLAN als Heim-WLAN (braucht genauen Standort, sonst verrät Android den Namen nicht). */
         @JavascriptInterface
         fun currentWifi(): String {

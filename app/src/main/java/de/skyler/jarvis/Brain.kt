@@ -67,6 +67,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"pc","text":"<Befehl an den Jarvis am PC, so wie man ihn dort sagen würde>"}   (alles, was am PC passieren soll: "mach am PC Musik an", "sperr den PC", "schick mir das Lied vom PC aufs Handy" -> text "schick mir was ich gerade höre aufs handy")
 {"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>","jarvis":false}   (jarvis true, wenn er "unter deinem Namen", "als Jarvis", "von dir aus" sagt: dann schreibst DU über ihn in der dritten Person, z. B. "Skyler ist um 18 Uhr da", ohne "Hier ist Jarvis" – das kommt automatisch davor; auch für "antworte Mama …")
 {"action":"sms","to":"<Name>","text":"<Nachricht>"}
+{"action":"test_fahrt"}   ("schick mir eine Testnachricht", "wie sieht die Nachricht für Donnerstag aus?")
 {"action":"losfahren","ziel":"<gespeicherter Ort, z. B. Opa>"}   ("ich fahr jetzt los zu Oma und Opa", "bin unterwegs zu Opa": Wetter-Tipp Rad/Bahn und kurz vor der Ankunft per SMS Bescheid geben)
 {"action":"ort_erinnerung","ort":"<gespeicherter Ort wie Opa, oder zuhause>","text":"<woran erinnern>"}   ("erinnere mich, wenn ich bei Opa bin, an das Ladekabel", "wenn ich zu Opa fahre, denk an …", "Donnerstag bei Opa an … denken", "wenn ich heimkomme, erinnere mich an …")
 {"action":"briefing","tag":"heute" | "morgen"}   ("gib mir das Briefing", "was ist morgen los und was zieh ich an?")

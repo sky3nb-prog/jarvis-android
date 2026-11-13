@@ -116,9 +116,21 @@ object Alltag {
     private fun list(a: JSONArray) = (0 until a.length()).mapNotNull { a.optJSONObject(it) }
 
     private fun learned(ctx: Context, to: String, mode: String): Double? {
-        val d = list(trips(ctx)).filter { it.optString("to") == to && it.optString("mode") == mode }.map { it.optDouble("min") }
+        val d = list(trips(ctx)).filter { near(it.optString("to"), to) && it.optString("mode") == mode }.map { it.optDouble("min") }
             .filter { it in 2.0..180.0 }.takeLast(5).sorted()
         return if (d.size >= 2) d[d.size / 2] else null
+    }
+
+    private fun near(a: String, b: String): Boolean {
+        val x = Chats.norm(a); val y = Chats.norm(b)
+        return x.isNotBlank() && y.isNotBlank() && (x == y || x.contains(y) && y.length >= 3 || y.contains(x) && x.length >= 3)
+    }
+
+    /** Durchschnittliche Fahrzeit (Minuten) von → nach aus deinen echten Fahrten (letzte 6), null = noch nichts gelernt. */
+    private fun learnedRoute(ctx: Context, from: String, to: String, mode: String): Double? {
+        val d = list(trips(ctx)).filter { near(it.optString("from"), from) && near(it.optString("to"), to) && it.optString("mode") == mode }
+            .map { it.optDouble("min") }.filter { it in 2.0..120.0 }.takeLast(6)
+        return if (d.isNotEmpty()) d.average() else null
     }
 
     private fun tripsTo(ctx: Context, to: String) = list(trips(ctx)).count { it.optString("to") == to }
@@ -127,6 +139,27 @@ object Alltag {
         val a = s.optJSONArray("prep") ?: return 15
         val v = (0 until a.length()).map { a.optInt(it) }.takeLast(7).sorted()
         return if (v.size >= 2) v[v.size / 2].coerceIn(5, 45) else 15
+    }
+
+    /** Wie lange du nach "Mach dich fertig" brauchst, bis du losfährst (Durchschnitt, Start 5 Minuten). */
+    private fun prepBack(s: JSONObject): Int {
+        val a = s.optJSONArray("prep_back") ?: return 5
+        val v = (0 until a.length()).map { a.optInt(it) }.filter { it in 0..40 }.takeLast(6)
+        return if (v.isEmpty()) 5 else Math.round(v.average()).toInt().coerceIn(2, 30)
+    }
+
+    /** Testnachricht: so sieht die Nachricht am Donnerstag um 15:45 aus (mit dem Wetter von jetzt). */
+    fun testMessage(ctx: Context): String {
+        val f = festeWege(ctx).firstOrNull()
+        val to = f?.to ?: "Opa"
+        val home = Route.home(ctx) ?: return "Trag erst deine Adresse ein (Allgemein → Standort)."
+        val dest = Route.place(ctx, to) ?: return "$to steht noch nicht unter Wege → Meine Orte."
+        val now = System.currentTimeMillis()
+        val pl = tripPlan(ctx, home, dest, now + 5 * 60_000L, to)
+        val t = "[Test] " + rideBriefing(ctx, "Um ${clock(now + 5 * 60_000L)} geht's los zu $to.", home, now + 5 * 60_000L, now + 2 * 3_600_000L, pl,
+            remindersFor(ctx, to), false) + (if (whoFor(ctx, to) != null) " Ich sag Bescheid, kurz bevor du da bist." else "")
+        notify(ctx, 339, "Gleich los zu $to (Test)", t)
+        return t
     }
 
     private fun pathKm(pts: JSONArray, from: Int = 0): Double {
@@ -320,6 +353,7 @@ object Alltag {
         if (at.isNotBlank() && at != "zuhause") {
             val p = Route.place(ctx, at)
             if (p == null || Route.distKm(here, p) > 0.3) {   // weg von dort
+                s.put("left_place", JSONObject().put("name", at).put("t", now))
                 s.put("at_place", ""); trip.put("from", at).put("start", now).put("pts", JSONArray().put(JSONArray().put(now).put(here.lat).put(here.lon)))
             }
             return
@@ -487,14 +521,15 @@ object Alltag {
     }
 
     // --- Feste Wege: "Donnerstag 15:50 zu Opa, zurück 18:00" -------------------------------------------------
-    const val FESTE_DEFAULT = "Donnerstag 15:50 zu Opa, zurück 18:00"
+    const val FESTE_DEFAULT = "Donnerstag 15:50 zu Opa, zuhause 18:20"
     private val DAYS = mapOf("mo" to Calendar.MONDAY, "di" to Calendar.TUESDAY, "mi" to Calendar.WEDNESDAY, "do" to Calendar.THURSDAY,
         "fr" to Calendar.FRIDAY, "sa" to Calendar.SATURDAY, "so" to Calendar.SUNDAY)
 
     class Fest(val day: Int, val h: Int, val m: Int, val to: String, val backH: Int, val backM: Int)
 
-    fun festeWege(ctx: Context): List<Fest> = (prefs(ctx).getString("feste_wege", null) ?: FESTE_DEFAULT).lines().mapNotNull { l ->
-        val r = Regex("(?i)^\\s*(mo|di|mi|do|fr|sa|so)\\w*\\.?\\s+(\\d{1,2})[:.](\\d{2})\\s*(?:uhr)?\\s*(?:zu|zur|zum|nach)?\\s+(.+?)(?:\\s*[,;]?\\s*(?:zurück|heim|wieder zuhause)\\s*(?:um|bis)?\\s*(\\d{1,2})[:.](\\d{2}))?\\s*(?:uhr)?\\s*$").find(l)
+    fun festeWege(ctx: Context): List<Fest> = (prefs(ctx).getString("feste_wege", null)
+        ?.let { if (it.trim() == "Donnerstag 15:50 zu Opa, zurück 18:00") FESTE_DEFAULT else it } ?: FESTE_DEFAULT).lines().mapNotNull { l ->
+        val r = Regex("(?i)^\\s*(mo|di|mi|do|fr|sa|so)\\w*\\.?\\s+(\\d{1,2})[:.](\\d{2})\\s*(?:uhr)?\\s*(?:zu|zur|zum|nach)?\\s+(.+?)(?:\\s*[,;]?\\s*(?:zurück|heim|wieder zuhause|zuhause|daheim)\\s*(?:an|um|bis)?\\s*(\\d{1,2})[:.](\\d{2}))?\\s*(?:uhr)?\\s*$").find(l)
             ?: return@mapNotNull null
         val g = r.groupValues
         Fest(DAYS[g[1].lowercase().take(2)] ?: return@mapNotNull null, g[2].toInt(), g[3].toInt(), g[4].trim(),
@@ -556,23 +591,37 @@ object Alltag {
                 mark(s, "$id|los")
                 if (!s.has("ziel")) s.put("ziel", JSONObject().put("name", f.to).put("start", leave).put("min", pl.optDouble("min", 20.0)).put("km", pl.optDouble("km", 5.0)))
             }
-            // Rückweg: um "back" bei Oma und Opa losfahren – 15 und 5 Minuten vorher Bescheid
+            // Rückweg: "zuhause 18:20" = da willst du zuhause ankommen. Jarvis rechnet rückwärts:
+            // Ankunft − Fahrzeit (gelernter Durchschnitt) − Fertigmach-Zeit (gelernt, Start 5 Min.) = "Mach dich fertig"-Nachricht
             if (back > 0) {
-                val from = fixP()?.takeIf { Route.distKm(it, home) > 0.3 } ?: dest
-                if (now in back - 30 * 60_000L..back && !done(s, "$id|bplan")) {
+                val from = dest
+                val prepB = prepBack(s)
+                if (now in back - 90 * 60_000L..back && !done(s, "$id|bplan")) {
                     mark(s, "$id|bplan")
-                    s.put("fest_back", tripPlan(ctx, from, home, back, "zuhause").put("id", id))
+                    val rain = rainAt(from.lat, from.lon, back - 30 * 60_000L)
+                    val bahn = if (rain && Route.distKm(from, home) >= 1.2) Route.bahnBy(from, home, back) else null
+                    val ride = learnedRoute(ctx, f.to, "zuhause", "rad") ?: (Route.bikeMinutes(from, home) + 3)
+                    val go = bahn?.dep ?: (back - (ride * 60_000).toLong())
+                    val text = if (bahn != null) "Es soll regnen, nimm die ${bahn.line} um ${clock(bahn.rideDep)} ab ${bahn.stop}, du bist um ${clock(bahn.arr)} da."
+                        else "Mit dem Rad brauchst du etwa ${ride.toInt()} Minuten" + (if (rain) ", nimm Regensachen mit." else ".")
+                    s.put("fest_back", JSONObject().put("id", id).put("go", go).put("msg", go - prepB * 60_000L).put("text", text)
+                        .put("ride", ride).put("mode", if (bahn != null) "transit" else "bicycling").put("rain", rain))
                 }
                 val pb = s.optJSONObject("fest_back")?.takeIf { it.optString("id") == id } ?: continue
-                if (now in back - 15 * 60_000L until back - 5 * 60_000L && !done(s, "$id|b15")) {
-                    mark(s, "$id|b15")
-                    val t = rideBriefing(ctx, "In 15 Minuten, um ${clock(back)}, musst du los nach Hause.", from, back, 0L, pb, remindersFor(ctx, f.to), false)
-                    notify(ctx, 334, "In 15 Minuten heim", t); say(t)
+                val msgAt = pb.optLong("msg"); val go = pb.optLong("go")
+                if (now in msgAt until go + 10 * 60_000L && !done(s, "$id|bmsg")) {
+                    mark(s, "$id|bmsg"); s.put("back_msg", now)
+                    val t = rideBriefing(ctx, "Mach dich fertig, um ${clock(go)} musst du los, dann bist du um ${clock(back)} zuhause.",
+                        from, go, 0L, pb, remindersFor(ctx, f.to), false)
+                    notify(ctx, 334, "Mach dich fertig – Heimweg", t); say(t)
                 }
-                if (now in back - 5 * 60_000L until back + 5 * 60_000L && !done(s, "$id|b5")) {
-                    mark(s, "$id|b5")
-                    val t = rideBriefing(ctx, "In 5 Minuten musst du los nach Hause.", from, back, 0L, pb, emptyList(), true)
-                    notify(ctx, 335, "In 5 Minuten heim", t); say(t)
+                // Fertigmach-Zeit lernen: wie lange nach der Nachricht bist du wirklich bei Oma und Opa losgefahren?
+                val lp = s.optJSONObject("left_place"); val bm = s.optLong("back_msg")
+                if (lp != null && bm > 0 && near(lp.optString("name"), f.to) && lp.optLong("t") - bm in 0..60 * 60_000L && !done(s, "$id|blearn")) {
+                    mark(s, "$id|blearn")
+                    val a = s.optJSONArray("prep_back") ?: JSONArray()
+                    a.put(((lp.optLong("t") - bm) / 60_000L).toInt()); while (a.length() > 8) a.remove(0)
+                    s.put("prep_back", a)
                 }
             }
         }
