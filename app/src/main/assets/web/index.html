@@ -15,7 +15,7 @@
   <section id="v-fokus" class="view active">
     <div class="switch on" id="powerbtn" role="switch" aria-label="Jarvis an oder aus"><span class="knob"></span></div>
     <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Jarvis zu reden</div>
-    <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas></div>
+    <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
     <div class="name">J.A.R.V.I.S.</div>
     <div class="state" id="fokus-state">bereit</div>
     <div class="talkbox" id="talkbox">
@@ -32,7 +32,7 @@
       <div class="title">J.A.R.V.I.S.</div>
       <div class="roundbtn">⌂</div>
     </div>
-    <div class="sphere-wrap small" id="sphere-info"><canvas class="sphere"></canvas><canvas class="rings"></canvas></div>
+    <div class="sphere-wrap small" id="sphere-info"><canvas class="sphere"></canvas><canvas class="brain"></canvas><canvas class="rings"></canvas></div>
     <div class="sub">bereit · tipp auf die Kugel zum Reden</div>
     <div class="grid2">
       <div class="card">
@@ -84,7 +84,7 @@
 
   <!-- 4) STEUERN -->
   <section id="v-steuern" class="view">
-    <div class="sphere-wrap tiny" id="sphere-steuern"><canvas class="sphere"></canvas></div>
+    <div class="sphere-wrap tiny" id="sphere-steuern"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
     <div class="sub">Sag es – oder tipp drauf</div>
     <div class="gtitle gold">HANDY <small>· Etappe 3</small></div>
     <div class="tiles">
@@ -185,6 +185,7 @@
   </nav>
 </div>
 <script src="sphere3d.js"></script>
+<script src="brain.js"></script>
 <script src="sphere.js"></script>
 <script src="strand.js"></script>
 <script src="maplibre-gl.js"></script>

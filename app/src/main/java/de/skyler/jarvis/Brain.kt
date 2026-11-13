@@ -16,6 +16,8 @@ class Brain(private val ctx: Context) {
     private val infoActions = setOf("calendar_list", "youtube_neu", "web", "musik")
     /** Zwischenstand fürs Fenster, z. B. "Jarvis sucht im Web …" */
     var onStatus: ((String) -> Unit)? = null
+    /** Welche "Hirnregionen" gerade arbeiten (für die Symbole in der Kugel) */
+    private fun think(vararg kinds: String) = Bus.emit("think", JSONObject().put("kinds", JSONArray(kinds.toList())).put("ms", 4500))
     /** Karte zur letzten Antwort (Musik, YouTube, Web oder einfach der Antworttext) */
     @Volatile var card: JSONObject? = null
     /** Lage für die Tour (Jarvis fliegt auf der Karte von Punkt zu Punkt und erzählt) */
@@ -99,6 +101,8 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         val sys = system()
         val msgs = JSONArray().put(JSONObject().put("role", "system").put("content", sys))
         for (i in 0 until history.length()) msgs.put(history.get(i))
+        think("gedaechtnis")   // er denkt nach und nutzt, was er über dich weiß
+        if (Regex("wetter|regen|temperatur|grad|sonne|schnee", RegexOption.IGNORE_CASE).containsMatchIn(text)) think("wetter")
         val raw = Groq.chat(key, msgs, 500, json = true)
         history.put(JSONObject().put("role", "assistant").put("content", raw))
         val obj = try {
@@ -111,6 +115,16 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         val acts = obj.optJSONArray("actions") ?: JSONArray()
         for (i in 0 until acts.length()) {
             val a = acts.optJSONObject(i) ?: continue
+            when (a.optString("action")) {
+                "youtube", "youtube_neu" -> think("videos")
+                "musik", "spotify", "media" -> think("musik")
+                "web", "search", "url" -> think("web")
+                "calendar_add", "calendar_list", "calendar_delete", "alarm", "timer" -> think("kalender")
+                "lage" -> think("lage", "nachrichten")
+                "fuerdich" -> think("nachrichten", "gedaechtnis")
+                "remember", "forget", "mood" -> think("gedaechtnis")
+                "navigate" -> think("lage")
+            }
             val r = when (a.optString("action")) {
                 "web" -> { onStatus?.invoke("Jarvis sucht im Web …"); Cards.web(key, a.optString("query").ifBlank { text }) }
                 "musik" -> { onStatus?.invoke("Schaue, was du hörst …"); Cards.music(ctx) }

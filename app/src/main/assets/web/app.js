@@ -11,6 +11,9 @@
     info: mkSphere(document.querySelector("#sphere-info canvas"), 5),
     steuern: mkSphere(document.querySelector("#sphere-steuern canvas"), 7),
   };
+  // Gehirn in den Kugeln (nur bei der echten 3D-Kugel)
+  const brains = {};
+  for (const v of ["fokus", "info", "steuern"]) { const c = document.querySelector(`#sphere-${v} canvas.brain`); if (c && window.JarvisBrain && spheres[v].gl) brains[v] = new window.JarvisBrain(c, spheres[v]); }
   let powerOn = true;
   const strand = new window.Strand($("strand"), 4);
   let strandTarget = 0, dragging = false;
@@ -138,6 +141,7 @@
       else if (type === "lage") { if (data.tour && prefsUi.lage_jump !== false) show("lage"); if (window.JLage) window.JLage.onData(data.data, !!data.tour); }
       else if (type === "lage_focus") { if (window.JLage) window.JLage.onFocus(data.i, data.n, data.of); }
       else if (type === "lage_error") { if (window.JLage) window.JLage.onError(data.text, data.ort); }
+      else if (type === "think") { const k = data.kinds || []; Object.values(brains).forEach((b) => b.think(k, data.ms || 4000)); }
       else if (type === "tle") { if (window.JLage) window.JLage.tle(data.text); }
       else if (type === "home") { if (window.JLage) window.JLage.home(); }
     },
@@ -318,6 +322,7 @@
     level += (target - level) * 0.25; target *= 0.92;
     const s = spheres[view];
     if (s) { s.level = level; s.draw(dt); }
+    if (brains[view]) brains[view].draw(dt);
     if (view === "info") rings.draw(dt);
     if (view === "lage" && window.JLage) window.JLage.draw(dt);
     if (!dragging) strand.offset += (strandTarget - strand.offset) * Math.min(1, dt * 9);
