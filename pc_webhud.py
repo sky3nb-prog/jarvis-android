@@ -206,6 +206,11 @@ class WebHud:
         self._lock = threading.Lock()
         self._start_server()
         threading.Thread(target=self._levels, daemon=True).start()
+        try:
+            import pc_handy
+            pc_handy.ON_STATUS = lambda d: self.push("phone", {"status": d, "age": 0})
+        except Exception:
+            pass
 
     # Ereignisse an alle offenen Seiten
     def push(self, kind: str, data=None):
@@ -317,7 +322,7 @@ class WebHud:
     def api(self, name: str, qs: dict):
         s = self.ui.settings
         if name == "settings":
-            keys = ("assistant_name", "hud_mode", "hud_buttons", "home_city", "lage_places", "lage_spin", "lage_orbits", "map_labels",
+            keys = ("assistant_name", "hud_mode", "hud_layout", "hud_buttons", "home_city", "lage_places", "lage_spin", "lage_orbits", "map_labels",
                     "lage_sat_tour", "globe_auto_open", "address_as")
             out = {k: s.get(k) for k in keys}
             out.update(lage_jump=s.get("globe_auto_open", True), lage_zoom=s.get("lage_sat_tour", True),
@@ -341,6 +346,10 @@ class WebHud:
             return self._termine()
         if name == "power":
             return {"on": not self.ui.sleeping()}
+        if name == "phone":
+            import pc_handy
+            d = pc_handy.STATUS
+            return {"paired": pc_handy.paired(), "status": d["data"], "age": int(time.time() - d["t"]) if d["t"] else None}
         if name == "settings_full":
             import pc_websettings
             return pc_websettings.schema(s)
@@ -396,8 +405,11 @@ class WebHud:
             m = body.get("mode")
             if m == "flug":
                 self.ui.q.put(("globe", "luftraum"))   # Flug-Modus gibt es (noch) im klassischen HUD
-            elif m in ("fokus", "info", "lage"):
+            elif m in ("fokus", "info", "lage", "steuern"):
                 self.ui.post_setting("hud_mode", m)
+            return {"ok": True}
+        if name == "phone":   # Seite "Steuern": Handy fernsteuern
+            threading.Thread(target=self._phone, args=(dict(body),), daemon=True).start()
             return {"ok": True}
         if name == "power":   # Schalter oben rechts: zuhören an/aus
             self.ui.q.put(("listen", bool(body.get("on"))))
@@ -424,6 +436,25 @@ class WebHud:
         if name == "note":
             return {"ok": True}
         return {"ok": False}
+
+    def _phone(self, b: dict):
+        import pc_handy
+        op = b.get("op")
+        try:
+            if op == "refresh":
+                pc_handy.refresh_status(bool(b.get("force")))
+                return
+            if op == "ctl":
+                r = pc_handy.control(str(b.get("what")), **{k: v for k, v in b.items() if k not in ("op", "what")})
+            elif op == "call":
+                r = pc_handy.call(str(b.get("who") or ""))
+            elif op == "media":
+                r = {"ok": True, "text": pc_handy.send_media()}
+            else:
+                r = pc_handy.command(str(b.get("text") or ""))
+        except Exception as e:
+            r = {"ok": False, "text": f"Ging nicht: {e}"}
+        self.push("phone_reply", r)
 
     def _get_lage(self, place: str, force: bool):
         import pc_news

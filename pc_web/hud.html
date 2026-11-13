@@ -5,7 +5,7 @@
 </head><body><div id="app">
 <canvas id="strand"></canvas>
 <div class="top"><div class="gear" id="gear" title="Einstellungen">⚙</div><div class="t" id="aname">J.A.R.V.I.S.</div>
-  <div class="modes" id="modes"><span data-m="info">INFO</span><span data-m="fokus">FOKUS</span><span data-m="lage">LAGE</span><span data-m="flug">FLUG</span></div>
+  <div class="modes" id="modes"><span data-m="info">INFO</span><span data-m="fokus">FOKUS</span><span data-m="lage">LAGE</span><span data-m="steuern">STEUERN</span><span data-m="flug">FLUG</span></div>
   <div class="switch on" id="pwr" role="switch" title="Zuhören an/aus"><span class="knob"></span></div></div>
 
 <!-- FOKUS -->
@@ -47,6 +47,47 @@
   <div class="side"><div class="sph" id="l-sph"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
     <div class="brief"><span class="who jar">JARVIS · LAGE</span><span id="l-brief">Ich hole die Lage …</span></div><div class="tour" id="l-tour"></div></div>
 </section>
+<!-- STEUERN: dein Handy vom PC aus -->
+<section class="pv" id="pv-steuern"><div class="st-wrap">
+  <div class="st-jar">
+    <div class="st-orb"><div class="sph" id="s-sph"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div><div class="st-ring"></div></div>
+    <div class="st-name" id="s-name">J.A.R.V.I.S.</div><div class="st-state" id="s-state">bereit</div>
+    <div class="st-talk"><span class="who you">DU</span><span id="s-you">–</span><span class="who jar">JARVIS</span><span id="s-jar">Sag es – oder klick drauf.</span></div>
+    <div class="st-tip">Zum Beispiel: „Ruf über mein Handy Lisa an“</div>
+  </div>
+  <div class="st-mid">
+    <div class="phbar off" id="ph-bar"><span class="dot"></span><div><b id="ph-head">DEIN HANDY · …</b><small id="ph-sub">frage das Handy …</small></div><div class="r" id="ph-r"></div></div>
+    <div class="gtitle gold">LÄUFT AM HANDY</div>
+    <div class="now g2" id="ph-now"><div class="cov">♪</div><div class="nt"><div class="t" id="ph-title">–</div><div class="a" id="ph-artist">–</div></div>
+      <div class="ctl"><span data-ctl='{"what":"media","key":"previous"}'>⏮</span><span data-ctl='{"what":"media","key":"playpause"}' id="ph-pp">⏯</span><span data-ctl='{"what":"media","key":"next"}'>⏭</span></div></div>
+    <div class="gtitle gold">HANDY STEUERN</div>
+    <div class="tiles" id="ph-tiles">
+      <div class="tile" data-ask="call"><i>☎</i>Anrufen<small>Kontakt wählen</small></div>
+      <div class="tile" data-ask="wecker"><i>◷</i>Wecker<small>stellen</small></div>
+      <div class="tile" data-ask="termin"><i>▦</i>Termin<small>eintragen</small></div>
+      <div class="tile" data-ask="whatsapp"><i>✉</i>WhatsApp<small>schreiben</small></div>
+      <div class="tile" data-ask="route"><i>➜</i>Route<small>aufs Handy</small></div>
+      <div class="tile" data-ctl='{"what":"lampe"}' id="ph-lampe"><i>☀</i>Lampe<small>an/aus</small></div>
+      <div class="tile" data-ctl='{"what":"lautlos"}' id="ph-laut"><i>🔕</i>Lautlos<small>an/aus</small></div>
+      <div class="tile" data-ctl='{"what":"finden"}'><i>◎</i>Handy finden<small>laut klingeln</small></div>
+      <div class="tile" data-op="media"><i>⇪</i>Lied rüber<small>PC → Handy</small></div>
+    </div>
+  </div>
+  <div class="st-right">
+    <div class="gtitle gold">LAUTSTÄRKE AM HANDY</div>
+    <div class="mix g2" id="ph-vol"></div>
+    <div class="gtitle gold">NÄCHSTE TERMINE AM HANDY</div>
+    <div class="mix g2 st-ter" id="ph-ter">–</div>
+    <div class="gtitle gold">BEFEHL ANS HANDY</div>
+    <div class="st-cmd"><input id="ph-cmd" placeholder="z. B. stell einen Wecker auf 7 Uhr"><button id="ph-send">Senden</button></div>
+  </div>
+</div>
+<div class="ps-ask st-ask" id="ph-ask"><div><b id="ph-ask-t">–</b><div id="ph-ask-f"></div><div class="ps-askrow"><button id="ph-ask-no">Abbrechen</button><button class="gold" id="ph-ask-ok">Ans Handy</button></div></div></div>
+</section>
+
+<!-- Untere Leiste im Handy-Stil -->
+<nav class="pnav" id="pnav"><div data-m="fokus"><i>◉</i>FOKUS</div><div data-m="info"><i>▦</i>INFO</div><div data-m="lage"><i>◍</i>LAGE</div><div data-m="steuern"><i>✦</i>STEUERN</div></nav>
+
 <!-- EINSTELLUNGEN (im HUD, wie am Handy) -->
 <div class="pset" id="pset"><div class="ps-win">
   <div class="ps-side"><div class="ps-logo">⚙ <span>EINSTELLUNGEN</span></div><div id="ps-tabs"></div></div>
@@ -63,5 +104,6 @@
 <script src="sphere3d.js"></script><script src="brain.js"></script><script src="strand.js"></script>
 <script src="lage.js"></script>
 <script src="settings.js"></script>
+<script src="handy.js"></script>
 <script src="hud.js"></script>
 </body></html>

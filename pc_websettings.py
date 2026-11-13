@@ -148,7 +148,11 @@ def schema(s: dict) -> dict:
         ]},
         {"id": "anz", "n": "Anzeige", "i": "◐", "items": [
             card("HUD",
-                 sel("hud_mode", "Modus", _opts(su.HUD_MODES[:3])),
+                 {"k": "hud_layout", "t": "choice", "l": "Aufbau", "o": [
+                     ["PC-Stil", "pc", "Leiste oben, wie bisher"],
+                     ["Handy-Stil", "handy", "Fokus · Info · Lage · Steuern unten"]],
+                  "h": "Handy-Stil: gleicher Aufbau wie die App, mit der Seite „Steuern“ für dein Handy."},
+                 sel("hud_mode", "Modus beim Start", _opts(su.HUD_MODES[:3]) + [["Steuern – dein Handy fernsteuern", "steuern"]]),
                  sel("hud_style", "Stil", _opts(su.HUD_STYLES), "Wirkt nach einem Neustart von Jarvis."),
                  sel("sphere_color", "Farbe der Kugel", _same(su.SPHERE_COLORS)),
                  sw("hud_topmost", "Immer im Vordergrund"),
@@ -219,7 +223,7 @@ def schema(s: dict) -> dict:
         "lage_spin": bool(s.get("lage_spin", True)), "lage_orbits": bool(s.get("lage_orbits", True)),
         "map_labels": bool(g("map_labels")), "lage_sat_tour": bool(g("lage_sat_tour")),
         "globe_auto_open": bool(g("globe_auto_open")), "briefing_on_start": bool(g("briefing_on_start")),
-        "hud_mode": g("hud_mode"), "hud_style": s.get("hud_style", "neu"),
+        "hud_mode": g("hud_mode"), "hud_style": s.get("hud_style", "neu"), "hud_layout": s.get("hud_layout", "pc"),
         "sphere_color": g("sphere_color") if g("sphere_color") in su.SPHERE_COLORS else "Gold",
         "hud_topmost": bool(g("hud_topmost")), "hud_animation": bool(g("hud_animation")),
         "overlay_style": g("overlay_style"), "orb_size": g("orb_size"), "orb_corner": g("orb_corner"),
@@ -259,7 +263,7 @@ def save(s: dict, v: dict) -> dict:
     for k in ("followup_seconds", "voice_volume", "voice_pitch", "voice_rate", "chime_volume", "orb_size"):
         if k in v:
             new[k] = num(k)
-    for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode",
+    for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
               "calendar_url", "gemini_api_key"):
         if k in v:

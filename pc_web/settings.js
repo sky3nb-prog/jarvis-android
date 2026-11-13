@@ -44,6 +44,8 @@
         return `<div class="ps-f"><label>${esc(i.l)}</label><div class="ps-sel"><select data-k="${i.k}">${opts}</select></div>${hint(i)}</div>`;
       }
       case "range": return `<div class="ps-f"><label>${esc(i.l)}<b data-out="${i.k}">${v}${i.u || ""}</b></label><input class="jr" data-k="${i.k}" data-u="${esc(i.u || "")}" type="range" min="${i.min}" max="${i.max}" value="${v}">${hint(i)}</div>`;
+      case "choice": return `<div class="ps-f"><label>${esc(i.l)}</label><div class="ps-choice">${i.o.map(([n, ov, sub]) =>
+        `<div class="pc-o${ov === v ? " on" : ""}" data-k="${i.k}" data-v="${esc(ov)}"><div class="mini ${esc(ov)}"><i></i><b></b></div><div class="n">${esc(n)}</div><small>${esc(sub || "")}</small></div>`).join("")}</div>${hint(i)}</div>`;
       case "btn": return `<div class="ps-btnrow"><button class="ps-btn" data-a="${i.a}">${esc(i.l)}</button><span class="ps-st" data-st="${i.a}"></span></div>`;
       case "note": return i.l ? `<div class="ps-note">${esc(i.l)}</div>` : "";
       case "code": return `<div class="ps-f"><label>${esc(i.l)}</label><div class="ps-code" id="ps-code">${esc(i.v)}</div></div>`;
@@ -72,6 +74,10 @@
       const rows = []; b.querySelectorAll(".ps-bt .r").forEach((rr) => rows.push([...rr.querySelectorAll("input")].map((x) => x.value)));
       set("hud_buttons", rows);
     })));
+    b.querySelectorAll(".pc-o").forEach((o) => o.addEventListener("click", () => {
+      set(o.dataset.k, o.dataset.v);
+      b.querySelectorAll(`.pc-o[data-k="${o.dataset.k}"]`).forEach((x) => x.classList.toggle("on", x === o));
+    }));
     b.querySelectorAll(".ps-btn").forEach((btn) => btn.addEventListener("click", () => run(btn.dataset.a, btn)));
   }
 

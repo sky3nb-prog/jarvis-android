@@ -3,8 +3,9 @@
   const $ = (id) => document.getElementById(id);
   const S = window.PC.get("settings") || {};
   const name = (S.assistant_name || "J.A.R.V.I.S.");
-  $("aname").textContent = name; $("f-name").textContent = name; $("i-name").textContent = name;
-  let mode = ["fokus", "info", "lage"].includes(S.hud_mode) ? S.hud_mode : "info";
+  $("aname").textContent = name; $("f-name").textContent = name; $("i-name").textContent = name; $("s-name").textContent = name;
+  document.body.classList.toggle("handy", S.hud_layout === "handy");   // Aufbau wie die Handy-App (Leiste unten)
+  let mode = ["fokus", "info", "lage", "steuern"].includes(S.hud_mode) ? S.hud_mode : "info";
   let level = 0, target = 0, state = "idle";
 
   // Kugeln (jede Seite hat ihre eigene, gezeichnet wird nur die sichtbare)
@@ -13,12 +14,12 @@
     try { s = new Sphere3D(w.querySelector("canvas.sphere"), seed); b = new JarvisBrain(w.querySelector("canvas.brain"), s); b.scale = scale; } catch (e) {}
     return { w, s, b };
   }
-  const sph = { fokus: mk("f-sph", 3, .72), info: mk("i-sph", 5, .8), lage: mk("l-sph", 7, .9) };
+  const sph = { fokus: mk("f-sph", 3, .72), info: mk("i-sph", 5, .8), lage: mk("l-sph", 7, .9), steuern: mk("s-sph", 9, .85) };
   const strand = new Strand($("strand"), 1, { key: [[-.1, .62], [.12, .55], [.3, .5], [.5, .47], [.7, .43], [.88, .36], [1.1, .3]], rings: [[.5, .47, .2]], twigs: 14, S: (w, h) => h / 520 });
 
   // Größe und Lage der Kugeln je nach Fenstergröße
   function layout() {
-    const W = innerWidth, H = innerHeight - 46;
+    const W = innerWidth, H = innerHeight - 46 - (document.body.classList.contains("handy") ? 92 : 0);
     const fs = Math.min(W * .4, H * .62), is = Math.min(W * .3, H * .5);
     Object.assign($("f-sph").style, { width: fs + "px", height: fs + "px", left: (W - fs) / 2 + "px", top: H * .06 + "px" });
     $("f-name").style.top = H * .06 + fs - 6 + "px"; $("f-state").style.top = H * .06 + fs + 36 + "px"; $("f-talk").style.top = H * .06 + fs + 70 + "px";
@@ -33,13 +34,14 @@
     if (m === "flug") { window.PC.post("mode", { mode: "flug" }); return; }
     mode = m;
     document.querySelectorAll(".pv").forEach((e) => e.classList.toggle("on", e.id === "pv-" + m || (m === "lage" && e.id === "v-lage")));
-    document.querySelectorAll("#modes span").forEach((e) => e.classList.toggle("on", e.dataset.m === m));
+    document.querySelectorAll("#modes span, #pnav div").forEach((e) => e.classList.toggle("on", e.dataset.m === m));
+    if (m === "steuern" && window.JHandy) window.JHandy.shown();
     $("strand").style.display = m === "lage" ? "none" : "";
     if (m === "lage" && window.JLage) window.JLage.shown();
     if (m === "info") info(true);
     if (save) window.PC.post("mode", { mode: m });
   }
-  document.querySelectorAll("#modes span").forEach((e) => e.addEventListener("click", () => setMode(e.dataset.m, true)));
+  document.querySelectorAll("#modes span, #pnav div").forEach((e) => e.addEventListener("click", () => setMode(e.dataset.m, true)));
   $("gear").addEventListener("click", () => window.JSettings && window.JSettings.open());
   if (window.JLage) window.JLage.prefs(S);
 
@@ -50,7 +52,7 @@
     document.body.classList.toggle("asleep", !on);
     for (const k in sph) if (sph[k].s) sph[k].s.power = on;
     strand.power = on;
-    ["f-state", "i-state"].forEach((id) => { if (!on) $(id).textContent = "schläft"; else if ($(id).textContent === "schläft") $(id).textContent = "bereit"; });
+    ["f-state", "i-state", "s-state"].forEach((id) => { if (!on) $(id).textContent = "schläft"; else if ($(id).textContent === "schläft") $(id).textContent = "bereit"; });
   }
   $("pwr").addEventListener("click", () => { const on = !power; showPower(on); window.PC.post("power", { on }); });
   try { showPower(!!(window.PC.get("power") || { on: true }).on); } catch (e) {}
@@ -95,19 +97,21 @@
   function setState(st) {
     state = st;
     for (const k in sph) if (sph[k].s) sph[k].s.state = st === "idle" ? "idle" : st;
-    $("f-state").textContent = $("i-state").textContent = !power && st === "idle" ? "schläft" : (STATES[st] || st);
+    $("f-state").textContent = $("i-state").textContent = $("s-state").textContent = !power && st === "idle" ? "schläft" : (STATES[st] || st);
     if (st === "idle") target = 0;
   }
   function onEvent(type, d) {
     if (type === "state") setState(d.state);
     else if (type === "msg") {
-      if (d.role === "Du" && d.text) { $("f-you").textContent = d.text; addLog(d.text); }
-      else if (d.role === "Assistent" && d.text) $("f-jar").textContent = d.text;
+      if (d.role === "Du" && d.text) { $("f-you").textContent = $("s-you").textContent = d.text; addLog(d.text); }
+      else if (d.role === "Assistent" && d.text) $("f-jar").textContent = $("s-jar").textContent = d.text;
     }
     else if (type === "level") target = d.value || 0;
     else if (type === "think") { for (const k in sph) if (sph[k].b) sph[k].b.think(d.kinds || [], d.ms || 4500); }
     else if (type === "mode") setMode(d.mode, false);
     else if (type === "power") showPower(!!d.on);
+    else if (type === "phone") { if (window.JHandy) window.JHandy.onStatus(d); }
+    else if (type === "phone_reply") { if (window.JHandy) window.JHandy.onReply(d); }
     else if (type === "lage") {
       if (d.tour) setMode("lage", false);
       if (window.JLage) window.JLage.onData(d.data, !!d.tour);

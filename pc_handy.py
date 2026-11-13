@@ -58,8 +58,19 @@ def ask(kind: str, wait: float = 25, **data):
         _waiting.pop(mid, None)
 
 
+STATUS = {"data": None, "t": 0.0}   # letzter Stand vom Handy (Akku, Lautstärken, was läuft, Termine)
+ON_STATUS = None                    # vom HUD gesetzt: neuer Stand ist da
+
+
 def on_reply(msg: dict):
     """Vom Fernbedienungs-Kanal (pc_remote): Antwort des Handys."""
+    if isinstance(msg.get("status"), dict):
+        STATUS.update(data=msg["status"], t=time.time())
+        if ON_STATUS:
+            try:
+                ON_STATUS(STATUS["data"])
+            except Exception:
+                pass
     w = _waiting.get(str(msg.get("re") or ""))
     if w:
         w[1] = {"ok": bool(msg.get("ok", True)), "text": str(msg.get("text") or "")}
@@ -134,3 +145,33 @@ def send_media():
     if r is None:
         return f"Ich habe {what} ans Handy geschickt, aber es hat sich nicht gemeldet."
     return r["text"] or f"{what} ist jetzt auf deinem Handy."
+
+
+# --- Seite "Steuern" im HUD ---------------------------------------------------------------------------------
+_asked = {"t": 0.0}
+
+
+def refresh_status(force: bool = False):
+    """Stand vom Handy holen (kostet 2 Nachrichten, darum höchstens alle 2 Minuten)."""
+    if not paired() or (not force and time.time() - _asked["t"] < 120):
+        return STATUS["data"]
+    _asked["t"] = time.time()
+    ask("status", wait=15)
+    return STATUS["data"]
+
+
+def control(what: str, **data) -> dict:
+    """Musik-Tasten, Lautstärke, Lautlos, Lampe, Handy finden."""
+    r = ask("ctl", wait=15, what=what, **data)
+    return r or {"ok": False, "text": "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"}
+
+
+def command(text: str) -> dict:
+    """Freier Befehl ans Handy (wie gesprochen beim Handy-Jarvis)."""
+    r = ask("do", wait=30, text=text)
+    return r or {"ok": False, "text": "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"}
+
+
+def call(who: str) -> dict:
+    r = ask("call", wait=20, who=who)
+    return r or {"ok": False, "text": "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"}

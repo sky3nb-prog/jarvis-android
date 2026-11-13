@@ -117,3 +117,64 @@ input.jr:focus{outline:none}input.jr:active::-webkit-slider-thumb{transform:scal
 .top .switch{position:relative;top:auto;right:auto;flex:0 0 50px;margin-left:6px;cursor:pointer}
 body.asleep .sph{filter:grayscale(1) brightness(.75);transition:filter .6s}
 body.asleep .state{color:#8a8a92}
+
+/* Auswahl mit kleinem Vorschaubild (Aufbau des HUD) */
+.ps-choice{display:flex;gap:12px}
+.pc-o{flex:1;border-radius:16px;border:1px solid #2a3a46;background:#06121a;padding:10px;text-align:center;cursor:pointer;transition:all .15s}
+.pc-o .n{color:#a9bfcc;font-size:13.5px;font-weight:700}.pc-o small{color:#7f98a6;font-size:11.5px}
+.pc-o.on{border-color:var(--gold);background:#2a1c06}.pc-o.on .n{color:var(--gold-l)}.pc-o.on small{color:#d8c08a}
+.pc-o .mini{height:70px;border-radius:10px;background:#000;margin-bottom:8px;position:relative;border:1px solid #2a2216;overflow:hidden}
+.pc-o .mini i{position:absolute;left:50%;top:46%;width:26px;height:26px;margin:-13px;border-radius:50%;background:radial-gradient(#ffd678,#5a2a00)}
+.pc-o .mini.pc b{position:absolute;left:0;right:0;top:0;height:8px;background:#3a2608}
+.pc-o .mini.handy b{position:absolute;bottom:6px;left:25%;right:25%;height:9px;border-radius:5px;background:#3a2608;border:1px solid var(--gold)}
+
+/* --- Untere Leiste (Handy-Stil) --- */
+.pnav{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;width:min(540px,92vw);height:64px;display:none;border-radius:32px;background:rgba(10,7,3,.94);border:1px solid rgba(255,170,40,.35);box-shadow:0 10px 30px rgba(0,0,0,.6);z-index:6}
+.pnav div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8a7a5c;font-size:11px;font-weight:700;letter-spacing:1.5px;gap:2px;border-radius:28px;margin:5px;cursor:pointer;user-select:none;transition:background .15s,color .15s}
+.pnav div i{font-style:normal;font-size:19px}
+.pnav div:hover{color:#c8a870}
+.pnav div.on{background:#3a2608;color:var(--gold-l);box-shadow:inset 0 0 0 1px var(--gold)}
+body.handy .pnav{display:flex}
+body.handy .modes{display:none}
+body.handy .top .switch{margin-left:auto}
+body.handy .pv{bottom:92px}
+
+/* --- Steuern: dein Handy --- */
+#pv-steuern{overflow-y:auto}
+.st-wrap{max-width:1240px;margin:0 auto;padding:20px 24px 24px;display:grid;grid-template-columns:300px 1fr 1fr;gap:24px}
+.st-jar{display:flex;flex-direction:column;align-items:center;padding-top:4px}
+.st-orb{position:relative;width:240px;height:240px}
+.st-orb .sph{inset:16px}
+.st-ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,170,40,.28);box-shadow:inset 0 0 40px rgba(255,170,40,.08)}
+.st-ring::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid transparent;border-top-color:var(--gold);border-right-color:rgba(255,170,40,.35);animation:stSpin 9s linear infinite}
+.st-ring::after{content:"";position:absolute;inset:-18px;border-radius:50%;border:1px dashed rgba(255,214,120,.18);animation:stSpin 30s linear infinite reverse}
+@keyframes stSpin{to{transform:rotate(360deg)}}
+body.asleep .st-ring::before{border-top-color:#555;border-right-color:#333}
+.st-name{margin-top:22px;color:var(--gold-l);font-size:24px;letter-spacing:4px;font-weight:600}
+.st-state{color:#c8965a;font-size:14px;margin-top:2px}
+.st-talk{margin-top:18px;width:100%;padding:12px 16px;border-radius:18px;background:rgba(14,10,4,.85);border:1px solid #5a3e14;font-size:14px;line-height:1.4}
+.st-talk .who{margin-top:6px}.st-talk .who:first-child{margin-top:0}
+.st-tip{margin-top:10px;color:#8f7d5c;font-size:12.5px;text-align:center}
+.gtitle{font-size:11.5px;letter-spacing:1.6px;font-weight:700;margin:4px 0 9px}.gtitle.gold{color:var(--gold-l)}
+.st-mid .gtitle,.st-right .gtitle{margin-top:14px}.st-mid .gtitle:first-of-type{margin-top:0}
+.st-right>.gtitle:first-child{margin-top:0}
+.phbar{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;border:1px solid rgba(255,214,120,.45);background:rgba(14,10,4,.85)}
+.phbar .dot{width:10px;height:10px;border-radius:50%;background:#ffd678;box-shadow:0 0 10px #ffb43c;flex:0 0 10px}
+.phbar b{color:var(--gold-l);font-size:13px;letter-spacing:1px}.phbar small{display:block;color:#a8946c;font-size:11.5px;margin-top:2px}
+.phbar .r{margin-left:auto;text-align:right;font:600 11px Consolas,monospace;color:#e8cf98;line-height:1.6}
+.phbar.off{border-color:rgba(150,160,170,.35);background:rgba(14,16,18,.85)}.phbar.off .dot{background:#6c6c74;box-shadow:none}.phbar.off b{color:#9aa4ac}
+.bat{display:inline-block;width:24px;height:11px;border:1.5px solid #e8cf98;border-radius:3px;position:relative;vertical-align:-1px;margin-left:4px}
+.bat i{position:absolute;left:1.5px;top:1.5px;bottom:1.5px;background:#6effcd;border-radius:1px}
+.now.g2{border-color:rgba(255,214,120,.4);margin:0}.now.g2 .cov{background:linear-gradient(135deg,#6a4a10,#c88a2a)}.now.g2 .ctl{color:var(--gold-l)}.now.g2 .ctl span:hover{color:#fff}
+#pv-steuern .tiles{gap:12px}#pv-steuern .tile{height:96px;font-size:14px}
+#pv-steuern .tile small{color:#b09a70}
+#pv-steuern .tile.on{background:#2a1c06;box-shadow:inset 0 0 0 1px var(--gold)}
+.mix.g2{border-color:rgba(255,214,120,.35)}.mix.g2 .ic{color:var(--gold-l)}.mix.g2 .nm{width:84px;color:#eadcc0}.mix.g2 .pc{color:#e8cf98}
+.mix.g2 input.jr::-webkit-slider-runnable-track{background:linear-gradient(90deg,#c88a2a 0,#ffd678 var(--p,50%),#2a2216 var(--p,50%))}
+.st-ter{padding:10px 14px;font-size:13px;line-height:1.9;color:#e8dcc0}.st-ter b{color:var(--gold-l);font-weight:600}
+.st-cmd{display:flex;gap:10px}.st-cmd input{flex:1;padding:12px 16px;border-radius:22px;border:1px solid #5a3e14;background:#0b0804;color:var(--txt);font-size:14px;font-family:inherit;outline:none}
+.st-cmd input:focus{border-color:var(--gold)}
+.st-cmd button,.st-ask button{cursor:pointer}.st-cmd button{padding:0 20px;border-radius:22px;border:1px solid var(--gold);background:#3a2608;color:var(--gold-l);font-weight:700;font-family:inherit}
+.st-ask{border-radius:0;z-index:7}.st-ask>div{min-width:380px}
+.st-ask input{display:block;width:100%;margin-top:10px;padding:10px 13px;border-radius:13px;border:1px solid #5a3e14;background:#0b0804;color:var(--txt);font-size:14px;font-family:inherit;outline:none}
+@media (max-width:1150px){.st-wrap{grid-template-columns:1fr 1fr}.st-jar{display:none}}

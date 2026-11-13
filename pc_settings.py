@@ -93,7 +93,8 @@ DEFAULTS = {
     "map_labels": True,  # Ortsnamen auf der Karte
     "home_city": "Leonberg",  # dein Standort: Mitte der Karte und lokale Nachrichten
     "hud_mode": "info",  # HUD: "info" (Kugel mit allen Infos) oder "fokus" (nur die Kugel)
-    "hud_style": "neu",  # "neu" = wie am Handy (Edge-Fenster, 3D, Satelliten-Globus), "klassisch" = bisheriges HUD
+    "hud_style": "neu",  # "neu" = wie am Handy (eigenes Fenster, 3D, Satelliten-Globus), "klassisch" = bisheriges HUD
+    "hud_layout": "pc",  # "pc" = Leiste oben, "handy" = wie die App (Fokus, Info, Lage, Steuern unten)
     "sphere_color": "Gold",  # Farbe der Kugel: Gold, Cyan, Rot, Grün, Violett, Weiß
     "hud_borderless": False,  # (nicht mehr benutzt) HUD hat wieder die normale, eingefärbte Titelleiste
     "lage_places": ["Seoul", "New York"],  # Lieblingsorte für die Lage (Verwandtschaft, Urlaub ...), oben im Lage-Screen

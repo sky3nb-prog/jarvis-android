@@ -805,7 +805,7 @@ class UI:
         if self.web and {k: v for k, v in old.items() if k not in ("hud_mode", "hud_width", "seen_new")} != \
                 {k: v for k, v in new.items() if k not in ("hud_mode", "hud_width", "seen_new")}:
             self.web.push("settings", {})   # neues HUD lädt die geänderten Einstellungen
-        if self.web and new.get("hud_mode") != old.get("hud_mode") and new.get("hud_mode") in ("fokus", "info", "lage"):
+        if self.web and new.get("hud_mode") != old.get("hud_mode") and new.get("hud_mode") in ("fokus", "info", "lage", "steuern"):
             self.web.push("mode", {"mode": new["hud_mode"]})
         pc_settings.save(new)
         apply_settings(new)
