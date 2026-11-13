@@ -149,7 +149,7 @@ class JarvisService : Service() {
             lm.removeUpdates(locListener)
             val prov = if (Build.VERSION.SDK_INT >= 31 && lm.hasProvider(android.location.LocationManager.FUSED_PROVIDER))
                 android.location.LocationManager.FUSED_PROVIDER else android.location.LocationManager.NETWORK_PROVIDER
-            lm.requestLocationUpdates(prov, 60_000L, 25f, locListener, Looper.getMainLooper())
+            lm.requestLocationUpdates(prov, 60_000L, 0f, locListener, Looper.getMainLooper())
             listOf(android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.GPS_PROVIDER)
                 .mapNotNull { try { lm.getLastKnownLocation(it) } catch (_: Exception) { null } }.maxByOrNull { it.time }?.let { Alltag.onFix(it) }
         } catch (e: Exception) { Log.w(tag, "standort: $e") }

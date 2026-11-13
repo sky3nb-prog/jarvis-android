@@ -196,12 +196,14 @@ object Alltag {
         val times = h.optJSONArray("time") ?: return false
         val key = SimpleDateFormat("yyyy-MM-dd'T'HH:00", de).format(Date(t))
         val i = (0 until times.length()).firstOrNull { times.optString(it) == key } ?: return false
-        var wet = 0
+        var wet = 0; var seen = 0
         for (m in listOf("icon_seamless", "ecmwf_ifs025", "gfs_seamless")) {
             val a = h.optJSONArray("precipitation_$m") ?: continue
+            seen++
             if (maxOf(a.optDouble(i, 0.0), a.optDouble(i + 1, 0.0)) >= 0.2) wet++
         }
-        return wet >= 2
+        if (seen == 0) h.optJSONArray("precipitation")?.let { a -> return maxOf(a.optDouble(i, 0.0), a.optDouble(i + 1, 0.0)) >= 0.2 }
+        return seen > 0 && wet * 2 > seen   // Mehrheit der Modelle
     }
 
     /** Wetter eines Tages als kurze Datenzeilen fürs Briefing. */
@@ -251,7 +253,11 @@ object Alltag {
         // Heim-WLAN noch nicht eingetragen: zuhause (Standort) und im WLAN -> übernehmen
         if (hw.isBlank() && ssid != null && dHome != null && dHome < 0.08) prefs(ctx).edit().putString("heim_wlan", ssid).apply()
         val isHome = onHomeWifi || (dHome != null && dHome < 0.15)
-        val isAway = !isHome && (wifiKnown || (dHome != null && dHome > 0.3))
+        // WLAN weg, aber der letzte Standort (bis 60 Min. alt) war noch zuhause -> eher Router/WLAN-Aussetzer, nicht "weg"
+        val lastNearHome = fix?.let { f -> home != null && now - f.time < 60 * 60_000L &&
+            Route.distKm(Route.P(f.latitude, f.longitude, ""), home) < 0.3 } ?: false
+        val isAway = !isHome && ((wifiKnown && (dHome == null && !lastNearHome || dHome != null && dHome > 0.3)) ||
+            (!wifiKnown && dHome != null && dHome > 0.3))
         if (!isHome && !isAway) return   // weiß nicht, wo du bist
 
         val trip = s.optJSONObject("trip") ?: JSONObject().put("from", "zuhause").put("start", 0L).put("pts", JSONArray())
