@@ -47,10 +47,14 @@ def ask(kind: str, wait: float = 25, **data):
     mid = uuid.uuid4().hex[:12]
     ev = threading.Event()
     _waiting[mid] = [ev, None]
+    t0 = time.time()
     try:
+        print(f"Handy-Auftrag {kind}: {str(data)[:120]}")
         _send(dict(kind=kind, id=mid, ts=int(time.time()), **{"from": "pc"}, **data))
         ev.wait(wait)
-        return _waiting[mid][1]
+        r = _waiting[mid][1]
+        print(f"Handy-Antwort {kind} nach {time.time() - t0:.1f} s: " + (str(r.get("text", ""))[:150] if r else "keine (Jarvis-App an? Schalter oben rechts an?)"))
+        return r
     except Exception as e:
         print(f"Handy-Auftrag ging nicht: {e}")
         return None
@@ -175,12 +179,18 @@ _asked = {"t": 0.0}
 
 
 def refresh_status(force: bool = False):
-    """Stand vom Handy holen (kostet 2 Nachrichten, darum höchstens alle 2 Minuten)."""
-    if not paired() or (not force and time.time() - _asked["t"] < 120):
-        return STATUS["data"]
+    """Stand vom Handy holen (kostet 2 Nachrichten, darum höchstens alle 2 Minuten). Gibt False zurück, wenn es nicht antwortet."""
+    if not paired():
+        print("Handy-Stand: nicht gekoppelt")
+        return False
+    if not force and time.time() - _asked["t"] < 120:
+        return True
     _asked["t"] = time.time()
-    ask("status", wait=15)
-    return STATUS["data"]
+    r = ask("status", wait=20)
+    if r is None:
+        _asked["t"] = 0   # gleich nochmal erlauben
+        return False
+    return True
 
 
 def control(what: str, **data) -> dict:
@@ -216,7 +226,11 @@ def plan_route(text: str):
     if re.search(r"\b(?:youtube|discord|steam|chrome|spotify|deezer|whatsapp|netflix|twitch|instagram|tiktok|einstellungen|ordner|"
                  r"spiel|lied|musik|video|seite|website|app)\b", text, re.I) and not re.search(r"\broute\b|maps|navigation", text, re.I):
         return None   # „ich will zu YouTube“ ist kein Weg
+    who = re.search(r"\ban\s+([A-ZÄÖÜ][\wäöüß-]+)\b", text)
+    who = who.group(1) if who and who.group(1).lower() not in ("mein", "meine", "mich", "handy", "telefon", "google", "dem", "den", "der") else None
     r = ask("route", wait=45, text=text)
+    if r is not None and who:
+        r["send_to"] = who   # „… an Thomas schicken“ gilt vor der Einstellung
     if r is None:
         return None
     if r.get("url"):
@@ -225,7 +239,8 @@ def plan_route(text: str):
             webbrowser.open(r["url"])
         except Exception:
             pass
-    if r.get("send_to") and r.get("message"):   # Link per WhatsApp an den eingestellten Kontakt (Einstellungen → Wege)
+    if r.get("send_to") and (r.get("message") or r.get("url")):
+        r["message"] = r.get("message") or ("Route: " + str(r.get("url")))   # Link per WhatsApp an den eingestellten Kontakt (Einstellungen → Wege)
         def go():
             try:
                 import pc_messages

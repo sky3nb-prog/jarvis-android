@@ -181,3 +181,11 @@ body.asleep .st-ring::before{border-top-color:#555;border-right-color:#333}
 
 .ps-f textarea{width:100%;padding:10px 13px;border-radius:13px;border:1px solid #1a4458;background:#081c29;color:var(--txt);font-size:14px;font-family:inherit;outline:none;resize:vertical;line-height:1.5}
 .ps-f textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,170,40,.15)}
+
+.ph-re{width:30px;height:30px;border-radius:50%;border:1px solid #5a3e14;display:flex;align-items:center;justify-content:center;color:var(--gold-l);cursor:pointer;flex:0 0 30px;font-size:15px}
+.ph-re:hover{background:#2a1c06}.ph-re.spin{animation:stSpin 1s linear infinite}
+
+/* Punkt für neue Einstellungen */
+.ndot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff5a5a;box-shadow:0 0 8px #ff5a5a;margin-left:7px;vertical-align:middle;flex:0 0 8px}
+.pst .ndot{margin-left:auto}
+.top .gear{position:relative}.top .gear.hasnew::after{content:"";position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:#ff5a5a;box-shadow:0 0 8px #ff5a5a}

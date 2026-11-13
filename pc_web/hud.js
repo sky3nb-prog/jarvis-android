@@ -43,6 +43,7 @@
   }
   document.querySelectorAll("#modes span, #pnav div").forEach((e) => e.addEventListener("click", () => setMode(e.dataset.m, true)));
   $("gear").addEventListener("click", () => window.JSettings && window.JSettings.open());
+  try { if ((window.PC.get("settings_new") || []).length) $("gear").classList.add("hasnew"); } catch (e) {}
   if (window.JLage) window.JLage.prefs(S);
 
   // An/Aus wie am Handy: aus = Jarvis schläft (hört nicht aufs Aktivierungswort), Kugel und Strang werden grau und still

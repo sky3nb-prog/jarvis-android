@@ -350,6 +350,9 @@ class WebHud:
             import pc_handy
             d = pc_handy.STATUS
             return {"paired": pc_handy.paired(), "status": d["data"], "age": int(time.time() - d["t"]) if d["t"] else None}
+        if name == "settings_new":
+            import pc_websettings
+            return pc_websettings.unseen(s)
         if name == "settings_full":
             import pc_websettings
             return pc_websettings.schema(s)
@@ -424,6 +427,13 @@ class WebHud:
             import pc_websettings
             self.ui.q.put(("apply", pc_websettings.save(self.ui.settings, body.get("values") or {})))
             return {"ok": True}
+        if name == "settings_seen":   # Bereich angeschaut: Punkte weg
+            keys = [str(k) for k in body.get("keys") or []]
+            seen = list(self.ui.settings.get("seen_new") or [])
+            add = [k for k in keys if k not in seen]
+            if add:
+                self.ui.post_setting("seen_new", seen + add)
+            return {"ok": True}
         if name == "settings_run":
             import pc_websettings
             try:
@@ -442,7 +452,8 @@ class WebHud:
         op = b.get("op")
         try:
             if op == "refresh":
-                pc_handy.refresh_status(bool(b.get("force")))
+                if not pc_handy.refresh_status(bool(b.get("force"))):
+                    self.push("phone_reply", {"ok": False, "text": "Dein Handy hat nicht geantwortet. Ist die Jarvis-App dort an (Schalter oben rechts)?"})
                 return
             if op == "ctl":
                 r = pc_handy.control(str(b.get("what")), **{k: v for k, v in b.items() if k not in ("op", "what")})

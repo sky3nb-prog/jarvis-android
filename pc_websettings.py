@@ -28,6 +28,15 @@ def _same(names):
     return [[n, n] for n in names]
 
 
+# Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
+NEW = ["meine_orte", "meine_wege", "route_an", "hud_layout"]
+
+
+def unseen(s: dict) -> list:
+    seen = set(s.get("seen_new") or [])
+    return [k for k in NEW if k not in seen]
+
+
 def schema(s: dict) -> dict:
     import pc_audio
     import pc_eleven
@@ -255,7 +264,7 @@ def schema(s: dict) -> dict:
         values["_has_" + k] = bool(s.get(enc))
     for k, _, v in profile:
         values["profil_" + k] = v
-    return {"tabs": tabs, "values": values}
+    return {"tabs": tabs, "values": values, "new": unseen(s)}
 
 
 def _csv(v, n):

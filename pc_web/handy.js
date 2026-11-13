@@ -75,6 +75,7 @@
   document.querySelectorAll("#pv-steuern [data-op]").forEach((e) => e.addEventListener("click", () => send({ op: e.dataset.op }, "Lied rüber")));
   const cmd = () => { const t = $("ph-cmd").value.trim(); if (!t) return; $("ph-cmd").value = ""; send({ op: "do", text: t }, "Befehl"); };
   $("ph-send").addEventListener("click", cmd);
+  $("ph-re").addEventListener("click", () => { $("ph-re").classList.add("spin"); setTimeout(() => $("ph-re").classList.remove("spin"), 15000); window.PC.post("phone", { op: "refresh", force: true }); });
   $("ph-cmd").addEventListener("keydown", (e) => { if (e.key === "Enter") cmd(); });
 
   window.JHandy = {
@@ -83,8 +84,8 @@
       show();
       if (paired) window.PC.post("phone", { op: "refresh" });
     },
-    onStatus(d) { if (d && d.status) { st = d.status; show(); } },
-    onReply(r) { r = r || {}; toast((r.ok === false ? "✕ " : "✓ Handy: ") + (r.text || (r.ok === false ? "Ging nicht." : "erledigt")), r.ok !== false); },
+    onStatus(d) { if (d && d.status) { st = d.status; $("ph-re").classList.remove("spin"); show(); } },
+    onReply(r) { r = r || {}; $("ph-re").classList.remove("spin"); toast((r.ok === false ? "✕ " : "✓ Handy: ") + (r.text || (r.ok === false ? "Ging nicht." : "erledigt")), r.ok !== false); },
   };
   show();
 })();

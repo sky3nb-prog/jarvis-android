@@ -15,17 +15,24 @@
   function close(ask) {
     if (ask && dirty && !confirmBox()) return;
     root.classList.remove("on");
+    try { document.getElementById("gear").classList.toggle("hasnew", !!(data && (data.new || []).length)); } catch (e) {}
     if (window.__reload) location.reload();   // Einstellungen wurden inzwischen geändert (z. B. vom Handy)
   }
   // eigene Rückfrage statt confirm() (Dialoge blockieren das Fenster)
   function confirmBox() { $("ps-ask").classList.add("on"); return false; }
 
   function render() {
-    $("ps-tabs").innerHTML = data.tabs.map((t) => `<div class="pst${t.id === tab ? " on" : ""}" data-t="${t.id}" style="--c:${COL[t.id] || "#3cc8ff"}"><i>${t.i}</i>${esc(t.n)}</div>`).join("");
+    const isNew = (k) => (data.new || []).includes(k);
+    const tabNew = (t) => t.items.some((c) => c.items.some((i) => isNew(i.k)));
+    $("ps-tabs").innerHTML = data.tabs.map((t) => `<div class="pst${t.id === tab ? " on" : ""}" data-t="${t.id}" style="--c:${COL[t.id] || "#3cc8ff"}"><i>${t.i}</i>${esc(t.n)}${tabNew(t) ? '<b class="ndot"></b>' : ""}</div>`).join("");
     $("ps-tabs").querySelectorAll(".pst").forEach((e) => e.addEventListener("click", () => { tab = e.dataset.t; render(); $("ps-body").scrollTop = 0; }));
     const t = data.tabs.find((x) => x.id === tab) || data.tabs[0];
     $("ps-title").textContent = t.n.toUpperCase();
     $("ps-body").innerHTML = `<div class="ps-grid">${t.items.map((c) => card(c, COL[t.id])).join("")}</div>`;
+    (data.new || []).forEach((k) => { const e = $("ps-body").querySelector(`[data-k="${k}"]`); const f = e && e.closest(".ps-f, .ps-row"); const l = f && (f.querySelector("label") || f.firstElementChild); if (l) l.insertAdjacentHTML("beforeend", '<b class="ndot"></b>'); });
+    // was du hier siehst, gilt als gesehen (der Punkt verschwindet beim nächsten Öffnen)
+    const here = []; t.items.forEach((c) => c.items.forEach((i) => { if (i.k && isNew(i.k)) here.push(i.k); }));
+    if (here.length) { window.PC.post("settings_seen", { keys: here }); setTimeout(() => { data.new = (data.new || []).filter((k) => !here.includes(k)); }, 0); }
     wire();
   }
 

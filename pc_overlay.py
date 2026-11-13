@@ -1158,11 +1158,11 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
     if result is None:
         result = pc_voiceset.handle(command, ui.settings)  # Einstellungen per Sprache ("dein Aktivierungswort ist ...")
     if result is None:
+        result = pc_handy.plan_route(command)  # smarter Wegeplaner (Zwischenstopps, Bahn, "wann muss ich los") übers Handy
+    if result is None:
         result = pc_messages.handle(command)  # WhatsApp- und Discord-Nachrichten schreiben
     if result is None:
         result = pc_download.handle(command)  # Dateien und Programme herunterladen
-    if result is None:
-        result = pc_handy.plan_route(command)  # smarter Wegeplaner (Zwischenstopps, Bahn, "wann muss ich los") übers Handy
     if result is None:
         result = pc_route.handle(command)  # Routen ("wie lange mit dem Fahrrad nach ...") und aufs Handy schicken
     if result is None and re.search(r"wo bin ich|wo befinde ich mich|mein standort", command.lower()):
@@ -1708,8 +1708,12 @@ def setup_log():
         pass
 
 
+VERSION = "2026-11-13 16:55"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+
+
 def main():
     setup_log()
+    print(f"Jarvis-Version: {VERSION}")
     if already_running():
         if "--autostart" not in sys.argv:   # z. B. Klick auf das angeheftete Symbol: laufenden Jarvis nach vorne holen
             signal_show()
