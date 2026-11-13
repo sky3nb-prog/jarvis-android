@@ -206,6 +206,44 @@ object Link {
         return best
     }
 
+    // --- Aufträge vom PC ans Handy (eigener Kanal "jh…") ------------------------------------------------------
+    private fun handyTopic(c: String) = "jh" + hex(sha("jarvis-handy:" + norm(c))).take(30)
+    private val stream = http.newBuilder().readTimeout(100, TimeUnit.SECONDS).build()   // ntfy schickt alle 45 s ein Lebenszeichen
+
+    /** Hört den Kanal ab, solange alive() stimmt, und gibt jeden frischen Auftrag des PCs an on(). */
+    fun listenPc(ctx: Context, alive: () -> Boolean, on: (JSONObject) -> Unit) {
+        var wait = 5_000L
+        while (alive()) {
+            val c = code(ctx)
+            if (!paired(ctx)) { Thread.sleep(60_000); continue }
+            try {
+                stream.newCall(Request.Builder().url(SERVER + handyTopic(c) + "/json").build()).execute().use { resp ->
+                    val src = resp.body?.source() ?: return@use
+                    wait = 5_000L
+                    while (alive() && !src.exhausted()) {
+                        val line = src.readUtf8Line() ?: break
+                        val ev = try { JSONObject(line) } catch (_: Exception) { continue }
+                        if (ev.optString("event") != "message") continue
+                        val m = try { decrypt(ev.optString("message"), c) } catch (_: Exception) { null } ?: continue
+                        if (m.optString("from") != "pc") continue
+                        if (Math.abs(System.currentTimeMillis() / 1000 - m.optLong("ts")) > 120) continue   // alt
+                        try { on(m) } catch (e: Exception) { Log.w(TAG, "auftrag: $e") }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "listenPc: $e")
+                Thread.sleep(wait); wait = minOf(120_000L, wait * 2)
+            }
+        }
+    }
+
+    /** Antwort auf einen Auftrag des PCs (der PC spricht sie dann). */
+    fun replyPc(ctx: Context, re: String, ok: Boolean, text: String) {
+        val c = code(ctx); if (!paired(ctx)) return
+        post(c, remoteTopic(c), JSONObject().put("kind", "phone_reply").put("from", "phone").put("re", re).put("ok", ok)
+            .put("text", text).put("ts", System.currentTimeMillis() / 1000))
+    }
+
     /** Neues ans PC schicken (Fakten, Stimmungen, Vergessen). */
     fun push(ctx: Context, facts: JSONArray = JSONArray(), moods: JSONArray = JSONArray(), forget: JSONArray = JSONArray()) {
         val c = code(ctx)

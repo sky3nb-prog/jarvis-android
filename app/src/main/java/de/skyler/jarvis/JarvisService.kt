@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.ServiceInfo
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -102,6 +103,7 @@ class JarvisService : Service() {
         VoskModel.ensure(this) { ok -> if (ok) loadModel() }
         alive = true
         Thread({ audioLoop() }, "jarvis-audio").start()
+        Thread({ Link.listenPc(this, { alive }) { m -> onPcTask(m) } }, "jarvis-pc").start()
         main.post(syncTask)
     }
 
@@ -442,6 +444,32 @@ class JarvisService : Service() {
                 if (mode != Mode.IDLE) main.post { speak("Ich komme gerade nicht ins Internet.") { endTalk() } }
             } finally {
                 busy = false
+            }
+        }
+    }
+
+    // --- Aufträge vom PC-Jarvis: "ruf Mama an", "trag … ein", "schick mir das Lied aufs Handy" ----------------
+    private val pcBrain by lazy { Brain(this) }   // eigener, damit es nicht mit dem Zuhören hier kollidiert
+
+    private fun onPcTask(m: JSONObject) {
+        val id = m.optString("id")
+        when (m.optString("kind")) {
+            "do" -> worker.execute {
+                val key = prefs.getString("groq_key", "") ?: ""
+                val text = m.optString("text")
+                val r = try { pcBrain.handle(key, text) } catch (e: Exception) { "Am Handy ging das nicht: ${e.message ?: ""}" }
+                Link.replyPc(this, id, true, r)
+            }
+            "media" -> main.post {
+                val q = listOf(m.optString("artist"), m.optString("title")).filter { it.isNotBlank() }.joinToString(" ")
+                val video = m.optBoolean("video")
+                val url = if (video) "https://www.youtube.com/results?search_query=" + Uri.encode(m.optString("title"))
+                          else "https://www.deezer.com/search/" + Uri.encode(q)
+                val ok = try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true
+                } catch (e: Exception) { false }
+                Link.replyPc(this, id, ok, if (!ok) "Am Handy ließ sich das nicht öffnen."
+                    else if (video) "Das Video ist auf deinem Handy offen." else "Läuft gleich in Deezer auf deinem Handy.")
             }
         }
     }

@@ -29,6 +29,7 @@ class Actions(private val ctx: Context) {
             "timer" -> timer(a.optInt("seconds", 0), a.optString("label"))
             "navigate" -> navigate(a.optString("to"), a.optString("mode", "d"))
             "call" -> call(a.optString("who"))
+            "pc" -> pc(a.optString("text"))
             "whatsapp" -> whatsapp(a.optString("to"), a.optString("text"))
             "youtube" -> start(Intent(Intent.ACTION_SEARCH).setPackage("com.google.android.youtube")
                 .putExtra("query", a.optString("query")), "YouTube sucht nach ${a.optString("query")}.")
@@ -223,5 +224,13 @@ class Actions(private val ctx: Context) {
             else -> Settings.ACTION_SETTINGS
         }
         return start(Intent(action), "Hier sind die Einstellungen.") ?: "Die Einstellungen gehen gerade nicht auf."
+    }
+
+    /** Auftrag an den PC-Jarvis ("schick mir das Lied vom PC aufs Handy", "mach am PC Musik an"). */
+    private fun pc(text: String): String {
+        if (text.isBlank()) return "Was soll der PC machen?"
+        if (!Link.paired(ctx)) return "Dein PC ist noch nicht gekoppelt."
+        val r = try { Link.command(ctx, JSONObject().put("type", "text").put("text", text)) } catch (_: Exception) { null }
+        return if (r == null) "Der PC antwortet gerade nicht." else "Hab's dem PC gesagt."
     }
 }

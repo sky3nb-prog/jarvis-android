@@ -60,6 +60,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"calendar_delete","title":"<Teil des Titels>","date":"<yyyy-MM-dd, optional>"}
 {"action":"navigate","to":"<Ziel>","mode":"<d|b|w>"}   (d Auto, b Fahrrad, w zu Fuß)
 {"action":"call","who":"<Name aus den Kontakten oder Nummer>"}
+{"action":"pc","text":"<Befehl an den Jarvis am PC, so wie man ihn dort sagen würde>"}   (alles, was am PC passieren soll: "mach am PC Musik an", "sperr den PC", "schick mir das Lied vom PC aufs Handy" -> text "schick mir was ich gerade höre aufs handy")
 {"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>"}
 {"action":"sms","to":"<Name>","text":"<Nachricht>"}
 {"action":"youtube","query":"<Suche>"}
