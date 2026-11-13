@@ -103,6 +103,12 @@ object Route {
         return trips.lastOrNull { it.arr <= arriveBy } ?: trips.firstOrNull()
     }
 
+    /** Erste Bahn-Verbindung ab Zeit t (dep = Abmarsch inkl. Fußweg). */
+    fun bahnFrom(a: P, b: P, t: Long): Trip? {
+        val trips = efa(a, b, t, false).ifEmpty { dbRest(a, b, t, false) }
+        return trips.firstOrNull { it.dep >= t - 3 * 60_000L } ?: trips.firstOrNull()
+    }
+
     fun mapsLink(a: P?, b: P, mode: String): String =
         if (a == null) "https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lon}&travelmode=$mode"
         else mapsUrl(a, emptyList(), b, mode)

@@ -277,7 +277,7 @@
       perm("set-screen", c.screen_ok, "Einrichten");
       $("set-gstate").textContent = c.has_gemini ? "● gespeichert" : "";
       $("set-wichtig").value = c.wichtig || ""; $("set-absage").value = c.absage || ""; sw("set-butler", c.butler !== false);
-      $("set-wlan").value = c.heim_wlan || ""; sw("set-wegauto", c.weg_auto !== false); sw("set-losfahren", c.losfahren !== false);
+      $("set-wlan").value = c.heim_wlan || ""; sw("set-wegauto", c.weg_auto !== false); sw("set-losfahren", c.losfahren !== false); $("set-feste").value = c.feste_wege || "";
       $("set-ankunft").value = c.ankunft || ""; $("set-anzieh").value = c.anzieh || "";
       sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "21:00";
       sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
@@ -369,7 +369,7 @@
       gemini_key: $("set-gkey").value.trim(),
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       wichtig: $("set-wichtig").value.trim(), absage: $("set-absage").value.trim(), butler: sw("set-butler"),
-      heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"),
+      heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"), feste_wege: $("set-feste").value.trim(),
       ankunft: $("set-ankunft").value.trim(), anzieh: $("set-anzieh").value.trim(),
       brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "21:00",
       bi_wetter: sw("set-biwetter"), bi_anzieh: sw("set-bianzieh"), bi_termine: sw("set-bitermine"), bi_mitnehmen: sw("set-bimit"),

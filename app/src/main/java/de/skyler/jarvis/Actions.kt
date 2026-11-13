@@ -48,6 +48,7 @@ class Actions(private val ctx: Context) {
             "forget" -> Memory.forget(ctx, a.optString("text"))
             "mood" -> { Memory.mood(ctx, a.optString("text")); null }
             "sms" -> sms(a.optString("to"), a.optString("text"))
+            "losfahren" -> Alltag.departNow(ctx, a.optString("ziel"))
             "ort_erinnerung" -> Alltag.addPlaceReminder(ctx, a.optString("ort"), a.optString("text"))
             "briefing" -> Alltag.briefingNow(ctx, a.optString("tag") == "morgen")
             "rueckblick" -> Alltag.weekText(ctx) ?: "Für den Rückblick brauche ich den Groq-Schlüssel."
