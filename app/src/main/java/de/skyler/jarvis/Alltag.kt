@@ -534,13 +534,15 @@ object Alltag {
             val prep = prepMinutes(s)
             if (now in leave - prep * 60_000L until leave && !done(s, "$id|ready")) {
                 mark(s, "$id|ready"); s.put("last_ready", now)
-                val t = "In $prep Minuten musst du los zu ${f.to}. Mach dich fertig. ${pl.optString("text")}"
-                notify(ctx, 332, "Gleich los zu ${f.to}", t); deliverSay(ctx, t, say)
+                // kurzes Rad-Briefing, immer am Handy: los um …, Wetter hin und zurück, Anziehen, worauf achten
+                val back = if (f.backH >= 0) todayAt(f.backH, f.backM) else 0L
+                val t = rideBriefing(ctx, "In $prep Minuten musst du los zu ${f.to}, um ${clock(leave)}.", home, leave, back, pl)
+                notify(ctx, 332, "Gleich los zu ${f.to}", t); say(t)
             }
             if (now in leave..leave + 20 * 60_000L && !done(s, "$id|los")) {
                 mark(s, "$id|los")
                 val t = "Jetzt los zu ${f.to}! ${pl.optString("text")}" + (if (whoFor(ctx, f.to) != null) " Ich sag Bescheid, wenn du gleich da bist." else "")
-                notify(ctx, 333, "Jetzt los zu ${f.to}", t); deliverSay(ctx, t, say)
+                notify(ctx, 333, "Jetzt los zu ${f.to}", t); say(t)
                 if (!s.has("ziel")) s.put("ziel", JSONObject().put("name", f.to).put("start", now).put("min", pl.optDouble("min", 20.0)).put("km", pl.optDouble("km", 5.0)))
             }
             // Rückweg: rechtzeitig los, um zur genannten Zeit zuhause zu sein
@@ -563,11 +565,46 @@ object Alltag {
                 val pb = s.optJSONObject("fest_back")?.takeIf { it.optString("id") == id }
                 if (pb != null && now >= pb.optLong("go") && now < back && !done(s, keyB) && s.optBoolean("away")) {
                     mark(s, keyB)
-                    val t = "Zeit für den Heimweg, damit du um ${clock(back)} zuhause bist. ${pb.optString("text")}"
-                    notify(ctx, 334, "Heimweg", t); deliverSay(ctx, t, say)
+                    val t = rideBriefing(ctx, "Zeit für den Heimweg, damit du um ${clock(back)} zuhause bist.", from, now, 0L, pb)
+                    notify(ctx, 334, "Heimweg", t); say(t)
                 }
             }
         }
+    }
+
+    /** Wetter zu einer Stunde: Temperatur, gefühlt, Regen, Wind, Böen, hell/dunkel. */
+    private fun hourWeather(lat: Double, lon: Double, t: Long): String = try {
+        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
+            "&hourly=temperature_2m,apparent_temperature,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,is_day,weather_code" +
+            "&timezone=auto&forecast_days=2"
+        val h = JSONObject(http.newCall(Request.Builder().url(url).build()).execute().use { it.body?.string() ?: "{}" }).getJSONObject("hourly")
+        val key = SimpleDateFormat("yyyy-MM-dd'T'HH:00", de).format(Date(t))
+        val i = (0 until h.getJSONArray("time").length()).first { h.getJSONArray("time").getString(it) == key }
+        "${h.getJSONArray("temperature_2m").optDouble(i)}° (gefühlt ${h.getJSONArray("apparent_temperature").optDouble(i)}°), " +
+            "Regen ${h.getJSONArray("precipitation_probability").optInt(i)} % / ${h.getJSONArray("precipitation").optDouble(i)} mm, " +
+            "Wind ${h.getJSONArray("wind_speed_10m").optDouble(i)} km/h, Böen ${h.getJSONArray("wind_gusts_10m").optDouble(i)} km/h, " +
+            (if (h.getJSONArray("is_day").optInt(i) == 1) "hell" else "dunkel") + ", Wettercode ${h.getJSONArray("weather_code").optInt(i)}"
+    } catch (_: Exception) { "" }
+
+    /** Kurzes Rad-Briefing (gesprochen): Abfahrt, Wetter hin und zurück, Anziehen nach seinen Regeln, worauf er achten muss. */
+    private fun rideBriefing(ctx: Context, intro: String, from: Route.P, leave: Long, back: Long, pl: JSONObject): String {
+        val plain = "$intro ${pl.optString("text")}"
+        val key = prefs(ctx).getString("groq_key", "") ?: ""
+        if (key.isBlank()) return plain
+        val w1 = hourWeather(from.lat, from.lon, leave)
+        val w2 = if (back > 0) hourWeather(from.lat, from.lon, back) else ""
+        if (w1.isBlank()) return plain
+        val data = "Ansage: $intro\nVerkehrsmittel: ${pl.optString("text")}\nWetter bei der Abfahrt (${clock(leave)}): $w1" +
+            (if (w2.isNotBlank()) "\nWetter auf dem Rückweg (${clock(back)}): $w2" else "") +
+            "\nSeine Anzieh-Regeln:\n" + ((prefs(ctx).getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT })
+        val sys = "Du bist Jarvis und gibst Skyler ein kurzes, gesprochenes Briefing für seine Fahrt (3 bis 5 kurze Sätze, ohne Listen und Sonderzeichen). " +
+            "Beginne mit der Ansage (wann er los muss) und dem Verkehrsmittel (Bahn wegen Regen oder Rad). Dann: wie kalt es ist, was er anziehen soll " +
+            "(genau nach seinen Regeln, auch für den Rückweg, wenn es dann kälter oder dunkel ist), und worauf er auf dem Rad achten muss " +
+            "(Glätte bei 2 Grad und weniger, starker Wind oder Böen, nasse Straße, Dunkelheit: Licht an). Erfinde nichts, was nicht in den Daten steht."
+        return try {
+            Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content", sys))
+                .put(JSONObject().put("role", "user").put("content", data)), 350).replace(Regex("[*#`]"), "").trim().ifBlank { plain }
+        } catch (_: Exception) { plain }
     }
 
     /** "Ich fahr jetzt los zu Opa": Ziel merken, Wetter-Tipp, Bescheid geben kurz vor der Ankunft. */
