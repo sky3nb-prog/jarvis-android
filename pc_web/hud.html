@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="theme-color" content="#0a0602"><title>Jarvis HUD</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Cdefs%3E%3CradialGradient id=%22g%22%3E%3Cstop offset=%220%22 stop-color=%22%23fff3c8%22/%3E%3Cstop offset=%22.45%22 stop-color=%22%23ffb43c%22/%3E%3Cstop offset=%221%22 stop-color=%22%23200c00%22/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2230%22 fill=%22%23080402%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2222%22 fill=%22url(%23g)%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2228%22 fill=%22none%22 stroke=%22%23ffd678%22 stroke-width=%222%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="maplibre-gl.css"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="pc.css">
+</head><body><div id="app">
+<canvas id="strand"></canvas>
+<div class="top"><div class="gear" id="gear" title="Einstellungen">⚙</div><div class="t" id="aname">J.A.R.V.I.S.</div>
+  <div class="modes" id="modes"><span data-m="info">INFO</span><span data-m="fokus">FOKUS</span><span data-m="lage">LAGE</span><span data-m="flug">FLUG</span></div>
+  <div class="switch on" id="pwr" role="switch" title="Zuhören an/aus"><span class="knob"></span></div></div>
+
+<!-- FOKUS -->
+<section class="pv" id="pv-fokus">
+  <div class="sph" id="f-sph"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
+  <div class="name" id="f-name">J.A.R.V.I.S.</div><div class="state" id="f-state">bereit</div>
+  <div class="talk" id="f-talk"><span class="who you">DU</span><span id="f-you">–</span><span class="who jar">JARVIS</span><span id="f-jar">Bereit, wenn du es bist.</span></div>
+</section>
+
+<!-- INFO -->
+<section class="pv" id="pv-info">
+  <div class="qb" id="qb"></div>
+  <div class="sph" id="i-sph"><canvas class="sphere"></canvas><canvas class="brain"></canvas><canvas class="rings"></canvas></div>
+  <div class="name" id="i-name">J.A.R.V.I.S.</div><div class="state" id="i-state">bereit</div>
+  <div class="col left">
+    <div class="card"><div class="ct">HEUTE</div><div class="big" id="i-clock">--:--</div><div class="muted" id="i-date">–</div></div>
+    <div class="card"><div class="ct" id="i-city">WETTER</div><div class="big" id="i-temp">–°</div><div class="row"><span>gefühlt</span><b id="i-feel">–</b></div><div class="row"><span>Regen</span><b id="i-rain">–</b></div></div>
+    <div class="card" style="--c:var(--green)"><div class="ct">SYSTEM</div><div class="row"><span>CPU</span><b id="i-cpu">–</b></div><div class="row"><span>GPU</span><b id="i-gpu">–</b></div><div class="row"><span>RAM</span><b id="i-ram">–</b></div></div>
+    <div class="card" style="--c:#d7a8ff"><div class="ct">HANDY</div><div class="muted" id="i-handy">–</div></div>
+  </div>
+  <div class="col right">
+    <div class="card"><div class="ct">TERMINE</div><div id="i-termine" class="muted">–</div></div>
+    <div class="card" style="--c:#ffa03c"><div class="ct">LAGE</div><div class="muted" id="info-lage">Klick auf LAGE oder frag „Wie ist die Lage?“</div></div>
+    <div class="card" style="--c:var(--gold)" id="info-fuer-card"><div class="ct">FÜR DICH</div><div class="muted" id="info-fuer">–</div></div>
+    <div class="card"><div class="ct">VERLAUF</div><div class="muted" id="i-log">–</div></div>
+  </div>
+</section>
+
+<!-- LAGE (gleicher Aufbau wie am Handy, damit lage.js passt) -->
+<section id="v-lage" class="view pv">
+  <div id="lmap"></div><canvas id="lorb"></canvas>
+  <div class="lhud"><div class="lvig"></div><div class="lscan"></div><div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div><div class="lread" id="lread">SAT · LIVE</div></div>
+  <div class="ltop" id="ltop"><div><div class="lnum" id="lnum">–</div><div class="lttl" id="lttl">BRENNPUNKTE WELTWEIT</div></div>
+    <div class="seg"><span class="on" data-m="welt">WELT</span><span data-m="stadt" id="seg-stadt">LEONBERG</span><span data-m="fuer">FÜR DICH</span><span data-m="orte">ORTE</span></div></div>
+  <div class="lorte" id="lorte"></div>
+  <div class="ljar" id="ljar"><canvas id="lmini"></canvas><div><small>JARVIS</small><span id="ljartxt">holt die Lage …</span></div></div>
+  <div class="ltgt" id="ltgt"><i></i><i></i><div class="cross"></div><div class="cross2"></div><b></b><div class="tag"><small id="ltgk">ZIEL</small><div id="ltgn">–</div></div></div>
+  <div class="lcards" id="lcards"></div>
+  <div class="side"><div class="sph" id="l-sph"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
+    <div class="brief"><span class="who jar">JARVIS · LAGE</span><span id="l-brief">Ich hole die Lage …</span></div><div class="tour" id="l-tour"></div></div>
+</section>
+<!-- EINSTELLUNGEN (im HUD, wie am Handy) -->
+<div class="pset" id="pset"><div class="ps-win">
+  <div class="ps-side"><div class="ps-logo">⚙ <span>EINSTELLUNGEN</span></div><div id="ps-tabs"></div></div>
+  <div class="ps-main">
+    <div class="ps-head"><div class="ps-title" id="ps-title">ALLGEMEIN</div><button class="ps-save" id="ps-save">Speichern</button><div class="ps-x" id="ps-close" title="Schließen (Esc)">✕</div></div>
+    <div class="ps-body" id="ps-body"></div>
+  </div>
+  <div class="ps-ask" id="ps-ask"><div><b>Änderungen speichern?</b><div class="ps-askrow"><button id="ps-ask-no">Weiter bearbeiten</button><button id="ps-ask-drop">Verwerfen</button><button class="gold" id="ps-ask-save">Speichern</button></div></div></div>
+</div></div>
+<div class="toast" id="toast"></div>
+</div>
+<script src="hud-bridge.js"></script>
+<script src="maplibre-gl.js"></script><script src="satellite.min.js"></script>
+<script src="sphere3d.js"></script><script src="brain.js"></script><script src="strand.js"></script>
+<script src="lage.js"></script>
+<script src="settings.js"></script>
+<script src="hud.js"></script>
+</body></html>
