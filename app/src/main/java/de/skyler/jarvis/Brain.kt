@@ -94,7 +94,21 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         return say
     }
 
+    /** Kalender-Wünsche laufen über einen festen Ablauf (rechnen, eintragen, nachprüfen), nicht über die freie KI. */
+    var termin: Termin.R? = null
+    var fromPc = false
+
     private fun run(key: String, text: String): String {
+        termin = null
+        if (Termin.wants(text)) {
+            think("kalender")
+            val r = try { Termin.add(ctx, key, text) } catch (e: Exception) { Termin.R("Den Termin konnte ich gerade nicht eintragen.", false) }
+            termin = r
+            if (r.ok && !fromPc) Link.remindPc(ctx, r.title, r.remindAt)   // der PC erinnert dich auch, wenn er läuft
+            history.put(JSONObject().put("role", "user").put("content", text))
+            history.put(JSONObject().put("role", "assistant").put("content", r.say))
+            return r.say
+        }
         Themen.note(ctx, "frage", text)
         Thread({ Themen.refresh(ctx, key) }, "jarvis-themen").start()
         Thread({ Interests.refreshGenres(ctx, key) }, "jarvis-genres").start()   // höchstens einmal am Tag

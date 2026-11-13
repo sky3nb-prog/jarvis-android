@@ -474,6 +474,11 @@ class JarvisService : Service() {
                 }
                 Link.replyPc(this, id, !r.contains("nicht"), r)
             }
+            "termin" -> worker.execute {
+                val key = prefs.getString("groq_key", "") ?: ""
+                val r = try { Termin.add(this, key, m.optString("text")) } catch (e: Exception) { Termin.R("Den Termin konnte ich gerade nicht eintragen.", false) }
+                Link.replyPc(this, id, r.ok, r.say, extra = JSONObject().put("title", r.title).put("start", r.start / 1000).put("remind_at", r.remindAt / 1000))
+            }
             "route" -> worker.execute {
                 val key = prefs.getString("groq_key", "") ?: ""
                 val r = try { Route.plan(this, key, m.optString("text"), fromPc = true) } catch (e: Exception) { Route.Result("Den Weg konnte ich gerade nicht planen.", null) }

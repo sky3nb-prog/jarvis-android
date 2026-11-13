@@ -238,13 +238,22 @@ object Link {
     }
 
     /** Antwort auf einen Auftrag des PCs (der PC spricht sie dann). */
-    fun replyPc(ctx: Context, re: String, ok: Boolean, text: String, status: JSONObject? = null, url: String? = null) {
+    fun replyPc(ctx: Context, re: String, ok: Boolean, text: String, status: JSONObject? = null, url: String? = null, extra: JSONObject? = null) {
         val c = code(ctx); if (!paired(ctx)) return
         val m = JSONObject().put("kind", "phone_reply").put("from", "phone").put("re", re).put("ok", ok)
             .put("text", text).put("ts", System.currentTimeMillis() / 1000)
         if (status != null) m.put("status", status)
         if (url != null) m.put("url", url)
+        if (extra != null) for (k in extra.keys()) m.put(k, extra.get(k))
         post(c, remoteTopic(c), m)
+    }
+
+    /** Dem PC eine Erinnerung mitgeben (er spricht sie zur Zeit, falls er dann läuft). Ohne auf Antwort zu warten. */
+    fun remindPc(ctx: Context, title: String, at: Long) {
+        val c = code(ctx); if (!paired(ctx) || at <= System.currentTimeMillis()) return
+        val cmd = JSONObject().put("type", "remind").put("text", title).put("at", at / 1000)
+        post(c, remoteTopic(c), JSONObject().put("kind", "cmd").put("from", "phone").put("id", java.util.UUID.randomUUID().toString().take(12))
+            .put("ts", System.currentTimeMillis() / 1000).put("cmd", cmd))
     }
 
     /** Neues ans PC schicken (Fakten, Stimmungen, Vergessen). */
