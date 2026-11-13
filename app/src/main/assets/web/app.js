@@ -215,7 +215,7 @@
   }));
   // Neue Einstellungen: kleiner roter Punkt (am Zahnrad und am Bereich), bis du den Bereich einmal geöffnet hast.
   // Bei jedem Update ergänzen: Bereich -> Kennung des Updates
-  const NEW_TABS = { wege: "wege1", allg: "schau1", leute: "leute1" };
+  const NEW_TABS = { wege: "wege1", allg: "schau1", leute: "leute1", alltag: "alltag1" };
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };
   const seenAdd = (k) => { try { const s = seenGet(); if (!s.includes(k)) { s.push(k); localStorage.setItem("seen_new", JSON.stringify(s)); } } catch (e) {} };
   function newDots() {
@@ -277,6 +277,12 @@
       perm("set-screen", c.screen_ok, "Einrichten");
       $("set-gstate").textContent = c.has_gemini ? "● gespeichert" : "";
       $("set-wichtig").value = c.wichtig || ""; $("set-absage").value = c.absage || ""; sw("set-butler", c.butler !== false);
+      $("set-wlan").value = c.heim_wlan || ""; sw("set-wegauto", c.weg_auto !== false); sw("set-losfahren", c.losfahren !== false);
+      $("set-ankunft").value = c.ankunft || ""; $("set-anzieh").value = c.anzieh || "";
+      sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "21:00";
+      sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
+      sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "18:00";
+      perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
       perm("set-butlerok", c.butler_ok); perm("set-files", c.files_ok); perm("set-media2", !!c.media_ok);
       perm("set-overlay", c.overlay); perm("set-usage", c.usage); perm("set-media", !!c.media_ok);
       $("set-mediastate").textContent = c.media || "";
@@ -300,6 +306,8 @@
   $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
+  $("set-locall").addEventListener("click", () => { A.askLocationAlways(); toast("Erst „Genau“ erlauben, dann beim zweiten Mal „Immer erlauben“."); });
+  $("set-wlanget").addEventListener("click", () => { const w = A.currentWifi(); if (w) { $("set-wlan").value = w; toast("Übernommen: " + w); } else toast("Kein WLAN erkannt – erst Standort erlauben, dann nochmal."); });
   $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));
   $("set-save").addEventListener("click", () => {
     A.setVoiceMode($("set-mode").value);
@@ -321,6 +329,11 @@
       gemini_key: $("set-gkey").value.trim(),
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       wichtig: $("set-wichtig").value.trim(), absage: $("set-absage").value.trim(), butler: sw("set-butler"),
+      heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"),
+      ankunft: $("set-ankunft").value.trim(), anzieh: $("set-anzieh").value.trim(),
+      brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "21:00",
+      bi_wetter: sw("set-biwetter"), bi_anzieh: sw("set-bianzieh"), bi_termine: sw("set-bitermine"), bi_mitnehmen: sw("set-bimit"),
+      rueckblick: sw("set-rueck"), rueckblick_zeit: $("set-rueckzeit").value || "18:00",
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
     };

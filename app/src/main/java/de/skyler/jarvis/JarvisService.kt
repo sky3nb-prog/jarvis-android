@@ -89,8 +89,18 @@ class JarvisService : Service() {
             })
         }
         reload()
-        if (Build.VERSION.SDK_INT >= 29) startForeground(1, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
-        else startForeground(1, notification())
+        // Mikrofon + Standort (Standort nur, wenn erlaubt: für Zuhause/weg, Losfahren, Ankunft)
+        if (Build.VERSION.SDK_INT >= 29) {
+            val loc = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            try {
+                startForeground(1, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or
+                    (if (loc) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0))
+            } catch (e: Exception) {
+                Log.w(tag, "Standort-Dienst geht nicht: $e")
+                startForeground(1, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+            }
+        } else startForeground(1, notification())
         running = true
         Bus.emit("power", JSONObject().put("on", true))
         tts = TextToSpeech(this) { st ->
@@ -107,6 +117,52 @@ class JarvisService : Service() {
         // dem PC einmal den aktuellen Stand melden (Seite "Steuern" am PC zeigt ihn dann sofort)
         Thread({ try { Thread.sleep(8000); if (alive && Link.paired(this)) Link.replyPc(this, "", true, "", PhoneCtl.status(this)) } catch (_: Exception) {} }, "jarvis-hallo").start()
         main.post(syncTask)
+        main.postDelayed(alltagTask, 20_000)
+        startLocation()
+        try {
+            registerReceiver(unlockReceiver, android.content.IntentFilter(Intent.ACTION_USER_PRESENT))
+        } catch (_: Exception) {}
+    }
+
+    // --- Runde 3: Alltag (Zuhause/weg, Losfahren, Ankunft, Briefings, Wochenrückblick) ----------------------
+    private val alltagTask = object : Runnable {
+        override fun run() {
+            if (!alive) return
+            Thread({ try { Alltag.tick(this@JarvisService) { t -> announce(t) } } catch (e: Exception) { Log.w(tag, "alltag: $e") } }, "jarvis-alltag").start()
+            main.postDelayed(this, 60_000L)
+        }
+    }
+
+    private val unlockReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) { Alltag.onUnlock(this@JarvisService) { t -> announce(t) } }
+    }
+
+    private val locListener = android.location.LocationListener { l -> Alltag.onFix(l) }
+
+    @SuppressLint("MissingPermission")
+    private fun startLocation() {
+        val ok = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!ok) return
+        try {
+            val lm = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+            lm.removeUpdates(locListener)
+            val prov = if (Build.VERSION.SDK_INT >= 31 && lm.hasProvider(android.location.LocationManager.FUSED_PROVIDER))
+                android.location.LocationManager.FUSED_PROVIDER else android.location.LocationManager.NETWORK_PROVIDER
+            lm.requestLocationUpdates(prov, 60_000L, 25f, locListener, Looper.getMainLooper())
+            listOf(android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.GPS_PROVIDER)
+                .mapNotNull { try { lm.getLastKnownLocation(it) } catch (_: Exception) { null } }.maxByOrNull { it.time }?.let { Alltag.onFix(it) }
+        } catch (e: Exception) { Log.w(tag, "standort: $e") }
+    }
+
+    /** Von sich aus etwas sagen (Losfahren, Briefing, Ortserinnerung): Karte + Stimme, danach kurz zuhören. */
+    private fun announce(text: String) = main.post {
+        if (!alive || speaking || busy) { overlay?.card(JSONObject().put("kind", "text").put("text", text)); return@post }
+        overlay?.card(JSONObject().put("kind", "text").put("text", text))
+        speak(text) {
+            if (mode != Mode.TALK) { mode = Mode.COMMAND; deadline = System.currentTimeMillis() + 6000 }
+            setState("listening")
+        }
     }
 
     // Gedächtnis vom PC holen: beim Start und dann alle 15 Minuten
@@ -135,7 +191,7 @@ class JarvisService : Service() {
             }
             ACTION_PAUSE -> { paused = true; endTalk() }
             ACTION_RESUME -> paused = false
-            ACTION_RELOAD -> { reload(); setupVoice(); syncNow() }
+            ACTION_RELOAD -> { reload(); setupVoice(); syncNow(); startLocation() }
         }
         return START_STICKY
     }
@@ -144,6 +200,9 @@ class JarvisService : Service() {
         alive = false
         running = false
         main.removeCallbacks(syncTask)
+        main.removeCallbacks(alltagTask)
+        try { unregisterReceiver(unlockReceiver) } catch (_: Exception) {}
+        try { (getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager).removeUpdates(locListener) } catch (_: Exception) {}
         Butler.stop(this)
         endVolume()
         overlay?.destroy()

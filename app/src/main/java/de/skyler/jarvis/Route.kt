@@ -70,6 +70,46 @@ object Route {
         return null
     }
 
+    // --- für "Rechtzeitig losfahren", Ankunft und Wochenrückblick ------------------------------------------
+    fun distKm(a: P, b: P) = km(a, b)
+
+    fun home(ctx: Context): P? {
+        val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        val q = listOf(p.getString("address", "") ?: "", Lage.city(ctx)).filter { it.isNotBlank() }.joinToString(", ")
+        return Lage.geocode(ctx, q)?.let { P(it.first, it.second, "zuhause") }
+    }
+
+    /** Gespeicherter Ort ("Opa") oder Adresse -> Koordinaten. */
+    fun place(ctx: Context, q: String): P? {
+        val s = q.trim(); if (s.isBlank()) return null
+        val v = mine(ctx, s) ?: s
+        Regex("^(-?\\d{1,3})[.,](\\d+)\\s*[,;\\s]\\s*(-?\\d{1,3})[.,](\\d+)$").find(v)?.let {
+            val g = it.groupValues
+            return P("${g[1]}.${g[2]}".toDouble(), "${g[3]}.${g[4]}".toDouble(), s)
+        }
+        val near = home(ctx)?.let { it.lat to it.lon }
+        return Lage.geocode(ctx, v, near)?.let { P(it.first, it.second, s) }
+    }
+
+    /** Ist der Text ein gespeicherter Ort? Gibt dessen Namen zurück. */
+    fun savedName(ctx: Context, text: String): String? {
+        val t = text.lowercase()
+        return lines(ctx, "orte").keys.firstOrNull { it.length >= 3 && Regex("\\b" + Regex.escape(it) + "\\b").containsMatchIn(t) }
+    }
+
+    /** Bahn-Verbindung, um spätestens arriveBy anzukommen (dep = Abmarsch inkl. Fußweg). */
+    fun bahnBy(a: P, b: P, arriveBy: Long): Trip? {
+        val trips = efa(a, b, arriveBy, true).ifEmpty { dbRest(a, b, arriveBy, true) }
+        return trips.lastOrNull { it.arr <= arriveBy } ?: trips.firstOrNull()
+    }
+
+    fun mapsLink(a: P?, b: P, mode: String): String =
+        if (a == null) "https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lon}&travelmode=$mode"
+        else mapsUrl(a, emptyList(), b, mode)
+
+    fun bikeMinutes(a: P, b: P) = minutes(km(a, b), "bicycling")
+    fun walkMinutes(a: P, b: P) = minutes(km(a, b), "walking")
+
     private fun prompt(ctx: Context, fromPc: Boolean): String {
         val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
         val city = Lage.city(ctx)

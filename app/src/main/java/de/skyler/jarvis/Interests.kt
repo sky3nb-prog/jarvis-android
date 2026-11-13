@@ -59,6 +59,15 @@ object Interests {
         try { file(ctx).writeText(keep.toString()) } catch (_: Exception) {}
     }
 
+    /** Hörzeit Musik (Minuten) seit since – für den Wochenrückblick. */
+    fun musicMinutes(ctx: Context, since: Long): Int {
+        val arr = load(ctx); var sec = 0L
+        for (i in 0 until arr.length()) arr.optJSONObject(i)?.let {
+            if (it.optLong("ts") >= since && it.optString("k") == "music") sec += it.optLong("d").let { d -> if (d in 30..900) d else 180 }
+        }
+        return (sec / 60).toInt()
+    }
+
     /** Die häufigsten Namen (Kanäle oder Künstler), neuere zählen mehr. */
     fun top(ctx: Context, kind: String, n: Int): List<Pair<String, Int>> {
         val arr = load(ctx)

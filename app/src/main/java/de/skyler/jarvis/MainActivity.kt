@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
     private var pendingTalk = false
 
     private val perms = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
-        if (res.keys.any { it in Butler.PERMS } && JarvisService.running) JarvisService.start(this, JarvisService.ACTION_RELOAD)
+        if (res.keys.any { it in Butler.PERMS || it.contains("LOCATION") } && JarvisService.running) JarvisService.start(this, JarvisService.ACTION_RELOAD)
         val mic = res[Manifest.permission.RECORD_AUDIO] ?: hasMic()
         if (!mic) send("error", JSONObject().put("text", "Ohne Mikrofon kann ich dich nicht hören."))
         else {
@@ -268,6 +268,16 @@ class MainActivity : ComponentActivity() {
             .put("wichtig", prefs.getString("wichtig", Chats.DEFAULT)).put("absage", prefs.getString("absage", ""))
             .put("butler", prefs.getBoolean("butler", true)).put("butler_ok", Butler.ready(this@MainActivity))
             .put("files_ok", Chats.filesOk())
+            .put("heim_wlan", prefs.getString("heim_wlan", "")).put("weg_auto", prefs.getBoolean("weg_auto", true))
+            .put("losfahren", prefs.getBoolean("losfahren", true)).put("ankunft", prefs.getString("ankunft", ""))
+            .put("anzieh", prefs.getString("anzieh", "").let { if (it.isNullOrBlank()) Alltag.ANZIEH_DEFAULT else it })
+            .put("brief_morgen", prefs.getBoolean("brief_morgen", true)).put("brief_abend", prefs.getBoolean("brief_abend", true))
+            .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "21:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
+            .put("rueckblick_zeit", prefs.getString("rueckblick_zeit", "18:00"))
+            .apply { for (k in listOf("bi_wetter", "bi_anzieh", "bi_termine", "bi_mitnehmen")) put(k, prefs.getBoolean(k, true)) }
+            .put("loc_always", android.os.Build.VERSION.SDK_INT < 29 || ContextCompat.checkSelfPermission(this@MainActivity,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED)
+            .put("loc_ok", ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
             .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) put(k, prefs.getBoolean(k, true)) }
             .toString()
 
@@ -293,6 +303,14 @@ class MainActivity : ComponentActivity() {
                 .putString("route_an", o.optString("route_an").trim())
                 .putString("wichtig", o.optString("wichtig").trim()).putString("absage", o.optString("absage").trim())
                 .putBoolean("butler", o.optBoolean("butler", true))
+                .putString("heim_wlan", o.optString("heim_wlan").trim()).putBoolean("weg_auto", o.optBoolean("weg_auto", true))
+                .putBoolean("losfahren", o.optBoolean("losfahren", true)).putString("ankunft", o.optString("ankunft").trim())
+                .putString("anzieh", o.optString("anzieh").trim().let { if (it == Alltag.ANZIEH_DEFAULT) "" else it })
+                .putBoolean("brief_morgen", o.optBoolean("brief_morgen", true)).putBoolean("brief_abend", o.optBoolean("brief_abend", true))
+                .putString("brief_abend_zeit", o.optString("brief_abend_zeit", "21:00").trim().ifBlank { "21:00" })
+                .putBoolean("rueckblick", o.optBoolean("rueckblick", true))
+                .putString("rueckblick_zeit", o.optString("rueckblick_zeit", "18:00").trim().ifBlank { "18:00" })
+                .apply { for (k in listOf("bi_wetter", "bi_anzieh", "bi_termine", "bi_mitnehmen")) putBoolean(k, o.optBoolean(k, true)) }
                 .putBoolean("use_location", o.optBoolean("use_location", false))
                 .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) putBoolean(k, o.optBoolean(k, true)) }
                 .apply()
@@ -335,6 +353,25 @@ class MainActivity : ComponentActivity() {
             } catch (_: Exception) {
                 try { startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)) } catch (_: Exception) {}
             }
+        }
+
+        /** Aktuelles WLAN als Heim-WLAN (braucht genauen Standort, sonst verrät Android den Namen nicht). */
+        @JavascriptInterface
+        fun currentWifi(): String {
+            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                runOnUiThread { perms.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }
+                return ""
+            }
+            return Alltag.ssid(this@MainActivity) ?: ""
+        }
+
+        /** Standort "immer erlauben" (für Zuhause/weg, Ankunft, Fahrten lernen). Erst genau, dann im Hintergrund. */
+        @JavascriptInterface
+        fun askLocationAlways() = runOnUiThread {
+            prefs.edit().putBoolean("use_location", true).apply()
+            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                perms.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+            else if (android.os.Build.VERSION.SDK_INT >= 29) perms.launch(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
         }
 
         /** Anruf-Butler: Telefon, Anrufliste, Anrufe beenden, SMS. */

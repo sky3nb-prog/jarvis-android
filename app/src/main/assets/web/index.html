@@ -130,7 +130,7 @@
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-allg">
         <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
@@ -223,6 +223,34 @@
           <div class="f"><label>Absage-Text</label><input id="set-absage" type="text" placeholder="Kann gerade nicht, rufe später zurück."></div>
           <div class="note">Läuft der PC, geht sie per WhatsApp am PC, sonst per SMS.</div>
           <div class="srow"><div>Rechte für Anrufe und SMS</div><div class="sbtn" id="set-butlerok">Erlauben</div></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-alltag">
+        <div class="sec" style="--c:#6effcd"><h3>ZUHAUSE & WEG</h3>
+          <div class="srow"><div>Standort „Immer erlauben“<small>Damit Jarvis merkt, wann du losfährst und ankommst. Bleibt auf dem Handy.</small></div><div class="sbtn" id="set-locall">Erlauben</div></div>
+          <div class="f"><label>Heim-WLAN</label><div style="display:flex;gap:8px"><input id="set-wlan" type="text" placeholder="Name deines WLANs" style="flex:1"><div class="sbtn" id="set-wlanget">Aktuelles</div></div></div>
+          <div class="srow"><div>PC herunterfahren, wenn ich weg bin<small>5 Minuten aus dem Haus: Hinweis mit „Abbrechen“, 2 Minuten später Musik aus, ETS2 speichern, Programme schließen, PC aus. Sitzt jemand dran, fragt er. Wieder da: „Willkommen zurück“ am PC.</small></div><div class="sw" id="set-wegauto"></div></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>RECHTZEITIG LOS</h3>
+          <div class="srow"><div>Erinnern, wann ich los muss<small>Termine mit Ort: „Fertig machen“ und „Jetzt los“. Regen (DWD, ECMWF, GFS) → Bahn, sonst Rad. Lernt deine echten Zeiten.</small></div><div class="sw" id="set-losfahren"></div></div>
+        </div>
+        <div class="sec" style="--c:#3cc8ff"><h3>ANKUNFT ANKÜNDIGEN</h3>
+          <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Ort aus „Meine Orte“, Doppelpunkt, wer Bescheid bekommt. Etwa 5 Minuten vorher geht eine SMS raus: „Hier ist Jarvis. Skyler ist um … da“.</div>
+          <div class="f"><textarea id="set-ankunft" rows="2" placeholder="Opa: Thomas"></textarea></div>
+        </div>
+        <div class="sec" style="--c:#d7a8ff"><h3>BRIEFINGS</h3>
+          <div class="srow"><div>Morgen-Briefing<small>Wenn du nach dem Wecker das Handy zum ersten Mal entsperrst</small></div><div class="sw" id="set-bmorgen"></div></div>
+          <div class="srow"><div>Abend-Briefing für morgen<small>Am PC, wenn du dran sitzt, sonst am Handy</small></div><div class="sw" id="set-babend"></div></div>
+          <div class="f"><label>Abend-Briefing um</label><input id="set-babendzeit" type="time"></div>
+          <div class="srow"><div>Wetter</div><div class="sw" id="set-biwetter"></div></div>
+          <div class="srow"><div>Was anziehen</div><div class="sw" id="set-bianzieh"></div></div>
+          <div class="srow"><div>Termine</div><div class="sw" id="set-bitermine"></div></div>
+          <div class="srow"><div>Was mitnehmen</div><div class="sw" id="set-bimit"></div></div>
+          <div class="f"><label>Deine Anzieh-Regeln</label><textarea id="set-anzieh" rows="5"></textarea></div>
+        </div>
+        <div class="sec" style="--c:#ff9a8a"><h3>WOCHENRÜCKBLICK</h3>
+          <div class="srow"><div>Sonntags Wochenrückblick<small>Besuche bei Opa, Rad-Kilometer, Musik-Zeit, Termine nächste Woche. Karte am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-rueck"></div></div>
+          <div class="f"><label>Um</label><input id="set-rueckzeit" type="time"></div>
         </div>
       </div>
       <div class="spane" id="sp-anz">
