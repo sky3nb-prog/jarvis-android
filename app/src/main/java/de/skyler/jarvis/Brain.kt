@@ -18,6 +18,8 @@ class Brain(private val ctx: Context) {
     var onStatus: ((String) -> Unit)? = null
     /** Karte zur letzten Antwort (Musik, YouTube, Web oder einfach der Antworttext) */
     @Volatile var card: JSONObject? = null
+    /** Lage für die Tour (Jarvis fliegt auf der Karte von Punkt zu Punkt und erzählt) */
+    @Volatile var tour: JSONObject? = null
 
     private fun system(): String {
         val now = SimpleDateFormat("EEEE, dd.MM.yyyy, HH:mm 'Uhr'", Locale.GERMANY).format(Date())
@@ -52,6 +54,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"youtube","query":"<Suche>"}
 {"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut, plus passende neue Kanäle – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")
 {"action":"musik"}   (seine Lieblingssongs und Musikrichtung gerade plus passende neue Songs von Deezer – für "was höre ich so?", "schlag mir Musik vor", "was passt dazu?")
+{"action":"lage","ort":"<leer = Welt und Wohnort, sonst Stadt oder Land>"}   (Lagebericht mit Karte: "wie ist die Lage?", "was ist los in der Welt?", "was gibt es Neues in Leonberg?", "was ist in Seoul los?", Nachrichten)
 {"action":"web","query":"<Suchanfrage>"}   (im Internet nachschauen: Nachrichten, Öffnungszeiten, Fakten, "schau mal nach ...", alles Aktuelle)
 {"action":"spotify","query":"<Suche>"}
 {"action":"search","query":"<Google-Suche>"}
@@ -71,6 +74,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
     /** Gibt den gesprochenen Text zurück; die passende Karte fürs Fenster liegt danach in [card]. */
     fun handle(key: String, text: String): String {
         Cards.pending = null
+        tour = null
         val say = run(key, text)
         card = (Cards.pending ?: JSONObject().put("kind", "text").put("text", say)).put("say", say)
         return say
@@ -98,6 +102,18 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             val r = when (a.optString("action")) {
                 "web" -> { onStatus?.invoke("Jarvis sucht im Web …"); Cards.web(key, a.optString("query").ifBlank { text }) }
                 "musik" -> { onStatus?.invoke("Schaue, was du hörst …"); Cards.music(ctx) }
+                "lage" -> {
+                    onStatus?.invoke("Jarvis prüft die Lage …")
+                    val city = Lage.city(ctx)
+                    val ort = a.optString("ort").trim().let { if (it.equals(city, true)) "" else it }
+                    try {
+                        val d = Lage.get(ctx, key, ort)
+                        tour = d
+                        val intro = d.optString("briefing").ifBlank { "Hier ist die Lage." }
+                        history.put(JSONObject().put("role", "assistant").put("content", "(Lagebericht gezeigt) " + intro))
+                        return intro
+                    } catch (e: Exception) { e.message ?: "Die Lage kann ich gerade nicht abrufen." }
+                }
                 "youtube_neu" -> { onStatus?.invoke("Schaue bei deinen Kanälen …"); Cards.youtube(ctx, key, a.optInt("days", 7).coerceIn(1, 30)) }
                 else -> actions.run(a)
             } ?: continue

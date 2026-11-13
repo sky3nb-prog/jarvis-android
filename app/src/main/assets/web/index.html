@@ -4,10 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Jarvis</title>
+<link rel="stylesheet" href="maplibre-gl.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
+  <canvas id="strand"></canvas>
 
   <!-- 1) FOKUS -->
   <section id="v-fokus" class="view active">
@@ -52,22 +54,27 @@
     </div>
     <div class="card orange">
       <div class="ctitle">LAGE</div>
-      <div class="row muted">Briefing, Globus und Satellitenkarte kommen in Etappe 5.</div>
+      <div class="row muted" id="info-lage">Wisch nach rechts zur Lage – oder frag Jarvis „Wie ist die Lage?“</div>
     </div>
   </section>
 
   <!-- 3) LAGE -->
   <section id="v-lage" class="view">
-    <div class="lagehead">
-      <div><div class="bignum">–</div><div class="bigsub">BRENNPUNKTE WELTWEIT</div></div>
-      <div class="toggle"><span class="pill on">GLOBUS</span><span class="pill">SATELLIT</span></div>
+    <div id="lmap"></div>
+    <div class="lhud">
+      <div class="lvig"></div><div class="lscan"></div>
+      <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div>
+      <div class="lread" id="lread">SAT · LIVE</div>
     </div>
-    <div class="globe-wrap"><canvas id="globe"></canvas></div>
-    <div class="card orange">
-      <div class="ctitle">BALD HIER</div>
-      <div class="row muted">Die Lage vom PC (Brennpunkte, Leonberg, deine Lieblingsorte) mit Globus und echter
-        Satellitenkarte kommt in Etappe 5.</div>
+    <div class="ltop" id="ltop">
+      <div><div class="lnum" id="lnum">–</div><div class="lttl" id="lttl">BRENNPUNKTE WELTWEIT</div></div>
+      <div class="seg"><span class="on" data-m="welt">WELT</span><span data-m="stadt" id="seg-stadt">LEONBERG</span><span data-m="orte">ORTE</span></div>
     </div>
+    <div class="lorte" id="lorte"></div>
+    <div class="ljar" id="ljar"><canvas id="lmini"></canvas><div><small>JARVIS</small><span id="ljartxt">holt die Lage …</span></div></div>
+    <div class="ltgt" id="ltgt"><i></i><i></i><div class="cross"></div><div class="cross2"></div><b></b>
+      <div class="tag"><small id="ltgk">ZIEL</small><div id="ltgn">–</div></div></div>
+    <div class="lcards" id="lcards"></div>
   </section>
 
   <!-- 4) STEUERN -->
@@ -108,6 +115,8 @@
       <label>Kopplungscode vom PC (PC: Einstellungen → Handy-App)</label>
       <input id="set-link" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off">
       <div class="note" id="set-linkstate"></div>
+      <label>Lieblingsorte für die Lage (mit Komma trennen)</label>
+      <input id="set-orte" type="text" placeholder="Stuttgart, Seoul">
       <label>Im Hintergrund zuhören</label>
       <select id="set-bg"><option value="1">Ja – auf das Aktivierungswort hören</option><option value="0">Nein</option></select>
       <label>Aktivierungswort(e) – mehrere mit Komma trennen</label>
@@ -145,6 +154,9 @@
 </div>
 <script src="sphere3d.js"></script>
 <script src="sphere.js"></script>
+<script src="strand.js"></script>
+<script src="maplibre-gl.js"></script>
+<script src="lage.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

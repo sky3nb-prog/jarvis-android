@@ -2,7 +2,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const A = window.Android || null;   // Brücke zur App (Kotlin)
-  const { Sphere, Rings, Globe } = window.JarvisGfx;
+  const { Sphere, Rings } = window.JarvisGfx;
 
   // Echte 3D-Kugel (WebGL); falls das Handy kein WebGL kann, die alte flache Kugel
   const mkSphere = (c, seed) => { try { return new window.Sphere3D(c, seed); } catch (e) { return new Sphere(c, seed); } };
@@ -12,15 +12,17 @@
     steuern: mkSphere(document.querySelector("#sphere-steuern canvas"), 7),
   };
   let powerOn = true;
+  const strand = new window.Strand($("strand"), 4);
+  let strandTarget = 0, dragging = false;
   const rings = new Rings(document.querySelector("#sphere-info canvas.rings"));
-  const globe = new Globe($("globe"));
   let view = "fokus", talking = false, level = 0, target = 0;
 
   // --- Tabs ---
   const ORDER = ["fokus", "info", "lage", "steuern"];
   const el = (v) => $("v-" + v);
   function mark(v) {
-    view = v;
+    view = v; strandTarget = ORDER.indexOf(v); dragging = false;
+    if (v === "lage" && window.JLage) window.JLage.shown();
     document.querySelectorAll(".view").forEach((e) => { e.classList.toggle("active", e.id === "v-" + v); e.classList.remove("peek", "slide"); e.style.transform = ""; });
     document.querySelectorAll(".tab").forEach((e) => e.classList.toggle("on", e.dataset.v === v));
     document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", ORDER[i] === v));
@@ -36,6 +38,8 @@
     a.classList.add("slide"); b.classList.add("slide");
     a.style.transform = `translateX(${-dir * W}px)`; b.style.transform = "translateX(0)";
     view = v;   // die neue Kugel läuft schon während des Gleitens
+    strandTarget = ORDER.indexOf(v); dragging = false;
+    if (v === "lage" && window.JLage) window.JLage.shown();
     document.querySelectorAll(".tab").forEach((e) => e.classList.toggle("on", e.dataset.v === v));
     document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", ORDER[i] === v));
     setTimeout(() => { if (view === v) mark(v); }, 300);
@@ -48,6 +52,7 @@
     const app = $("app");
     app.addEventListener("touchstart", (e) => {
       if (e.touches.length !== 1 || $("settings").classList.contains("on") || e.target.closest("nav")) { mode = 2; return; }
+      if (view === "lage" && window.JLage && !window.JLage.swipeOk(e.target, e.touches[0].clientX)) { mode = 2; return; }
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = performance.now(); dx = 0; mode = 0; nb = null;
     }, { passive: true });
     app.addEventListener("touchmove", (e) => {
@@ -64,6 +69,7 @@
       dx = nv ? mx : mx * 0.3;   // am Rand nur ein bisschen nachgeben
       const cur = el(view);
       cur.classList.add("dragging"); cur.style.transform = `translateX(${dx}px)`;
+      dragging = true; strand.offset = i - dx / W;
       const nEl = nv ? el(nv) : null;
       if (nb && nb !== nEl) { nb.classList.remove("peek", "dragging"); nb.style.transform = ""; }
       nb = nEl;
@@ -75,6 +81,7 @@
       const W = window.innerWidth, v = Math.abs(dx) / Math.max(1, performance.now() - t0);
       const i = ORDER.indexOf(view), nv = ORDER[i + dir];
       document.querySelectorAll(".view").forEach((e) => e.classList.remove("dragging"));
+      dragging = false;
       if (nv && (Math.abs(dx) > W * 0.22 || v > 0.5)) show(nv, dx);
       else {   // zurückschnappen
         const cur = el(view); cur.classList.add("slide"); cur.style.transform = "translateX(0)";
@@ -128,6 +135,9 @@
       else if (type === "error") { toast(data.text); setState("ended"); }
       else if (type === "model" || type === "info" || type === "synced") toast(data.text);
       else if (type === "power") showPower(!!data.on);
+      else if (type === "lage") { if (data.tour) show("lage"); if (window.JLage) window.JLage.onData(data.data, !!data.tour); }
+      else if (type === "lage_focus") { if (window.JLage) window.JLage.onFocus(data.i, data.n, data.of); }
+      else if (type === "lage_error") { if (window.JLage) window.JLage.onError(data.text); }
     },
     back() {
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
@@ -191,6 +201,7 @@
       $("set-level").value = String(c.wake_level);
       $("set-cloud").value = c.wake_cloud ? "1" : "0";
       $("set-jvol").value = c.jarvis_volume || 70;
+      $("set-orte").value = c.lage_orte || "";
       $("set-mediastate").textContent = c.media || "";
       $("set-link").value = c.link_code || "";
       $("set-linkstate").textContent = c.link_code
@@ -223,6 +234,7 @@
       wake_cloud: $("set-cloud").value === "1",
       link_code: $("set-link").value.trim(),
       jarvis_volume: parseInt($("set-jvol").value, 10),
+      lage_orte: $("set-orte").value.trim(),
     }));
     $("settings").classList.remove("on");
     toast("Gespeichert.");
@@ -255,7 +267,10 @@
     const s = spheres[view];
     if (s) { s.level = level; s.draw(dt); }
     if (view === "info") rings.draw(dt);
-    if (view === "lage") globe.draw(dt);
+    if (view === "lage" && window.JLage) window.JLage.draw(dt);
+    if (!dragging) strand.offset += (strandTarget - strand.offset) * Math.min(1, dt * 9);
+    strand.level = level; strand.power = powerOn || talking;
+    if (view !== "lage" || dragging || Math.abs(strand.offset - strandTarget) > .01) strand.draw(dt);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

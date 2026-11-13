@@ -274,6 +274,7 @@ class JarvisService : Service() {
     }
 
     private fun endTalk() {
+        tourId++
         mode = Mode.IDLE
         try { tts?.stop() } catch (_: Exception) {}
         speaking = false
@@ -282,6 +283,7 @@ class JarvisService : Service() {
     }
 
     private fun onOrbTap() {
+        tourId++
         if (speaking) { tts?.stop(); speaking = false; setState("listening"); deadline = System.currentTimeMillis() + 8000 }
         else endTalk()
     }
@@ -449,8 +451,18 @@ class JarvisService : Service() {
         brain.onStatus = { t -> main.post { overlay?.panel?.state("searching", t) } }
         val reply = try { brain.handle(key, cmd) } catch (e: Exception) { "Das hat nicht geklappt. ${e.message ?: ""}" }
         val card = brain.card
+        val tour = brain.tour
         main.post {
             card?.let { overlay?.card(it) }   // Antwort als Karte im Fenster (außerhalb der Jarvis-App)
+            if (tour != null) {
+                Bus.emit("lage", JSONObject().put("data", tour).put("tour", true))
+                runTour(tour, reply) {
+                    if (mode == Mode.TALK) deadline = System.currentTimeMillis() + 45_000
+                    else { mode = Mode.COMMAND; deadline = System.currentTimeMillis() + 6000 }
+                    setState("listening")
+                }
+                return@post
+            }
             speak(reply) {
                 // danach kurz weiterhören wie am PC (ohne Aktivierungswort); im Gespräch länger
                 if (mode == Mode.TALK) deadline = System.currentTimeMillis() + 45_000
@@ -458,5 +470,31 @@ class JarvisService : Service() {
                 setState("listening")
             }
         }
+    }
+
+    // --- Lage-Tour: auf der Karte von Punkt zu Punkt fliegen und jeweils erzählen, was dort los ist ---------
+    @Volatile private var tourId = 0
+
+    private fun runTour(data: JSONObject, intro: String, after: () -> Unit) {
+        val id = ++tourId
+        val pts = data.optJSONArray("brennpunkte") ?: JSONArray()
+        val idx = (0 until pts.length()).filter { pts.getJSONObject(it).optBoolean("im_briefing") }.take(6)
+            .ifEmpty { (0 until minOf(5, pts.length())).toList() }
+        fun step(k: Int) {
+            if (id != tourId) return
+            if (k >= idx.size) {
+                Bus.emit("lage_focus", JSONObject().put("i", -1))
+                speak("Das war die Lage.") { after() }
+                return
+            }
+            val p = pts.getJSONObject(idx[k])
+            Bus.emit("lage_focus", JSONObject().put("i", idx[k]).put("n", k + 1).put("of", idx.size))
+            val name = p.optString("ort").ifBlank { p.optString("titel") }
+            overlay?.card(JSONObject().put("kind", "text").put("text", "$name: ${p.optString("titel")}\n\n${p.optString("text")}"))
+            speaking = true; setState("speaking")
+            // erst hinfliegen lassen, dann erzählen
+            main.postDelayed({ if (id == tourId) speak("$name. ${p.optString("text")}") { step(k + 1) } }, 1900)
+        }
+        speak(intro) { step(0) }
     }
 }

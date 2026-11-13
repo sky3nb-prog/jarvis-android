@@ -208,6 +208,7 @@ class MainActivity : ComponentActivity() {
             .put("jarvis_volume", prefs.getInt("jarvis_volume", 70))
             .put("synced", prefs.getLong("snap_got", 0L))
             .put("facts", Memory.facts(this@MainActivity).size)
+            .put("lage_orte", prefs.getString("lage_orte", "Stuttgart"))
             .toString()
 
         @JavascriptInterface
@@ -220,6 +221,7 @@ class MainActivity : ComponentActivity() {
                 .putBoolean("background", o.optBoolean("background", true))
                 .putString("link_code", o.optString("link_code", "").trim().uppercase())
                 .putInt("jarvis_volume", o.optInt("jarvis_volume", 70).coerceIn(10, 100))
+                .putString("lage_orte", o.optString("lage_orte", "Stuttgart").trim())
                 .apply()
             if (Link.paired(this@MainActivity) && !JarvisService.running) Thread({
                 try { if (Link.pull(this@MainActivity)) send("synced", JSONObject().put("text", "Gedächtnis vom PC übernommen.")) }
@@ -312,6 +314,27 @@ class MainActivity : ComponentActivity() {
         fun openUrl(url: String) = runOnUiThread {
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) {}
         }
+
+        /** Lage für die Lage-Seite: sofort den letzten Stand, dann (wenn älter als 15 Minuten) frisch im Hintergrund. */
+        @JavascriptInterface
+        fun getLage(ort: String, force: Boolean) {
+            val ctx = this@MainActivity
+            Lage.cached(ctx, ort)?.let { send("lage", JSONObject().put("data", it).put("tour", false)) }
+            val key = prefs.getString("groq_key", "") ?: ""
+            if (key.isBlank()) { send("lage_error", JSONObject().put("text", "Für die Lage brauche ich deinen Groq-Schlüssel (Einstellungen).")); return }
+            Thread({
+                try {
+                    val d = Lage.get(ctx, key, ort, if (force) 0L else Lage.MAX_AGE)
+                    send("lage", JSONObject().put("data", d).put("tour", false))
+                } catch (e: Exception) { send("lage_error", JSONObject().put("text", e.message ?: "Lage nicht erreichbar.")) }
+            }, "jarvis-lage").start()
+        }
+
+        @JavascriptInterface
+        fun lageFavorites(): String = org.json.JSONArray(Lage.favorites(this@MainActivity)).toString()
+
+        @JavascriptInterface
+        fun city(): String = Lage.city(this@MainActivity)
 
         @JavascriptInterface
         fun version(): String = try {
