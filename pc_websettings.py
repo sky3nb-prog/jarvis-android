@@ -146,6 +146,18 @@ def schema(s: dict) -> dict:
                  sw("briefing_on_start", "Beim Start ein kurzes Briefing sprechen"),
                  tx("flug_places", "Flugverkehr: eigene Orte", "Mit Komma, z. B. Stuttgart, London.")),
         ]},
+        {"id": "wege", "n": "Wege", "i": "➜", "items": [
+            card("Meine Orte",
+                 note("Eine Zeile pro Ort: Name, Doppelpunkt, Adresse. Dann reicht „Ich will zu Opa“. Gilt auch am Handy."),
+                 {"k": "meine_orte", "t": "area", "l": "Orte", "ph": "Opa: Musterstraße 5, 71277 Rutesheim\nArbeit: …"}),
+            card("Meine Wege",
+                 note("Ein Punkt, über den der Weg führen soll: Name, Doppelpunkt, Ort oder Koordinaten (in Google Maps rechts klicken, Zahlen kopieren). "
+                      "Dann geht „über den oberen Feldweg zu Opa“."),
+                 {"k": "meine_wege", "t": "area", "l": "Wege", "ph": "oberer Feldweg: 48.8030, 8.9620"}),
+            card("Routen schicken",
+                 tx("route_an", "Google-Maps-Link per WhatsApp an", "Name aus deinen Kontakten, leer = an niemanden. Gilt auch am Handy."),
+                 note("Fragst du am PC, öffnet sich die Route am PC und auf dem Handy, und der PC schickt den Link per WhatsApp.")),
+        ]},
         {"id": "anz", "n": "Anzeige", "i": "◐", "items": [
             card("HUD",
                  {"k": "hud_layout", "t": "choice", "l": "Aufbau", "o": [
@@ -234,6 +246,7 @@ def schema(s: dict) -> dict:
         "show_performance": bool(g("show_performance")), "show_pc_temps": bool(g("show_pc_temps")),
         "show_notifications": bool(g("show_notifications")),
         "gemini_api_key": s.get("gemini_api_key", "") or "",
+        "meine_orte": s.get("meine_orte", "") or "", "meine_wege": s.get("meine_wege", "") or "", "route_an": s.get("route_an", "") or "",
     }
     for k, n in LISTS.items():
         values[k] = ", ".join(s.get(k) or (d.get(k) or []))
@@ -265,7 +278,7 @@ def save(s: dict, v: dict) -> dict:
             new[k] = num(k)
     for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
-              "calendar_url", "gemini_api_key"):
+              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device"):

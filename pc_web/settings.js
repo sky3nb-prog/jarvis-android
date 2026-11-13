@@ -2,7 +2,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const COL = { allg: "#ffd678", hoer: "#3cc8ff", stim: "#ffb43c", lage: "#6effcd", anz: "#d7a8ff", kn: "#ffd678", inf: "#3cc8ff", ki: "#ffa03c", dat: "#6effcd", hdy: "#d7a8ff" };
+  const COL = { allg: "#ffd678", hoer: "#3cc8ff", stim: "#ffb43c", lage: "#6effcd", anz: "#d7a8ff", kn: "#ffd678", inf: "#3cc8ff", ki: "#ffa03c", dat: "#6effcd", hdy: "#d7a8ff", wege: "#6effcd" };
   let data = null, vals = {}, tab = "allg", dirty = false, voiceNames = {};
   const root = $("pset");
 
@@ -38,6 +38,7 @@
     switch (i.t) {
       case "sw": return `<div class="ps-row" data-k="${i.k}" data-t="sw"><div>${esc(i.l)}${hint(i)}</div><div class="sw${v ? " on" : ""}"></div></div>`;
       case "text": return `<div class="ps-f"><label>${esc(i.l)}</label><input data-k="${i.k}" type="${i.pw ? "password" : "text"}" value="${esc(v)}" placeholder="${esc(i.ph || "")}">${hint(i)}</div>`;
+      case "area": return `<div class="ps-f"><label>${esc(i.l)}</label><textarea data-k="${i.k}" rows="4" placeholder="${esc(i.ph || "")}">${esc(v)}</textarea>${hint(i)}</div>`;
       case "secret": return `<div class="ps-f"><label>${esc(i.l)} <em class="${vals["_has_" + i.k] ? "ok" : ""}">${vals["_has_" + i.k] ? "● gespeichert" : "○ leer"}</em></label><input data-k="${i.k}" type="password" value="" placeholder="${vals["_has_" + i.k] ? "leer lassen = behalten" : "einfügen …"}">${hint(i)}</div>`;
       case "sel": {
         const opts = i.o.map(([n, ov]) => `<option value="${esc(ov == null ? "" : ov)}"${String(ov == null ? "" : ov) === String(v == null ? "" : v) ? " selected" : ""}>${esc(n)}</option>`).join("");
@@ -64,7 +65,7 @@
   function wire() {
     const b = $("ps-body");
     b.querySelectorAll('[data-t="sw"]').forEach((r) => r.addEventListener("click", () => { const on = !vals[r.dataset.k]; set(r.dataset.k, on); r.querySelector(".sw").classList.toggle("on", on); }));
-    b.querySelectorAll("input[data-k]:not([type=range]), select[data-k]").forEach((e) => e.addEventListener("input", () => set(e.dataset.k, e.value)));
+    b.querySelectorAll("input[data-k]:not([type=range]), select[data-k], textarea[data-k]").forEach((e) => e.addEventListener("input", () => set(e.dataset.k, e.value)));
     b.querySelectorAll("input[type=range][data-k]").forEach((e) => {
       const paint = () => e.style.setProperty("--p", ((e.value - e.min) / (e.max - e.min) * 100) + "%");
       paint();

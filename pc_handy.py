@@ -201,7 +201,8 @@ def call(who: str) -> dict:
 
 
 # --- Wege planen (rechnet das Handy: kennt Standort, Gedächtnis, Läden entlang der Strecke) --------------------
-ROUTE = re.compile(r"wann muss ich\b.*\b(?:los|aufbrechen|starten)|"
+ROUTE = re.compile(r"wann muss ich\b.*\b(?:los|aufbrechen|starten)|\broute\b|google maps|\bnavigation\b|\bnavigier\w*|"
+                   r"\bich (?:möchte|will|muss|würde gern|wollte)\s+(?:\w+\s+){0,3}(?:zu|nach|zum|zur)\s+\w+|"
                    r"\bich (?:möchte|will|muss|würde gern|wollte|mag)\b.*\b\w*(?:fahr|radel|lauf|geh|los|hin|rüber)\w*\b.*\b(?:nach|zu|zum|zur|ins|in die)\b|"
                    r"\b(?:vorbei|zwischenstopp)\w*\b.*\b(?:nach|zu|zum|zur)\b|\b(?:nach|zu|zum|zur)\b.*\bvorbei\w*\b|"
                    r"\b(?:bahn|s-bahn|zug|bus)\b.*\b(?:nach|zu|zum|zur)\b|"
@@ -212,6 +213,9 @@ def plan_route(text: str):
     """Wegewunsch ans Handy, Google Maps am PC öffnen. None, wenn das Handy nicht antwortet (dann plant der PC selbst)."""
     if not paired() or not ROUTE.search(text):
         return None
+    if re.search(r"\b(?:youtube|discord|steam|chrome|spotify|deezer|whatsapp|netflix|twitch|instagram|tiktok|einstellungen|ordner|"
+                 r"spiel|lied|musik|video|seite|website|app)\b", text, re.I) and not re.search(r"\broute\b|maps|navigation", text, re.I):
+        return None   # „ich will zu YouTube“ ist kein Weg
     r = ask("route", wait=45, text=text)
     if r is None:
         return None
@@ -221,6 +225,14 @@ def plan_route(text: str):
             webbrowser.open(r["url"])
         except Exception:
             pass
+    if r.get("send_to") and r.get("message"):   # Link per WhatsApp an den eingestellten Kontakt (Einstellungen → Wege)
+        def go():
+            try:
+                import pc_messages
+                print("Route an", r["send_to"], "->", pc_messages.send_whatsapp(str(r["send_to"]), str(r["message"])))
+            except Exception as e:
+                print(f"Route per WhatsApp ging nicht: {e}")
+        threading.Timer(4.0, go).start()   # erst nach dem Sprechen tippen
     return r.get("text") or "Den Weg konnte ich gerade nicht planen."
 
 

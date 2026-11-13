@@ -178,3 +178,6 @@ body.asleep .st-ring::before{border-top-color:#555;border-right-color:#333}
 .st-ask{border-radius:0;z-index:7}.st-ask>div{min-width:380px}
 .st-ask input{display:block;width:100%;margin-top:10px;padding:10px 13px;border-radius:13px;border:1px solid #5a3e14;background:#0b0804;color:var(--txt);font-size:14px;font-family:inherit;outline:none}
 @media (max-width:1150px){.st-wrap{grid-template-columns:1fr 1fr}.st-jar{display:none}}
+
+.ps-f textarea{width:100%;padding:10px 13px;border-radius:13px;border:1px solid #1a4458;background:#081c29;color:var(--txt);font-size:14px;font-family:inherit;outline:none;resize:vertical;line-height:1.5}
+.ps-f textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,170,40,.15)}

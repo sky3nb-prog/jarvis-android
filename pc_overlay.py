@@ -1282,6 +1282,8 @@ class BargeIn:
         self.command = ""
         self._stop = threading.Event()
         self._busy = False
+        self._next = None
+        self._lock = threading.Lock()
         self._t = None
 
     def __enter__(self):
@@ -1297,6 +1299,7 @@ class BargeIn:
 
     def _run(self):
         buf, quiet = [], 0
+        echo = 0.0   # wie laut die eigene Stimme aus den Boxen gerade im Mikrofon ankommt (gleitender Mittelwert)
         while not self._stop.is_set() and not self.hit:
             try:
                 chunk = self.q.get(timeout=0.1)
@@ -1305,31 +1308,64 @@ class BargeIn:
             if not pc_audio._speaking:  # nur während er spricht
                 buf, quiet = [], 0
                 continue
-            if pc_assistent.rms(chunk) > self.thr:
+            lvl = pc_assistent.rms(chunk)
+            loud = lvl > max(self.thr, echo * 1.6)
+            echo = echo * 0.97 + lvl * 0.03 if not loud else echo * 0.995 + lvl * 0.005
+            if loud:
                 buf.append(chunk)
                 quiet = 0
             elif buf:
                 buf.append(chunk)
                 quiet += 1
-            if buf and (quiet >= 5 or len(buf) >= 35):
-                if len(buf) - quiet >= 3 and not self._busy:
-                    self._busy = True
-                    threading.Thread(target=self._check, args=(b"".join(buf),), daemon=True).start()
-                buf, quiet = [], 0
+            # kurze Stücke (das Weckwort ist kurz) und nichts verwerfen: ist die Erkennung beschäftigt, kommt das
+            # neueste Stück als Nächstes dran (vorher ging es verloren, deshalb klappte das Unterbrechen oft nicht)
+            if buf and (quiet >= 3 or len(buf) >= 22):
+                if len(buf) - quiet >= 2:
+                    raw = b"".join(buf)
+                    with self._lock:
+                        if self._busy:
+                            self._next = raw
+                        else:
+                            self._busy = True
+                            threading.Thread(target=self._check, args=(raw,), daemon=True).start()
+                buf = buf[-2:] if len(buf) >= 22 else []   # bei langen Stücken etwas Überlappung behalten
+                quiet = 0
+
+    def _heard(self, text: str):
+        low = (text or "").lower()
+        wake = next((w for w in WAKE_WORDS if w in low), None)
+        if not wake:   # ungenau gehört, z. B. "freitag" statt "friday"
+            words = re.findall(r"[a-zäöüß]+", low)
+            for w in WAKE_WORDS:
+                for i, x in enumerate(words):
+                    if len(x) >= 4 and _similar(x, w):
+                        return w, " ".join(text.split()[i + 1:]) if len(text.split()) > i else ""
+            return None, ""
+        return wake, text[low.index(wake) + len(wake):].strip(" ,.!?")
 
     def _check(self, raw):
-        try:
-            text = transcribe(self.rec, raw, quiet=True)
-            low = (text or "").lower()
-            wake = next((w for w in WAKE_WORDS if w in low), None)
-            if wake and not self.hit and not self._stop.is_set():
-                rest = text[low.index(wake) + len(wake):].strip(" ,.!?")
-                self.hit = True
-                self.command = "" if self.STOP_WORDS.match(rest) else rest
-                print(f"Unterbrochen: {text}")
-                pc_cancel.cancel()  # sofort still
-        finally:
-            self._busy = False
+        while raw is not None:
+            try:
+                text = transcribe(self.rec, raw, quiet=True)
+                wake, rest = self._heard(text)
+                if wake and not self.hit and not self._stop.is_set():
+                    self.hit = True
+                    rest = rest.strip(" ,.!?")
+                    self.command = "" if self.STOP_WORDS.match(rest) else rest
+                    print(f"Unterbrochen: {text}")
+                    pc_cancel.cancel()  # sofort still
+            except Exception:
+                pass
+            with self._lock:
+                raw, self._next = (self._next, None) if not self.hit else (None, None)
+                if raw is None:
+                    self._busy = False
+
+
+def _similar(a: str, b: str) -> bool:
+    """Ähnlich genug fürs Weckwort (höchstens ein Buchstabe pro vier anders)."""
+    import difflib
+    return difflib.SequenceMatcher(None, a, b).ratio() >= 0.75
 
 
 def assistant_loop(ui: UI, stop: threading.Event, shutdown):

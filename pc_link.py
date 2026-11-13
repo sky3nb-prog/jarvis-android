@@ -144,7 +144,8 @@ def snapshot() -> dict:
 # Handy-Name -> PC-Einstellung
 SHARED = {"city": "home_city", "address": "home_address", "anrede": "address_as", "assistant_name": "assistant_name",
           "lage_orte": "lage_places", "themen_selbst": "themen_selbst", "lage_spin": "lage_spin",
-          "lage_labels": "map_labels", "lage_jump": "globe_auto_open", "lage_zoom": "lage_sat_tour", "lage_orbits": "lage_orbits"}
+          "lage_labels": "map_labels", "lage_jump": "globe_auto_open", "lage_zoom": "lage_sat_tour", "lage_orbits": "lage_orbits",
+          "orte": "meine_orte", "wege": "meine_wege", "route_an": "route_an"}
 ON_SETTINGS = None   # vom Programm gesetzt: übernimmt geänderte Einstellungen (im Tk-Thread)
 
 
