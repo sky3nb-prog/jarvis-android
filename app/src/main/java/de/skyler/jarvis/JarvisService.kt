@@ -460,6 +460,20 @@ class JarvisService : Service() {
                 val r = try { pcBrain.handle(key, text) } catch (e: Exception) { "Am Handy ging das nicht: ${e.message ?: ""}" }
                 Link.replyPc(this, id, true, r)
             }
+            "call" -> worker.execute {
+                // erst direkt in den Kontakten suchen; kennt er den Namen nicht (z. B. "Mama"), fragt er seine KI,
+                // die aus dem Gedächtnis weiß, wer gemeint ist
+                val who = m.optString("who").trim()
+                val acts = Actions(this)
+                val r = if (who.isNotBlank() && acts.number(who) != null)
+                    acts.run(JSONObject().put("action", "call").put("who", who)) ?: "Anrufen geht gerade nicht."
+                else {
+                    val key = prefs.getString("groq_key", "") ?: ""
+                    if (key.isBlank()) "$who finde ich nicht in deinen Kontakten."
+                    else try { pcBrain.handle(key, "Ruf $who an") } catch (e: Exception) { "$who finde ich nicht in deinen Kontakten." }
+                }
+                Link.replyPc(this, id, !r.contains("nicht"), r)
+            }
             "media" -> main.post {
                 val q = listOf(m.optString("artist"), m.optString("title")).filter { it.isNotBlank() }.joinToString(" ")
                 val video = m.optBoolean("video")
