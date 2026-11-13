@@ -40,7 +40,7 @@ object Route {
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
     data class P(val lat: Double, val lon: Double, val name: String)
-    class Result(val say: String, val url: String?)
+    class Result(val say: String, val url: String?, val sendTo: String? = null, val message: String = "")
 
     private fun km(a: P, b: P): Double {
         val r = 6371.0; val dLa = Math.toRadians(b.lat - a.lat); val dLo = Math.toRadians(b.lon - a.lon)
@@ -51,6 +51,22 @@ object Route {
     private val SPEED = mapOf("bicycling" to 16.0, "walking" to 4.8, "driving" to 38.0, "transit" to 4.8)
     private fun minutes(km: Double, mode: String) = km * 1.3 / (SPEED[mode] ?: 16.0) * 60.0   // 1,3 = Wege sind nicht schnurgerade
 
+    /** "Opa: Musterstraße 5, Rutesheim" je Zeile (Einstellungen → Wege, gleich wie am PC) */
+    fun lines(ctx: Context, key: String): Map<String, String> =
+        (ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString(key, "") ?: "").lines().mapNotNull { l ->
+            val i = l.indexOfFirst { it == ':' || it == '=' }
+            if (i <= 0) null else l.substring(0, i).trim().lowercase() to l.substring(i + 1).trim()
+        }.filter { it.first.isNotBlank() && it.second.isNotBlank() }.toMap()
+
+    private fun mine(ctx: Context, q: String): String? {
+        val k = q.lowercase().trim().removePrefix("zu ").removePrefix("meinem ").removePrefix("meiner ").removePrefix("meinen ").removePrefix("mein ").removePrefix("meine ").trim()
+        for (m in listOf(lines(ctx, "orte"), lines(ctx, "wege"))) {
+            m[k]?.let { return it }
+            m.entries.firstOrNull { (n, _) -> k.contains(n) || n.contains(k) && k.length >= 3 }?.let { return it.value }
+        }
+        return null
+    }
+
     private fun prompt(ctx: Context, fromPc: Boolean): String {
         val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
         val city = Lage.city(ctx)
@@ -59,7 +75,9 @@ object Route {
         val now = SimpleDateFormat("EEEE, dd.MM.yyyy, HH:mm", de).format(Date())
         return """Du planst Wege für den Nutzer (wohnt in $city${if (addr.isNotBlank()) ", Adresse: $addr" else ""}). Es ist $now.
 ${if (fromPc) "Er fragt am PC zuhause: \"hier\" heißt zuhause." else "Er fragt am Handy: \"hier\" heißt sein aktueller Standort${if (here.isNotBlank()) " ($here)" else ""}."}
-Was du über ihn weißt (Orte von Familie und Freunden, seine Lieblingswege usw.):
+Seine gespeicherten Orte (nimm bei "ziel"/"ort" genau diesen Namen, z. B. "Opa"): ${lines(ctx, "orte").keys.joinToString(", ").ifBlank { "keine" }}
+Seine gespeicherten Wege (als Stopp mit "art":"weg" und "ort" = genau dieser Name, an der Stelle, wo er ihn nennt): ${lines(ctx, "wege").keys.joinToString(", ").ifBlank { "keine" }}
+Was du sonst über ihn weißt (Orte von Familie und Freunden, seine Lieblingswege usw.):
 ${Memory.facts(ctx).takeLast(60).joinToString("\n") { "- $it" }}
 Zerlege seinen Wunsch in JSON:
 {"start":"hier" | "zuhause" | "<Adresse oder Ort>",
@@ -90,12 +108,17 @@ Antworte NUR mit dem JSON."""
         val home = Lage.geocode(ctx, homeQ)?.let { P(it.first, it.second, "zuhause") }
         val near = home?.let { it.lat to it.lon }
 
+        fun resolve0(s: String, label: String): P? {
+            Regex("^(-?\\d+\\.\\d+)\\s*,\\s*(-?\\d+\\.\\d+)$").find(s.trim())?.let { return P(it.groupValues[1].toDouble(), it.groupValues[2].toDouble(), label) }
+            return Lage.geocode(ctx, s, near)?.let { P(it.first, it.second, label.ifBlank { s }) }
+        }
+
         fun resolve(q: String, label: String): P? {
             val s = q.trim()
             if (s.isBlank() || s.equals("zuhause", true)) return home
             if (s.equals("hier", true)) return if (!fromPc) Here.latLon(ctx)?.let { P(it.first, it.second, "hier") } ?: home else home
-            Regex("^(-?\\d+\\.\\d+)\\s*,\\s*(-?\\d+\\.\\d+)$").find(s)?.let { return P(it.groupValues[1].toDouble(), it.groupValues[2].toDouble(), label) }
-            return Lage.geocode(ctx, s, near)?.let { P(it.first, it.second, label.ifBlank { s }) }
+            mine(ctx, s)?.let { v -> return resolve0(v, label.ifBlank { s }) }
+            return resolve0(s, label)
         }
 
         val start = resolve(j.optString("start", "hier"), "Start") ?: return Result("Ich weiß nicht, wo du losfährst. Schalte am Handy den Standort ein oder trag deine Adresse ein.", null)
@@ -140,9 +163,7 @@ Antworte NUR mit dem JSON."""
         else if (j.optString("frage") == "wann_los") sb.append(" Wenn du jetzt losfährst, bist du gegen ${clock(System.currentTimeMillis() + (total * 60_000).toLong())} da.")
         if (notes.isNotEmpty()) sb.append(" Hinweis: ${notes.joinToString("; ")}.")
         j.optString("hinweis").takeIf { it.isNotBlank() && it != "null" }?.let { sb.append(" $it.") }
-        sb.append(if (fromPc) " Die Route ist in Google Maps offen." else " Ich öffne dir die Route in Google Maps.")
-        if (!fromPc) open(ctx, url)
-        return Result(sb.toString(), url)
+        return finish(ctx, sb, url, "Route nach $zielName", fromPc)
     }
 
     /** Laden einer Kette mit dem kleinsten Umweg zwischen a und b (OpenStreetMap / Overpass). */
@@ -211,9 +232,7 @@ Antworte NUR mit dem JSON."""
         }
         if (notes.isNotEmpty()) sb.append(" Hinweis: ${notes.joinToString("; ")}.")
         j.optString("hinweis").takeIf { it.isNotBlank() && it != "null" }?.let { sb.append(" $it.") }
-        sb.append(if (fromPc) " Die Verbindung ist in Google Maps offen." else " Ich öffne dir die Verbindung in Google Maps.")
-        if (!fromPc) open(ctx, maps)
-        return Result(sb.toString(), maps)
+        return finish(ctx, sb, maps, "Verbindung nach $zielName", fromPc)
     }
 
     class Trip(val dep: Long, val arr: Long, val line: String, val stop: String, val rideDep: Long)
@@ -264,6 +283,23 @@ Antworte NUR mit dem JSON."""
                 parseIso(ride.optString("departure")) ?: dep)
         }
     } catch (_: Exception) { emptyList() }
+
+    /** Google Maps am Handy öffnen (auch wenn am PC gefragt) und den Link per WhatsApp an den eingestellten Kontakt. */
+    private fun finish(ctx: Context, sb: StringBuilder, url: String, what: String, fromPc: Boolean): Result {
+        val to = (ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("route_an", "") ?: "").trim()
+        sb.append(if (fromPc) " Die Route ist am PC und auf deinem Handy in Google Maps offen." else " Ich öffne dir die Route in Google Maps.")
+        open(ctx, url)
+        if (to.isNotBlank()) {
+            if (fromPc) sb.append(" Den Link schicke ich $to per WhatsApp.")
+            else {
+                sb.append(" Für $to ist die WhatsApp mit dem Link fertig, tipp nur auf Senden.")
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    try { Actions(ctx).run(JSONObject().put("action", "whatsapp").put("to", to).put("text", "$what: $url")) } catch (_: Exception) {}
+                }, 2500)
+            }
+        }
+        return Result(sb.toString(), url, to.takeIf { fromPc && it.isNotBlank() }, "$what: $url")
+    }
 
     private fun open(ctx: Context, url: String) {
         try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}

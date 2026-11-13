@@ -275,3 +275,5 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 #ask-aus .sheet, #ask-text .sheet { height: auto; padding: 18px 18px 30px; border-radius: 22px 22px 0 0; display: block; }
 .toast.ok { background: #04140f; border-color: #1f8f6a; color: #cdeee2; }
 #info-pc .row { font-size: 13px; } #info-pc .row b { white-space: nowrap; }
+
+.sec textarea { width: 100%; padding: 11px 12px; border-radius: 11px; border: 1px solid #16506a; background: #0a2233; color: var(--txt); font-size: 14px; font-family: inherit; resize: vertical; line-height: 1.45; }

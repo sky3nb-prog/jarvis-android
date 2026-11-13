@@ -127,7 +127,7 @@ object Link {
             when {
                 k in BOOL_KEYS -> e.putBoolean(k, s.optBoolean(k, true))
                 k == "themen_selbst" -> Themen.setManual(ctx, s.optString(k))
-                k == "anrede" || k == "assistant_name" || k == "city" || k == "address" || k == "lage_orte" -> e.putString(k, s.optString(k))
+                k in listOf("anrede", "assistant_name", "city", "address", "lage_orte", "orte", "wege", "route_an") -> e.putString(k, s.optString(k))
             }
         }
         e.putLong("settings_ts", ts).apply()
@@ -143,6 +143,7 @@ object Link {
         val set = JSONObject()
         set.put("city", Lage.city(ctx)).put("address", p.getString("address", "") ?: "").put("anrede", p.getString("anrede", "") ?: "")
             .put("lage_orte", p.getString("lage_orte", "Stuttgart") ?: "")
+            .put("orte", p.getString("orte", "") ?: "").put("wege", p.getString("wege", "") ?: "").put("route_an", p.getString("route_an", "") ?: "")
         (p.getString("assistant_name", "") ?: "").takeIf { it.isNotBlank() }?.let { set.put("assistant_name", it) }
         set.put("themen_selbst", Themen.manual(ctx).joinToString(", "))
         for (k in BOOL_KEYS) set.put(k, p.getBoolean(k, true))

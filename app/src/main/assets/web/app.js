@@ -231,6 +231,7 @@
       $("set-anrede").value = c.anrede || "";
       $("set-city").value = c.city || "";
       $("set-addr").value = c.address || "";
+      $("set-morte").value = c.orte || ""; $("set-mwege").value = c.wege || ""; $("set-routean").value = c.route_an || "";
       sw("set-loc", c.use_location);
       $("set-locstate").innerHTML = c.here ? "Gerade: <b style='color:#6effcd'>" + c.here + "</b>" : (c.use_location ? "Standort wird beim nächsten Mal ermittelt." : "");
       sw("set-ljump", c.lage_jump !== false); sw("set-lzoom", c.lage_zoom !== false); sw("set-lspin", c.lage_spin !== false);
@@ -271,6 +272,7 @@
       themen_selbst: $("set-tselbst").value.trim(),
       assistant_name: $("set-name").value.trim(), anrede: $("set-anrede").value.trim(),
       city: $("set-city").value.trim(), address: $("set-addr").value.trim(), use_location: sw("set-loc"),
+      orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
     };

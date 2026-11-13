@@ -129,7 +129,7 @@
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-allg">
         <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
@@ -188,6 +188,20 @@
           <div class="srow"><div>Erde langsam drehen (echter Tag und Nacht)</div><div class="sw" id="set-lspin"></div></div>
           <div class="srow"><div>Satelliten-Bahnen um die Erde</div><div class="sw" id="set-lorbit"></div></div>
           <div class="srow"><div>Ortsnamen auf der Karte</div><div class="sw" id="set-llabels"></div></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-wege">
+        <div class="sec" style="--c:#6effcd"><h3>MEINE ORTE</h3>
+          <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Name, Doppelpunkt, Adresse. Dann reicht „Ich will zu Opa“. Gilt auch am PC.</div>
+          <div class="f"><textarea id="set-morte" rows="4" placeholder="Opa: Musterstraße 5, 71277 Rutesheim&#10;Großeltern: …&#10;Arbeit: …"></textarea></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>MEINE WEGE</h3>
+          <div class="note" style="margin:0 0 6px">Ein Punkt, über den der Weg führen soll: Name, Doppelpunkt, Ort oder Koordinaten (in Google Maps lange drücken, Zahlen kopieren). Dann geht „über den oberen Feldweg zu Opa“.</div>
+          <div class="f"><textarea id="set-mwege" rows="3" placeholder="oberer Feldweg: 48.8030, 8.9620&#10;unterer Feldweg: 48.7975, 8.9655"></textarea></div>
+        </div>
+        <div class="sec" style="--c:#3cc8ff"><h3>ROUTEN SCHICKEN</h3>
+          <div class="f"><label>Google-Maps-Link per WhatsApp an (Name aus den Kontakten, leer = an niemanden)</label><input id="set-routean" type="text" placeholder="z. B. Thomas"></div>
+          <div class="note">Am Handy öffnet sich WhatsApp mit fertiger Nachricht – du tippst nur auf Senden. Fragst du am PC, schickt der PC sie über WhatsApp am PC.</div>
         </div>
       </div>
       <div class="spane" id="sp-anz">

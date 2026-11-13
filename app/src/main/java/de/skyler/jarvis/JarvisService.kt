@@ -482,7 +482,8 @@ class JarvisService : Service() {
             "route" -> worker.execute {
                 val key = prefs.getString("groq_key", "") ?: ""
                 val r = try { Route.plan(this, key, m.optString("text"), fromPc = true) } catch (e: Exception) { Route.Result("Den Weg konnte ich gerade nicht planen.", null) }
-                Link.replyPc(this, id, r.url != null, r.say, url = r.url)
+                Link.replyPc(this, id, r.url != null, r.say, url = r.url,
+                    extra = JSONObject().put("send_to", r.sendTo ?: "").put("message", r.message))
             }
             "status" -> worker.execute { Link.replyPc(this, id, true, "", PhoneCtl.status(this)) }
             "ctl" -> Thread {

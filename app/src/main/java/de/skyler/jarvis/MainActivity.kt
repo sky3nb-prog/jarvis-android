@@ -219,6 +219,7 @@ class MainActivity : ComponentActivity() {
             .put("anrede", prefs.getString("anrede", ""))
             .put("city", prefs.getString("city", "").let { if (it.isNullOrBlank()) Lage.city(this@MainActivity) else it })
             .put("address", prefs.getString("address", ""))
+            .put("orte", prefs.getString("orte", "")).put("wege", prefs.getString("wege", "")).put("route_an", prefs.getString("route_an", ""))
             .put("use_location", prefs.getBoolean("use_location", false))
             .put("here", Here.name(this@MainActivity))
             .put("media_ok", Interests.hasAccess(this@MainActivity))
@@ -241,6 +242,8 @@ class MainActivity : ComponentActivity() {
                 .putString("anrede", o.optString("anrede").trim())
                 .putString("city", o.optString("city").trim())
                 .putString("address", o.optString("address").trim())
+                .putString("orte", o.optString("orte").trim()).putString("wege", o.optString("wege").trim())
+                .putString("route_an", o.optString("route_an").trim())
                 .putBoolean("use_location", o.optBoolean("use_location", false))
                 .apply { for (k in listOf("lage_jump", "lage_zoom", "lage_spin", "lage_orbits", "lage_labels", "strand")) putBoolean(k, o.optBoolean(k, true)) }
                 .apply()
