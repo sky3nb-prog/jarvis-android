@@ -102,7 +102,8 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         termin = null
         if (Termin.wants(text)) {
             think("kalender")
-            val r = try { Termin.add(ctx, key, text) } catch (e: Exception) { Termin.R("Den Termin konnte ich gerade nicht eintragen.", false) }
+            val r = try { Termin.add(ctx, key, text) } catch (e: Groq.KeyError) { Termin.R(e.message ?: "Der Groq-Schlüssel stimmt nicht.", false) }
+                catch (e: Exception) { Termin.R("Den Termin konnte ich gerade nicht eintragen (${e.message ?: "unbekannter Fehler"}).", false) }
             termin = r
             if (r.ok && !fromPc) Link.remindPc(ctx, r.title, r.remindAt)   // der PC erinnert dich auch, wenn er läuft
             history.put(JSONObject().put("role", "user").put("content", text))
