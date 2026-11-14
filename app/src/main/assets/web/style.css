@@ -401,3 +401,11 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 /* Fokus: langer Text scrollt im Kasten, Knopf und Eingabe bleiben immer erreichbar */
 #v-fokus > * { flex-shrink: 0; }
 #v-fokus .talkbox { max-height: 30vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+
+/* Scrollbalken in Jarvis-Farben (statt weiß) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0a0703; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8a5c18, #c8902e); border-radius: 8px; border: 2px solid #0a0703; }
+::-webkit-scrollbar-thumb:hover { background: #ffd678; }
+::-webkit-scrollbar-corner { background: #0a0703; }
+html, body, * { scrollbar-color: #a0702a #0a0703; }

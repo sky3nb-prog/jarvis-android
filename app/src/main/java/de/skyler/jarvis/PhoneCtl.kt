@@ -36,8 +36,20 @@ object PhoneCtl {
     private val main = Handler(Looper.getMainLooper())
     private val streams = mapOf("medien" to AudioManager.STREAM_MUSIC, "klingel" to AudioManager.STREAM_RING, "wecker" to AudioManager.STREAM_ALARM)
 
+    @Volatile private var gesund = JSONObject()
+    @Volatile private var gesundT = 0L
+
     fun status(ctx: Context): JSONObject {
         val o = JSONObject().put("ts", System.currentTimeMillis() / 1000).put("model", Build.MODEL ?: "Handy")
+        try {   // Schlaf und Aktivität: der PC soll es wissen (nicht anzeigen), höchstens alle 10 Min. neu
+            if (System.currentTimeMillis() - gesundT > 600_000L) {
+                val g = JSONObject()
+                Sleep.night(ctx, 0)?.let { g.put("schlaf", "Schlaf letzte Nacht: " + Sleep.text(it)) }
+                if (Health.connected(ctx)) Health.day(ctx, 0)?.let { g.put("heute", "Heute: " + Health.text(it)) }
+                gesund = g; gesundT = System.currentTimeMillis()
+            }
+            if (gesund.length() > 0) o.put("gesund", gesund)
+        } catch (_: Exception) {}
         try {
             val b = ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             if (b != null) {

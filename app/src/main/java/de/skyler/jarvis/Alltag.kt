@@ -99,6 +99,30 @@ object Alltag {
         try { nm.notify(id, b.build()) } catch (_: Exception) {}
     }
 
+    /**
+     * Nachts noch am Handy (ab 22:30): "Wenn du jetzt schläfst, sind es noch X Stunden bis zum Aufstehen."
+     * Einmal, sobald es unter 8½ Stunden sind, und noch einmal unter 6 Stunden. Nur Benachrichtigung, leise.
+     */
+    private fun sleepNudge(ctx: Context, s: JSONObject) {
+        if (!on(ctx, "schlaf_tipp")) return
+        val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY); val mi = c.get(Calendar.MINUTE)
+        if (!((h == 22 && mi >= 30) || h == 23 || h < 4)) return
+        val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        if (!pm.isInteractive) return
+        val now = System.currentTimeMillis()
+        val dayStart = Calendar.getInstance().apply { if (h >= 12) add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        val up = Wecker.upFor(ctx, dayStart) ?: return
+        val left = (up - now) / 60_000L
+        if (left <= 0) return
+        val key = SimpleDateFormat("yyyy-MM-dd", de).format(Date(dayStart))
+        val stage = if (left < 6 * 60) 2 else if (left < 8 * 60 + 30) 1 else 0
+        if (stage == 0 || s.optInt("schlaf_tipp_$key") >= stage) return
+        s.put("schlaf_tipp_$key", stage)
+        val t = "Wenn du jetzt schläfst, sind es noch ${Sleep.dur(left)} bis zum Aufstehen um ${SimpleDateFormat("H:mm", de).format(Date(up))}." +
+            (if (stage == 2) " Das wird knapp – leg das Handy weg." else "")
+        notify(ctx, 346, "Schlafenszeit", t)
+    }
+
     /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
     private const val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/neueste/Jarvis.apk"
     private fun appUpdate(ctx: Context, s: JSONObject) {
@@ -327,6 +351,7 @@ object Alltag {
         try { weekly(ctx, s) } catch (e: Exception) { Log.w(TAG, "rückblick: $e") }
         try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
         try { appUpdate(ctx, s) } catch (_: Exception) {}
+        try { sleepNudge(ctx, s) } catch (_: Exception) {}
         save(ctx, s)
     }
 
@@ -1019,6 +1044,7 @@ object Alltag {
         if (fahrten.isNotEmpty()) parts.add("HEUTE – Fahrten zu: ${fahrten.joinToString()}")
         if (fit != null) parts.add("HEUTE – Aktivität: ${Health.text(fit)}")
         if (schlaf != null) parts.add("Schlaf letzte Nacht: ${Sleep.text(schlaf)}")
+        if (up != null) parts.add("Für 8 Stunden Schlaf müsste er um ${SimpleDateFormat("H:mm", de).format(Date(up - 8 * 3_600_000L))} Uhr schlafen.")
         parts.add("MORGEN – " + (if (up != null) "Aufstehen um ${clock(up)}" + (if (wecker.isNotEmpty()) ", Wecker ${wecker.joinToString(", ")}" else "")
             else if (firstAlarm != null) "erster Wecker ${clock(firstAlarm)}" else "kein Wecker, er kann ausschlafen"))
         if (wx != null) parts.add("MORGEN – Wetter Leonberg: $wx")
@@ -1026,7 +1052,7 @@ object Alltag {
         val sys = "Du bist Jarvis und gibst Skyler seinen Tagesabschluss am Abend. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 3 bis 5 kurze Sätze: kurzer Rückblick auf heute (was los war" +
             (if (fit != null) ", wie viele Kalorien er verbraucht hat und ob er aktiv war, Defizit nur wenn gegessene Kalorien in den Daten stehen" else "") +
-            "), dann für morgen NUR: wann er aufsteht und was er anziehen soll. KEINE Termine von morgen. Beginne mit 'Dein Tagesabschluss'\", " +
+            "), dann für morgen NUR: wann er aufsteht (mit dem Tipp, wann er für 8 Stunden Schlaf ins Bett sollte) und was er anziehen soll. KEINE Termine von morgen. Beginne mit 'Dein Tagesabschluss'\", " +
             "\"heute\": [\"2 bis 4 kurze Stichpunkte, was heute los war\"], " +
             "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"]}. Erfinde nichts."
         val ai = aiJson(ctx, sys, parts.joinToString("\n\n"), 600)
@@ -1034,7 +1060,7 @@ object Alltag {
             ?: (listOfNotNull(fit?.let { "Heute: " + Health.text(it) }, up?.let { "Morgen stehst du um ${clock(it)} auf." }).joinToString(" ").ifBlank { return null })
         val d = JSONObject().put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date(d0)))
             .put("heute", strs(ai?.optJSONArray("heute"))).put("fit", fit ?: JSONObject.NULL).put("schlaf", schlaf ?: JSONObject.NULL)
-            .put("aufstehen", up ?: 0L).put("wecker", JSONArray(wecker)).put("erster_wecker", firstAlarm ?: 0L)
+            .put("aufstehen", up ?: 0L).put("bett", if (up != null) up - 8 * 3_600_000L else 0L).put("wecker", JSONArray(wecker)).put("erster_wecker", firstAlarm ?: 0L)
             .put("wx", wx ?: JSONObject.NULL).put("outfit", ai?.optJSONObject("outfit") ?: JSONObject.NULL).put("anziehen", strs(ai?.optJSONArray("anziehen")))
         val sub = listOfNotNull(up?.let { "Aufstehen ${SimpleDateFormat("H:mm", de).format(Date(it))}" },
             strs(ai?.optJSONArray("anziehen")).optString(0).ifBlank { null }, fit?.takeIf { it.has("kcal") }?.let { "%,d kcal".format(de, it.optLong("kcal")) }).joinToString(" · ")

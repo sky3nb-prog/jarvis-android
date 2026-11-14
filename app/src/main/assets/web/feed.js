@@ -133,7 +133,8 @@
       <div class="fp-tile"><b>${nf(f.schritte)}</b><small>Schritte</small></div>
       <div class="fp-tile"><b>${f.defizit != null ? nf(Math.abs(f.defizit)) : nf(f.aktiv)}</b><small>${f.defizit != null ? (f.defizit > 0 ? "kcal Defizit" : "kcal Überschuss") : "kcal aktiv"}</small></div></div></div>`;
     h += sleepCard(d.schlaf);
-    h += card("⏰ MORGEN AUFSTEHEN", "#d7a8ff", d.aufstehen ? `<div class="fp-row"><span class="z">${hm(d.aufstehen)}</span><span>aufstehen${(d.wecker || []).length ? `<span class="o">Wecker ${d.wecker.map(esc).join(", ")}</span>` : ""}</span></div>`
+    h += card("⏰ MORGEN AUFSTEHEN", "#d7a8ff", d.aufstehen ? `<div class="fp-row"><span class="z">${hm(d.aufstehen)}</span><span>aufstehen${(d.wecker || []).length ? `<span class="o">Wecker ${d.wecker.map(esc).join(", ")}</span>` : ""}</span></div>` +
+      (d.bett ? `<div class="fp-row"><span class="z">${hm(d.bett)}</span><span>schlafen gehen<span class="o">dann sind es 8 Stunden</span></span></div>` : "")
       : `<div class="fp-row"><span class="z">${d.erster_wecker ? hm(d.erster_wecker) : "–"}</span><span>${d.erster_wecker ? "erster Wecker" : "kein Wecker – ausschlafen"}</span></div>`);
     h += outfit(d.outfit, d.anziehen);
     return h + say(m.text);
