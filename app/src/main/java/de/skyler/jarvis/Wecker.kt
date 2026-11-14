@@ -96,6 +96,11 @@ object Wecker {
         val times = zeiten.mapNotNull { hm(it) }
         val list = liste(ctx)
         val targets = if (times.isEmpty()) (0 until list.length()).mapNotNull { list.optJSONObject(it)?.let { o -> o.optInt("h") to o.optInt("m") } } else times
+        if (targets.isEmpty() && times.isEmpty()) {
+            val had = prefs(ctx).contains("wecker_einmal") || prefs(ctx).contains("wecker_offen")
+            prefs(ctx).edit().remove("wecker_einmal").remove("wecker_offen").apply()
+            return if (had) "Vorgemerkte Wecker gelöscht." else "Ich habe keine Wecker gestellt, die ich ausschalten könnte."
+        }
         if (targets.isEmpty()) return "Ich habe keine Wecker gestellt, die ich ausschalten könnte."
         for ((h, m) in targets) {
             val i = Intent(AlarmClock.ACTION_DISMISS_ALARM).putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_TIME)
@@ -104,7 +109,17 @@ object Wecker {
             try { ctx.startActivity(i) } catch (_: Exception) {}
             Thread.sleep(900)
         }
-        if (times.isEmpty()) prefs(ctx).edit().remove("aufstehen").apply()
+        if (times.isEmpty()) {   // "alle aus": auch Vorgemerktes (morgen einmalig, Erinnerungen) vergessen und nach Name "Jarvis" ausschalten
+            try {
+                ctx.startActivity(Intent(AlarmClock.ACTION_DISMISS_ALARM).putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_LABEL)
+                    .putExtra(AlarmClock.EXTRA_MESSAGE, "Jarvis").putExtra(AlarmClock.EXTRA_SKIP_UI, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) {}
+            prefs(ctx).edit().remove("aufstehen").remove("wecker_einmal").remove("wecker_offen").putString("wecker_liste", "[]").apply()
+        } else {
+            val keep = JSONArray()
+            for (k in 0 until list.length()) list.optJSONObject(k)?.let { o -> if ((o.optInt("h") to o.optInt("m")) !in times) keep.put(o) }
+            prefs(ctx).edit().putString("wecker_liste", keep.toString()).apply()
+        }
         return "Wecker ${targets.joinToString(", ") { "%d:%02d".format(it.first, it.second) }} ausgeschaltet."
     }
 

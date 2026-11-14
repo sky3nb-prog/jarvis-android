@@ -75,6 +75,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showOverLock(intent)
+        getSharedPreferences("jarvis", MODE_PRIVATE).let { p ->   // einmalig (Wunsch 14.11.): alle Wecker von Jarvis raus, Schultags-Plan bleibt
+            if (!p.getBoolean("wecker_aufraeumen_1", false)) {
+                p.edit().putBoolean("wecker_aufraeumen_1", true).apply()
+                Thread { try { Wecker.off(this, emptyList()) } catch (_: Exception) {} }.start()
+            }
+        }
         web = WebView(this)
         web.setBackgroundColor(Color.BLACK)
         web.overScrollMode = View.OVER_SCROLL_NEVER
