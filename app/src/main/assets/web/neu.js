@@ -1,9 +1,9 @@
-// Neue Fähigkeiten nach einem App-Update einmal in der Kugel zeigen (Liste pflegt Claude bei jedem Update)
-window.JNEU = { stand: "2026-11-14 14:30", neu: [
-  { title: "Kleiderschrank", text: "Einstellungen → Kleiderschrank: deine Sachen mit Temperaturen, drinnen/draußen, lernt dazu." },
-  { title: "Echte Erinnerungen", text: "„Erinnere mich um 12:30 an Brot“ – laut, mit Erledigt und 15 Min. später. Nicht im Kalender." },
-  { title: "Ziel erkennen", text: "Auf deiner üblichen Strecke weiß ich, wohin du fährst. Sonst frage ich einmal." },
-  { title: "Bahn & Ticket", text: "Hin- und Rückweg getrennt: Bahn bei Regen, immer oder nie – mit Ticket und Preis." },
-  { title: "Routinen", text: "„Gaming-Modus“, „Schulmodus“, „Gute Nacht“ – mehrere Dinge auf einmal." },
-  { title: "Systemcheck", text: "Sag „Statuscheck“ – ich prüfe alles. Einstellungen → Systemstatus." },
+// Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
+window.JNEU = { stand: "2026-11-14 18:40", neu: [
+  { title: "Bahn & Ticket (VVS)", text: "Rad + Bahn oder Bus und Bahn – mit Ticket und „Ticket kaufen“ in VVS Mobil. Einstellungen → Wege & Orte." },
+  { title: "Zwischenstopps", text: "Ich lerne, wie lange du beim Rewe oder Bäcker brauchst – Brot kurz, Einkauf lang." },
+  { title: "Hunderunden", text: "Ich erkenne Gassi-Runden und schicke auf Wunsch kurz vorher „Bin gleich da“." },
+  { title: "Ich lerne mit", text: "Was du nie nutzt, schlage ich dir nicht mehr vor." },
+  { title: "Erinnerungen antippen", text: "Tipp auf ein Symbol in meiner Kugel – ansehen, bearbeiten, vergessen." },
+  { title: "Nur die Kugel", text: "Im Fokus oben ◉ – alles andere gleitet weg." },
 ] };

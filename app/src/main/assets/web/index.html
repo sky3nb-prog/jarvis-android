@@ -383,6 +383,7 @@
         </div>
         <div class="sec" style="--c:#6effcd"><h3>VORSCHLÄGE – ER LERNT MIT</h3>
           <div class="note" style="margin:0 0 6px">Gehst du auf einen Vorschlag 5× hintereinander nicht ein (z. B. Bahn bei Regen, du fährst aber Rad), lässt er ihn erst 2 Wochen weg, beim nächsten Mal einen Monat. Am PC genauso.</div>
+          <div class="srow"><div>Von selbst melden<small>Einmal am Tag zwischen 16 und 20 Uhr, wenn mir was auffällt (lange nicht bei Oma und Opa, noch nicht draußen, Geburtstag bald …)</small></div><div class="sw" id="set-melden"></div></div>
           <div class="srow"><div>Was gerade pausiert ist<small id="lern-info">Tippe auf Zeigen</small></div><div class="sbtn" id="lern-btn">Zeigen</div></div>
           <div class="srow"><div>Alles wieder vorschlagen<small>Pausen zurücksetzen</small></div><div class="sbtn" id="lern-reset">Zurücksetzen</div></div>
         </div>
@@ -392,6 +393,8 @@
           <div class="srow"><div>Fahrt-Mitteilung<small>Briefing mit Wetter, Anziehen, Bahn/Ticket</small></div><div class="sbtn" id="tst-fahrt">Testen</div></div>
           <div class="f" style="margin-top:6px"><label>Test-SMS an (Name aus deinen Kontakten)</label><input id="tst-smswer" type="text" placeholder="z. B. Mama"></div>
           <div class="srow"><div>SMS-Test<small>Schickt „Hier ist Jarvis, das ist nur ein Test.“ – so siehst du, ob SMS klappen</small></div><div class="sbtn" id="tst-sms">Senden</div></div>
+          <div class="srow"><div>Startanimation<small>So startet Jarvis</small></div><div class="sbtn" id="tst-boot">Zeigen</div></div>
+          <div class="srow"><div>Statuscheck-Animation<small>Alle Punkte laufen durch</small></div><div class="sbtn" id="tst-check">Zeigen</div></div>
           <div class="srow"><div>Bahn + Ticket<small>Echte Bahnverbindung zu Oma und Opa ab jetzt (VVS), mit „Ticket kaufen“</small></div><div class="sbtn" id="tst-bahn">Testen</div></div>
           <div class="srow"><div>Neue Fähigkeiten nochmal zeigen<small>Was das letzte Update gebracht hat</small></div><div class="sbtn" id="tst-neu">Zeigen</div></div>
         </div>
@@ -432,6 +435,7 @@
       <div class="spane" id="sp-anz">
         <div class="sec" style="--c:#ffd678"><h3>ANZEIGE</h3>
           <div class="srow"><div>Jarvis-Strang im Hintergrund</div><div class="sw" id="set-strand"></div></div>
+          <div class="srow"><div>Startanimation beim Öffnen<small>Lichtpunkte, Ringe, Systemstatus – Tippen überspringt</small></div><div class="sw" id="set-bootanim"></div></div>
           <div class="srow"><div>Leuchtrand über anderen Apps einrichten</div><div class="sbtn" id="set-overlay2">Öffnen</div></div>
         </div>
       </div>
@@ -459,8 +463,11 @@
 <script src="steuern.js"></script>
 <script src="feed.js"></script>
 <script src="skill.js"></script>
+<script src="braincard.js"></script>
+<script src="checkfx.js"></script>
+<script src="bootfx.js"></script>
 <script src="neu.js"></script>
-<script>(function(){const J=window.jarvis;if(!J)return;const prev=J.onEvent;J.onEvent=function(t,d){if(t==="skill"){window.JSkill&&JSkill.show(d||{});return;}return prev&&prev.call(J,t,d);};setTimeout(function(){try{const N=window.JNEU;let seen="";try{seen=localStorage.getItem("neu_seen")||"";}catch(e){}if(N&&seen!==N.stand){N.neu.forEach(function(x){JSkill.show({title:x.title,text:x.text,kind:"funktion"});});try{localStorage.setItem("neu_seen",N.stand);}catch(e){}}}catch(e){}},2500);})();</script>
+<script>(function(){const J=window.jarvis;if(!J)return;const prev=J.onEvent;J.onEvent=function(t,d){if(t==="skill"){window.JSkill&&JSkill.show(d||{});return;}if(t==="checkfx"){window.JCheck&&JCheck.play((d||{}).items);return;}return prev&&prev.call(J,t,d);};setTimeout(function(){try{const N=window.JNEU;if(!N)return;let seen=[];try{seen=JSON.parse(localStorage.getItem("skills_seen")||"[]");}catch(e){}const nu=N.neu.filter(function(x){return seen.indexOf(x.title)<0;});nu.forEach(function(x){JSkill.show({title:x.title,text:x.text,kind:"funktion"});seen.push(x.title);});try{localStorage.setItem("skills_seen",JSON.stringify(seen.slice(-80)));}catch(e){}}catch(e){}},(window.JBoot&&(JBoot.running||JBoot.pending))?6500:2500);})();</script>
 <script>
 (function(){ // Nur-Kugel-Modus im Fokus: Text, Gesprächsknopf und Schreibfeld gleiten nach unten weg
   var b=document.getElementById("cleanbtn"); if(!b) return;

@@ -449,6 +449,18 @@ class MainActivity : ComponentActivity() {
         fun gassiStatus(): String = Gassi.status(this@MainActivity)
 
         @JavascriptInterface
+        fun factEdit(old: String, text: String): String = Memory.edit(this@MainActivity, old, text)
+
+        @JavascriptInterface
+        fun factForget(old: String): String = Memory.forget(this@MainActivity, old)
+
+        @JavascriptInterface
+        fun getFlag(k: String, def: Boolean): Boolean = prefs.getBoolean(k, def)
+
+        @JavascriptInterface
+        fun setFlag(k: String, v: Boolean) { if (k in listOf("melden")) prefs.edit().putBoolean(k, v).apply() }
+
+        @JavascriptInterface
         fun lernInfo(): String = Vorschlag.paused(this@MainActivity)
 
         @JavascriptInterface

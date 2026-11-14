@@ -39,14 +39,21 @@
   const LKEY = "jarvis_skills";
   let learned = [];
   try { learned = JSON.parse(localStorage.getItem(LKEY) || "[]") || []; } catch (e) { learned = []; }
-  const saveLearned = () => { try { localStorage.setItem(LKEY, JSON.stringify(learned.slice(-24).map((x) => ({ kind: x.kind, emoji: x.emoji, title: x.title, ts: x.ts, arriving: x.arriving })))); } catch (e) {} };
+  const saveLearned = () => { try { localStorage.setItem(LKEY, JSON.stringify(learned.slice(-40).map((x) => ({ kind: x.kind, emoji: x.emoji, title: x.title, text: x.text, type: x.type, ts: x.ts, arriving: x.arriving })))); } catch (e) {} };
+  // Ab und zu leuchtet eins der gelernten Symbole auf, damit man sie sieht (und antippen kann)
+  setInterval(() => {
+    const vis = learned.map((x, i) => [x, i]).filter(([x]) => !x.arriving);
+    if (!vis.length || document.hidden) return;
+    const [x] = vis[Math.floor(Math.random() * vis.length)];
+    x.flash = performance.now() + 1800;
+  }, document.body && document.body.classList.contains("clean") ? 3000 : 5000);
   const instances = [];
 
   class JarvisBrain {
     /** Neuen Skill anlegen (erst unsichtbar, "arriving"), gibt seine Nummer zurück */
     static addSkill(sk) {
-      learned.push({ kind: sk.kind || "wissen", title: sk.title || "", ts: Date.now(), arriving: true });
-      if (learned.length > 24) learned.shift();
+      learned.push({ kind: sk.kind || "wissen", title: sk.title || "", text: sk.text || "", type: sk.type || (sk.kind === "funktion" ? "skill" : "erinnerung"), ts: Date.now(), arriving: true });
+      if (learned.length > 40) learned.shift();
       saveLearned();
       return learned.length - 1;
     }
@@ -62,6 +69,18 @@
       return best;
     }
     static clearSkills() { learned = []; saveLearned(); }
+    /** Welches gelernte Symbol liegt an dieser Bildschirmstelle (CSS-Pixel)? -> Nummer oder -1 */
+    static hit(x, y, rad = 26) {
+      let best = -1, bd = rad * rad;
+      for (const b of instances) {
+        const r = b.c.getBoundingClientRect(); if (r.width < 60) continue;
+        for (const k in b.pos) { const p = b.pos[k], i = +k.slice(1); if (!learned[i] || learned[i].arriving) continue;
+          const d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd) { bd = d; best = i; } }
+      }
+      return best;
+    }
+    static update(i, f) { if (learned[i]) { Object.assign(learned[i], f); saveLearned(); } }
+    static hide(i, on) { if (learned[i]) learned[i].arriving = !!on; }
     static removeSkill(i) { if (learned[i]) { learned.splice(i, 1); saveLearned(); } }
     static get learned() { return learned; }
     static drawIcon(g, kind, s) { icon(g, kind, s); }
@@ -82,6 +101,7 @@
       for (const r of this.regions) if (kinds.includes(r.kind)) r.until = now + ms;
     }
     draw(dt) {
+      const cleanK = document.body.classList.contains("clean") ? 1.35 : 1;   // Nur-Kugel: Symbole größer
       const d = Math.min(2.5, window.devicePixelRatio || 1), W = Math.round(this.c.clientWidth * d), H = Math.round(this.c.clientHeight * d);
       if (!W || !H) return;
       // gelernte Skills als zusätzliche Plätze (weiter innen, eigene Spirale)
@@ -106,7 +126,7 @@
         const c = Math.cos(tilt), sn = Math.sin(tilt), y2 = y * c - z * sn, z2 = y * sn + z * c, zc = 3.2 - z2;
         return { x: (x * 1.88 / zc / asp + 1) / 2 * W, y: (1 - y2 * 1.88 / zc) / 2 * H, z: z2, k: 1.88 / zc };
       };
-      const core = proj([0, 0, 0], 0), base = Math.min(W, H) * .062 * (this.scale || 1);
+      const core = proj([0, 0, 0], 0), base = Math.min(W, H) * .062 * (this.scale || 1) * cleanK;
       g.save();
       const rect = this.c.getBoundingClientRect();
       const pts = this.regions.map((r) => {

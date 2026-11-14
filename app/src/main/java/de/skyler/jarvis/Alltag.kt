@@ -129,6 +129,59 @@ object Alltag {
         Vorschlag.shown(ctx, "schlaf_tipp"); s.put("schlaf_tipp_t", now)
     }
 
+    /**
+     * Von selbst melden (höchstens einmal am Tag, zwischen 16 und 20 Uhr): wenn ihm etwas auffällt –
+     * Geburtstag bald, lange nicht bei Oma und Opa, heute noch nicht draußen, noch keine Hunderunde.
+     * Persönlich formuliert (Groq, mit dem, was er über dich weiß). Am PC gesagt, wenn du dort sitzt, sonst als Mitteilung.
+     * Lernt mit: öffnest du die Mitteilungen nie, meldet er sich seltener (Vorschlag "persoenlich").
+     */
+    private fun checkIn(ctx: Context, s: JSONObject) {
+        if (!on(ctx, "melden")) return
+        val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY)
+        val slot = 16 + (today().hashCode() and 0x7fffffff) % 4   // jeden Tag eine andere Stunde zwischen 16 und 19 Uhr
+        if (h < slot || h >= 20 || done(s, "melden|${today()}") || !Vorschlag.allowed(ctx, "persoenlich")) return
+        val now = System.currentTimeMillis()
+        val dayStart = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
+        val obs = mutableListOf<String>()
+        Memory.upcoming(ctx).split("; ").firstOrNull { it.contains("morgen") || Regex("in [23] Tagen").containsMatchIn(it) }?.takeIf { it.isNotBlank() }
+            ?.let { obs.add("Bald ist etwas Wichtiges: $it (vielleicht an ein Geschenk oder eine Nachricht denken)") }
+        festeWege(ctx).firstOrNull()?.let { f ->
+            val last = list(trips(ctx)).filter { near(it.optString("to"), f.label) || near(it.optString("to"), f.to) }.maxOfOrNull { it.optLong("start") } ?: 0L
+            if (last > 0 && now - last > 12 * 86_400_000L) obs.add("Er war seit ${(now - last) / 86_400_000L} Tagen nicht mehr bei ${f.label}")
+        }
+        val tripsToday = list(trips(ctx)).count { it.optLong("start") >= dayStart } + Gassi.walks(ctx).let { a -> (0 until a.length()).count { a.optJSONObject(it)?.optLong("start") ?: 0L >= dayStart } }
+        if (h >= 17 && tripsToday == 0 && s.optBoolean("is_home")) obs.add("Er war heute noch gar nicht draußen")
+        if (h >= 18 && Gassi.on(ctx)) {
+            val wk = Gassi.walks(ctx).let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }
+            val todayW = wk.count { it.optLong("start") >= dayStart }; val week = wk.count { it.optLong("start") >= now - 7 * 86_400_000L }
+            if (todayW == 0 && week >= 5) obs.add("Heute war noch keine Hunderunde, sonst geht er fast jeden Tag")
+        }
+        if (obs.isEmpty()) return
+        mark(s, "melden|${today()}")
+        val what = obs.first()
+        Thread({
+            var text = when {
+                what.startsWith("Bald") -> "Kleine Erinnerung: ${what.substringAfter(": ").substringBefore(" (")} – soll ich dir helfen, was vorzubereiten?"
+                what.contains("nicht mehr bei") -> "Sag mal, du warst schon eine Weile nicht mehr bei ${festeWege(ctx).firstOrNull()?.label ?: "Oma und Opa"}. Lust, mal wieder vorbeizuschauen?"
+                what.contains("draußen") -> "Du warst heute noch gar nicht draußen. Kurz an die frische Luft?"
+                else -> "Heute war noch keine Hunderunde – der Hund freut sich bestimmt."
+            }
+            val key = prefs(ctx).getString("groq_key", "") ?: ""
+            if (key.isNotBlank()) try {
+                val out = Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content",
+                    "Du bist Jarvis, der persönliche KI-Butler des Nutzers (wie aus Iron Man, aber wie ein guter Freund). Du meldest dich von selbst, weil dir etwas aufgefallen ist. " +
+                        "Schreib 1 bis 2 kurze, warme, persönliche Sätze auf Deutsch (du-Form), ohne Vorwurf, ohne Emojis, gern mit einer kleinen Frage oder einem Vorschlag. " +
+                        "Was du über ihn weißt:\n" + Memory.facts(ctx).takeLast(40).joinToString("\n") { "- $it" }))
+                    .put(JSONObject().put("role", "user").put("content", "Dir ist aufgefallen: $what. Nur der Text.")), 160).trim().trim('"')
+                if (out.length in 10..300) text = out
+            } catch (_: Exception) {}
+            if (pcSay(ctx, text)) return@Thread
+            val fid = Feed.add(ctx, "test", "Jarvis meldet sich", text, text)
+            notify(ctx, 347, "Jarvis", text, feed = fid)
+            Vorschlag.shown(ctx, "persoenlich", fid)
+        }, "jarvis-melden").start()
+    }
+
     /** Wieder zuhause nach einem echten Ausflug (Briefing mit Anziehen): einmal am Tag "zu kalt / passt / zu warm". */
     const val ACTION_SCHRANK = "de.skyler.jarvis.SCHRANK"
     private fun wardrobeAsk(ctx: Context, s: JSONObject) {
@@ -461,6 +514,7 @@ object Alltag {
         try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
         try { appUpdate(ctx, s) } catch (_: Exception) {}
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
+        try { checkIn(ctx, s) } catch (e: Exception) { Log.w(TAG, "melden: $e") }
         try { wardrobeAsk(ctx, s) } catch (_: Exception) {}
         try {   // Akku unter 20 % unterwegs: einmal Bescheid (bis wieder geladen wurde)
             val b = ctx.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))

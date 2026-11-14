@@ -22,7 +22,16 @@ object Memory {
         return out.values.toList()
     }
 
-    fun remember(ctx: Context, text: String, date: String? = null): String {
+    /** Kernerinnerung (dauerhaft über dich) – nur die fliegen in die Kugel. */
+    fun isCore(t: String) = !Regex("(?i)\\b(heute|morgen|gerade|jetzt|diese woche|nächste woche|übermorgen|gleich)\\b").containsMatchIn(t)
+
+    /** Aus der Karte in der Kugel: genau diese Erinnerung ändern. */
+    fun edit(ctx: Context, old: String, new: String): String {
+        if (old.isNotBlank()) forget(ctx, old)
+        return if (new.isNotBlank()) remember(ctx, new, quiet = true) else "Vergessen."
+    }
+
+    fun remember(ctx: Context, text: String, date: String? = null, quiet: Boolean = false): String {
         val t = text.trim().replaceFirstChar { it.uppercase() }
         if (t.length < 3) return "Was soll ich mir merken?"
         if (facts(ctx).any { key(it) == key(t) }) return "Das wusste ich schon."
@@ -33,7 +42,7 @@ object Memory {
         while (l.length() > 300) l.remove(0)
         prefs(ctx).edit().putString("local_facts", l.toString()).apply()
         Link.push(ctx, facts = JSONArray().put(o))
-        try { Bus.emit("skill", JSONObject().put("title", "Gelernt").put("text", t)) } catch (_: Exception) {}   // ploppt in der Kugel auf
+        if (!quiet && isCore(t)) try { Bus.emit("skill", JSONObject().put("title", "Gelernt").put("text", t)) } catch (_: Exception) {}   // ploppt in der Kugel auf
         return "Gemerkt."
     }
 
@@ -83,7 +92,7 @@ object Memory {
         }
     }
 
-    private fun upcoming(ctx: Context): String {
+    fun upcoming(ctx: Context): String {
         val today = Calendar.getInstance()
         val out = mutableListOf<Pair<Int, String>>()
         snap(ctx).optJSONArray("dates")?.let { arr ->

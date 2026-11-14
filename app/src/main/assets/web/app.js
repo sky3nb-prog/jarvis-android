@@ -412,6 +412,12 @@
   $("gs-test").addEventListener("click", () => { saveGassi(); toast(A.gassiTestSms()); });
   $("gs-infobtn").addEventListener("click", () => { $("gs-info").textContent = A.gassiStatus(); });
   $("tst-sms").addEventListener("click", () => toast(A.testSms($("tst-smswer").value || "")));
+  try { sw("set-bootanim", localStorage.getItem("boot_anim") !== "0"); } catch (e) {}
+  $("set-bootanim").addEventListener("click", () => setTimeout(() => { try { localStorage.setItem("boot_anim", sw("set-bootanim") ? "1" : "0"); } catch (e) {} }, 50));
+  try { sw("set-melden", A.getFlag("melden", true)); } catch (e) {}
+  $("set-melden").addEventListener("click", () => setTimeout(() => { try { A.setFlag("melden", sw("set-melden")); } catch (e) {} }, 50));
+  $("tst-boot").addEventListener("click", () => { closeSettings(); setTimeout(() => window.JBoot && JBoot.play(), 350); });
+  $("tst-check").addEventListener("click", () => { closeSettings(); setTimeout(() => { let it = []; try { it = JSON.parse(A.sysCheck(false)).items || []; } catch (e) {} window.JCheck && JCheck.play(it); }, 350); });
   $("lern-btn").addEventListener("click", () => { try { $("lern-info").textContent = A.lernInfo(); } catch (e) {} });
   $("lern-reset").addEventListener("click", () => { try { A.lernReset(); $("lern-info").textContent = A.lernInfo(); toast("Alles wieder an."); } catch (e) {} });
   $("set-testbahn").addEventListener("click", () => { A.testBahnZiel(($("bahn-ziel").value || "").trim()); toast("Ich suche die Verbindung beim VVS …"); });

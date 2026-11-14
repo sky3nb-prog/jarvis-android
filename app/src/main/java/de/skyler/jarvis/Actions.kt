@@ -70,7 +70,7 @@ class Actions(private val ctx: Context) {
             "briefing" -> Alltag.briefingNow(ctx, a.optString("tag") == "morgen")
             "rueckblick" -> Alltag.weekText(ctx) ?: "Für den Rückblick brauche ich den Groq-Schlüssel."
             "gesundheit" -> Alltag.healthAnswer(ctx, a.optString("was", "heute"))
-            "statuscheck" -> SysCheck.summary(SysCheck.run(ctx))
+            "statuscheck" -> SysCheck.run(ctx).let { a -> try { Bus.emit("checkfx", org.json.JSONObject().put("items", a)) } catch (_: Exception) {}; SysCheck.summary(a) }
             "modus" -> Modes.set(ctx, a.optString("name"))
             "wochenvorschau" -> Alltag.weekAhead(ctx)?.first ?: "Für die Vorschau brauche ich den Groq-Schlüssel."
             "youtube_neu" -> Interests.newVideos(ctx, a.optInt("days", 7).coerceIn(1, 30))

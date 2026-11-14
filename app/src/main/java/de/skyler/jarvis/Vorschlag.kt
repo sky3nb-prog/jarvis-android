@@ -13,7 +13,7 @@ import org.json.JSONObject
 object Vorschlag {
     private const val LIMIT = 5
     val NAMES = mapOf("bahn" to "Bahn bei Regen vorschlagen", "schlaf_tipp" to "Schlafens-Hinweis nachts", "schrank" to "Frage nach den Klamotten",
-        "pc_offer" to "Angebote am PC (Rückblick vorlesen)", "rueckblick" to "Wochenrückblick", "halt" to "Zwischenstopp vorschlagen")
+        "pc_offer" to "Angebote am PC (Rückblick vorlesen)", "rueckblick" to "Wochenrückblick", "halt" to "Zwischenstopp vorschlagen", "persoenlich" to "Von selbst melden")
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
     @Synchronized private fun load(ctx: Context): JSONObject = try { JSONObject(prefs(ctx).getString("vorschlag", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
