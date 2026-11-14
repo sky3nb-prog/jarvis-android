@@ -53,7 +53,7 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // Samsung Health über Health Connect (Kalorien, Schritte, Sport)
-    implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha12")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     // Aktivierungswort offline auf dem Handy (Vosk); Modell wird beim ersten Start geladen
     implementation("com.alphacephei:vosk-android:0.3.47@aar")
