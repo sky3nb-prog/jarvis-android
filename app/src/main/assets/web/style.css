@@ -367,3 +367,9 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .fp-rb { flex: 1; text-align: center; padding: 9px 6px; border-radius: 20px; border: 1px solid #5a3e14; background: #140d04; color: var(--gold-l); font-size: 13px; font-weight: 600; }
 .fp-rb:last-child { flex: 0 0 48px; }
 .fp-card.reading, .fp-hero.reading { box-shadow: 0 0 0 2px var(--gold), 0 0 22px rgba(255,170,40,.35); transition: box-shadow .3s; }
+
+.wk-days { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.wk-d { display: flex; align-items: center; gap: 8px; background: #06121a; border: 1px solid #1f3a4a; border-radius: 12px; padding: 4px 8px; }
+.wk-d b { color: var(--gold-l); width: 24px; font-size: 13px; }
+.wk-d input { flex: 1; min-width: 0; background: transparent; border: 0; color: #e8f6ff; font-size: 15px; padding: 6px 0; }
+.wk-x { color: #6d8796; font-size: 16px; padding: 0 2px; }

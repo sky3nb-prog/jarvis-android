@@ -110,9 +110,19 @@ object Wecker {
         .mapNotNull { it.trim().removePrefix("-").toIntOrNull() }.filter { it in 1..180 }.distinct().sortedDescending().ifEmpty { listOf(25, 20, 10, 5) }
 
     /** Aufsteh-Zeit für einen Tag (Schultag Mo–Fr oder Wochenende) laut Einstellung, sonst null. */
+    /** Aufsteh-Zeit je Wochentag (Calendar.SUNDAY=1 … SATURDAY=7), "" = kein Wecker. */
+    fun tage(ctx: Context): JSONObject {
+        val p = prefs(ctx)
+        p.getString("wecker_tage", null)?.let { try { return JSONObject(it) } catch (_: Exception) {} }
+        val o = JSONObject(); val sch = p.getString("wecker_schule", "7:10") ?: ""; val we = p.getString("wecker_we", "") ?: ""
+        for (d in 1..7) o.put(d.toString(), if (d == Calendar.SATURDAY || d == Calendar.SUNDAY) we else sch)
+        return o
+    }
+
     fun planFor(ctx: Context, dow: Int): Pair<Int, Int>? {
         val p = prefs(ctx)
         if (!p.getBoolean("wecker_an", true)) return null
+        if (p.contains("wecker_tage")) return hm(tage(ctx).optString(dow.toString()))
         val v = if (dow == Calendar.SATURDAY || dow == Calendar.SUNDAY) p.getString("wecker_we", "") else p.getString("wecker_schule", "7:10")
         return hm(v ?: "")
     }
@@ -124,12 +134,18 @@ object Wecker {
     /** Per Sprache: Aufsteh-Zeit für Schultage oder Wochenende festlegen (und, wenn es schon Abend ist, gleich für morgen stellen). */
     fun setPlan(ctx: Context, aufstehen: String, tage: String, vorher: String = ""): String {
         val up = hm(aufstehen) ?: return "Um wie viel Uhr willst du aufstehen?"
-        val we = tage.lowercase().contains("wochenende")
-        prefs(ctx).edit().putString(if (we) "wecker_we" else "wecker_schule", "%d:%02d".format(up.first, up.second)).putBoolean("wecker_an", true)
+        val low = tage.lowercase()
+        val we = low.contains("wochenende")
+        val names = mapOf("mo" to 2, "di" to 3, "mi" to 4, "do" to 5, "fr" to 6, "sa" to 7, "so" to 1)
+        val days = Regex("\\b(mo|di|mi|do|fr|sa|so)\\w*").findAll(low).mapNotNull { names[it.groupValues[1]] }.toSet()
+            .ifEmpty { if (we) setOf(7, 1) else setOf(2, 3, 4, 5, 6) }
+        val o = tage(ctx); for (d in days) o.put(d.toString(), "%d:%02d".format(up.first, up.second))
+        prefs(ctx).edit().putString("wecker_tage", o.toString()).putBoolean("wecker_an", true)
             .apply { if (vorher.isNotBlank()) putString("wecker_vorher", vorher) }.apply()
         prefs(ctx).edit().remove("wecker_tag").apply()   // heute Abend neu stellen
         val ts = timesFor(ctx, up)
-        return "Okay: ${if (we) "am Wochenende" else "an Schultagen"} aufstehen um ${"%d:%02d".format(up.first, up.second)}. " +
+        val dn = listOf("", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa")
+        return "Okay: ${days.sortedBy { (it + 5) % 7 }.joinToString(", ") { dn[it] }} aufstehen um ${"%d:%02d".format(up.first, up.second)}. " +
             "Ich stelle dir jeden Abend die Wecker für den nächsten Tag: ${ts.joinToString(", ")}. Dein Tages-Update kommt um ${"%d:%02d".format(up.first, up.second)}."
     }
 

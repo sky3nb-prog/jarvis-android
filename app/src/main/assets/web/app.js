@@ -284,6 +284,7 @@
       sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "18:00";
       perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
       sw("wk-an", c.wecker_an !== false); $("wk-schule").value = (c.wecker_schule || "07:10").padStart(5, "0"); $("wk-we").value = c.wecker_we ? c.wecker_we.padStart(5, "0") : "";
+      wkDays(c.wecker_tage || {});
       $("wk-vorher").value = c.wecker_vorher || "25, 20, 10, 5"; wkInfo();
       perm("set-butlerok", c.butler_ok); perm("set-files", c.files_ok); perm("set-media2", !!c.media_ok);
       perm("set-overlay", c.overlay); perm("set-usage", c.usage); perm("set-media", !!c.media_ok);
@@ -308,12 +309,22 @@
   $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
-  // Wecker: Vorschau, welche Wecker bei der Aufsteh-Zeit gestellt werden
+  // Wecker pro Wochentag (Kalender-Zählung: So=1 … Sa=7)
+  const WK = [["2", "Mo"], ["3", "Di"], ["4", "Mi"], ["5", "Do"], ["6", "Fr"], ["7", "Sa"], ["1", "So"]];
+  function wkDays(t) {
+    $("wk-days").innerHTML = WK.map(([k, n]) => `<div class="wk-d"><b>${n}</b><input type="time" data-wk="${k}" value="${t[k] ? String(t[k]).padStart(5, "0") : ""}"><span class="wk-x" data-wkx="${k}">×</span></div>`).join("");
+    $("wk-days").querySelectorAll("[data-wkx]").forEach((e) => e.addEventListener("click", () => { $("wk-days").querySelector(`[data-wk="${e.dataset.wkx}"]`).value = ""; wkInfo(); }));
+    $("wk-days").querySelectorAll("[data-wk]").forEach((e) => e.addEventListener("input", wkInfo));
+  }
+  function wkTage() { const o = {}; $("wk-days").querySelectorAll("[data-wk]").forEach((e) => (o[e.dataset.wk] = e.value || "")); return o; }
   function wkInfo() {
-    const up = $("wk-schule").value; if (!up) { $("wk-info").textContent = ""; return; }
+    const tg = wkTage(); const first = WK.map(([k]) => tg[k]).find((x) => x);
+    if (first) $("wk-schule").value = first;
+    const up = first; if (!up) { $("wk-info").textContent = "An keinem Tag ein Wecker."; return; }
     const [h, m] = up.split(":").map(Number), off = ($("wk-vorher").value || "25,20,10,5").split(/[,; ]+/).map((x) => Math.abs(parseInt(x, 10))).filter((x) => x > 0).sort((a, b) => b - a);
     const t = off.map((o) => { const v = (h * 60 + m - o + 1440) % 1440; return Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); });
-    $("wk-info").textContent = `Schultage: Wecker um ${t.join(", ")} – aufstehen um ${h}:${String(m).padStart(2, "0")}, dann kommt dein Tages-Update.`;
+    const tage = WK.filter(([k]) => wkTage()[k]).map(([, n]) => n).join(", ");
+    $("wk-info").textContent = `${tage}: z. B. bei ${h}:${String(m).padStart(2, "0")} Wecker um ${t.join(", ")}. Jeden Abend ab 19 Uhr für den nächsten Tag gestellt, dein Tages-Update kommt zur Aufsteh-Zeit.`;
   }
   ["wk-schule", "wk-vorher"].forEach((id) => $(id).addEventListener("input", wkInfo));
   // Fester Weg (jede Woche) und einmalige Termine
@@ -405,6 +416,7 @@
       orte: $("set-morte").value.trim(), wege: $("set-mwege").value.trim(), route_an: $("set-routean").value.trim(),
       wichtig: $("set-wichtig").value.trim(), absage: $("set-absage").value.trim(), butler: sw("set-butler"),
       wecker_an: sw("wk-an"), wecker_schule: $("wk-schule").value, wecker_we: $("wk-we").value, wecker_vorher: $("wk-vorher").value.trim(),
+      wecker_tage: wkTage(),
       heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"),
       ankunft: $("set-ankunft").value.trim(), anzieh: $("set-anzieh").value.trim(),
       brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "21:00",

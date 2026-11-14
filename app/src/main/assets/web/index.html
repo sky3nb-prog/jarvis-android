@@ -242,8 +242,9 @@
         </div>
         <div class="sec" style="--c:#d7a8ff"><h3>WECKER</h3>
           <div class="srow"><div>Wecker automatisch stellen<small>Jeden Abend ab 19 Uhr stellt Jarvis die Wecker für morgen in der Samsung Uhr. Steht morgen „Ferien“ oder „Feiertag“ im Kalender, lässt er es.</small></div><div class="sw" id="wk-an"></div></div>
-          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Aufstehen an Schultagen</label><input id="wk-schule" type="time"></div>
-            <div class="f" style="flex:1"><label>Am Wochenende (leer = kein Wecker)</label><input id="wk-we" type="time"></div></div>
+          <div class="note" style="margin:0 0 6px">Aufstehen um … – pro Tag. Leer = an dem Tag kein Wecker.</div>
+          <div class="wk-days" id="wk-days"></div>
+          <input id="wk-schule" type="hidden"><input id="wk-we" type="hidden">
           <div class="f"><label>Wecker so viele Minuten vorher</label><input id="wk-vorher" type="text" placeholder="25, 20, 10, 5"></div>
           <div class="note" id="wk-info">–</div>
         </div>
