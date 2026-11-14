@@ -12,7 +12,12 @@
     if (dot) { dot.classList.toggle("bad", bad > 0); dot.classList.toggle("ok", bad === 0 && items.length > 0); dot.title = d.text || ""; }
     document.getElementById("sp-sum").textContent = bad ? `${bad} Problem${bad > 1 ? "e" : ""}` : "Alle Systeme laufen";
     document.getElementById("sp-list").innerHTML = items.map((i) => `<div class="sp-row ${i.ok === true ? "g" : i.ok === false ? "r" : "n"}"><i></i>
-      <div><b>${esc(i.name)}</b><small>${esc(i.detail)}</small>${i.ok === false && i.fix ? `<em>${esc(i.fix)}</em>` : ""}</div></div>`).join("");
+      <div style="flex:1"><b>${esc(i.name)}</b><small>${esc(i.detail)}</small>${i.ok === false && i.fix ? `<em>${esc(i.fix)}</em>` : ""}<div class="sp-res" id="spr-${esc(i.id)}"></div></div>
+      <span class="sp-btn sp-tb" data-test="${esc(i.id)}">Test</span></div>`).join("");
+    document.querySelectorAll("#sp-list [data-test]").forEach((b) => b.addEventListener("click", async () => {
+      const out = document.getElementById("spr-" + b.dataset.test); out.textContent = "teste …";
+      try { out.textContent = (await (await fetch("/api/systest?id=" + encodeURIComponent(b.dataset.test))).json()).text || "–"; } catch (e) { out.textContent = "Test ging nicht."; }
+    }));
     document.getElementById("sp-t").textContent = d.t ? "Geprüft " + new Date(d.t * 1000).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "";
   }
   async function load(fresh) {

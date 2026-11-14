@@ -228,3 +228,4 @@ html, body, * { scrollbar-color: #a0702a #0a0703; }
 .sp-btn{cursor:pointer;border:1px solid var(--gold);color:var(--gold-l);background:#3a2608;border-radius:16px;padding:6px 14px}
 .sp-test{margin-top:14px;border-top:1px solid rgba(255,170,40,.12);padding-top:10px}.sp-test b{display:block;font-size:11px;letter-spacing:.18em;color:#c8965a;margin-bottom:8px}
 .sp-test div{display:flex;flex-wrap:wrap;gap:8px}
+.sp-tb{padding:4px 10px;font-size:11.5px;align-self:center}.sp-res{color:#ffd678;font-size:12px;margin-top:3px}

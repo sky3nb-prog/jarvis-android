@@ -347,6 +347,9 @@ class WebHud:
             import pc_handy
             r = pc_handy.ask("feed_now", wait=90, what=str(qs.get("kind") or "heute")) or {}
             return {"id": r.get("feed_id") or "", "text": r.get("text") or ""}
+        if name == "systest":   # Test-Knopf neben einem Punkt der Statusseite
+            import pc_systemcheck
+            return {"text": pc_systemcheck.test(str(qs.get("id") or ""))}
         if name == "syscheck":   # Statusseite: grüne/rote Punkte (frisch prüfen, wenn älter als 2 Min. oder ?neu=1)
             import pc_systemcheck
             if qs.get("neu") or time.time() - pc_systemcheck.LAST["t"] > 120:

@@ -219,3 +219,70 @@ def start_daily(report):
                 print("Systemcheck:", e)
             time.sleep(24 * 3600)
     threading.Thread(target=loop, daemon=True).start()
+
+
+# --- Test-Knöpfe neben jedem Punkt der Statusseite -----------------------------------------------------
+def test(id_: str) -> str:
+    """Probiert einen Punkt wirklich aus und sagt, was dabei herauskam."""
+    try:
+        if id_ == "net":
+            t0 = time.time(); _get("https://www.google.com/generate_204", timeout=6)
+            return f"Internet antwortet in {int((time.time() - t0) * 1000)} ms."
+        if id_ in ("ai", "groq", "gemini"):
+            import pc_ai
+            if id_ != "gemini" and pc_ai.groq_key():
+                req = urllib.request.Request("https://api.groq.com/openai/v1/chat/completions", method="POST",
+                                             data=json.dumps({"model": "llama-3.1-8b-instant", "max_tokens": 30, "messages": [
+                                                 {"role": "user", "content": "Sag in höchstens 8 Wörtern auf Deutsch hallo, als Jarvis."}]}).encode(),
+                                             headers={"Authorization": f"Bearer {pc_ai.groq_key()}", "Content-Type": "application/json", "User-Agent": "Jarvis-PC"})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    return "Groq sagt: " + json.loads(r.read())["choices"][0]["message"]["content"].strip()
+            if pc_ai.gemini_key():
+                st, body = _get(f"https://generativelanguage.googleapis.com/v1beta/models?key={pc_ai.gemini_key()}&pageSize=50")
+                return f"Gemini antwortet – {len(json.loads(body).get('models', []))} Modelle verfügbar."
+            return "Kein KI-Schlüssel eingetragen."
+        if id_ == "mic":
+            import numpy as np
+            import sounddevice as sd
+            rec = sd.rec(int(1.5 * 16000), samplerate=16000, channels=1, dtype="float32"); sd.wait()
+            lvl = float(np.sqrt(np.mean(rec ** 2))) * 400
+            return f"Mikrofon-Pegel in 1,5 Sekunden: {min(100, int(lvl))} % " + ("– ich höre dich." if lvl > 3 else "– sehr leise, sag beim Test etwas.")
+        if id_ == "voice":
+            import pc_nachrichten
+            pc_nachrichten.incoming({"kind": "say", "force": True, "text": "Test, eins, zwei. So klinge ich gerade."})
+            return "Ich spreche gleich einen Testsatz."
+        if id_ == "phone":
+            import pc_handy
+            r = pc_handy.ask("status", wait=20)
+            if not r:
+                return "Das Handy antwortet nicht – ist die Jarvis-App an?"
+            s = r.get("status") or {}
+            return f"Handy antwortet: Akku {s.get('akku', '?')} %, Klingelton {s.get('ringer', '?')}."
+        if id_ == "tail":
+            import pc_fern
+            ip = pc_fern.tailscale_ip()
+            return f"Tailscale-Adresse: {ip} – am Handy unter Fernzugriff öffnen." if ip else "Tailscale ist nicht verbunden."
+        if id_ == "wx":
+            st, body = _get("https://api.open-meteo.com/v1/forecast?latitude=48.8&longitude=9.0&current=temperature_2m,apparent_temperature")
+            c = json.loads(body).get("current", {})
+            return f"Leonberg gerade {c.get('temperature_2m')} °C, gefühlt {c.get('apparent_temperature')} °C."
+        if id_ == "cal":
+            import pc_calendar
+            return pc_calendar.today_text() or "Heute keine Termine."
+        if id_ == "tg":
+            import pc_telegram
+            return "Testnachricht an dich in Telegram geschickt." if pc_telegram.send("Test von Jarvis – Telegram läuft.") else "Telegram-Nachricht ging nicht."
+        if id_ == "ets2":
+            import pc_ets2
+            dirs = pc_ets2._game_dirs()
+            return ("Plugin liegt in: " + "; ".join(dirs)) if dirs else "ETS2 nicht gefunden."
+        if id_ == "wl":
+            import pc_wavelink
+            return "Wave Link verbunden." if pc_wavelink.available() else "Wave Link läuft nicht."
+        if id_ == "upd":
+            import pc_update, pc_nachrichten
+            return pc_update.check_now(lambda: pc_nachrichten.incoming({"kind": "offer", "action": "update", "title": "Update", "force": True,
+                                                                         "question": "Das Update ist fertig. Soll ich kurz neu starten?"}))
+        return "Für diesen Punkt gibt es keinen Test."
+    except Exception as e:
+        return f"Test ging nicht: {e}"

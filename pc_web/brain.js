@@ -21,6 +21,16 @@
         for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; L([[-.1 + Math.cos(a) * .34, -.08 + Math.sin(a) * .34], [-.1 + Math.cos(a) * .46, -.08 + Math.sin(a) * .46]]); } break;
       case "gedaechtnis": g.beginPath(); g.arc(-s * .14, -s * .05, s * .26, Math.PI * .6, Math.PI * 1.9); g.arc(s * .14, -s * .05, s * .26, Math.PI * 1.1, Math.PI * 2.4); g.stroke();
         L([[0, -.3], [0, .35]]); L([[-.2, .1], [-.05, .1]]); L([[.05, -.1], [.2, -.1]]); break;
+      // gelernte Skills – im gleichen Strich-Stil
+      case "person": g.beginPath(); g.arc(0, -s * .17, s * .17, 0, 7); g.stroke(); g.beginPath(); g.arc(0, s * .42, s * .32, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); break;
+      case "datum": g.strokeRect(-s * .34, -s * .02, s * .68, s * .4); L([[-.34, .14], [.34, .14]]); L([[-.16, -.02], [-.16, -.18]]); L([[0, -.02], [0, -.22]]); L([[.16, -.02], [.16, -.18]]);
+        g.beginPath(); g.arc(0, -s * .3, s * .05, 0, 7); g.fill(); break;
+      case "vorliebe": g.beginPath(); g.moveTo(0, s * .34); g.bezierCurveTo(-s * .55, -s * .02, -s * .3, -s * .48, 0, -s * .18); g.bezierCurveTo(s * .3, -s * .48, s * .55, -s * .02, 0, s * .34); g.stroke(); break;
+      case "ort": g.beginPath(); g.arc(0, -s * .12, s * .26, Math.PI * .85, Math.PI * 2.15); g.lineTo(0, s * .42); g.closePath(); g.stroke(); g.beginPath(); g.arc(0, -s * .12, s * .08, 0, 7); g.fill(); break;
+      case "spiel": g.beginPath(); g.ellipse(0, 0, s * .45, s * .26, 0, 0, 7); g.stroke(); L([[-.3, 0], [-.14, 0]]); L([[-.22, -.08], [-.22, .08]]);
+        g.beginPath(); g.arc(s * .18, -s * .04, s * .04, 0, 7); g.fill(); g.beginPath(); g.arc(s * .28, s * .06, s * .04, 0, 7); g.fill(); break;
+      case "funktion": g.beginPath(); g.moveTo(s * .08, -s * .46); g.lineTo(-s * .22, s * .06); g.lineTo(0, s * .06); g.lineTo(-s * .08, s * .46); g.lineTo(s * .24, -s * .08); g.lineTo(s * .02, -s * .08); g.closePath(); g.stroke(); break;
+      case "wissen": g.beginPath(); g.arc(0, -s * .1, s * .26, Math.PI * .8, Math.PI * 2.2); g.stroke(); L([[-.12, .2], [.12, .2]]); L([[-.09, .32], [.09, .32]]); L([[-.07, .1], [-.1, .2]]); L([[.07, .1], [.1, .2]]); break;
       default: g.strokeRect(-s * .38, -s * .4, s * .76, s * .8); L([[-.24, -.22], [.24, -.22]]); L([[-.24, -.04], [.24, -.04]]); L([[-.24, .14], [.1, .14]]);   // nachrichten
     }
   }
@@ -29,13 +39,13 @@
   const LKEY = "jarvis_skills";
   let learned = [];
   try { learned = JSON.parse(localStorage.getItem(LKEY) || "[]") || []; } catch (e) { learned = []; }
-  const saveLearned = () => { try { localStorage.setItem(LKEY, JSON.stringify(learned.slice(-24).map((x) => ({ emoji: x.emoji, title: x.title, ts: x.ts, arriving: x.arriving })))); } catch (e) {} };
+  const saveLearned = () => { try { localStorage.setItem(LKEY, JSON.stringify(learned.slice(-24).map((x) => ({ kind: x.kind, emoji: x.emoji, title: x.title, ts: x.ts, arriving: x.arriving })))); } catch (e) {} };
   const instances = [];
 
   class JarvisBrain {
     /** Neuen Skill anlegen (erst unsichtbar, "arriving"), gibt seine Nummer zurück */
     static addSkill(sk) {
-      learned.push({ emoji: sk.emoji || "✦", title: sk.title || "", ts: Date.now(), arriving: true });
+      learned.push({ kind: sk.kind || "wissen", title: sk.title || "", ts: Date.now(), arriving: true });
       if (learned.length > 24) learned.shift();
       saveLearned();
       return learned.length - 1;
@@ -54,6 +64,7 @@
     static clearSkills() { learned = []; saveLearned(); }
     static removeSkill(i) { if (learned[i]) { learned.splice(i, 1); saveLearned(); } }
     static get learned() { return learned; }
+    static drawIcon(g, kind, s) { icon(g, kind, s); }
 
     constructor(canvas, sphere) {
       instances.push(this); this.pos = {};
@@ -80,7 +91,7 @@
         const n = Math.max(8, learned.length);
         learned.forEach((sk, i) => {
           const y = 1 - (i + .5) / n * 2, r = Math.sqrt(Math.max(0, 1 - y * y)), a = i * 2.399963 + 1.3;
-          this.regions.push({ kind: "_skill", li: i, emoji: sk.emoji, learned: true, v: [Math.cos(a) * r, y * .8, Math.sin(a) * r], rad: .42 + (i % 3) * .07, hot: 0, until: 0 });
+          this.regions.push({ kind: sk.kind || ({ "👤": "person", "🎂": "datum", "❤️": "vorliebe", "📍": "ort", "🎵": "musik", "🎮": "spiel", "⚡": "funktion" }[sk.emoji] || "wissen"), li: i, learned: true, v: [Math.cos(a) * r, y * .8, Math.sin(a) * r], rad: .42 + (i % 3) * .07, hot: 0, until: 0 });
         });
       }
       if (W !== this.W || H !== this.H) { this.c.width = this.W = W; this.c.height = this.H = H; }
@@ -140,8 +151,7 @@
         const col = pw > .5 ? (h > .05 ? "255,236,190" : "255,200,110") : "190,195,205";
         g.strokeStyle = g.fillStyle = `rgba(${col},${Math.min(1, alpha)})`;
         g.save(); g.translate(p.x, p.y);
-        if (r.learned) { g.globalAlpha = Math.min(1, alpha * 1.15); g.font = `${Math.round(size * 1.05)}px "Segoe UI Emoji","Noto Color Emoji",sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(r.emoji, 0, size * .04); }
-        else icon(g, r.kind, size);
+        icon(g, r.kind, size);
         g.restore();
       }
       g.restore();

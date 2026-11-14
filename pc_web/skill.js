@@ -48,10 +48,14 @@
     if (busy || !queue.length) return;
     busy = true;
     const s = queue.shift(), c = center(), kind = s.kind || guess(s.text);
-    const emoji = s.emoji || ICON[kind] || "✦";
-    const B = window.JarvisBrain, idx = B && B.addSkill ? B.addSkill({ emoji, title: s.title || s.text || "" }) : -1;
+    const B = window.JarvisBrain, idx = B && B.addSkill ? B.addSkill({ kind, title: s.title || s.text || "" }) : -1;
     const burst = document.createElement("div"); burst.className = "skl-burst"; burst.style.left = c.x + "px"; burst.style.top = c.y + "px";
-    const hex = document.createElement("div"); hex.className = "skl-hex"; hex.textContent = ICON[kind] || "✦"; hex.style.left = c.x + "px"; hex.style.top = c.y + "px";
+    const hex = document.createElement("div"); hex.className = "skl-hex";
+    // gleiches Strich-Symbol wie in der Kugel (dunkel auf Gold)
+    const ic = document.createElement("canvas"); ic.width = ic.height = 120; ic.style.width = ic.style.height = "48px";
+    const ig = ic.getContext("2d"); ig.translate(60, 60); ig.strokeStyle = ig.fillStyle = "#3a2204";
+    if (B && B.drawIcon) B.drawIcon(ig, kind, 74); else { ig.font = "60px sans-serif"; ig.textAlign = "center"; ig.textBaseline = "middle"; ig.fillText(ICON[kind] || "✦", 0, 4); }
+    hex.appendChild(ic); hex.style.left = c.x + "px"; hex.style.top = c.y + "px";
     const card = document.createElement("div"); card.className = "skl-card"; card.style.left = c.x + "px"; card.style.top = Math.min(innerHeight - 110, c.y + Math.max(70, c.r * .75)) + "px";
     card.innerHTML = `<small>${kind === "funktion" ? "NEUE FÄHIGKEIT" : "NEUER SKILL FREIGESCHALTET"}</small><b></b><span></span>`;
     card.querySelector("b").textContent = s.title || "Gelernt"; card.querySelector("span").textContent = s.text || "";
