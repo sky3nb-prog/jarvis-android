@@ -49,6 +49,7 @@ DEFAULTS = {
     "overlay_v2": False,
     "boot_animation": True,
     "msg_ask_first": True,
+    "kommentare": True,
     "lieblingskanaele": "Laser Luca",   # neue Videos melden (YouTube-Kanäle, mit Komma)
     "steam_id": "",   # leer = vom angemeldeten Steam   # Nachricht wichtiger Leute: erst "Neue Nachricht von … – weiter oder egal?"  # Iron-Man-Start nach dem Anmelden (Vollbild-Hologramm, Klick/Esc überspringt)     # einmalig auf das neue Overlay umgestellt
     "orb_size": 68,  # Größe des kleinen Kreises in Pixeln

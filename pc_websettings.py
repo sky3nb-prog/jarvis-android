@@ -120,6 +120,7 @@ def schema(s: dict) -> dict:
                  sw("boot_animation", "Iron-Man-Start nach dem Anmelden", "Vollbild-Hologramm mit Systemstatus. Testen: „Friday, Startanimation“"),
                  sw("confirm_messages", "Nachrichten vor dem Senden zurückfragen", "WhatsApp, Discord"),
                  sw("msg_ask_first", "Nachrichten wichtiger Leute: erst fragen", "„Neue Nachricht von Mama – weiter oder egal?“ Bei „egal“ ignoriert er sie."),
+                 sw("kommentare", "Von selbst melden", "Z. B. nach über 2 Stunden am Stück: „Kurz raus und bewegen?“ – persönlich, lernt mit."),
                  tx("lieblingskanaele", "Lieblingskanäle (neue Videos melden)", "YouTube-Kanäle mit Komma. Außerdem meldet er sich bei voller Festplatte, heißer Grafikkarte und Steam-Angeboten von deiner Wunschliste.", "Laser Luca")),
             card("Discord",
                  tx("discord_channels", "Sprachkanäle", "Genaue Namen mit Komma, auch mit Emoji, z. B. 🥒|Gurken, 🥑|Avocado."),
@@ -271,7 +272,7 @@ def schema(s: dict) -> dict:
     values = {
         "assistant_name": g("assistant_name"), "address_as": g("address_as"), "persona": g("persona"),
         "autostart": bool(g("autostart")), "greet_on_start": bool(g("greet_on_start")),
-        "show_hud_on_start": bool(g("show_hud_on_start")), "boot_animation": bool(g("boot_animation")), "msg_ask_first": bool(g("msg_ask_first")), "lieblingskanaele": g("lieblingskanaele"), "confirm_messages": bool(g("confirm_messages")),
+        "show_hud_on_start": bool(g("show_hud_on_start")), "boot_animation": bool(g("boot_animation")), "msg_ask_first": bool(g("msg_ask_first")), "kommentare": bool(g("kommentare")), "lieblingskanaele": g("lieblingskanaele"), "confirm_messages": bool(g("confirm_messages")),
         "wake_words": ", ".join(g("wake_words") or []), "language": g("language"),
         "input_device": g("input_device") if not isinstance(g("input_device"), int) else pc_audio.device_name(g("input_device")),
         "output_device": g("output_device") if not isinstance(g("output_device"), int) else pc_audio.device_name(g("output_device")),
@@ -318,7 +319,7 @@ def save(s: dict, v: dict) -> dict:
     new = dict(s)
     text = lambda k, dflt="": str(v.get(k) if v.get(k) is not None else dflt).strip()  # noqa: E731
     num = lambda k: int(float(v.get(k) if v.get(k) not in (None, "") else d.get(k, 0)))  # noqa: E731
-    for k in ("autostart", "greet_on_start", "show_hud_on_start", "boot_animation", "msg_ask_first", "confirm_messages", "speak", "early_chime", "lage_spin",
+    for k in ("autostart", "greet_on_start", "show_hud_on_start", "boot_animation", "msg_ask_first", "kommentare", "confirm_messages", "speak", "early_chime", "lage_spin",
               "lage_orbits", "map_labels", "lage_sat_tour", "globe_auto_open", "briefing_on_start", "hud_topmost",
               "hud_animation", "show_weather", "announce_events", "show_performance", "show_pc_temps", "show_notifications", "webcam_fern"):
         if k in v:

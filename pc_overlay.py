@@ -2030,7 +2030,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 19:05"
+VERSION = "2026-11-14 21:15"
 
 
 def main():
@@ -2109,6 +2109,10 @@ def main():
     pc_watch.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t})
     pc_watch.SETTINGS = lambda: ui.settings
     pc_watch.start(stop)
+    import pc_kommentar   # meldet sich mal von selbst (lange am Stück dran -> kurz raus?)
+    pc_kommentar.SETTINGS = lambda: ui.settings
+    pc_kommentar.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t})
+    pc_kommentar.start(stop)
     import pc_systemcheck
     pc_systemcheck.SETTINGS = lambda: ui.settings
     def _chkfx(items):
