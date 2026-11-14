@@ -163,6 +163,7 @@
       else if (type === "home") { if (window.JLage) window.JLage.home(); }
     },
     back() {
+      if (window.jSettingsBack && window.jSettingsBack()) return true;
       if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
       for (const id of ["ask-aus", "ask-text"]) if ($(id) && $(id).classList.contains("on")) { $(id).classList.remove("on"); return true; }
       if (view !== "fokus") { show("fokus"); return true; } return false;
@@ -221,8 +222,9 @@
   function newDots() {
     const seen = seenGet();
     let any = false;
-    document.querySelectorAll("#stabs span").forEach((t) => {
-      const n = NEW_TABS[t.dataset.p] && !seen.includes(NEW_TABS[t.dataset.p]);
+    document.querySelectorAll("#stabs span, .sitem").forEach((t) => {
+      const k = t.dataset.p || t.dataset.go;
+      const n = NEW_TABS[k] && !seen.includes(NEW_TABS[k]);
       any = any || !!n;
       let d = t.querySelector(".ndot");
       if (n && !d) t.insertAdjacentHTML("beforeend", '<b class="ndot"></b>');
@@ -231,10 +233,27 @@
     $("btn-settings").classList.toggle("hasnew", any);
   }
   newDots();
+  // Einstellungen wie am Handy: Übersicht -> Bereich antippen -> eigene Seite, "‹" zurück
+  const PAGE_NAMES = { home: "EINSTELLUNGEN", allg: "ALLGEMEIN", hoer: "ZUHÖREN", stimme: "STIMME", anz: "ANZEIGE", alltag: "ALLTAG & WECKER",
+    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF" };
+  let setPage = "home";
+  function showPage(p) {
+    setPage = p;
+    document.querySelectorAll(".spane").forEach((x) => x.classList.toggle("on", x.id === "sp-" + p));
+    document.querySelectorAll("#stabs span").forEach((x) => x.classList.toggle("on", x.dataset.p === p));
+    document.querySelector("#settings .sttl").textContent = PAGE_NAMES[p] || "EINSTELLUNGEN";
+    $("settings").classList.toggle("ssub", p !== "home");
+    document.querySelector("#settings .spanes").scrollTop = 0;
+    if (NEW_TABS[p]) { seenAdd(NEW_TABS[p]); setTimeout(newDots, 1500); }
+    const tab = document.querySelector(`#stabs span[data-p="${p}"]`); if (tab) tab.click && tab.dispatchEvent(new Event("pageopen"));
+  }
+  window.jSettingsBack = () => { if ($("settings").classList.contains("on") && setPage !== "home") { showPage("home"); return true; } return false; };
+  document.querySelectorAll(".sitem").forEach((t) => t.addEventListener("click", () => {
+    showPage(t.dataset.go);
+    const tab = document.querySelector(`#stabs span[data-p="${t.dataset.go}"]`); if (tab) tab.click();
+  }));
   document.querySelectorAll("#stabs span").forEach((t) => t.addEventListener("click", () => {
-    document.querySelectorAll("#stabs span").forEach((x) => x.classList.toggle("on", x === t));
-    document.querySelectorAll(".spane").forEach((p) => p.classList.toggle("on", p.id === "sp-" + t.dataset.p));
-    if (NEW_TABS[t.dataset.p]) { seenAdd(NEW_TABS[t.dataset.p]); setTimeout(newDots, 1500); }
+    if (setPage !== t.dataset.p) showPage(t.dataset.p);
   }));
   if ($("set-screen")) $("set-screen").addEventListener("click", () => { if (A && A.openScreenAccess) A.openScreenAccess(); });
   const perm = (id, ok, txt) => { const e = $(id); e.textContent = ok ? "erlaubt" : (txt || "Erlauben"); e.classList.toggle("ok", !!ok); };
@@ -298,7 +317,10 @@
     } catch (e) {}
     $("set-key").value = "";
     $("set-version").textContent = "Version " + A.version() + (A.hasGroqKey() ? " · Groq-Schlüssel ist gespeichert" : " · noch kein Groq-Schlüssel");
+    showPage("home");
+    if ($("set-version2")) $("set-version2").textContent = $("set-version").textContent;
     $("settings").classList.add("on");
+    fix24all();
   }
   $("btn-settings").addEventListener("click", openSettings);
   $("set-overlay").addEventListener("click", () => A.askOverlay());
@@ -309,12 +331,39 @@
   $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
   $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
+  // Uhrzeiten immer im 24-Stunden-Format (kein AM/PM): eigenes Feld "HH:MM"
+  function fix24(el) {
+    if (el.dataset.f24) return; el.dataset.f24 = "1";
+    const v = el.value; el.type = "text"; el.inputMode = "numeric"; el.maxLength = 5; el.placeholder = el.placeholder || "--:--"; el.value = v;
+    el.classList.add("t24");
+    el.addEventListener("input", () => {
+      let d = el.value.replace(/\D/g, "").slice(0, 4);
+      if (d.length >= 3) d = d.slice(0, d.length - 2) + ":" + d.slice(-2);
+      el.value = d;
+    });
+    el.addEventListener("blur", () => {
+      const m = el.value.match(/^(\d{1,2}):?(\d{2})?$/); if (!m) { el.value = ""; return; }
+      const h = Math.min(23, +m[1]), mi = Math.min(59, +(m[2] || 0));
+      el.value = String(h).padStart(2, "0") + ":" + String(mi).padStart(2, "0");
+      el.dispatchEvent(new Event("change"));
+    });
+  }
+  function fix24all() { document.querySelectorAll('input[type="time"]').forEach(fix24); }
+  fix24all();
+  // Datum als Auswahl der nächsten 60 Tage ("Sa 14.11.") statt US-Datumsfeld
+  (function () {
+    const d0 = $("em-datum"); if (!d0 || d0.tagName === "SELECT") return;
+    const sel = document.createElement("select"); sel.id = "em-datum";
+    for (let i = 0; i < 60; i++) { const d = new Date(); d.setDate(d.getDate() + i); const o = document.createElement("option");
+      o.value = d.toLocaleDateString("sv-SE"); o.textContent = (i === 0 ? "Heute, " : i === 1 ? "Morgen, " : i === 2 ? "Übermorgen, " : "") + d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" }); sel.appendChild(o); }
+    d0.replaceWith(sel);
+  })();
   // Wecker pro Wochentag (Kalender-Zählung: So=1 … Sa=7)
   const WK = [["2", "Mo"], ["3", "Di"], ["4", "Mi"], ["5", "Do"], ["6", "Fr"], ["7", "Sa"], ["1", "So"]];
   function wkDays(t) {
     $("wk-days").innerHTML = WK.map(([k, n]) => `<div class="wk-d"><b>${n}</b><input type="time" data-wk="${k}" value="${t[k] ? String(t[k]).padStart(5, "0") : ""}"><span class="wk-x" data-wkx="${k}">×</span></div>`).join("");
     $("wk-days").querySelectorAll("[data-wkx]").forEach((e) => e.addEventListener("click", () => { $("wk-days").querySelector(`[data-wk="${e.dataset.wkx}"]`).value = ""; wkInfo(); }));
-    $("wk-days").querySelectorAll("[data-wk]").forEach((e) => e.addEventListener("input", wkInfo));
+    $("wk-days").querySelectorAll("[data-wk]").forEach((e) => { fix24(e); e.addEventListener("change", wkInfo); });
   }
   function wkTage() { const o = {}; $("wk-days").querySelectorAll("[data-wk]").forEach((e) => (o[e.dataset.wk] = e.value || "")); return o; }
   function wkInfo() {
@@ -394,7 +443,7 @@
   document.addEventListener("visibilitychange", () => { if (document.hidden) camStop(); });
   $("set-locall").addEventListener("click", () => { A.askLocationAlways(); toast("Erst „Genau“ erlauben, dann beim zweiten Mal „Immer erlauben“."); });
   $("set-wlanget").addEventListener("click", () => { const w = A.currentWifi(); if (w) { $("set-wlan").value = w; toast("Übernommen: " + w); } else toast("Kein WLAN erkannt – erst Standort erlauben, dann nochmal."); });
-  $("set-cancel").addEventListener("click", () => $("settings").classList.remove("on"));
+  $("set-cancel").addEventListener("click", () => { if (!window.jSettingsBack()) $("settings").classList.remove("on"); });
   $("set-save").addEventListener("click", () => {
     A.setVoiceMode($("set-mode").value);
     A.setTtsVoice($("set-voice").value);

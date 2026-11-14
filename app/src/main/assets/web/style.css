@@ -373,3 +373,20 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 .wk-d b { color: var(--gold-l); width: 24px; font-size: 13px; }
 .wk-d input { flex: 1; min-width: 0; width: 100%; background: transparent; border: 0; color: #e8f6ff; font-size: 15px; padding: 6px 0; }
 .wk-x { color: #6d8796; font-size: 16px; padding: 0 2px; }
+
+/* Einstellungen wie am Handy: Übersicht mit Bereichen */
+#stabs { display: none !important; }
+.sgrp { font-size: 11px; letter-spacing: .16em; color: #8a7350; font-weight: 700; margin: 16px 22px 6px; }
+.slist { margin: 0 14px; border-radius: 18px; background: rgba(4,18,28,.9); border: 1px solid #12384e; overflow: hidden; }
+.sitem { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid rgba(120,160,180,.12); position: relative; }
+.sitem:first-child { border-top: 0; }
+.sitem:active { background: #0b2030; }
+.sitem i { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 19px; flex: 0 0 38px; }
+.sitem div { flex: 1; min-width: 0; }
+.sitem b { display: block; color: #eaf6ff; font-size: 15px; font-weight: 600; }
+.sitem small { display: block; color: #6f8fa0; font-size: 12px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sitem > span { color: #4f6b7a; font-size: 22px; }
+.sitem .ndot { position: absolute; left: 44px; top: 10px; }
+#settings:not(.ssub) .ssave { display: none; }
+#settings:not(.ssub) .spanes { padding-bottom: 24px; }
+.t24 { font-variant-numeric: tabular-nums; letter-spacing: .5px; }

@@ -26,9 +26,23 @@ object ReadAloud {
         if (tts == null) {
             tts = TextToSpeech(ctx.applicationContext) { st ->
                 ready = st == TextToSpeech.SUCCESS
-                if (ready) { tts?.language = Locale.GERMANY; listen(); speak() }
+                if (ready) { voice(ctx); listen(); speak() }
             }
-        } else speak()
+        } else { voice(ctx); speak() }
+    }
+
+    /** Gleiche Stimme wie Jarvis (Einstellungen → Stimme), auch die Online-Stimme des Handys. */
+    private fun voice(ctx: Context) {
+        val t = tts ?: return
+        val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        t.language = Locale.GERMANY
+        val voices = try { t.voices?.filter { it.locale.language == "de" } ?: emptyList() } catch (_: Exception) { emptyList() }
+        val wanted = p.getString("tts_voice", "") ?: ""
+        (voices.firstOrNull { it.name == wanted }
+            ?: voices.firstOrNull { it.isNetworkConnectionRequired && it.name.contains("male", true) && !it.name.contains("female", true) }
+            ?: voices.firstOrNull { !it.isNetworkConnectionRequired && it.name.contains("male", true) && !it.name.contains("female", true) })?.let { t.voice = it }
+        t.setSpeechRate(p.getFloat("tts_rate", 1.05f))
+        t.setPitch(0.9f)
     }
 
     private fun listen() {

@@ -141,7 +141,28 @@
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
       <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
-      <div class="spane on" id="sp-allg">
+      <div class="spane on" id="sp-home">
+        <div class="sgrp">JARVIS</div>
+        <div class="slist">
+          <div class="sitem" data-go="allg"><i style="background:#3a2608">⚙️</i><div><b>Allgemein</b><small>Name, Kopplung mit dem PC, Schlüssel, Standort</small></div><span>›</span></div>
+          <div class="sitem" data-go="hoer"><i style="background:#0b2a3c">🎙️</i><div><b>Zuhören</b><small>Aktivierungswort, im Hintergrund</small></div><span>›</span></div>
+          <div class="sitem" data-go="stimme"><i style="background:#1f1430">🔊</i><div><b>Stimme</b><small>Stimme, Lautstärke, Online-Stimme</small></div><span>›</span></div>
+          <div class="sitem" data-go="anz"><i style="background:#13202a">◐</i><div><b>Anzeige</b><small>Strang, Leuchtrand, Berechtigungen</small></div><span>›</span></div>
+        </div>
+        <div class="sgrp">DEIN ALLTAG</div>
+        <div class="slist">
+          <div class="sitem" data-go="alltag"><i style="background:#2a1a05">⏰</i><div><b>Alltag & Wecker</b><small>Wecker, fester Weg, Termine, Briefings, Zuhause</small></div><span>›</span></div>
+          <div class="sitem" data-go="wege"><i style="background:#0b2a22">🗺️</i><div><b>Wege & Orte</b><small>Meine Orte, Feldwege, Routen schicken</small></div><span>›</span></div>
+          <div class="sitem" data-go="leute"><i style="background:#2a1306">👥</i><div><b>Leute & Anrufe</b><small>Wichtige Leute, Sprachnachrichten, Anruf-Butler</small></div><span>›</span></div>
+        </div>
+        <div class="sgrp">WELT & GERÄTE</div>
+        <div class="slist">
+          <div class="sitem" data-go="lage"><i style="background:#2a1a05">🌍</i><div><b>Lage</b><small>Orte für den Lagebericht, Globus</small></div><span>›</span></div>
+          <div class="sitem" data-go="fern"><i style="background:#05202e">📡</i><div><b>Fernzugriff</b><small>PC-HUD, Webcam, Handy-Kamera über Tailscale</small></div><span>›</span></div>
+        </div>
+        <div class="note" id="set-version2" style="text-align:center;margin:18px 0 0"></div>
+      </div>
+      <div class="spane" id="sp-allg">
         <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
           <div class="f"><label>Name des Assistenten</label><input id="set-name" type="text" placeholder="Jarvis"></div>
           <div class="f"><label>Anrede</label><input id="set-anrede" type="text" placeholder="z. B. Sir oder dein Name (leer = keine)"></div>
