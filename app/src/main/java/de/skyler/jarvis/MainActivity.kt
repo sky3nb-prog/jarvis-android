@@ -429,7 +429,7 @@ class MainActivity : ComponentActivity() {
         fun testSms(wer: String): String {
             val w = wer.trim().ifBlank { return "Wem soll ich die Test-SMS schicken?" }
             val nr = Actions(this@MainActivity).number(w) ?: return "„$w“ finde ich nicht in deinen Kontakten."
-            val ok = Butler.sms(this@MainActivity, nr, "Hier ist Jarvis, das ist nur ein Test.")
+            val ok = Butler.sms(this@MainActivity, nr, "Hier ist Jarvis, das ist nur ein Test.", w)
             return if (ok) "Test-SMS an $w ist raus." else "Die SMS ging nicht raus – erlaube SMS in den Einstellungen unter Leute."
         }
 

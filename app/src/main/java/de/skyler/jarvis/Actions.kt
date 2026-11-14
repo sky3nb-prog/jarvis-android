@@ -232,7 +232,7 @@ class Actions(private val ctx: Context) {
             }
         } catch (_: Exception) {}
         val sms = number(to)
-        if (sms != null && Butler.sms(ctx, sms, text)) return "Ich habe $to eine SMS geschickt: $text"
+        if (sms != null && Butler.sms(ctx, sms, text, to)) return "Ich habe $to eine SMS geschickt: $text"
         val nr = number(to)?.let { normNumber(it) }
         val uri = if (nr != null) "https://wa.me/$nr?text=" + Uri.encode(text) else "https://wa.me/?text=" + Uri.encode(text)
         val i = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage("com.whatsapp")

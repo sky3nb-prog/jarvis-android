@@ -78,7 +78,7 @@ object Gassi {
         val w = who(ctx)
         val nr = Actions(ctx).number(w) ?: return "„$w“ finde ich nicht in deinen Kontakten."
         val t = (if (test) "Test von Jarvis: " else "") + text(ctx)
-        val ok = Butler.sms(ctx, nr, t)
+        val ok = Butler.sms(ctx, nr, t, w)
         try { Feed.add(ctx, "ankunft", if (ok) "Gassi: SMS an $w" else "Gassi: SMS ging nicht", t, if (ok) "An $w: $t" else "SMS-Recht fehlt (Einstellungen → Leute).") } catch (_: Exception) {}
         return if (ok) "SMS an $w geschickt: „$t“" else "Die SMS ging nicht raus – erlaube SMS in den Einstellungen unter Leute."
     }

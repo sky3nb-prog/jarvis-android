@@ -108,19 +108,38 @@ object Butler {
                 val r = try { Link.command(ctx, JSONObject().put("type", "wa_send").put("to", name).put("text", msg), 25_000) } catch (_: Exception) { null }
                 done = r?.optBoolean("ok") == true
             }
-            if (!done) done = sms(ctx, number, msg)
+            if (!done) done = sms(ctx, number, msg, name)
             Feed.add(ctx, "anruf", "Anruf von $name weggedrückt", "„$msg“ " + if (done) "geschickt" else "– Senden ging nicht", msg,
                 JSONObject().put("name", name).put("text", msg).put("ok", done))
         }, "jarvis-absage").start()
     }
 
-    fun sms(ctx: Context, number: String, text: String): Boolean = try {
+    fun sms(ctx: Context, number: String, text: String, who: String = ""): Boolean = try {
         if (!has(ctx, Manifest.permission.SEND_SMS)) false else {
             @Suppress("DEPRECATION")
             val sm = if (Build.VERSION.SDK_INT >= 31) ctx.getSystemService(SmsManager::class.java) else SmsManager.getDefault()
-            sm.sendMultipartTextMessage(number, null, sm.divideMessage(text), null, null); true
+            sm.sendMultipartTextMessage(number, null, sm.divideMessage(text), null, null)
+            sent(ctx, who.ifBlank { nameOf(ctx, number) ?: number }, text)
+            true
         }
     } catch (e: Exception) { Log.w(TAG, "sms: $e"); false }
+
+    /** Jede SMS, die Jarvis schickt: kurze Bestätigung "SMS ist raus" (wem, was). */
+    private fun sent(ctx: Context, who: String, text: String) = try {
+        val nm = ctx.getSystemService(android.app.NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(android.app.NotificationChannel("jarvis_sms", "SMS ist raus",
+            android.app.NotificationManager.IMPORTANCE_DEFAULT))
+        nm.notify(5000 + (System.currentTimeMillis() % 1000).toInt(), androidx.core.app.NotificationCompat.Builder(ctx, "jarvis_sms")
+            .setSmallIcon(android.R.drawable.stat_notify_chat).setContentTitle("✓ SMS ist raus – an $who")
+            .setContentText(text).setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(text)).setAutoCancel(true)
+            .setTimeoutAfter(30 * 60_000L).build())
+    } catch (e: Exception) { Log.w(TAG, "sms-info: $e") }
+
+    private fun nameOf(ctx: Context, number: String): String? = try {
+        if (!has(ctx, Manifest.permission.READ_CONTACTS)) null else
+            ctx.contentResolver.query(android.net.Uri.withAppendedPath(android.provider.ContactsContract.PhoneLookup.CONTENT_FILTER_URI, android.net.Uri.encode(number)),
+                arrayOf(android.provider.ContactsContract.PhoneLookup.DISPLAY_NAME), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }
+    } catch (_: Exception) { null }
 }
 
 class ButlerReceiver : BroadcastReceiver() {

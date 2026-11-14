@@ -734,7 +734,7 @@ object Alltag {
                 .put(JSONObject().put("role", "user").put("content", "Empfänger: $who")), 150).trim().trim('"')
             if (out.startsWith("Hier ist Jarvis") && out.length < 300) text = out
         } catch (_: Exception) {}
-        val ok = Butler.sms(ctx, nr, text)
+        val ok = Butler.sms(ctx, nr, text, who)
         val fid = Feed.add(ctx, "ankunft", if (ok) "Ankunft angekündigt" else "Ankunft: SMS ging nicht", if (ok) "An $who: $text" else "SMS-Recht fehlt",
             if (ok) "An $who: $text" else "Erlaube SMS in den Einstellungen unter Leute.", JSONObject().put("an", who).put("sms", text).put("ok", ok).put("ort", place).put("um", at))
         notify(ctx, 320, if (ok) "Ankunft angekündigt" else "Ankunft: SMS ging nicht", if (ok) "An $who: $text" else "Erlaube SMS in den Einstellungen unter Leute.", feed = fid)
