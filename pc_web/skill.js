@@ -24,6 +24,7 @@
   #skl .skl-burst{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,214,120,.9);transform:translate(-50%,-50%) scale(1);opacity:1;
     transition:transform .9s ease-out,opacity .9s ease-out}
   #skl .skl-burst.go{transform:translate(-50%,-50%) scale(14);opacity:0}
+  #skl .skl-burst.s.go{transform:translate(-50%,-50%) scale(3.5)}
   #skl .skl-card{position:absolute;transform:translate(-50%,0) translateY(14px);opacity:0;min-width:240px;max-width:min(420px,86vw);text-align:center;
     background:rgba(12,9,4,.94);border:1px solid #8a5c18;border-radius:16px;padding:10px 16px;box-shadow:0 0 24px rgba(255,170,40,.25);transition:opacity .4s,transform .4s}
   #skl .skl-card.in{opacity:1;transform:translate(-50%,0)}
@@ -47,6 +48,8 @@
     if (busy || !queue.length) return;
     busy = true;
     const s = queue.shift(), c = center(), kind = s.kind || guess(s.text);
+    const emoji = s.emoji || ICON[kind] || "✦";
+    const B = window.JarvisBrain, idx = B && B.addSkill ? B.addSkill({ emoji, title: s.title || s.text || "" }) : -1;
     const burst = document.createElement("div"); burst.className = "skl-burst"; burst.style.left = c.x + "px"; burst.style.top = c.y + "px";
     const hex = document.createElement("div"); hex.className = "skl-hex"; hex.textContent = ICON[kind] || "✦"; hex.style.left = c.x + "px"; hex.style.top = c.y + "px";
     const card = document.createElement("div"); card.className = "skl-card"; card.style.left = c.x + "px"; card.style.top = Math.min(innerHeight - 110, c.y + Math.max(70, c.r * .75)) + "px";
@@ -54,8 +57,28 @@
     card.querySelector("b").textContent = s.title || "Gelernt"; card.querySelector("span").textContent = s.text || "";
     root.append(burst, hex, card);
     requestAnimationFrame(() => { burst.classList.add("go"); hex.classList.add("in"); card.classList.add("in"); });
-    setTimeout(() => { hex.classList.add("away"); card.classList.remove("in"); }, 3600);
-    setTimeout(() => { burst.remove(); hex.remove(); card.remove(); busy = false; next(); }, 4500);
+    // nach dem Aufploppen: in die Kugel fliegen und dort als kleines Symbol bleiben
+    setTimeout(() => {
+      card.classList.remove("in");
+      const t = idx >= 0 ? B.skillPos(idx) : null;
+      if (t) {
+        hex.style.transition = "left .9s cubic-bezier(.5,0,.3,1), top .9s cubic-bezier(.5,0,.3,1), transform .9s cubic-bezier(.5,0,.3,1), opacity .9s";
+        hex.style.left = t.x + "px"; hex.style.top = t.y + "px"; hex.style.transform = "translate(-50%,-50%) scale(.22)"; hex.style.opacity = ".6";
+      } else hex.classList.add("away");
+    }, 3300);
+    setTimeout(() => {
+      if (idx >= 0) {
+        B.landSkill(idx);
+        const t = B.skillPos(idx);
+        if (t) { const b2 = document.createElement("div"); b2.className = "skl-burst s"; b2.style.left = t.x + "px"; b2.style.top = t.y + "px"; root.appendChild(b2);
+          requestAnimationFrame(() => b2.classList.add("go")); setTimeout(() => b2.remove(), 1000); }
+        if (s.test) setTimeout(() => B.removeSkill(idx), 9000);   // Test: verschwindet wieder
+      }
+      burst.remove(); hex.remove(); card.remove(); busy = false; next();
+    }, 4250);
   }
-  window.JSkill = { show(s) { queue.push(s || {}); next(); } };
+  window.JSkill = {
+    show(s) { queue.push(s || {}); next(); },
+    test() { this.show({ title: "Test-Skill", text: "So sieht es aus, wenn ich etwas Neues lerne.", kind: "wissen", test: true }); },
+  };
 })();

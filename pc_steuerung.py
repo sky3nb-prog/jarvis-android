@@ -539,6 +539,7 @@ def run_action(a: dict) -> str:
 
 
 # --- Feste Befehle ----------------------------------------------------------
+SKILL_TEST = None   # vom Programm gesetzt: Test-Skill in der Kugel zeigen
 _NIGHT = None   # "Gute Nacht": Herunterfahren in ein paar Sekunden (abbrechbar)
 
 
@@ -593,6 +594,17 @@ def handle_fixed(text: str):
             return (p or "Gute Nacht.") + " Ich speichere alles und fahre den PC gleich herunter – sag „abbrechen“, wenn nicht."
         return phone("aus") or "Okay, alles normal."
 
+    # Test der Skill-Animation: "teste Skill", "Skill-Test"
+    if re.search(r"(teste?|test) ?(den |einen )?skill|skill ?test", low):
+        try:
+            import pc_systemcheck
+            if pc_systemcheck.ON_RESULT:
+                pass
+        except Exception:
+            pass
+        if SKILL_TEST:
+            SKILL_TEST()
+            return "Schau auf meine Kugel."
     # Iron-Man-Start zum Ansehen: "Startanimation", "zeig deinen Start"
     if re.search(r"start ?animation|boot ?animation|zeig (mal )?(deinen|den) start|hochfahr ?animation", low):
         import pc_systemcheck

@@ -2,7 +2,8 @@
 (function () {
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const box = document.createElement("div"); box.id = "syspanel";
-  box.innerHTML = '<div class="sp-card"><div class="sp-head"><b>SYSTEMSTATUS</b><span id="sp-sum">…</span><div class="sp-x" id="sp-x">✕</div></div><div id="sp-list"></div><div class="sp-foot"><span id="sp-t"></span><div class="sp-btn" id="sp-again">Neu prüfen</div></div></div>';
+  box.innerHTML = '<div class="sp-card"><div class="sp-head"><b>SYSTEMSTATUS</b><span id="sp-sum">…</span><div class="sp-x" id="sp-x">✕</div></div><div id="sp-list"></div><div class="sp-foot"><span id="sp-t"></span><div class="sp-btn" id="sp-again">Neu prüfen</div></div>' +
+    '<div class="sp-test"><b>TESTEN – so sieht es aus</b><div><span class="sp-btn" data-t="skill">Skill freischalten</span><span class="sp-btn" data-t="boot">Startanimation</span><span class="sp-btn" data-t="overlay">Overlay</span><span class="sp-btn" data-t="update">Update-Frage</span></div></div></div>';
   document.body.appendChild(box);
   const dot = document.getElementById("sysdot");
   function render(d) {
@@ -22,6 +23,12 @@
   if (dot) dot.addEventListener("click", () => open(false));
   document.getElementById("sp-x").addEventListener("click", () => box.classList.remove("on"));
   document.getElementById("sp-again").addEventListener("click", () => load(true));
+  box.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => {
+    const t = b.dataset.t;
+    if (t === "skill") { box.classList.remove("on"); setTimeout(() => window.JSkill && JSkill.test(), 300); return; }
+    if (t === "overlay") box.classList.remove("on");
+    fetch("/api/test", { method: "POST", body: JSON.stringify({ what: t }) }).catch(() => {});
+  }));
   box.addEventListener("click", (e) => { if (e.target === box) box.classList.remove("on"); });
   // Ergebnis vom Sprachbefehl: Seite aufmachen
   const es = new EventSource("/events");

@@ -432,6 +432,23 @@ class WebHud:
             return {}
         if name == "boot_close":
             return {}
+        if name == "test":   # Testknöpfe in der Statusseite
+            w = str(body.get("what") or "")
+            if w == "boot":
+                import pc_systemcheck
+                if pc_systemcheck.BOOT:
+                    pc_systemcheck.BOOT()
+            elif w == "overlay":   # kleines Overlay einmal durchspielen: zuhören -> sprechen -> fertig
+                def demo():
+                    self.ui.force_overlay = time.time() + 12   # auch wenn das HUD vorn liegt
+                    self.ui.post("Du", "Friday, wie wird das Wetter?")
+                    time.sleep(2.2)
+                    self.ui.post("Assistent", "Das ist ein Test vom Overlay – Nervenstrang, Kugel und Text.", 5000, glow=True)
+                threading.Thread(target=demo, daemon=True).start()
+            elif w == "update":
+                import pc_nachrichten
+                pc_nachrichten.incoming({"kind": "offer", "force": True, "title": "Test", "question": "Test: So frage ich, wenn ein Update fertig ist. Sag einfach nein."})
+            return {}
         if name == "cmd" and str(body.get("text") or "").strip():
             self.run_text(str(body["text"]).strip())
             return {"ok": True}

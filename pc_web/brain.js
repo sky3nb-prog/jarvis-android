@@ -25,8 +25,38 @@
     }
   }
 
+  // Gelernte Skills: kleine Symbole, die nach "Neuer Skill freigeschaltet" in die Kugel fliegen und dort bleiben
+  const LKEY = "jarvis_skills";
+  let learned = [];
+  try { learned = JSON.parse(localStorage.getItem(LKEY) || "[]") || []; } catch (e) { learned = []; }
+  const saveLearned = () => { try { localStorage.setItem(LKEY, JSON.stringify(learned.slice(-24).map((x) => ({ emoji: x.emoji, title: x.title, ts: x.ts, arriving: x.arriving })))); } catch (e) {} };
+  const instances = [];
+
   class JarvisBrain {
+    /** Neuen Skill anlegen (erst unsichtbar, "arriving"), gibt seine Nummer zurück */
+    static addSkill(sk) {
+      learned.push({ emoji: sk.emoji || "✦", title: sk.title || "", ts: Date.now(), arriving: true });
+      if (learned.length > 24) learned.shift();
+      saveLearned();
+      return learned.length - 1;
+    }
+    /** Skill ist angekommen: sichtbar machen und kurz aufleuchten lassen */
+    static landSkill(i) {
+      if (!learned[i]) return;
+      delete learned[i].arriving; learned[i].flash = performance.now() + 2600; saveLearned();
+    }
+    /** Bildschirm-Position (CSS-Pixel), wo Skill i in der größten sichtbaren Kugel sitzt */
+    static skillPos(i) {
+      let best = null;
+      for (const b of instances) { const p = b.pos && b.pos["L" + i]; if (p && (!best || b.c.clientWidth > best.w)) best = { x: p.x, y: p.y, w: b.c.clientWidth }; }
+      return best;
+    }
+    static clearSkills() { learned = []; saveLearned(); }
+    static removeSkill(i) { if (learned[i]) { learned.splice(i, 1); saveLearned(); } }
+    static get learned() { return learned; }
+
     constructor(canvas, sphere) {
+      instances.push(this); this.pos = {};
       this.c = canvas; this.g = canvas.getContext("2d"); this.s = sphere; this.W = 0;
       // Plätze gleichmäßig in der Kugel verteilt (Fibonacci), leicht unterschiedlich tief
       this.regions = KINDS.map((k, i) => {
@@ -43,6 +73,16 @@
     draw(dt) {
       const d = Math.min(2.5, window.devicePixelRatio || 1), W = Math.round(this.c.clientWidth * d), H = Math.round(this.c.clientHeight * d);
       if (!W || !H) return;
+      // gelernte Skills als zusätzliche Plätze (weiter innen, eigene Spirale)
+      if (this._ln !== learned.length) {
+        this._ln = learned.length;
+        this.regions = this.regions.filter((r) => !r.learned);
+        const n = Math.max(8, learned.length);
+        learned.forEach((sk, i) => {
+          const y = 1 - (i + .5) / n * 2, r = Math.sqrt(Math.max(0, 1 - y * y)), a = i * 2.399963 + 1.3;
+          this.regions.push({ kind: "_skill", li: i, emoji: sk.emoji, learned: true, v: [Math.cos(a) * r, y * .8, Math.sin(a) * r], rad: .42 + (i % 3) * .07, hot: 0, until: 0 });
+        });
+      }
       if (W !== this.W || H !== this.H) { this.c.width = this.W = W; this.c.height = this.H = H; }
       const g = this.g, s = this.s, now = performance.now();
       g.clearRect(0, 0, W, H);
@@ -57,10 +97,14 @@
       };
       const core = proj([0, 0, 0], 0), base = Math.min(W, H) * .062 * (this.scale || 1);
       g.save();
+      const rect = this.c.getBoundingClientRect();
       const pts = this.regions.map((r) => {
+        if (r.learned) { const sk = learned[r.li]; if (sk && sk.flash && now < sk.flash) r.until = sk.flash; }
         r.hot += ((now < r.until ? 1 : 0) - r.hot) * Math.min(1, dt * (now < r.until ? 6 : 1.5));
-        return { r, p: proj(r.v, r.rad) };
-      }).sort((a, b) => a.p.z - b.p.z);   // hinten zuerst
+        const p = proj(r.v, r.rad);
+        if (r.learned) this.pos["L" + r.li] = { x: rect.left + p.x / W * rect.width, y: rect.top + p.y / H * rect.height };
+        return { r, p };
+      }).filter((q) => !(q.r.learned && learned[q.r.li] && learned[q.r.li].arriving)).sort((a, b) => a.p.z - b.p.z);   // hinten zuerst
       // Nervenbahnen zwischen gleichzeitig aktiven Regionen
       const hot = pts.filter((q) => q.r.hot > .05);
       g.globalCompositeOperation = "lighter";
@@ -95,7 +139,10 @@
         if (h > .05) { g.strokeStyle = `rgba(255,214,140,${.8 * h})`; g.lineWidth = 1.2 * d; g.beginPath(); g.arc(p.x, p.y, size * .72, 0, 7); g.stroke(); }
         const col = pw > .5 ? (h > .05 ? "255,236,190" : "255,200,110") : "190,195,205";
         g.strokeStyle = g.fillStyle = `rgba(${col},${Math.min(1, alpha)})`;
-        g.save(); g.translate(p.x, p.y); icon(g, r.kind, size); g.restore();
+        g.save(); g.translate(p.x, p.y);
+        if (r.learned) { g.globalAlpha = Math.min(1, alpha * 1.15); g.font = `${Math.round(size * 1.05)}px "Segoe UI Emoji","Noto Color Emoji",sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(r.emoji, 0, size * .04); }
+        else icon(g, r.kind, size);
+        g.restore();
       }
       g.restore();
     }

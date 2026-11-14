@@ -1284,7 +1284,7 @@ class UI:
             self._idle_job = None
         if hide_ms:
             self._idle_job = self.root.after(hide_ms, self._to_idle)
-        if self._hud_front():  # HUD liegt vorn: Der Reaktor zeigt den Zustand, kein Overlay nötig
+        if self._hud_front() and time.time() > getattr(self, "force_overlay", 0):  # HUD liegt vorn: Der Reaktor zeigt den Zustand, kein Overlay nötig
             self.compact.hide()
             if self.big:
                 self.big.hide()
@@ -2026,7 +2026,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 14:20"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 14:50"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -2121,6 +2121,8 @@ def main():
             ui.web.push("skill", {"title": "Gelernt", "text": text})
         ui.post("Neuer Skill", text, 5000, glow=True)
     pc_memory.ON_LEARN = _learned
+    pc_steuerung.SKILL_TEST = lambda: (ui.web.push("skill", {"title": "Test-Skill", "text": "So sieht es aus, wenn ich etwas Neues lerne.", "kind": "wissen", "test": True})
+                                       if getattr(ui, "web", None) else None, ui.web.show() if getattr(ui, "web", None) else None)
     if "--nach-update" in sys.argv:
         pc_nachrichten.incoming({"kind": "say", "force": True, "text": f"Update installiert. Ich bin wieder da, Stand {VERSION}."})
         def _new_features():   # neue Fähigkeiten aus pc_web/neu.json in der Kugel zeigen

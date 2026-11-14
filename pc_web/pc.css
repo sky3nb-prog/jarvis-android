@@ -226,3 +226,5 @@ html, body, * { scrollbar-color: #a0702a #0a0703; }
 .sp-row em{display:block;color:#ffb4a0;font-style:normal;font-size:12px;margin-top:2px}
 .sp-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:var(--dim);font-size:12px}
 .sp-btn{cursor:pointer;border:1px solid var(--gold);color:var(--gold-l);background:#3a2608;border-radius:16px;padding:6px 14px}
+.sp-test{margin-top:14px;border-top:1px solid rgba(255,170,40,.12);padding-top:10px}.sp-test b{display:block;font-size:11px;letter-spacing:.18em;color:#c8965a;margin-bottom:8px}
+.sp-test div{display:flex;flex-wrap:wrap;gap:8px}
