@@ -270,12 +270,67 @@ object Alltag {
         if (min in 2.0..300.0 && to != t.optString("from")) {
             val a = trips(ctx)
             a.put(JSONObject().put("from", t.optString("from")).put("to", to).put("start", start).put("end", System.currentTimeMillis())
-                .put("min", min).put("km", km).put("mode", mode))
+                .put("min", min).put("km", km).put("mode", mode).put("path", simplify(pts)))
             while (a.length() > 500) a.remove(0)
             try { tripsFile(ctx).writeText(a.toString()) } catch (_: Exception) {}
             Log.i(TAG, "Fahrt ${t.optString("from")} -> $to: ${min.toInt()} min, ${"%.1f".format(km)} km, $mode")
         }
         s.put("trip", JSONObject().put("from", to).put("start", 0L).put("pts", JSONArray()))
+    }
+
+    // --- Ziel selbst erkennen (gelernte Strecken) ----------------------------------------------------------
+    /** Strecke ausdünnen: ein Punkt alle ~120 m, höchstens 80 Punkte (fürs Wiedererkennen). */
+    private fun simplify(pts: JSONArray): JSONArray {
+        val out = JSONArray(); var lastLat = 0.0; var lastLon = 0.0
+        for (i in 0 until pts.length()) {
+            val p = pts.optJSONArray(i) ?: continue
+            val la = p.optDouble(1); val lo = p.optDouble(2)
+            if (out.length() == 0 || Route.distKm(Route.P(la, lo, ""), Route.P(lastLat, lastLon, "")) > 0.12) {
+                out.put(JSONArray().put(Math.round(la * 1e5) / 1e5).put(Math.round(lo * 1e5) / 1e5)); lastLat = la; lastLon = lo
+            }
+        }
+        while (out.length() > 80) { val k = JSONArray(); for (i in 0 until out.length()) if (i % 2 == 0 || i == out.length() - 1) k.put(out.get(i)); return k }
+        return out
+    }
+
+    /**
+     * Wie gut passt die aktuelle Fahrt zu deinen gelernten Strecken nach [place]? 0..1 (Anteil der letzten Punkte, die
+     * höchstens 150 m neben einer früheren Strecke dorthin liegen) – und du kommst dem Ziel näher. -1 = noch keine Strecke gelernt.
+     */
+    private fun routeScore(ctx: Context, trip: JSONObject, place: String, dest: Route.P?): Double {
+        val paths = list(trips(ctx)).filter { near(it.optString("to"), place) && (it.optJSONArray("path")?.length() ?: 0) >= 3 }.takeLast(12).map { it.getJSONArray("path") }
+        if (paths.isEmpty()) return -1.0
+        val pts = trip.optJSONArray("pts") ?: return 0.0
+        if (pts.length() < 4) return 0.0
+        val recent = (maxOf(0, pts.length() - 12) until pts.length()).map { pts.getJSONArray(it) }.map { Route.P(it.getDouble(1), it.getDouble(2), "") }
+        var hit = 0
+        for (p in recent) if (paths.any { path -> (0 until path.length()).any { k -> val q = path.getJSONArray(k); Route.distKm(p, Route.P(q.getDouble(0), q.getDouble(1), "")) < 0.15 } }) hit++
+        var score = hit.toDouble() / recent.size
+        if (dest != null) {   // muss dem Ziel näher kommen
+            val first = pts.getJSONArray(0); val d0 = Route.distKm(Route.P(first.getDouble(1), first.getDouble(2), ""), dest)
+            if (Route.distKm(recent.last(), dest) >= d0) score *= 0.3
+        }
+        return score
+    }
+
+    const val ACTION_ZIEL = "de.skyler.jarvis.ZIEL"
+    /** Antwort auf "Fährst du zu …?" (Ja/Nein in der Benachrichtigung) */
+    fun zielAnswer(ctx: Context, place: String, yes: Boolean) {
+        val s = state(ctx); val start = s.optJSONObject("trip")?.optLong("start") ?: 0L
+        s.put("ziel_antwort", JSONObject().put("place", place).put("yes", yes).put("start", start)); save(ctx, s)
+        ctx.getSystemService(NotificationManager::class.java).cancel(363)
+    }
+
+    private fun askZiel(ctx: Context, place: String) {
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CH, "Alltag (Losfahren, Briefings, Zuhause)", NotificationManager.IMPORTANCE_HIGH))
+        fun act(yes: Boolean) = NotificationCompat.Action(0, if (yes) "Ja" else "Nein", PendingIntent.getBroadcast(ctx, if (yes) 701 else 702,
+            Intent(ctx, AlltagReceiver::class.java).setAction(ACTION_ZIEL).putExtra("place", place).putExtra("yes", yes), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        val label = place.replaceFirstChar { it.uppercase() }
+        val b = NotificationCompat.Builder(ctx, CH).setSmallIcon(android.R.drawable.ic_dialog_map).setContentTitle("Fährst du zu $label?")
+            .setContentText("Dann sag ich kurz vorher Bescheid und denk an deine Erinnerungen.").setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH)
+            .addAction(act(true)).addAction(act(false))
+        try { nm.notify(363, b.build()) } catch (_: Exception) {}
     }
 
     // --- Ortserinnerungen ("erinnere mich bei Opa an das Ladekabel") -----------------------------------------
@@ -540,13 +595,30 @@ object Alltag {
         if (span < 1.5) return
         val speed = pathKm(pts, i0 - 0).let { it / span }   // km pro Minute
         if (speed < 0.08) return   // steht oder läuft langsam
+        val ans = s.optJSONObject("ziel_antwort")?.takeIf { it.optLong("start") == start }
         for ((place, who) in Route.lines(ctx, "ankunft")) {
             val key = "ankunft|$place|${today()}"
             if (done(s, key) || trip.optString("from").equals(place, true)) continue
             val p = Route.place(ctx, place) ?: continue
             val d = Route.distKm(here, p)
-            if (d < 0.3 || d > speed * 9) continue
+            if (d < 0.3 || d > speed * 20) continue
             val eta = d * 1.25 / speed
+            // Ziel sicher? Fester Weg (Ziel gesetzt) oder genau deine gelernte Strecke -> automatisch. Sonst einmal fragen.
+            val planned = s.optJSONObject("ziel")?.let { near(it.optString("name"), place) || near(it.optString("label"), place) } == true
+            val score = routeScore(ctx, trip, place, p)
+            val sure = planned || score >= 0.8 || (ans != null && ans.optBoolean("yes") && near(ans.optString("place"), place))
+            if (ans != null && !ans.optBoolean("yes") && near(ans.optString("place"), place)) continue   // "Nein" gesagt
+            if (!sure) {
+                val askKey = "zielfrage|$place|$start"
+                if (eta <= 14 && score >= 0.0 && !done(s, askKey)) { mark(s, askKey); askZiel(ctx, place) }
+                if (eta <= 14 && score < 0 && !done(s, askKey)) { mark(s, askKey); askZiel(ctx, place) }   // neue Strecke: auch fragen
+                continue
+            }
+            if (!done(s, "zielsicher|$place|$start")) {   // sicher erkannt: Ort-Erinnerungen schon unterwegs
+                mark(s, "zielsicher|$place|$start")
+                val rem = remindersFor(ctx, place)
+                if (rem.isNotEmpty() && !planned) notify(ctx, 364, "Unterwegs zu ${place.replaceFirstChar { it.uppercase() }}", "Denk an: ${rem.joinToString(", ")}")
+            }
             if (eta > 6) continue
             mark(s, key)
             val at = now + (eta * 60_000).toLong()
@@ -1331,6 +1403,7 @@ object Alltag {
 class AlltagReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action == Alltag.ACTION_CANCEL) Alltag.cancelAway(ctx)
+        if (intent.action == Alltag.ACTION_ZIEL) Alltag.zielAnswer(ctx, intent.getStringExtra("place") ?: "", intent.getBooleanExtra("yes", false))
         if (intent.action == Alltag.ACTION_SCHRANK) {
             val r = Wardrobe.feedback(ctx, intent.getIntExtra("v", 0))
             ctx.getSystemService(android.app.NotificationManager::class.java).cancel(362)
