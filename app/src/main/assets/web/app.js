@@ -404,6 +404,8 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  $("set-testbahn").addEventListener("click", () => { A.testBahn(); toast("Ich suche die Verbindung …"); });
+  $("set-haltebtn").addEventListener("click", () => { try { $("set-halte").textContent = A.halteInfo() || "Noch nichts gelernt."; } catch (e) {} });
   // --- Jarvis-Erinnerungen ---
   function rmList() {
     if (!A || !A.remindList) return;

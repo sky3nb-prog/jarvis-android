@@ -63,6 +63,7 @@ class Actions(private val ctx: Context) {
                 a.optString("zuhause").let { if (it == "null") "" else it }, a.optBoolean("aus"), a.optString("datum").let { if (it == "null") "" else it },
                 a.optString("an").let { if (it == "null") "" else it })
             "test_fahrt" -> Alltag.testMessage(ctx)
+            "test_bahn" -> Alltag.testMessage(ctx, true)
             "losfahren" -> Alltag.departNow(ctx, a.optString("ziel"))
             "ort_erinnerung" -> Alltag.addPlaceReminder(ctx, a.optString("ort"), a.optString("text"))
             "briefing" -> Alltag.briefingNow(ctx, a.optString("tag") == "morgen")

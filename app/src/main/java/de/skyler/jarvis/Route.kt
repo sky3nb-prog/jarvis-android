@@ -212,6 +212,12 @@ Antworte NUR mit dem JSON."""
             val ketten = s.optJSONArray("ketten")?.let { k -> (0 until k.length()).map { k.optString(it) }.filter { it.isNotBlank() } } ?: emptyList()
             pts[i] = bestOnTheWay(a, b, ketten, s.optString("was"))
             if (pts[i] == null) notes.add("${ketten.joinToString(" oder ")} liegt nicht auf dem Weg")
+            else if (!Regex("(?i)\\d+\\s*min").containsMatchIn(text)) {   // keine Zeit genannt: gelernte Aufenthaltsdauer nehmen
+                val label = pts[i]!!.name.substringBefore(" (")
+                Halte.minutes(ctx, label, *ketten.toTypedArray())?.let { m ->
+                    dwell[i] = m; notes.add("beim $label rechne ich $m Minuten, so lange hältst du da meistens")
+                }
+            }
         }
         val stops = (0 until st.length()).mapNotNull { i -> pts[i]?.let { it to dwell[i] } }
 

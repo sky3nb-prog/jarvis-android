@@ -46,6 +46,7 @@ object PhoneCtl {
                 val g = JSONObject()
                 Sleep.night(ctx, 0)?.let { g.put("schlaf", "Schlaf letzte Nacht: " + Sleep.text(it)) }
                 if (Health.connected(ctx)) Health.day(ctx, 0)?.let { g.put("heute", "Heute: " + Health.text(it)) }
+                Halte.summary(ctx).takeIf { it.isNotBlank() }?.let { g.put("halte", it) }
                 gesund = g; gesundT = System.currentTimeMillis()
             }
             if (gesund.length() > 0) o.put("gesund", gesund)

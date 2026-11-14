@@ -524,10 +524,20 @@ class MainActivity : ComponentActivity() {
 
         /** Testnachricht: so sieht die Donnerstag-Nachricht aus (kommt als Benachrichtigung). */
         @JavascriptInterface
-        fun testAlltag() {
+        fun testAlltag() = testAlltag2(false)
+
+        /** Bahn-Test: echte Verbindung zu Oma und Opa ab jetzt, mit Ticket und „Ticket kaufen“. */
+        @JavascriptInterface
+        fun testBahn() = testAlltag2(true)
+
+        /** Was er über deine Zwischenstopps gelernt hat. */
+        @JavascriptInterface
+        fun halteInfo(): String = try { Halte.test(this@MainActivity) } catch (e: Exception) { "" }
+
+        private fun testAlltag2(bahn: Boolean) {
             Thread({
                 send("state", JSONObject().put("state", "thinking"))
-                val t = try { Alltag.testMessage(this@MainActivity) } catch (e: Exception) { "Test ging nicht: ${e.message ?: ""}" }
+                val t = try { Alltag.testMessage(this@MainActivity, bahn) } catch (e: Exception) { "Test ging nicht: ${e.message ?: ""}" }
                 send("agent", JSONObject().put("text", t))
                 Alltag.lastTestFeed?.let { send("feed_open", JSONObject().put("id", it)) }
                 send("state", JSONObject().put("state", "ended"))

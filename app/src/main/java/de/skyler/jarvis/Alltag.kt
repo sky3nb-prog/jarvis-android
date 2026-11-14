@@ -230,7 +230,7 @@ object Alltag {
     /** Testnachricht: so sieht die Nachricht am Donnerstag um 15:45 aus (mit dem Wetter von jetzt). */
     @Volatile var lastTestFeed: String? = null
 
-    fun testMessage(ctx: Context): String {
+    fun testMessage(ctx: Context, bahn: Boolean = false): String {
         val f = festeWege(ctx).firstOrNull()
         val to = f?.to ?: "Opa"
         val label = f?.label ?: to
@@ -238,13 +238,14 @@ object Alltag {
         val dest = Route.place(ctx, to) ?: return "Das Ziel „$to“ finde ich nicht. Trag eine genaue Adresse ein."
         val now = System.currentTimeMillis()
         val leave = now + 5 * 60_000L
-        val pl = tripPlan(ctx, home, dest, leave, to, f?.mode ?: "ebike", f?.bahnHin ?: "regen")
+        val pl = tripPlan(ctx, home, dest, leave, to, f?.mode ?: "ebike", if (bahn) "immer" else (f?.bahnHin ?: "regen"))
+        if (bahn && pl.optString("mode") != "transit") return "Ich finde gerade keine Bahnverbindung zu $label (Fahrplan nicht erreichbar oder zu nah)."
         val wer = f?.wer?.ifBlank { null } ?: whoFor(ctx, label)?.second
         val intro = if (pl.optString("mode") == "transit") "Zu $label:" else "Um ${clock(leave)} geht's los zu $label."
         val (t0, fid) = rideBrief(ctx, "fahrt", "Gleich los zu $label (Test)", intro, home, pl.optLong("go", leave), now + 2 * 3_600_000L, pl,
             remindersFor(ctx, label), false, JSONObject().put("ziel", label).put("sms_to", wer ?: "").put("test", true)
                 .put("home_at", f?.let { if (it.backH >= 0) todayAt(it.backH, it.backM) else 0L } ?: 0L))
-        val t = "[Test] " + t0 + (if (wer != null) " Ich sag $wer Bescheid, kurz bevor du da bist." else "")
+        val t = (if (bahn) "[Bahn-Test] " else "[Test] ") + t0 + (if (wer != null) " Ich sag $wer Bescheid, kurz bevor du da bist." else "")
         notify(ctx, 339, "Gleich los zu $label (Test)", t, feed = fid)
         lastTestFeed = fid
         return t
@@ -410,6 +411,7 @@ object Alltag {
         val s = state(ctx)
         try { homeAndAway(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "zuhause: $e") }
         try { arrival(ctx, s) } catch (e: Exception) { Log.w(TAG, "ankunft: $e") }
+        try { Halte.tick(ctx, fix, isHome(ctx)) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
         try { leaveInTime(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "losfahren: $e") }
         try { routines(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "feste wege: $e") }
         try { alarms(ctx, s) } catch (_: Exception) {}
