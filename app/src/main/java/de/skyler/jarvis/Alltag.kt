@@ -433,6 +433,18 @@ object Alltag {
         try { appUpdate(ctx, s) } catch (_: Exception) {}
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
         try { wardrobeAsk(ctx, s) } catch (_: Exception) {}
+        try {   // Akku unter 20 % unterwegs: einmal Bescheid (bis wieder geladen wurde)
+            val b = ctx.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            if (b != null) {
+                val lvl = b.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) * 100 / maxOf(1, b.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100))
+                val charging = b.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0) != 0
+                if (charging || lvl >= 30) s.put("akku_warn", false)
+                else if (lvl in 0..19 && !s.optBoolean("is_home") && !s.optBoolean("akku_warn")) {
+                    s.put("akku_warn", true)
+                    notify(ctx, 365, "Akku $lvl %", "Du bist unterwegs und der Akku ist unter 20 %. Ich schalte nichts ab – aber lad bald, damit SMS und Navigation weiterlaufen.")
+                }
+            }
+        } catch (_: Exception) {}
         try { Remind.tick(ctx, s, s.optBoolean("is_home"), todayWege(ctx).isNotEmpty()) } catch (e: Exception) { Log.w(TAG, "erinnern: $e") }
         try {   // einmal am Tag still prüfen, nur bei Problemen eine Benachrichtigung
             val now = System.currentTimeMillis()
