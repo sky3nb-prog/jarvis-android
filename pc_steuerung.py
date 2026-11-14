@@ -37,6 +37,7 @@ import json
 import os
 import re
 import subprocess
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -538,8 +539,11 @@ def run_action(a: dict) -> str:
 
 
 # --- Feste Befehle ----------------------------------------------------------
+_NIGHT = None   # "Gute Nacht": Herunterfahren in ein paar Sekunden (abbrechbar)
+
+
 def handle_fixed(text: str):
-    global PENDING
+    global PENDING, _NIGHT
     t = text.strip().strip(" ,.!?")
     low = t.lower()
 
@@ -555,9 +559,39 @@ def handle_fixed(text: str):
     if time.time() < SHUTDOWN_UNTIL and low in NO:
         return cancel_power()
 
+    if _NIGHT is not None and _NIGHT.is_alive() and re.search(r"abbrech|stopp|nicht (aus|herunter)|lass (ihn )?an", low):
+        _NIGHT.cancel()
+        return "Okay, der PC bleibt an."
+
     intent = _power_intent(low)
     if intent:
         return request_power(intent)
+
+    # Routinen: Gaming-Modus, Schulmodus, Gute Nacht, Modus aus
+    rm = re.search(r"(gaming|zock) ?modus|ich zock(e)? jetzt|schul ?modus|gute nacht|modus aus|alle modi aus|normaler modus", low)
+    if rm and len(low.split()) <= 8:
+        import pc_handy
+        w = rm.group(0)
+        from_phone = "vom handy" in low
+        def phone(name):
+            if from_phone:
+                return ""
+            try:
+                return str((pc_handy.control("modus", name=name) or {}).get("text") or "")
+            except Exception:
+                return ""
+        if w.startswith(("gaming", "zock", "ich zock")):
+            r = discord_join_voice("Gurken")
+            p = phone("gaming")
+            return "Gaming-Modus an. " + (r if r and not r.startswith("Fehler") else "") + (" Handy: " + p if p else "")
+        if w.startswith("schul"):
+            return phone("schule") or "Schulmodus ist am Handy – die Jarvis-App antwortet gerade nicht."
+        if w.startswith("gute nacht"):
+            p = phone("nacht")
+            import pc_alltag
+            _NIGHT = threading.Timer(14.0, pc_alltag.shutdown_sequence); _NIGHT.start()
+            return (p or "Gute Nacht.") + " Ich speichere alles und fahre den PC gleich herunter – sag „abbrechen“, wenn nicht."
+        return phone("aus") or "Okay, alles normal."
 
     # Iron-Man-Start zum Ansehen: "Startanimation", "zeig deinen Start"
     if re.search(r"start ?animation|boot ?animation|zeig (mal )?(deinen|den) start|hochfahr ?animation", low):
