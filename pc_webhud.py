@@ -339,6 +339,14 @@ class WebHud:
         if name == "phonecam":
             import pc_fern
             return {"live": time.time() - pc_fern.PHONE_FRAME["t"] < 4}
+        if name == "feed":   # Mitteilungen (Briefings) vom Handy fürs HUD
+            import pc_handy
+            r = pc_handy.ask("feed", wait=25) or {}
+            return {"list": r.get("list") or [], "items": r.get("items") or {}, "ok": bool(r)}
+        if name == "feed_now":   # "Heute", "Morgen", "Nächste Woche", "Letzte Woche" am Handy erstellen lassen
+            import pc_handy
+            r = pc_handy.ask("feed_now", wait=90, what=str(qs.get("kind") or "heute")) or {}
+            return {"id": r.get("feed_id") or "", "text": r.get("text") or ""}
         if name == "syscheck":   # Statusseite: grüne/rote Punkte (frisch prüfen, wenn älter als 2 Min. oder ?neu=1)
             import pc_systemcheck
             if qs.get("neu") or time.time() - pc_systemcheck.LAST["t"] > 120:
