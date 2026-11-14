@@ -120,6 +120,25 @@
     return card(title, color, rows.map((r) => `<div class="fp-bar"><span>${esc(r.tag)}</span><i><u style="width:${Math.round((val(r) / max) * 100)}%;background:${color}"></u></i><b>${fmt(r)}</b></div>`).join(""));
   }
 
+  // Tagesabschluss: Rückblick auf heute + morgen nur Aufstehen und Anziehen
+  function viewEvening(m) {
+    const d = m.data || {}, f = d.fit || null, w = d.wx;
+    let h = `<div class="fp-hero violet"><div class="k">TAGESABSCHLUSS · ${esc(String(d.datum || "").toUpperCase())}</div><h1>${esc(m.title)}</h1>
+      <div class="s">Heute im Rückblick – und was du für morgen wissen musst.</div>
+      <div class="fp-times"><div class="fp-tb"><small>MORGEN AUF</small><b>${d.aufstehen ? hm(d.aufstehen) : d.erster_wecker ? hm(d.erster_wecker) : "frei"}</b></div>
+      <div class="fp-tb"><small>MORGEN</small><b>${w ? w.min + "° / " + w.max + "°" : "–"}</b></div>
+      <div class="fp-tb"><small>${f ? "VERBRAUCHT" : "SCHLAF"}</small><b>${f ? nf(f.kcal) : d.schlaf ? dur(d.schlaf.min) : "–"}</b></div></div></div>`;
+    if ((d.heute || []).length) h += card("📅 HEUTE", "var(--green)", d.heute.map((x) => `<div class="fp-row"><span class="z">•</span><span>${esc(x)}</span></div>`).join(""));
+    if (f) h += `<div class="fp-card"><h3>🔥 AKTIVITÄT HEUTE</h3><div class="fp-tiles"><div class="fp-tile"><b>${nf(f.kcal)}</b><small>kcal verbraucht</small></div>
+      <div class="fp-tile"><b>${nf(f.schritte)}</b><small>Schritte</small></div>
+      <div class="fp-tile"><b>${f.defizit != null ? nf(Math.abs(f.defizit)) : nf(f.aktiv)}</b><small>${f.defizit != null ? (f.defizit > 0 ? "kcal Defizit" : "kcal Überschuss") : "kcal aktiv"}</small></div></div></div>`;
+    h += sleepCard(d.schlaf);
+    h += card("⏰ MORGEN AUFSTEHEN", "#d7a8ff", d.aufstehen ? `<div class="fp-row"><span class="z">${hm(d.aufstehen)}</span><span>aufstehen${(d.wecker || []).length ? `<span class="o">Wecker ${d.wecker.map(esc).join(", ")}</span>` : ""}</span></div>`
+      : `<div class="fp-row"><span class="z">${d.erster_wecker ? hm(d.erster_wecker) : "–"}</span><span>${d.erster_wecker ? "erster Wecker" : "kein Wecker – ausschlafen"}</span></div>`);
+    h += outfit(d.outfit, d.anziehen);
+    return h + say(m.text);
+  }
+
   function viewBilanz(m) {
     const d = m.data || {}, f = d.fit || null, s = d.schlaf || null;
     const vs = f && d.avg_kcal ? Math.round(((f.kcal || 0) - d.avg_kcal) / d.avg_kcal * 100) : null;
@@ -176,7 +195,11 @@
     const outfitText = o ? ["Anziehen:", o.jacke && !/^keine?$/i.test(o.jacke) ? o.jacke + "," : "", o.oben ? o.oben + "," : "", o.hose || "", (o.extras || []).length ? ", dazu " + o.extras.join(", ") : ""].join(" ")
       : list.length ? "Anziehen: " + list.join(", ") : "";
     const add = (sel, t) => { if (t && t.trim()) { out.push(t); cards.push(sel); } };
-    if (m.kind === "morgen" || m.kind === "abend") {
+    if (m.kind === "abend" && d.aufstehen !== undefined) {
+      add("hero", m.text);
+      add("MORGEN AUFSTEHEN", d.aufstehen ? "Morgen aufstehen um " + hm(d.aufstehen) + "." : "Morgen kein Wecker.");
+      add("ANZIEHEN", outfitText);
+    } else if (m.kind === "morgen" || m.kind === "abend") {
       const w = d.wx;
       add("hero", (m.kind === "morgen" ? "Guten Morgen. " : "Kurz zu morgen. ") + (w ? `${w.min} bis ${w.max} Grad, ${w.rain_pct >= 50 ? "Regen wahrscheinlich" : "eher trocken"}.` : ""));
       add("ANZIEHEN", outfitText);
@@ -225,7 +248,7 @@
     if (a.length) setSeen(a[0].ts);
     dots(false);
     const shown = a.filter((m) => filter === "alle" || (KIND[m.kind] || [])[2] === filter);
-    let h = `<div class="fp-now"><div data-now="heute">☀️ Heute<small>Tages-Update</small></div><div data-now="morgen">🌙 Morgen<small>Update</small></div></div>
+    let h = `<div class="fp-now"><div data-now="heute">☀️ Heute<small>Tages-Update</small></div><div data-now="morgen">🌙 Abend<small>Tagesabschluss</small></div></div>
       <div class="fp-now"><div data-now="woche">🗓️ Nächste Woche<small>7 Tage voraus</small></div><div data-now="rueckblick">📊 Letzte Woche<small>Rückblick</small></div></div>
       <div class="fp-seg">${FILTERS.map(([k, n]) => `<span data-f="${k}" class="${k === filter ? "on" : ""}">${n}</span>`).join("")}</div>`;
     if (!shown.length) h += '<div class="fp-empty">Noch keine Mitteilungen.<br>Briefings, Fahrten und Anrufe erscheinen hier.</div>';
@@ -251,6 +274,7 @@
     if (push) stack.push("list");
     $("fp-ttl").textContent = "MITTEILUNG";
     const v = m.kind === "fahrt" || m.kind === "heimweg" || m.kind === "test" ? viewFahrt(m)
+      : m.kind === "abend" && (m.data || {}).aufstehen !== undefined ? viewEvening(m)
       : m.kind === "morgen" || m.kind === "abend" ? viewDay(m) : m.kind === "bilanz" ? viewBilanz(m) : m.kind === "woche" ? viewWeek(m) : m.kind === "vorschau" ? viewAhead(m) : viewSimple(m);
     current = m;
     $("fp-body").innerHTML = readBar() + v;

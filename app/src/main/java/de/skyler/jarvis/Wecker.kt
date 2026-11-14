@@ -134,6 +134,15 @@ object Wecker {
         return Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, o.optInt("h")); set(Calendar.MINUTE, o.optInt("m")); set(Calendar.SECOND, 0) }.timeInMillis
     }
 
+    /** Aufsteh-Zeit für den Tag, der um [dayStart] beginnt (einmalig > fester Plan), oder null. */
+    fun upFor(ctx: Context, dayStart: Long): Long? {
+        val key = dateOf(dayStart)
+        val c = Calendar.getInstance().apply { timeInMillis = dayStart }
+        val einmal = try { JSONObject(prefs(ctx).getString("wecker_einmal", "{}") ?: "{}").optString(key) } catch (_: Exception) { "" }
+        val up = hm(einmal) ?: planFor(ctx, c.get(Calendar.DAY_OF_WEEK)) ?: return null
+        return c.apply { set(Calendar.HOUR_OF_DAY, up.first); set(Calendar.MINUTE, up.second); set(Calendar.SECOND, 0) }.timeInMillis
+    }
+
     // --- Automatisch: "An Schultagen will ich um 7:10 aufstehen" -> jeden Abend die Wecker für morgen ---------
     const val VORHER_DEFAULT = "25, 20, 5"
 

@@ -880,8 +880,8 @@ object Alltag {
         if (now < t0 || now > t0 + 2 * 3_600_000L || done(s, key)) return
         mark(s, key)
         Thread({
-            val (t, fid) = dayBrief(ctx, 1) ?: return@Thread
-            notify(ctx, 341, "Kurz zu morgen", t, feed = fid)
+            val (t, fid) = eveningBrief(ctx) ?: return@Thread
+            notify(ctx, 341, "Dein Tagesabschluss", t, feed = fid)
             if (!pcSay(ctx, t) && !quiet(ctx)) say(t)
         }, "jarvis-abend").start()
     }
@@ -957,6 +957,51 @@ object Alltag {
     /** Tages-Update auf Zuruf ("gib mir das Briefing", "was ist morgen?") – landet auch in den Mitteilungen. */
     fun briefingNow(ctx: Context, tomorrow: Boolean): String = dayBrief(ctx, if (tomorrow) 1 else 0)?.first ?: "Fürs Briefing brauche ich den Groq-Schlüssel."
 
+    /**
+     * Abend: Rückblick auf HEUTE (was los war, Fahrten, Kalorien/Aktivität, Schlaf letzte Nacht) + für MORGEN nur das Nötige:
+     * wann du aufstehst (und die Wecker) und was du anziehst. Keine Termine von morgen – die kommen morgens.
+     */
+    fun eveningBrief(ctx: Context): Pair<String, String>? {
+        val p = prefs(ctx)
+        val now = System.currentTimeMillis()
+        val d0 = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        val d1 = d0 + 86_400_000L
+        val heute = Cal.events(ctx, d0, now).distinctBy { it.id to it.begin }
+        val fahrten = list(trips(ctx)).filter { it.optLong("end") >= d0 }.map { it.optString("to") }.filter { it != "zuhause" }
+        val fit = if (on(ctx, "bilanz")) try { Health.day(ctx, 0) } catch (_: Exception) { null } else null
+        val schlaf = try { Sleep.night(ctx, 0) } catch (_: Exception) { null }
+        val up = try { Wecker.upFor(ctx, d1) } catch (_: Exception) { null }
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val firstAlarm = am.nextAlarmClock?.triggerTime?.takeIf { it in d1 until d1 + 86_400_000L }
+        val wecker = if (up != null) try { Wecker.timesFor(ctx, SimpleDateFormat("H", de).format(Date(up)).toInt() to SimpleDateFormat("m", de).format(Date(up)).toInt()) } catch (_: Exception) { emptyList() } else emptyList()
+        val wx = dayWx(ctx, 1)
+        val parts = mutableListOf<String>()
+        parts.add("HEUTE – Termine:\n" + Cal.describe(heute).ifBlank { "keine" })
+        if (fahrten.isNotEmpty()) parts.add("HEUTE – Fahrten zu: ${fahrten.joinToString()}")
+        if (fit != null) parts.add("HEUTE – Aktivität: ${Health.text(fit)}")
+        if (schlaf != null) parts.add("Schlaf letzte Nacht: ${Sleep.text(schlaf)}")
+        parts.add("MORGEN – " + (if (up != null) "Aufstehen um ${clock(up)}" + (if (wecker.isNotEmpty()) ", Wecker ${wecker.joinToString(", ")}" else "")
+            else if (firstAlarm != null) "erster Wecker ${clock(firstAlarm)}" else "kein Wecker, er kann ausschlafen"))
+        if (wx != null) parts.add("MORGEN – Wetter Leonberg: $wx")
+        parts.add("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT })
+        val sys = "Du bist Jarvis und gibst Skyler seinen Tagesabschluss am Abend. Antworte NUR mit JSON: " +
+            "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 3 bis 5 kurze Sätze: kurzer Rückblick auf heute (was los war" +
+            (if (fit != null) ", wie viele Kalorien er verbraucht hat und ob er aktiv war, Defizit nur wenn gegessene Kalorien in den Daten stehen" else "") +
+            "), dann für morgen NUR: wann er aufsteht und was er anziehen soll. KEINE Termine von morgen. Beginne mit 'Dein Tagesabschluss'\", " +
+            "\"heute\": [\"2 bis 4 kurze Stichpunkte, was heute los war\"], " +
+            "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"]}. Erfinde nichts."
+        val ai = aiJson(ctx, sys, parts.joinToString("\n\n"), 600)
+        val text = ai?.optString("text")?.replace(Regex("[*#`]"), "")?.trim()?.ifBlank { null }
+            ?: (listOfNotNull(fit?.let { "Heute: " + Health.text(it) }, up?.let { "Morgen stehst du um ${clock(it)} auf." }).joinToString(" ").ifBlank { return null })
+        val d = JSONObject().put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date(d0)))
+            .put("heute", strs(ai?.optJSONArray("heute"))).put("fit", fit ?: JSONObject.NULL).put("schlaf", schlaf ?: JSONObject.NULL)
+            .put("aufstehen", up ?: 0L).put("wecker", JSONArray(wecker)).put("erster_wecker", firstAlarm ?: 0L)
+            .put("wx", wx ?: JSONObject.NULL).put("outfit", ai?.optJSONObject("outfit") ?: JSONObject.NULL).put("anziehen", strs(ai?.optJSONArray("anziehen")))
+        val sub = listOfNotNull(up?.let { "Aufstehen ${SimpleDateFormat("H:mm", de).format(Date(it))}" },
+            strs(ai?.optJSONArray("anziehen")).optString(0).ifBlank { null }, fit?.takeIf { it.has("kcal") }?.let { "%,d kcal".format(de, it.optLong("kcal")) }).joinToString(" · ")
+        return text to Feed.add(ctx, "abend", "Dein Tagesabschluss", sub, text, d)
+    }
+
     // --- Wochenrückblick -------------------------------------------------------------------------------------
     private fun weekly(ctx: Context, s: JSONObject) {
         if (!on(ctx, "rueckblick")) return
@@ -1023,7 +1068,7 @@ object Alltag {
 
     // --- Tagesbilanz (Samsung Health + Schlaf) -----------------------------------------------------------------
     private fun bilanz(ctx: Context, s: JSONObject, say: (String) -> Unit) {
-        if (!on(ctx, "bilanz")) return
+        if (!on(ctx, "bilanz") || on(ctx, "brief_abend")) return   // steckt im Tagesabschluss
         val (h, m) = hm(prefs(ctx).getString("bilanz_zeit", "22:00") ?: "22:00", 22)
         val t0 = todayAt(h, m); val now = System.currentTimeMillis()
         val key = "bilanz|${today()}"

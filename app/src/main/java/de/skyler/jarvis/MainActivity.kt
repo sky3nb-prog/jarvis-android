@@ -426,7 +426,7 @@ class MainActivity : ComponentActivity() {
             Thread({
                 val r = try {
                     when (kind) { "woche" -> Alltag.weekAhead(this@MainActivity); "rueckblick" -> Alltag.weekBack(this@MainActivity); "bilanz" -> Alltag.dayHealth(this@MainActivity)
-                        "morgen" -> Alltag.dayBrief(this@MainActivity, 1); else -> Alltag.dayBrief(this@MainActivity, 0) }
+                        "morgen" -> Alltag.eveningBrief(this@MainActivity); else -> Alltag.dayBrief(this@MainActivity, 0) }
                 } catch (_: Exception) { null }
                 if (r != null) send("feed_open", JSONObject().put("id", r.second))
                 else send("info", JSONObject().put("text", "Das Update ging gerade nicht (Groq-Schlüssel? Internet?)."))
