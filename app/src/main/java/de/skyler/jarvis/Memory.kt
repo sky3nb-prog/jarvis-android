@@ -33,6 +33,7 @@ object Memory {
         while (l.length() > 300) l.remove(0)
         prefs(ctx).edit().putString("local_facts", l.toString()).apply()
         Link.push(ctx, facts = JSONArray().put(o))
+        try { Bus.emit("skill", JSONObject().put("title", "Gelernt").put("text", t)) } catch (_: Exception) {}   // ploppt in der Kugel auf
         return "Gemerkt."
     }
 

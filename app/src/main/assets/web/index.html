@@ -386,5 +386,8 @@
 <script src="app.js"></script>
 <script src="steuern.js"></script>
 <script src="feed.js"></script>
+<script src="skill.js"></script>
+<script src="neu.js"></script>
+<script>(function(){const J=window.jarvis;if(!J)return;const prev=J.onEvent;J.onEvent=function(t,d){if(t==="skill"){window.JSkill&&JSkill.show(d||{});return;}return prev&&prev.call(J,t,d);};setTimeout(function(){try{const N=window.JNEU;let seen="";try{seen=localStorage.getItem("neu_seen")||"";}catch(e){}if(N&&seen!==N.stand){N.neu.forEach(function(x){JSkill.show({title:x.title,text:x.text,kind:"funktion"});});try{localStorage.setItem("neu_seen",N.stand);}catch(e){}}}catch(e){}},2500);})();</script>
 </body>
 </html>
