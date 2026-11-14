@@ -433,7 +433,9 @@ class WebHud:
             t = f"Willkommen zurück, {who}. " + (f"{bad} System{'e brauchen' if bad > 1 else ' braucht'} Aufmerksamkeit – sag Statuscheck." if bad else "Alle Systeme bereit.")
             pc_nachrichten.incoming({"kind": "say", "force": True, "text": t})
             return {}
-        if name == "boot_close":
+        if name == "boot_close":   # Animation fertig: Fenster-Prozess beenden (gegen schwarzes Hängenbleiben)
+            import pc_bootwin
+            threading.Timer(1.2, pc_bootwin.kill).start()
             return {}
         if name == "test":   # Testknöpfe in der Statusseite
             w = str(body.get("what") or "")

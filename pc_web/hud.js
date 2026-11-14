@@ -15,7 +15,11 @@
     return { w, s, b };
   }
   const sph = { fokus: mk("f-sph", 3, .72), info: mk("i-sph", 5, .8), lage: mk("l-sph", 7, .9), steuern: mk("s-sph", 9, .85) };
-  const strand = new Strand($("strand"), 1, { key: [[-.1, .62], [.12, .55], [.3, .5], [.5, .47], [.7, .43], [.88, .36], [1.1, .3]], rings: [[.5, .47, .2]], twigs: 14, S: (w, h) => h / 520 });
+  // Nervenstrang als großes Panorama über alle Seiten (Info, Fokus, Lage, Steuern) – beim Umschalten gleitet er weiter, wie am Handy
+  const PORDER = ["info", "fokus", "lage", "steuern"];
+  const strand = new Strand($("strand"), 4, { key: [[-.2, .6], [.2, .5], [.5, .48], [.85, .42], [1.2, .5], [1.5, .47], [1.85, .36], [2.2, .26], [2.5, .3], [2.85, .22], [3.2, .4], [3.5, .5], [3.85, .44], [4.3, .3]],
+    rings: [], twigs: 46, S: (w, h) => h / 520 });
+  let strandTarget = Math.max(0, PORDER.indexOf(mode)), pageDir = 1; strand.offset = strandTarget;
 
   // Größe und Lage der Kugeln je nach Fenstergröße
   function layout() {
@@ -25,18 +29,23 @@
     $("f-name").style.top = H * .06 + fs - 6 + "px"; $("f-state").style.top = H * .06 + fs + 36 + "px"; $("f-talk").style.top = H * .06 + fs + 70 + "px";
     Object.assign($("i-sph").style, { width: is + "px", height: is + "px", left: (W - is) / 2 + "px", top: H * .14 + "px" });
     $("i-name").style.top = H * .14 + is + 8 + "px"; $("i-state").style.top = H * .14 + is + 50 + "px";
-    strand.opts.rings = [[.5, (46 + H * .06 + fs / 2) / innerHeight, fs * .55 / W]]; strand.W = 0;
+    strand.opts.rings = [[1.5, (46 + H * .06 + fs / 2) / innerHeight, fs * .55 / W], [.5, (46 + H * .14 + is / 2) / innerHeight, is * .55 / W]]; strand.W = 0;
   }
   addEventListener("resize", layout); layout();
 
   // Seiten umschalten
   function setMode(m, save) {
     if (m === "flug") { window.PC.post("mode", { mode: "flug" }); return; }
+    const from = PORDER.indexOf(mode), to = PORDER.indexOf(m);
+    pageDir = to >= from ? 1 : -1; if (to >= 0) strandTarget = to;
+    document.body.style.setProperty("--pdir", pageDir);
     mode = m;
-    document.querySelectorAll(".pv").forEach((e) => e.classList.toggle("on", e.id === "pv-" + m || (m === "lage" && e.id === "v-lage")));
+    document.querySelectorAll(".pv").forEach((e) => { const on = e.id === "pv-" + m || (m === "lage" && e.id === "v-lage");
+      if (on && !e.classList.contains("on")) { e.classList.remove("slidein"); void e.offsetWidth; e.classList.add("slidein"); }
+      e.classList.toggle("on", on); });
     document.querySelectorAll("#modes span, #pnav div").forEach((e) => e.classList.toggle("on", e.dataset.m === m));
     if (m === "steuern" && window.JHandy) window.JHandy.shown();
-    $("strand").style.display = m === "lage" ? "none" : "";
+    $("strand").style.display = "";
     $("typebar").style.display = m === "lage" ? "none" : "";
     $("tb-reply").classList.remove("on");
     if (m === "lage" && window.JLage) window.JLage.shown();
@@ -187,7 +196,9 @@
     if (v && v.s) { v.s.level = level; v.s.draw(dt); v.b && v.b.draw(dt); }
     if (mode === "info") rings(dt);
     if (mode === "lage") { if (window.JLage) window.JLage.draw(dt); }
-    else { strand.level = level; strand.power = power; strand.draw(dt); }
+    strand.offset += (strandTarget - strand.offset) * Math.min(1, dt * 7);
+    if (mode !== "lage" || Math.abs(strand.offset - strandTarget) > .01) { strand.level = level; strand.power = power; strand.draw(dt); }
+    $("strand").style.opacity = mode === "lage" ? Math.max(0, Math.min(1, Math.abs(strand.offset - strandTarget) * 2)) : 1;
     requestAnimationFrame(frame);
   }
   const rc = document.querySelector("#i-sph canvas.rings"), rg = rc.getContext("2d"); let rt = 0;

@@ -39,6 +39,10 @@ if "--hud" in sys.argv:   # zweiter Prozess: nur das HUD-Fenster (pc_hudwin), oh
     import pc_hudwin
     pc_hudwin.main()
     sys.exit(0)
+if "--swap" in sys.argv:   # Update-Helfer (Jarvis-Update.exe): alte exe gegen die neue tauschen
+    import pc_update
+    pc_update.swap_main()
+    sys.exit(0)
 if "--boot" in sys.argv:   # Iron-Man-Start (Vollbild-Hologramm nach dem Anmelden)
     import pc_bootwin
     pc_bootwin.main()
@@ -1727,7 +1731,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
             global _GREETED
             if (GREET_ON_START or pc_assistent_announce[0] or ui.settings.get("briefing_on_start", True)) and not _GREETED:
                 _GREETED = True
-                if "--autostart" in sys.argv and ui.settings.get("boot_animation", True):
+                if ui.settings.get("boot_animation", True) and "--nach-update" not in sys.argv:
                     time.sleep(14)   # erst die Start-Animation mit ihrem Gruß ausspielen lassen
                 if pc_assistent_announce[0]:
                     pc_timetree.wait_first_sync(25)  # neueste Termine holen, bevor er sie ansagt
@@ -2026,7 +2030,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 15:20"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 15:50"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -2113,8 +2117,8 @@ def main():
         if getattr(ui, "web", None):
             pc_bootwin.launch(ui.web.port, (pc_talk.ADDRESS or "Sir") if hasattr(pc_talk, "ADDRESS") else "Sir")
     pc_systemcheck.BOOT = _boot
-    if "--autostart" in sys.argv and ui.settings.get("boot_animation", True):
-        threading.Timer(3.0, _boot).start()   # nach dem Anmelden: Hologramm-Start
+    if ui.settings.get("boot_animation", True) and "--nach-update" not in sys.argv:
+        threading.Timer(2.5, _boot).start()   # bei jedem Start (auch nach dem Anmelden): Hologramm-Start
     pc_systemcheck.start_daily(lambda t: pc_nachrichten.incoming({"kind": "say", "text": "Kurzer Systemcheck: " + t}))
     def _learned(text):
         if getattr(ui, "web", None):
@@ -2124,6 +2128,14 @@ def main():
     pc_steuerung.SKILL_TEST = lambda: (ui.web.push("skill", {"title": "Test-Skill", "text": "So sieht es aus, wenn ich etwas Neues lerne.", "kind": "wissen", "test": True})
                                        if getattr(ui, "web", None) else None, ui.web.show() if getattr(ui, "web", None) else None)
     if "--nach-update" in sys.argv:
+        def _cleanup():   # Reste vom Update wegräumen
+            import shutil
+            time.sleep(20)
+            try:
+                shutil.rmtree(os.path.join(os.path.dirname(os.path.dirname(sys.executable)), "dist_neu"), ignore_errors=True)
+            except Exception:
+                pass
+        threading.Thread(target=_cleanup, daemon=True).start()
         pc_nachrichten.incoming({"kind": "say", "force": True, "text": f"Update installiert. Ich bin wieder da, Stand {VERSION}."})
         def _new_features():   # neue Fähigkeiten aus pc_web/neu.json in der Kugel zeigen
             try:

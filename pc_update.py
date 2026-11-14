@@ -157,21 +157,71 @@ def check_now(ask) -> str:
 
 
 def restart(quit_app) -> str:
-    """Neue .exe einsetzen: Tausch-Skript starten, Jarvis beenden."""
+    """Neue .exe einsetzen: Helfer (Kopie der neuen exe unter anderem Namen) tauscht sie aus, sobald Jarvis beendet ist."""
     sha = _state.get("ready")
     if not sha:
         return "Es liegt kein fertiges Update bereit."
     src = _src()
-    bat = os.path.join(src, "_update_tausch.bat")
+    neu = os.path.join(src, "dist_neu", "PC-Assistent.exe")
+    helper = os.path.join(src, "dist_neu", "Jarvis-Update.exe")
     try:
-        with open(bat, "w", encoding="utf-8") as f:
-            f.write(SWAP.replace("\n", "\r\n"))
+        import shutil
+        shutil.copy2(neu, helper)   # anderer Name: der Helfer kann PC-Assistent.exe beenden, ohne sich selbst zu treffen
         d = _load(); d["sha"] = sha; d.pop("failed", None); _save(d)
-        subprocess.Popen(["cmd", "/c", bat], cwd=src, creationflags=NO_WINDOW | DETACHED, close_fds=True)
+        subprocess.Popen([helper, "--swap", _dist(), os.path.join(src, "dist_neu")], cwd=src,
+                         creationflags=NO_WINDOW | 0x00000200, close_fds=True)   # NEW_PROCESS_GROUP: überlebt das Beenden
         threading.Timer(1.5, quit_app).start()
         return "Ich starte kurz neu – bin gleich wieder da."
     except Exception as e:
         return f"Neustart ging nicht ({e})."
+
+
+def swap_main():
+    """Läuft als Jarvis-Update.exe --swap <dist> <dist_neu>: warten, alte exe beenden, neue hineinkopieren, starten."""
+    import shutil
+    a = sys.argv[sys.argv.index("--swap") + 1:]
+    dist, neu = a[0], a[1]
+    log = os.path.join(dist, "update_log.txt")
+
+    def note(t):
+        try:
+            with open(log, "a", encoding="utf-8") as f:
+                f.write(time.strftime("%H:%M:%S ") + t + "\n")
+        except Exception:
+            pass
+
+    def running() -> bool:
+        try:
+            out = subprocess.run(["tasklist", "/fi", "imagename eq PC-Assistent.exe", "/fo", "csv", "/nh"], capture_output=True, text=True,
+                                 creationflags=NO_WINDOW, timeout=10).stdout
+            return "PC-Assistent.exe" in out
+        except Exception:
+            return False
+    note("Tausch startet")
+    for _ in range(15):
+        if not running():
+            break
+        time.sleep(1)
+    for img in ("PC-Assistent.exe", "PC-Assistent-Debug.exe"):   # HUD-Fenster, Start-Animation, Reste
+        subprocess.run(["taskkill", "/f", "/im", img], capture_output=True, creationflags=NO_WINDOW)
+    time.sleep(1.5)
+    ok = False
+    for _ in range(20):
+        try:
+            shutil.copy2(os.path.join(neu, "PC-Assistent.exe"), os.path.join(dist, "PC-Assistent.exe"))
+            ok = True
+            break
+        except Exception as e:
+            note(f"kopieren wartet: {e}")
+            time.sleep(1)
+    try:
+        if os.path.exists(os.path.join(neu, "PC-Assistent-Debug.exe")):
+            shutil.copy2(os.path.join(neu, "PC-Assistent-Debug.exe"), os.path.join(dist, "PC-Assistent-Debug.exe"))
+    except Exception:
+        pass
+    note("neue Version eingesetzt" if ok else "Kopieren ging nicht – alte Version wird gestartet")
+    subprocess.Popen([os.path.join(dist, "PC-Assistent.exe")] + (["--nach-update"] if ok else []), cwd=dist, close_fds=True,
+                     creationflags=0x00000008 | 0x00000200)   # eigenständig weiterlaufen
 
 
 def start(ask):

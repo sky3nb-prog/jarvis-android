@@ -15,7 +15,16 @@ class Api:
         self.win = None
 
     def close(self):
-        threading.Thread(target=lambda: (time.sleep(.1), self.win.destroy()), daemon=True).start()
+        # Fenster zu und Prozess sicher beenden (destroy allein blieb manchmal schwarz hängen)
+        def bye():
+            time.sleep(.1)
+            try:
+                self.win.destroy()
+            except Exception:
+                pass
+            time.sleep(.6)
+            os._exit(0)
+        threading.Thread(target=bye, daemon=True).start()
 
 
 def main():
@@ -33,9 +42,22 @@ def main():
     win = webview.create_window("Jarvis Start", f"http://127.0.0.1:{port}/boot.html?name={urllib.parse.quote(name)}", js_api=api,
                                 fullscreen=True, frameless=True, on_top=True, background_color="#000000", text_select=False)
     api.win = win
-    threading.Timer(25, lambda: win.destroy()).start()   # Sicherheitsnetz
+    threading.Timer(22, lambda: os._exit(0)).start()   # Sicherheitsnetz: spätestens dann ist Schluss
     base = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
     webview.start(gui="edgechromium", private_mode=False, storage_path=os.path.join(base, "boot_fenster"))
+
+
+PROC = {"p": None}
+
+
+def kill():
+    """Vom Hauptprogramm: Start-Animation sicher schließen (falls das Fenster hängt)."""
+    p = PROC.get("p")
+    if p and p.poll() is None:
+        try:
+            p.kill()
+        except Exception:
+            pass
 
 
 def launch(port: int, name: str = "Sir"):
@@ -45,7 +67,8 @@ def launch(port: int, name: str = "Sir"):
         if not pc_hudwin.available() or not port:
             return False
         me = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "pc_overlay.py")]
-        subprocess.Popen(me + ["--boot", str(port), name or "Sir"], creationflags=0x08000000)
+        PROC["p"] = subprocess.Popen(me + ["--boot", str(port), name or "Sir"], creationflags=0x08000000)
+        threading.Timer(24, kill).start()
         return True
     except Exception as e:
         print("Start-Animation ging nicht:", e)
