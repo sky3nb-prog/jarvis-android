@@ -605,6 +605,13 @@ def handle_fixed(text: str):
         if SKILL_TEST:
             SKILL_TEST()
             return "Schau auf meine Kugel."
+    # Dazulernen: "schlag wieder alles vor", "was hast du pausiert?"
+    if re.search(r"schlag (mir )?wieder alles vor|wieder alles vorschlagen|pausen zurück", low):
+        import pc_lernen
+        return pc_lernen.reset()
+    if re.search(r"was (hast du|ist) pausiert|was schlägst du nicht mehr vor", low):
+        import pc_lernen
+        return pc_lernen.paused_text()
     # Iron-Man-Start zum Ansehen: "Startanimation", "zeig deinen Start"
     if re.search(r"start ?animation|boot ?animation|zeig (mal )?(deinen|den) start|hochfahr ?animation", low):
         import pc_systemcheck

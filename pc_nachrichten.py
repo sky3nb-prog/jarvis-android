@@ -57,6 +57,11 @@ def incoming(msg: dict):
     if not msg.get("force") and _idle_seconds() > 20 * 60:   # niemand am PC: nicht in den leeren Raum reden
         print(f"Nachricht von {msg.get('sender')}: PC unbenutzt, keine Ansage")
         return
+    if msg.get("kind") == "offer" and msg.get("action") not in ("update", "shutdown"):   # Angebote, die er nie annimmt: gar nicht erst
+        import pc_lernen
+        if not pc_lernen.allowed("angebot:" + str(msg.get("action") or msg.get("title") or "offer")):
+            print("Angebot pausiert (wird nie angenommen):", msg.get("title"))
+            return
     with _lock:
         _announce.append(dict(msg, t=time.time()))
         del _announce[:-5]
@@ -98,7 +103,14 @@ def announce_text() -> str:
         return m.get("text") or "…"
     PENDING = m
     if m.get("kind") == "offer":   # "Dein Wochenrückblick ist da. Soll ich ihn vorlesen?"
-        m["stage"] = "offer"
+        import pc_lernen
+        lk = "angebot:" + str(m.get("action") or m.get("title") or "offer")
+        if m.get("action") not in ("update", "shutdown") and not pc_lernen.allowed(lk):   # nimmt er eh nie an
+            PENDING = None
+            return "Okay."
+        m["stage"] = "offer"; m["lern"] = lk
+        if m.get("action") not in ("update", "shutdown"):
+            pc_lernen.shown(lk)
         return m.get("question") or "Soll ich?"
     if ASK_FIRST and m.get("kind") not in ("say", "offer"):   # erst nur fragen – "egal" verwirft sie (bleibt in WhatsApp ungelesen)
         m["stage"] = "ask"
@@ -274,6 +286,9 @@ def handle(text: str):
     if m.get("stage") == "offer":
         if YES.match(low) or re.search(r"\b(?:vorlesen|lies|zeig|öffne|mach)\b", low):
             PENDING = None
+            if m.get("lern"):
+                import pc_lernen
+                pc_lernen.used(m["lern"])
             if m.get("action") == "shutdown":
                 import pc_alltag
                 return pc_alltag.shutdown_sequence()
