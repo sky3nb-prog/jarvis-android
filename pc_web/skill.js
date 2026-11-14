@@ -48,7 +48,7 @@
     if (busy || !queue.length) return;
     busy = true;
     const s = queue.shift(), c = center(), kind = s.kind || guess(s.text);
-    const B = window.JarvisBrain, idx = B && B.addSkill ? B.addSkill({ kind, title: s.title || s.text || "" }) : -1;
+    const B = window.JarvisBrain, idx = B && B.addSkill ? B.addSkill({ kind, title: s.title || s.text || "", text: s.text || "", type: kind === "funktion" ? "skill" : "erinnerung" }) : -1;
     const burst = document.createElement("div"); burst.className = "skl-burst"; burst.style.left = c.x + "px"; burst.style.top = c.y + "px";
     const hex = document.createElement("div"); hex.className = "skl-hex";
     // gleiches Strich-Symbol wie in der Kugel (dunkel auf Gold)

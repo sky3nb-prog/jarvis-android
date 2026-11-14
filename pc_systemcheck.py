@@ -16,6 +16,7 @@ import urllib.request
 LAST = {"t": 0.0, "items": []}
 SETTINGS = None   # vom Programm gesetzt: () -> Einstellungen
 ON_RESULT = None  # vom Programm gesetzt: Ergebnis im HUD zeigen (Statusseite)
+ON_FX = None      # vom Programm gesetzt: Statuscheck-Animation im HUD abspielen
 BOOT = None       # vom Programm gesetzt: Iron-Man-Start zeigen
 
 

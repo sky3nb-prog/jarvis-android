@@ -439,6 +439,14 @@ class WebHud:
             t = f"Willkommen zurück, {who}. " + (f"{bad} System{'e brauchen' if bad > 1 else ' braucht'} Aufmerksamkeit – sag Statuscheck." if bad else "Alle Systeme bereit.")
             pc_nachrichten.incoming({"kind": "say", "force": True, "text": t})
             return {}
+        if name in ("fact_edit", "fact_forget"):   # Karte aus der Kugel: Erinnerung ändern / vergessen
+            import pc_memory
+            old = str(body.get("old") or "")
+            n = pc_memory.forget_exact(old) if old else 0
+            if name == "fact_edit" and str(body.get("text") or "").strip():
+                pc_memory.remember(str(body["text"]), quiet=True)
+                return {"text": "Geändert."}
+            return {"text": "Vergessen." if n else "Nicht gefunden."}
         if name == "boot_close":   # Animation fertig: Fenster-Prozess beenden (gegen schwarzes Hängenbleiben)
             import pc_bootwin
             threading.Timer(1.2, pc_bootwin.kill).start()

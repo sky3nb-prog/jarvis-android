@@ -1,5 +1,6 @@
-{"stand": "2026-11-14 17:40", "neu": [
-  {"title": "ETS2: Tankstellen", "text": "Ich merke mir jede Tankstelle, an der du tankst, und sag dir bei leerem Tank die nächste."},
-  {"title": "ETS2: Schlafplätze", "text": "Wo du schläfst, merke ich mir – vor der Ruhezeit sag ich dir den nächsten."},
-  {"title": "Zwischenstopps", "text": "Wie lange du beim Rewe & Co. hältst, lernt das Handy – ich weiß es dann auch."}
+{"stand": "2026-11-14 18:50", "neu": [
+  {"title": "Erinnerungen antippen", "text": "Klick auf ein Symbol in meiner Kugel – ansehen, bearbeiten, vergessen oder rausnehmen."},
+  {"title": "Neuer Start", "text": "Hex-Gitter, Lichtpunkte, Hologramm-Ringe und Systemstatus. Testen: „Startanimation“."},
+  {"title": "Statuscheck-Animation", "text": "Sag „Statuscheck“ – alle Punkte laufen durch."},
+  {"title": "Ich lerne mit", "text": "Angebote, die du nie annimmst, lasse ich weg. „Schlag wieder alles vor“ holt sie zurück."}
 ]}

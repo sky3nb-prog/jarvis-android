@@ -2030,7 +2030,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 18:00"
+VERSION = "2026-11-14 18:50"
 
 
 def main():
@@ -2111,6 +2111,11 @@ def main():
     pc_watch.start(stop)
     import pc_systemcheck
     pc_systemcheck.SETTINGS = lambda: ui.settings
+    def _chkfx(items):
+        if getattr(ui, "web", None):
+            ui.q.put(("hud", "show"))
+            ui.web.push("checkfx", {"items": [{"name": i.get("name"), "ok": i.get("ok"), "detail": i.get("detail", "")} for i in items]})
+    pc_systemcheck.ON_FX = _chkfx
     pc_systemcheck.ON_RESULT = lambda items: ui.web.push("syscheck", {"items": items, "text": pc_systemcheck.summary(items)}) if getattr(ui, "web", None) else None
     import pc_bootwin
     def _boot():   # Start-Animation läuft jetzt im HUD selbst (kein eigenes Fenster mehr)
@@ -2132,6 +2137,8 @@ def main():
         threading.Timer(0.3, _boot).start()   # bei jedem Start (auch nach dem Anmelden): Hologramm-Start
     pc_systemcheck.start_daily(lambda t: pc_nachrichten.incoming({"kind": "say", "text": "Kurzer Systemcheck: " + t}))
     def _learned(text):
+        if not pc_memory.is_core(text):   # nur Kernerinnerungen fliegen in die Kugel
+            return
         if getattr(ui, "web", None):
             ui.web.push("skill", {"title": "Gelernt", "text": text})
         ui.post("Neuer Skill", text, 5000, glow=True)

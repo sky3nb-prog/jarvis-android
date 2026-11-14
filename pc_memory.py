@@ -75,7 +75,7 @@ def parse_date(text: str):
     return None
 
 
-def remember(text: str, date: str = None) -> str:
+def remember(text: str, date: str = None, quiet: bool = False) -> str:
     text = _clean(text)
     if len(text) < 3:
         return "Was soll ich mir merken?"
@@ -94,12 +94,30 @@ def remember(text: str, date: str = None) -> str:
         data["facts"].append(entry)
         del data["facts"][:-MAX_FACTS]
         _save(data)
-    if ON_LEARN:   # "Neuer Skill freigeschaltet" in der Kugel
+    if ON_LEARN and not quiet:   # "Neuer Skill freigeschaltet" in der Kugel
         try:
             ON_LEARN(text)
         except Exception:
             pass
     return "Gemerkt."
+
+
+def forget_exact(text: str) -> int:
+    """Genau diese Erinnerung löschen (aus der Karte in der Kugel)."""
+    t = _clean(text).lower()
+    with _LOCK:
+        data = _load()
+        keep = [f for f in data["facts"] if f["text"].lower() != t]
+        removed = len(data["facts"]) - len(keep)
+        if removed:
+            data["facts"] = keep
+            _save(data)
+    return removed
+
+
+def is_core(text: str) -> bool:
+    """Kernerinnerung (über dich, dauerhaft) – nichts, was nur heute/morgen gilt."""
+    return not re.search(r"\b(heute|morgen|gerade|jetzt|diese woche|nächste woche|übermorgen|gleich)\b", text, re.I)
 
 
 def forget(query: str) -> int:
