@@ -65,6 +65,8 @@
     h += outfit(d.outfit, d.anziehen);
     if (d.achtung && d.achtung.length) h += card("⚠️ PASS AUF", "var(--gold)", warns(d.achtung));
     if (d.denk && d.denk.length) h += card("🎒 DENK AN", "var(--gold-l)", todos(d.denk));
+    if (p.ticket) h += card("🎫 TICKET", "var(--cyan)", `<div class="fp-row"><span class="z">${p.price ? p.price.toFixed(2).replace(".", ",") + " €" : "✓"}</span><span>${esc(p.ticket)}</span></div>` +
+      (p.buy ? `<div class="fp-btns" style="margin-top:8px"><div class="fp-btn" data-buy="${esc(p.buy)}">Ticket kaufen (DB Navigator)</div></div>` : ""));
     if (d.sms_to) h += `<div class="fp-card"><div class="fp-sms"><i></i>SMS an ${esc(d.sms_to)} geht automatisch raus, ca. 5 Min. bevor du da bist.</div></div>`;
     h += say(m.text);
     if (p.mode === "transit" || p.go) h += `<div class="fp-btns"><div class="fp-btn" data-maps="${bahn ? "transit" : "bicycling"}">Route zeigen</div></div>`;
@@ -283,6 +285,7 @@
     if (/^(morgen|abend|woche|vorschau|bilanz)$/.test(m.kind) && autoRead) readNow();
     autoRead = true;
     $("fp-body").scrollTop = 0;
+    $("fp-body").querySelectorAll("[data-buy]").forEach((e) => e.addEventListener("click", () => { if (A && A.openUrl) A.openUrl(e.dataset.buy); else location.href = e.dataset.buy; }));
     $("fp-body").querySelectorAll("[data-maps]").forEach((e) => e.addEventListener("click", () => {
       const d = m.data || {}; const z = d.ziel === "zuhause" ? (d.home_addr || "") : d.ziel || "";
       location.href = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(z) + "&travelmode=" + e.dataset.maps;

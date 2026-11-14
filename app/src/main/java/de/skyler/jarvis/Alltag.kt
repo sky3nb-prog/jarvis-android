@@ -238,7 +238,7 @@ object Alltag {
         val dest = Route.place(ctx, to) ?: return "Das Ziel „$to“ finde ich nicht. Trag eine genaue Adresse ein."
         val now = System.currentTimeMillis()
         val leave = now + 5 * 60_000L
-        val pl = tripPlan(ctx, home, dest, leave, to, f?.mode ?: "ebike")
+        val pl = tripPlan(ctx, home, dest, leave, to, f?.mode ?: "ebike", f?.bahnHin ?: "regen")
         val wer = f?.wer?.ifBlank { null } ?: whoFor(ctx, label)?.second
         val intro = if (pl.optString("mode") == "transit") "Zu $label:" else "Um ${clock(leave)} geht's los zu $label."
         val (t0, fid) = rideBrief(ctx, "fahrt", "Gleich los zu $label (Test)", intro, home, pl.optLong("go", leave), now + 2 * 3_600_000L, pl,
@@ -722,7 +722,8 @@ object Alltag {
 
     /** to = Ziel (gespeicherter Ort oder Adresse), name = wie Jarvis es nennt, mode = ebike/rad/fuss, wer = SMS kurz vor der Ankunft an. */
     class Fest(val day: Int, val h: Int, val m: Int, val to: String, val backH: Int, val backM: Int,
-               val mode: String = "ebike", val wer: String = "", val name: String = "", val key: String = "") {
+               val mode: String = "ebike", val wer: String = "", val name: String = "", val key: String = "",
+               val bahnHin: String = "regen", val bahnZurueck: String = "regen") {
         val label get() = name.ifBlank { to }
     }
 
@@ -733,7 +734,8 @@ object Alltag {
         val ziel = o.optString("ziel").trim().ifBlank { return null }
         val heim = hmOf(o.optString("zuhause"))
         return Fest(day, los.first, los.second, ziel, heim?.first ?: -1, heim?.second ?: 0,
-            o.optString("mode", "ebike").ifBlank { "ebike" }, o.optString("wer").trim(), o.optString("name").trim(), key)
+            o.optString("mode", "ebike").ifBlank { "ebike" }, o.optString("wer").trim(), o.optString("name").trim(), key,
+            o.optString("bahn_hin", "regen").ifBlank { "regen" }, o.optString("bahn_zurueck", "regen").ifBlank { "regen" })
     }
 
     /** Der feste Weg aus der App (Tag, Ziel, Zeiten, Fahrzeug, SMS an). */
@@ -827,13 +829,28 @@ object Alltag {
     }
 
     /** Fahrt planen: Regen -> Bahn (erste Verbindung ab "leave"), sonst Rad. */
-    private fun tripPlan(ctx: Context, from: Route.P, dest: Route.P, leave: Long, name: String, vehicle: String = "ebike"): JSONObject {
+    /** Ticket-Satz und Kauf-Link (DB Navigator / bahn.de, dort mit PayPal zahlen) zu einer Bahn-Verbindung. */
+    private fun ticketInfo(ctx: Context, b: Route.Trip, o: JSONObject): String {
+        val art = prefs(ctx).getString("ticket_art", "erwachsen") ?: "erwachsen"
+        if (art == "abo") { o.put("ticket", "Dein Abo gilt"); return " Dein Abo gilt." }
+        if (b.ticket.isBlank()) return ""
+        val price = if (b.price > 0) " für ${"%.2f".format(Locale.GERMANY, b.price)} €" else ""
+        o.put("ticket", b.ticket.replace("EinzelTicket", "EinzelTicket").trim()).put("price", b.price)
+        o.put("buy", "https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=" + Uri.encode(b.stop) + "&zo=" + Uri.encode(b.destStop.ifBlank { o.optString("ziel_name") }) +
+            "&kl=2&hd=" + Uri.encode(SimpleDateFormat("yyyy-MM-dd'T'HH:mm:00", de).format(Date(b.rideDep))) + "&hza=D")
+        return " Ticket: ${b.ticket}$price – tipp in der Mitteilung auf „Ticket kaufen“."
+    }
+
+    private fun tripPlan(ctx: Context, from: Route.P, dest: Route.P, leave: Long, name: String, vehicle: String = "ebike", bahnPolicy: String = "regen"): JSONObject {
         val km = Route.distKm(from, dest)
         val rain = rainAt(from.lat, from.lon, leave)
-        if (rain && km >= 1.2) Route.bahnFrom(from, dest, leave)?.let { b ->
-            return JSONObject().put("mode", "transit").put("go", b.dep).put("min", (b.arr - b.dep) / 60_000.0).put("km", km).put("rain", true)
-                .put("line", b.line).put("ride_dep", b.rideDep).put("stop", b.stop).put("arr", b.arr)
-                .put("text", "Heute fährst du Bahn, es soll regnen: geh um ${clock(b.dep)} los, ${b.line} um ${clock(b.rideDep)} ab ${b.stop}, an um ${clock(b.arr)}.")
+        Route.ticketArt = prefs(ctx).getString("ticket_art", "erwachsen") ?: "erwachsen"
+        val wantBahn = km >= 1.2 && (bahnPolicy == "immer" || (bahnPolicy != "nie" && rain))
+        if (wantBahn) Route.bahnFrom(from, dest, leave)?.let { b ->
+            val o = JSONObject().put("mode", "transit").put("go", b.dep).put("min", (b.arr - b.dep) / 60_000.0).put("km", km).put("rain", rain)
+                .put("line", b.line).put("ride_dep", b.rideDep).put("stop", b.stop).put("arr", b.arr).put("ziel_name", name)
+            val why = if (rain) "es soll regnen" else "so hast du's eingestellt"
+            return o.put("text", "Heute fährst du Bahn, $why: geh um ${clock(b.dep)} los, ${b.line} um ${clock(b.rideDep)} ab ${b.stop}, an um ${clock(b.arr)}." + ticketInfo(ctx, b, o))
         }
         val walk = km < 1.2 || vehicle == "fuss"
         val bike = if (vehicle == "rad") "dem Fahrrad" else "dem E-Bike"
@@ -875,7 +892,7 @@ object Alltag {
             // Plan ca. 30 Minuten vorher (Wetter, Bahn)
             if (now in leave - 35 * 60_000L..leave + 10 * 60_000L && !done(s, "$id|plan")) {
                 mark(s, "$id|plan")
-                s.put("fest_plan", tripPlan(ctx, home, dest, leave, f.to, f.mode).put("id", id))
+                s.put("fest_plan", tripPlan(ctx, home, dest, leave, f.to, f.mode, f.bahnHin).put("id", id))
             }
             val pl = s.optJSONObject("fest_plan")?.takeIf { it.optString("id") == id }
             if (pl != null && now in leave - 5 * 60_000L until leave + 10 * 60_000L && !done(s, "$id|brief")) {
@@ -901,14 +918,19 @@ object Alltag {
                 if (now in back - 90 * 60_000L..back && !done(s, "$id|bplan")) {
                     mark(s, "$id|bplan")
                     val rain = rainAt(from.lat, from.lon, back - 30 * 60_000L)
-                    val bahn = if (rain && Route.distKm(from, home) >= 1.2) Route.bahnBy(from, home, back) else null
+                    Route.ticketArt = prefs(ctx).getString("ticket_art", "erwachsen") ?: "erwachsen"
+                    val wantB = Route.distKm(from, home) >= 1.2 && (f.bahnZurueck == "immer" || (f.bahnZurueck != "nie" && rain))
+                    val bahn = if (wantB) Route.bahnBy(from, home, back) else null   // so, dass du pünktlich zuhause bist
                     val ride = learnedRoute(ctx, f.to, "zuhause", "rad") ?: learnedRoute(ctx, f.label, "zuhause", "rad")
                         ?: (Route.distKm(from, home) * 1.3 / (if (f.mode == "rad") 16.0 else 22.0) * 60 + 3)
                     val go = bahn?.dep ?: (back - (ride * 60_000).toLong())
-                    val text = if (bahn != null) "Heute fährst du Bahn, es soll regnen: ${bahn.line} um ${clock(bahn.rideDep)} ab ${bahn.stop}, du bist um ${clock(bahn.arr)} da."
+                    val tko = JSONObject()
+                    val text = if (bahn != null) "Jetzt los, ${if (rain) "es soll regnen: " else ""}die ${bahn.line} um ${clock(bahn.rideDep)} ab ${bahn.stop} bringt dich um ${clock(bahn.arr)} heim." + ticketInfo(ctx, bahn, tko.put("ziel_name", "zuhause"))
                         else "Mit dem ${if (f.mode == "rad") "Fahrrad" else "E-Bike"} brauchst du etwa ${ride.toInt()} Minuten" + (if (rain) ", nimm Regensachen mit." else ".")
-                    s.put("fest_back", JSONObject().put("id", id).put("go", go).put("msg", go - prepB * 60_000L).put("text", text)
-                        .put("ride", ride).put("mode", if (bahn != null) "transit" else "bicycling").put("rain", rain))
+                    val fb = JSONObject().put("id", id).put("go", go).put("msg", go - prepB * 60_000L).put("text", text)
+                        .put("ride", ride).put("mode", if (bahn != null) "transit" else "bicycling").put("rain", rain)
+                    if (bahn != null) { fb.put("line", bahn.line).put("ride_dep", bahn.rideDep).put("stop", bahn.stop).put("arr", bahn.arr); for (k in listOf("ticket", "price", "buy")) if (tko.has(k)) fb.put(k, tko.get(k)) }
+                    s.put("fest_back", fb)
                 }
                 val pb = s.optJSONObject("fest_back")?.takeIf { it.optString("id") == id } ?: continue
                 val msgAt = pb.optLong("msg"); val go = pb.optLong("go")

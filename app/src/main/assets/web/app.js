@@ -301,7 +301,7 @@
       sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "20:00";
       sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
       sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "20:30";
-      sw("set-schlaftipp", c.schlaf_tipp !== false); sw("set-termerin", c.termin_erinnern !== false); $("set-termvor").value = c.termin_vorher != null ? c.termin_vorher : 15; rmList();
+      sw("set-schlaftipp", c.schlaf_tipp !== false); $("set-ticket").value = c.ticket_art || "erwachsen"; sw("set-termerin", c.termin_erinnern !== false); $("set-termvor").value = c.termin_vorher != null ? c.termin_vorher : 15; rmList();
       sw("set-bilanz", c.bilanz !== false); $("set-bilanzzeit").value = c.bilanz_zeit || "22:00";
       perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
       sw("wk-an", c.wecker_an !== false); $("wk-schule").value = (c.wecker_schule || "07:10").padStart(5, "0"); $("wk-we").value = c.wecker_we ? c.wecker_we.padStart(5, "0") : "";
@@ -383,6 +383,7 @@
     let f = {}; try { f = JSON.parse(A.festGet() || "{}"); } catch (e) {}
     sw("fw-an", f.an !== false); $("fw-tag").value = f.tag || "do"; $("fw-mode").value = f.mode || "ebike";
     $("fw-ziel").value = f.ziel || ""; $("fw-name").value = f.name || ""; $("fw-wer").value = f.wer || "";
+    $("fw-bhin").value = f.bahn_hin || "regen"; $("fw-bback").value = f.bahn_zurueck || "regen";
     $("fw-los").value = f.los || ""; $("fw-heim").value = f.zuhause || "";
     emList();
   }
@@ -593,13 +594,14 @@
       brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "20:00",
       bi_wetter: sw("set-biwetter"), bi_anzieh: sw("set-bianzieh"), bi_termine: sw("set-bitermine"), bi_mitnehmen: sw("set-bimit"),
       rueckblick: sw("set-rueck"), rueckblick_zeit: $("set-rueckzeit").value || "20:30",
-      schlaf_tipp: sw("set-schlaftipp"), termin_erinnern: sw("set-termerin"), termin_vorher: +($("set-termvor").value || 15),       bilanz: sw("set-bilanz"), bilanz_zeit: $("set-bilanzzeit").value || "22:00",
+      schlaf_tipp: sw("set-schlaftipp"), ticket_art: $("set-ticket").value, termin_erinnern: sw("set-termerin"), termin_vorher: +($("set-termvor").value || 15),       bilanz: sw("set-bilanz"), bilanz_zeit: $("set-bilanzzeit").value || "22:00",
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
     };
     A.saveSettings(JSON.stringify(o));
     A.festSet(JSON.stringify({ an: sw("fw-an"), tag: $("fw-tag").value, mode: $("fw-mode").value, ziel: $("fw-ziel").value.trim(),
-      name: $("fw-name").value.trim(), wer: $("fw-wer").value.trim(), los: $("fw-los").value, zuhause: $("fw-heim").value }));
+      name: $("fw-name").value.trim(), wer: $("fw-wer").value.trim(), los: $("fw-los").value, zuhause: $("fw-heim").value,
+      bahn_hin: $("fw-bhin").value, bahn_zurueck: $("fw-bback").value }));
     applyPrefs(o);
     showPower(o.background);
     $("settings").classList.remove("on");

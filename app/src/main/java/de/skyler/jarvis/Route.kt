@@ -303,7 +303,10 @@ Antworte NUR mit dem JSON."""
         return finish(ctx, sb, maps, "Verbindung nach $zielName", fromPc)
     }
 
-    class Trip(val dep: Long, val arr: Long, val line: String, val stop: String, val rideDep: Long)
+    class Trip(val dep: Long, val arr: Long, val line: String, val stop: String, val rideDep: Long, val ticket: String = "", val price: Double = 0.0, val destStop: String = "")
+
+    /** Welches Ticket vorschlagen: "erwachsen", "kind" oder "abo" (Deutschlandticket/Schülerabo – dann gilt das Abo). */
+    @Volatile var ticketArt = "erwachsen"
 
     /** Fahrplan vom VVS (EFA, deckt Stuttgart und Umgebung ab). Zeiten: dep = Abmarsch ab Startpunkt inkl. Fußweg. */
     private fun efa(a: P, b: P, t: Long, arrival: Boolean): List<Trip> = try {
@@ -330,7 +333,14 @@ Antworte NUR mit dem JSON."""
                 val prod = tr?.optJSONObject("product")?.optString("name") ?: ""
                 if (n.isBlank()) prod.ifBlank { "Bahn" } else if (prod.isNotBlank() && !n.startsWith("S") && !n.startsWith("U")) "$prod $n" else n
             }
-            Trip(dep, arr, line, ride.optJSONObject("origin")?.optString("name") ?: "der Haltestelle", time(ride.optJSONObject("origin"), "departureTime") ?: dep)
+            // Ticket aus dem VVS-Tarif: EinzelTicket (Handy-Preis, ohne "Automat") für Erwachsene bzw. Kind
+            val tk = js.optJSONObject(i)?.optJSONObject("fare")?.optJSONArray("tickets")
+            val want = if (ticketArt == "kind") "CHILD" else "ADULT"
+            val ticket = tk?.let { a -> (0 until a.length()).map { a.getJSONObject(it) }.firstOrNull { t ->
+                t.optString("person") == want && t.optString("name").startsWith("EinzelTicket") && !t.optString("name").contains("Automat") } }
+            val lastRide = (0 until legs.length()).mapNotNull { legs.optJSONObject(it) }.lastOrNull { l -> (l.optJSONObject("transportation")?.optJSONObject("product")?.optInt("class", 100) ?: 100) < 97 }
+            Trip(dep, arr, line, ride.optJSONObject("origin")?.optString("name") ?: "der Haltestelle", time(ride.optJSONObject("origin"), "departureTime") ?: dep,
+                ticket?.optString("name") ?: "", ticket?.optDouble("priceBrutto", 0.0) ?: 0.0, lastRide?.optJSONObject("destination")?.optString("name") ?: "")
         }
     } catch (_: Exception) { emptyList() }
 
