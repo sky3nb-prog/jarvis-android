@@ -52,8 +52,11 @@ object Gassi {
         prefs(ctx).edit().putString("gassi_dbg", a.toString()).apply()
     }
 
-    /** Jede Minute aus Alltag.tick. */
-    fun tick(ctx: Context, loc: Location?, home: Boolean) {
+    fun active(ctx: Context) = on(ctx) || once(ctx) != null
+
+    /** Jede Minute aus Alltag.tick. homeWifi = Handy hängt im Heim-WLAN. Zuhause = Heim-WLAN oder unter 40 m vom Haus
+     *  (eigene, enge Grenze – das allgemeine "zuhause" von Jarvis gilt schon ab 150 m und wäre für kurze Runden zu grob). */
+    fun tick(ctx: Context, loc: Location?, homeWifi: Boolean) {
         val one = once(ctx)
         if (!on(ctx) && one == null) { if (st(ctx).length() > 0) put(ctx, JSONObject()); return }
         val now = System.currentTimeMillis()
@@ -61,6 +64,7 @@ object Gassi {
         val h = Route.home(ctx)
         val fresh = loc != null && now - loc.time < 4 * 60_000L && loc.accuracy <= 150
         val d = if (h != null && loc != null) Route.distKm(h, Route.P(loc.latitude, loc.longitude, "")) * 1000 else -1.0
+        val home = homeWifi || (fresh && d in 0.0..40.0)
         if (home) {
             if (c.has("start") || !prefs(ctx).getBoolean("gassi_wasHome", false)) log(ctx, loc, d, true, if (c.has("start")) "zuhause erkannt – Runde zu Ende" else "zuhause")
             prefs(ctx).edit().putBoolean("gassi_wasHome", true).apply()
@@ -85,9 +89,12 @@ object Gassi {
         val maxd = c.optDouble("maxd")
         val walking = kmh <= 7.0 && maxd < 3000
         c.put("walk", walking)
-        // (1) wieder deutlich näher am Haus (auch kurze Runden ab 120 m)
-        val near = d < maxOf(70.0, minOf(220.0, maxd * 0.45))
-        val closer = d < prevD - 8
+        // (1) wieder deutlich näher am Haus (auch kurze Runden ab 120 m). Weil nur alle 20–60 s ein Standort kommt:
+        //     auch dann, wenn du beim gleichen Tempo vor dem nächsten Standort schon daheim wärst.
+        val lim = maxOf(90.0, minOf(220.0, maxd * 0.5))
+        val step = prevD - d
+        val closer = step > 8
+        val near = d < lim || (closer && d - step < 60)
         val byDist = min >= 3 && maxd >= 120 && near && closer
         // (2) Standardrunde: Stelle ~1 Min. vor dem Ende der üblichen Runde erreicht
         val byRound = min >= 3 && standardPoint(ctx)?.let { sp -> Route.distKm(p, sp) * 1000 < 45 && min > medianMin(ctx) * 0.5 } == true
@@ -97,7 +104,7 @@ object Gassi {
             !want -> "SMS-Schalter aus"
             min < 3 -> "erst ${min.toInt()} Min. unterwegs"
             maxd < 120 && !byRound -> "noch nicht weit genug weg (max ${maxd.toInt()} m)"
-            !near && !byRound -> "noch ${d.toInt()} m weg (SMS ab ${maxOf(70.0, minOf(220.0, maxd * 0.45)).toInt()} m)"
+            !near && !byRound -> "noch ${d.toInt()} m weg (SMS ab ${lim.toInt()} m)"
             !closer && !byRound -> "nicht näher gekommen (${prevD.toInt()} → ${d.toInt()} m)"
             else -> "→ SMS"
         }

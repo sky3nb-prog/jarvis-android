@@ -135,7 +135,7 @@ class JarvisService : Service() {
     private val alltagTask = object : Runnable {
         override fun run() {
             if (!alive) return
-            Thread({ try { Alltag.tick(this@JarvisService) { t -> announce(t) } } catch (e: Exception) { Log.w(tag, "alltag: $e") } }, "jarvis-alltag").start()
+            Thread({ try { Alltag.tick(this@JarvisService) { t -> announce(t) }; if (Alltag.wantFine != locFine) main.post { startLocation() } } catch (e: Exception) { Log.w(tag, "alltag: $e") } }, "jarvis-alltag").start()
             main.postDelayed(this, 60_000L)
         }
     }
@@ -149,6 +149,7 @@ class JarvisService : Service() {
     }
 
     private val locListener = android.location.LocationListener { l -> Alltag.onFix(l) }
+    @Volatile private var locFine = false
 
     @SuppressLint("MissingPermission")
     private fun startLocation() {
@@ -160,7 +161,13 @@ class JarvisService : Service() {
             lm.removeUpdates(locListener)
             val prov = if (Build.VERSION.SDK_INT >= 31 && lm.hasProvider(android.location.LocationManager.FUSED_PROVIDER))
                 android.location.LocationManager.FUSED_PROVIDER else android.location.LocationManager.NETWORK_PROVIDER
-            lm.requestLocationUpdates(prov, 60_000L, 0f, locListener, Looper.getMainLooper())
+            locFine = Alltag.wantFine
+            if (locFine && Build.VERSION.SDK_INT >= 31)   // Gassi unterwegs: GPS-genau, alle 20 s
+                lm.requestLocationUpdates(prov, android.location.LocationRequest.Builder(20_000L).setQuality(android.location.LocationRequest.QUALITY_HIGH_ACCURACY)
+                    .setMinUpdateIntervalMillis(10_000L).build(), mainExecutor, locListener)
+            else if (locFine && lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER))
+                lm.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 20_000L, 0f, locListener, Looper.getMainLooper())
+            else lm.requestLocationUpdates(prov, 60_000L, 0f, locListener, Looper.getMainLooper())
             listOf(android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.GPS_PROVIDER)
                 .mapNotNull { try { lm.getLastKnownLocation(it) } catch (_: Exception) { null } }.maxByOrNull { it.time }?.let { Alltag.onFix(it) }
         } catch (e: Exception) { Log.w(tag, "standort: $e") }

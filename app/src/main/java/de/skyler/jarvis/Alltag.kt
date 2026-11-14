@@ -74,6 +74,8 @@ object Alltag {
 
     // --- Standort und WLAN ----------------------------------------------------------------------------------
     fun onFix(loc: Location) { fix = loc }
+    /** JarvisService schaut danach: genaue Ortung (GPS, 20 s) oder sparsam (1 Min.). */
+    @Volatile var wantFine = false
     private fun fixP(): Route.P? = fix?.takeIf { System.currentTimeMillis() - it.time < 10 * 60_000L }?.let { Route.P(it.latitude, it.longitude, "hier") }
 
     @Suppress("DEPRECATION")
@@ -490,8 +492,10 @@ object Alltag {
         try { syncBahn(ctx) } catch (_: Exception) {}
         try { homeAndAway(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "zuhause: $e") }
         try { arrival(ctx, s) } catch (e: Exception) { Log.w(TAG, "ankunft: $e") }
-        try { Halte.tick(ctx, fix, isHome(ctx)) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
-        try { Gassi.tick(ctx, fix, isHome(ctx)) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
+        try { Halte.tick(ctx, fix, s.optBoolean("is_home")) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
+        try { Gassi.tick(ctx, fix, s.optBoolean("home_wifi")) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
+        // Unterwegs mit Gassi/Einmal-SMS: genauer und öfter orten (GPS, alle 20 s), sonst sparsam
+        wantFine = Gassi.active(ctx) && !(s.optBoolean("home_wifi"))
         try { leaveInTime(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "losfahren: $e") }
         try { routines(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "feste wege: $e") }
         try { alarms(ctx, s) } catch (_: Exception) {}
@@ -562,6 +566,7 @@ object Alltag {
             Route.distKm(Route.P(f.latitude, f.longitude, ""), home) < 0.3 } ?: false
         val isAway = !isHome && ((wifiKnown && (dHome == null && !lastNearHome || dHome != null && dHome > 0.3)) ||
             (!wifiKnown && dHome != null && dHome > 0.3))
+        s.put("home_wifi", onHomeWifi)
         if (!isHome && !isAway) return   // weiß nicht, wo du bist
         s.put("is_home", isHome)
 
