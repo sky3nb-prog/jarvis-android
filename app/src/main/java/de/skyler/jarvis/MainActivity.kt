@@ -449,6 +449,12 @@ class MainActivity : ComponentActivity() {
         fun gassiStatus(): String = Gassi.status(this@MainActivity)
 
         @JavascriptInterface
+        fun gassiShare(): String = Gassi.shareToPc(this@MainActivity)
+
+        @JavascriptInterface
+        fun coreFacts(): String = org.json.JSONArray(Memory.facts(this@MainActivity).filter { Memory.isCore(it) }.takeLast(16)).toString()
+
+        @JavascriptInterface
         fun factEdit(old: String, text: String): String = Memory.edit(this@MainActivity, old, text)
 
         @JavascriptInterface

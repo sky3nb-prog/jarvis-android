@@ -65,6 +65,9 @@ class Actions(private val ctx: Context) {
                 a.optString("was").let { if (it == "null") "" else it })
             "test_fahrt" -> Alltag.testMessage(ctx)
             "test_bahn" -> Alltag.testMessage(ctx, true)
+            "heim_sms" -> Gassi.heimSms(ctx, a.optString("an").let { if (it == "null") "" else it }, a.optString("text").let { if (it == "null") "" else it })
+            "gassi" -> { ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).edit().putBoolean("gassi_an", a.optBoolean("an", true)).apply()
+                if (a.optBoolean("an", true)) "Viel Spaß mit dem Hund – ich zähle die Runde mit." else "Gassi-Erkennung ist aus." }
             "losfahren" -> Alltag.departNow(ctx, a.optString("ziel"))
             "ort_erinnerung" -> Alltag.addPlaceReminder(ctx, a.optString("ort"), a.optString("text"))
             "briefing" -> Alltag.briefingNow(ctx, a.optString("tag") == "morgen")

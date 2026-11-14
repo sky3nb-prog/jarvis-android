@@ -411,6 +411,7 @@
   ["gs-wer", "gs-text"].forEach((id) => $(id).addEventListener("change", saveGassi));
   $("gs-test").addEventListener("click", () => { saveGassi(); toast(A.gassiTestSms()); });
   $("gs-infobtn").addEventListener("click", () => { $("gs-info").textContent = A.gassiStatus(); });
+  $("gs-share").addEventListener("click", () => { toast("Schicke …"); setTimeout(() => toast(A.gassiShare()), 50); });
   $("tst-sms").addEventListener("click", () => toast(A.testSms($("tst-smswer").value || "")));
   try { sw("set-bootanim", localStorage.getItem("boot_anim") !== "0"); } catch (e) {}
   $("set-bootanim").addEventListener("click", () => setTimeout(() => { try { localStorage.setItem("boot_anim", sw("set-bootanim") ? "1" : "0"); } catch (e) {} }, 50));
@@ -498,6 +499,7 @@
   // --- Systemstatus ---
   function sysShow(fresh) {
     if (!A || !A.sysCheck) return;
+    if (fresh && window.JCheck) JCheck.play(new Promise((res) => setTimeout(() => { let d = {}; try { d = JSON.parse(A.sysCheck(false) || "{}"); } catch (e) {} res(d.items || []); }, 3500)));
     $("sys-sum").textContent = "prüfe …";
     setTimeout(() => {
       let d = {}; try { d = JSON.parse(A.sysCheck(!!fresh) || "{}"); } catch (e) {}

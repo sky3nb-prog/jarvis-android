@@ -32,6 +32,14 @@
   document.head.appendChild(css);
   let open = false;
   function play(items) {
+    if (items && typeof items.then === "function") {   // Prüfung läuft noch: Scan-Fenster zeigen, dann durchlaufen lassen
+      if (open) return; open = true;
+      const w = document.createElement("div"); w.id = "chkfx";
+      w.innerHTML = `<div class="pan"><div class="hd"><div class="ring"><div class="scan"></div><b>…</b></div><div class="tt"><small>SYSTEMCHECK</small><div>Ich prüfe alle Systeme …</div></div></div></div>`;
+      document.body.appendChild(w); requestAnimationFrame(() => w.classList.add("on"));
+      items.then((l) => { w.remove(); open = false; play(l || []); }, () => { w.remove(); open = false; play([]); });
+      return;
+    }
     if (open) return; open = true;
     items = (items && items.length ? items : [{ name: "Kern", ok: true }, { name: "Gedächtnis", ok: true }, { name: "Sprache", ok: true }, { name: "Netz", ok: true }]).slice(0, 14);
     const box = document.createElement("div"); box.id = "chkfx";

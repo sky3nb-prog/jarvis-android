@@ -79,6 +79,17 @@
       }
       return best;
     }
+    /** Kernerinnerungen, die noch nicht in der Kugel sind, still dazulegen (ohne Animation). */
+    static ensure(list) {
+      let n = 0;
+      for (const x of list || []) {
+        if (!x || !x.text || learned.some((l) => (l.text || l.title) === x.text)) continue;
+        learned.push({ kind: x.kind || "wissen", title: x.title || "Über dich", text: x.text, type: x.type || "erinnerung", ts: x.ts || Date.now() }); n++;
+      }
+      while (learned.length > 40) learned.shift();
+      if (n) saveLearned();
+      return n;
+    }
     static update(i, f) { if (learned[i]) { Object.assign(learned[i], f); saveLearned(); } }
     static hide(i, on) { if (learned[i]) learned[i].arriving = !!on; }
     static removeSkill(i) { if (learned[i]) { learned.splice(i, 1); saveLearned(); } }

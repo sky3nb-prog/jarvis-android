@@ -113,7 +113,7 @@
       g.lineWidth = 1;
       for (const h of hx) {
         if (h.dd > front) continue;
-        const age = (front - h.dd) / maxD, al = Math.max(0, .22 - age * .35) + (h.dd > front - 30 ? .35 : 0);
+        const age = (front - h.dd) / maxD, al = (Math.max(0, .12 - age * .3) + (h.dd > front - 26 ? .22 : 0)) * (narrow ? .7 : 1);
         if (al <= .01) continue;
         g.strokeStyle = `rgba(255,170,40,${al * (t > 3.6 ? Math.max(0, 1 - (t - 3.6)) : 1)})`;
         g.beginPath(); for (let k = 0; k < 6; k++) { const an = k * Math.PI / 3; const px = h.x + Math.cos(an) * hs * .48, py = h.y + Math.sin(an) * hs * .48; k ? g.lineTo(px, py) : g.moveTo(px, py); } g.closePath(); g.stroke();
@@ -134,9 +134,15 @@
       if (t > 2.0 && !flash) { flash = now; box.classList.add("rg"); }
       if (flash) {
         const k = (now - flash) / 1000;
-        const gr = g.createRadialGradient(C.x, C.y, 0, C.x, C.y, C.r * (1.2 + k * 2));
-        gr.addColorStop(0, `rgba(255,240,200,${Math.max(0, .85 - k * .9)})`); gr.addColorStop(.4, `rgba(255,180,60,${Math.max(0, .35 - k * .4)})`); gr.addColorStop(1, "rgba(255,150,30,0)");
+        const gr = g.createRadialGradient(C.x, C.y, 0, C.x, C.y, C.r * (.7 + k * 1.1));
+        gr.addColorStop(0, `rgba(255,240,200,${Math.max(0, .7 - k * .9)})`); gr.addColorStop(.4, `rgba(255,180,60,${Math.max(0, .28 - k * .4)})`); gr.addColorStop(1, "rgba(255,150,30,0)");
         g.fillStyle = gr; g.fillRect(0, 0, W, H);
+        // Kern bleibt als pulsierende goldene Kugel stehen (Übergang zur echten Kugel)
+        const pr = C.r * (.42 + .04 * Math.sin(k * 5)) * Math.min(1, k * 2.5);
+        const cg = g.createRadialGradient(C.x, C.y - pr * .2, pr * .1, C.x, C.y, pr);
+        cg.addColorStop(0, "rgba(255,236,190,.55)"); cg.addColorStop(.6, "rgba(255,170,50,.18)"); cg.addColorStop(1, "rgba(255,150,30,0)");
+        g.fillStyle = cg; g.beginPath(); g.arc(C.x, C.y, pr, 0, 7); g.fill();
+        g.strokeStyle = `rgba(255,214,140,${.5 * Math.min(1, k * 2)})`; g.lineWidth = 1.2; g.beginPath(); g.arc(C.x, C.y, pr * .92, 0, 7); g.stroke();
         // goldene Leitungen von außen zur Kugel (alt)
         for (let i = 0; i < 14; i++) { const an = i / 14 * 6.283 + k * .3, r0 = Math.max(W, H) * .6, u = (k * .9 + i * .07) % 1;
           const x0 = C.x + Math.cos(an) * r0, y0 = C.y + Math.sin(an) * r0, x = x0 + (C.x - x0) * u, y = y0 + (C.y - y0) * u;
