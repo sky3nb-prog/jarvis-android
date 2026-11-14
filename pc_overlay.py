@@ -173,6 +173,11 @@ def apply_settings(s: dict):
     EARLY_CHIME = bool(s.get("early_chime", True))
     OVERLAY_STYLE = s.get("overlay_style", "klein")
     GREET_ON_START = bool(s.get("greet_on_start", False))
+    try:
+        import pc_nachrichten as _pn
+        _pn.ASK_FIRST = bool(s.get("msg_ask_first", True))
+    except Exception:
+        pass
     P.set_hue_shift(pc_settings.THEMES.get(s.get("accent", "Cyan"), 0))  # Farbthema
     if (s.get("calendar_url") or "").strip() != pc_calendar.URL:
         pc_calendar.URL = (s.get("calendar_url") or "").strip()

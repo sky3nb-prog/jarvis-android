@@ -22,6 +22,7 @@ import time
 
 PENDING = None            # aktuelle Nachricht + Gesprächsstand
 ON_SHOW = None
+ASK_FIRST = True   # Nachrichten wichtiger Leute: erst nur fragen ("weiter" oder "egal")
 ON_QUIT = None   # vom Programm gesetzt: Programm beenden (Neustart nach einem Update)
 ON_STATUS = None          # vom Programm gesetzt: kurze Zwischenmeldung ("Einen Moment …") anzeigen und sagen
 _announce = []            # Nachrichten, die noch angesagt werden müssen
@@ -99,6 +100,14 @@ def announce_text() -> str:
     if m.get("kind") == "offer":   # "Dein Wochenrückblick ist da. Soll ich ihn vorlesen?"
         m["stage"] = "offer"
         return m.get("question") or "Soll ich?"
+    if ASK_FIRST and m.get("kind") not in ("say", "offer"):   # erst nur fragen – "egal" verwirft sie (bleibt in WhatsApp ungelesen)
+        m["stage"] = "ask"
+        art = "Sprachnachricht" if m.get("voice") else "Nachricht"
+        return f"Neue {art} von {_who(m)} – soll ich weitermachen, oder ist sie egal?"
+    return _content(m)
+
+
+def _content(m: dict) -> str:
     if m.get("voice"):
         m["stage"] = "voice"
         return f"{_who(m)} hat dir eine Sprachnachricht geschickt. Soll ich sie vorlesen oder abspielen?"
@@ -249,6 +258,19 @@ def handle(text: str):
     m, low = PENDING, (text or "").lower().strip(" .!?")
     m["t"] = time.time()
     print(f"Nachrichten-Dialog ({m.get('stage')}): {text}")
+    if m.get("stage") == "ask":
+        if re.search(r"\begal\b|ignorier|vergiss|unwichtig|nicht wichtig|später|nein|nö|nee|lass", low):
+            PENDING = None
+            return "Okay, ignoriert."
+        if YES.match(low) or re.search(r"weiter|lies|vorlesen|was schreibt|zeig|sag|abspiel|anhör|erzähl", low):
+            if re.search(r"abspiel|anhör|spiel", low) and m.get("voice"):
+                m["stage"] = "voice"
+                return _play(m)
+            if re.search(r"lies|vorlesen", low) and m.get("voice"):
+                m["stage"] = "voice"
+                return handle("vorlesen")
+            return _content(m)
+        return None
     if m.get("stage") == "offer":
         if YES.match(low) or re.search(r"\b(?:vorlesen|lies|zeig|öffne|mach)\b", low):
             PENDING = None

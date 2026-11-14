@@ -47,7 +47,8 @@ DEFAULTS = {
     "early_chime": True,  # Wecksound schon beim Weckwort mitten im Satz
     "overlay_style": "neu",  # "neu" = 3D-Kugel mit Nervenstrang, "klein" = alter Kreis, "gross" = Leuchtrahmen + Textfeld
     "overlay_v2": False,
-    "boot_animation": True,  # Iron-Man-Start nach dem Anmelden (Vollbild-Hologramm, Klick/Esc überspringt)     # einmalig auf das neue Overlay umgestellt
+    "boot_animation": True,
+    "msg_ask_first": True,   # Nachricht wichtiger Leute: erst "Neue Nachricht von … – weiter oder egal?"  # Iron-Man-Start nach dem Anmelden (Vollbild-Hologramm, Klick/Esc überspringt)     # einmalig auf das neue Overlay umgestellt
     "orb_size": 68,  # Größe des kleinen Kreises in Pixeln
     "orb_corner": "oben links",  # Ecke des kleinen Kreises
     "accent": "Cyan",  # Farbthema (siehe THEMES)
