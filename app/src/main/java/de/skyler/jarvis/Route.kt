@@ -100,16 +100,66 @@ object Route {
         return lines(ctx, "orte").keys.firstOrNull { it.length >= 3 && Regex("\\b" + Regex.escape(it) + "\\b").containsMatchIn(t) }
     }
 
-    /** Bahn-Verbindung, um spätestens arriveBy anzukommen (dep = Abmarsch inkl. Fußweg). */
-    fun bahnBy(a: P, b: P, arriveBy: Long): Trip? {
+    /** Bahn-Verbindung, um spätestens arriveBy anzukommen (dep = Abmarsch inkl. Fußweg bzw. Radweg zum Bahnhof). */
+    fun bahnBy(a: P, b: P, arriveBy: Long, art: String = bahnArt): Trip? {
+        if (art != "bus_bahn") radBahn(a, b, arriveBy, true)?.let { return it }
         val trips = efa(a, b, arriveBy, true).ifEmpty { dbRest(a, b, arriveBy, true) }
         return trips.lastOrNull { it.arr <= arriveBy } ?: trips.firstOrNull()
     }
 
-    /** Erste Bahn-Verbindung ab Zeit t (dep = Abmarsch inkl. Fußweg). */
-    fun bahnFrom(a: P, b: P, t: Long): Trip? {
+    /** Erste Bahn-Verbindung ab Zeit t (dep = Abmarsch inkl. Fußweg bzw. Radweg zum Bahnhof). */
+    fun bahnFrom(a: P, b: P, t: Long, art: String = bahnArt): Trip? {
+        if (art != "bus_bahn") radBahn(a, b, t, false)?.let { return it }
         val trips = efa(a, b, t, false).ifEmpty { dbRest(a, b, t, false) }
         return trips.firstOrNull { it.dep >= t - 3 * 60_000L } ?: trips.firstOrNull()
+    }
+
+    /** "rad_bahn" = mit dem Rad zum Bahnhof, nur Züge (S-Bahn/Regio/Stadtbahn), Rad mit, vom Bahnhof weiter mit dem Rad;
+     *  "bus_bahn" = normal mit Bus und Bahn; "beide" = Rad + Bahn vorschlagen und Bus + Bahn als zweite Möglichkeit zeigen. */
+    @Volatile var bahnArt = "rad_bahn"
+
+    /** Bahnhöfe (Zug, S-Bahn, Stadtbahn) im Umkreis, nächste zuerst: (id, name, Punkt). */
+    private fun railStops(p: P, radius: Int = 6000): List<Triple<String, String, P>> = try {
+        val url = "https://www3.vvs.de/mngvvs/XML_COORD_REQUEST?outputFormat=rapidJSON&coordOutputFormat=EPSG:4326&inclFilter=1&type_1=STOP" +
+            "&radius_1=$radius&max=500&coord=" + enc("${p.lon}:${p.lat}:WGS84[dd.ddddd]")
+        val a = JSONObject(http.newCall(Request.Builder().url(url).header("User-Agent", "Jarvis-Handy/1.0 (privat)").build())
+            .execute().use { it.body?.string() ?: "{}" }).optJSONArray("locations") ?: JSONArray()
+        (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { l ->
+            val pc = l.optJSONArray("productClasses") ?: JSONArray()
+            (0 until pc.length()).any { pc.optInt(it) in listOf(0, 1, 3) }
+        }.mapNotNull { l ->
+            val c = l.optJSONArray("coord") ?: return@mapNotNull null
+            Triple(l.optString("id"), l.optString("name").substringBefore(","), P(c.optDouble(0), c.optDouble(1), l.optString("name")))
+        }.sortedBy { km(p, it.third) }.distinctBy { it.first }
+    } catch (_: Exception) { emptyList() }
+
+    /** Rad + Bahn: Rad zum Bahnhof, nur Züge (keine Busse), Rad mit, vom Zielbahnhof mit dem Rad weiter. */
+    fun radBahn(a: P, b: P, t: Long, arrival: Boolean): Trip? {
+        if (km(a, b) < 2.0) return null
+        val sa = railStops(a).take(2); val sb = railStops(b).take(2)
+        if (sa.isEmpty() || sb.isEmpty()) return null
+        var best: Trip? = null
+        for (x in sa) for (y in sb) {
+            if (x.first == y.first) continue
+            val b1 = (minutes(km(a, x.third), "bicycling") + 3).toInt()   // +3: Rad abschließen/einladen, zum Gleis
+            val b2 = (minutes(km(y.third, b), "bicycling") + 2).toInt()
+            val q = if (arrival) t - b2 * 60_000L else t + b1 * 60_000L
+            val trips = efa(a, b, q, arrival, trainOnly = true, fromStop = x.first, toStop = y.first)
+            val tr = (if (arrival) trips.lastOrNull { it.arr <= q } else trips.firstOrNull { it.dep >= q - 60_000L }) ?: trips.firstOrNull() ?: continue
+            val c = Trip(tr.rideDep - b1 * 60_000L, tr.arr + b2 * 60_000L, tr.line, x.second, tr.rideDep, tr.ticket, tr.price, y.second, rad = true, bike1 = b1, bike2 = b2)
+            val better = best == null || (if (arrival) c.dep > best.dep else c.arr < best.arr) ||
+                (if (arrival) c.dep == best.dep && c.arr - c.dep < best.arr - best.dep else false)
+            if (better && (!arrival || c.arr <= t + 60_000L)) best = c
+        }
+        return best
+    }
+
+    /** Fahrrad in der S-Bahn/im Regio (VVS): Mo–Fr 6–9 Uhr braucht das Rad ein Kinderticket, sonst kostenlos. */
+    fun bikeRule(t: Long): String {
+        val c = java.util.Calendar.getInstance().apply { timeInMillis = t }
+        val wd = c.get(java.util.Calendar.DAY_OF_WEEK) in java.util.Calendar.MONDAY..java.util.Calendar.FRIDAY
+        val h = c.get(java.util.Calendar.HOUR_OF_DAY)
+        return if (wd && h in 6..8) "Achtung, Mo–Fr 6 bis 9 Uhr braucht das Rad in der S-Bahn ein Kinderticket." else "Das Rad fährt in S-Bahn und Regio kostenlos mit."
     }
 
     fun mapsLink(a: P?, b: P, mode: String): String =
@@ -315,18 +365,22 @@ Antworte NUR mit dem JSON."""
         return finish(ctx, sb, maps, "Verbindung nach $zielName", fromPc)
     }
 
-    class Trip(val dep: Long, val arr: Long, val line: String, val stop: String, val rideDep: Long, val ticket: String = "", val price: Double = 0.0, val destStop: String = "")
+    class Trip(val dep: Long, val arr: Long, val line: String, val stop: String, val rideDep: Long, val ticket: String = "", val price: Double = 0.0, val destStop: String = "",
+               val rad: Boolean = false, val bike1: Int = 0, val bike2: Int = 0)
 
     /** Welches Ticket vorschlagen: "erwachsen", "kind" oder "abo" (Deutschlandticket/Schülerabo – dann gilt das Abo). */
     @Volatile var ticketArt = "erwachsen"
 
     /** Fahrplan vom VVS (EFA, deckt Stuttgart und Umgebung ab). Zeiten: dep = Abmarsch ab Startpunkt inkl. Fußweg. */
-    private fun efa(a: P, b: P, t: Long, arrival: Boolean): List<Trip> = try {
+    private fun efa(a: P, b: P, t: Long, arrival: Boolean, trainOnly: Boolean = false, fromStop: String? = null, toStop: String? = null): List<Trip> = try {
         val d = SimpleDateFormat("yyyyMMdd", de).format(Date(t)); val hm = SimpleDateFormat("HHmm", de).format(Date(t))
         fun c(p: P) = enc("${p.lon}:${p.lat}:WGS84[dd.ddddd]")
         val url = "https://www3.vvs.de/mngvvs/XML_TRIP_REQUEST2?SpEncId=0&coordOutputFormat=EPSG:4326&outputFormat=rapidJSON&language=de" +
-            "&locationServerActive=1&macroWebTrip=true&useRealtime=1&type_origin=coord&name_origin=${c(a)}&type_destination=coord" +
-            "&name_destination=${c(b)}&itdDate=$d&itdTime=$hm&itdTripDateTimeDepArr=${if (arrival) "arr" else "dep"}"
+            "&locationServerActive=1&macroWebTrip=true&useRealtime=1" +
+            (if (fromStop != null) "&type_origin=stop&name_origin=${enc(fromStop)}" else "&type_origin=coord&name_origin=${c(a)}") +
+            (if (toStop != null) "&type_destination=stop&name_destination=${enc(toStop)}" else "&type_destination=coord&name_destination=${c(b)}") +
+            "&itdDate=$d&itdTime=$hm&itdTripDateTimeDepArr=${if (arrival) "arr" else "dep"}" +
+            (if (trainOnly) "&excludedMeans=checkbox&exclMOT_4=1&exclMOT_5=1&exclMOT_6=1&exclMOT_7=1&exclMOT_8=1&exclMOT_9=1&exclMOT_10=1&exclMOT_11=1&exclMOT_19=1" else "")
         val js = JSONObject(http.newCall(Request.Builder().url(url).header("User-Agent", "Jarvis-Handy/1.0 (privat)").build())
             .execute().use { it.body?.string() ?: "{}" }).optJSONArray("journeys") ?: JSONArray()
         (0 until js.length()).mapNotNull { i ->
@@ -345,13 +399,15 @@ Antworte NUR mit dem JSON."""
                 val prod = tr?.optJSONObject("product")?.optString("name") ?: ""
                 if (n.isBlank()) prod.ifBlank { "Bahn" } else if (prod.isNotBlank() && !n.startsWith("S") && !n.startsWith("U")) "$prod $n" else n
             }
+            val nRides = (0 until legs.length()).mapNotNull { legs.optJSONObject(it) }.count { l -> (l.optJSONObject("transportation")?.optJSONObject("product")?.optInt("class", 100) ?: 100) < 97 }
+            val lineAll = if (nRides > 1) "$line (${nRides - 1}× umsteigen)" else line
             // Ticket aus dem VVS-Tarif: EinzelTicket (Handy-Preis, ohne "Automat") für Erwachsene bzw. Kind
             val tk = js.optJSONObject(i)?.optJSONObject("fare")?.optJSONArray("tickets")
             val want = if (ticketArt == "kind") "CHILD" else "ADULT"
             val ticket = tk?.let { a -> (0 until a.length()).map { a.getJSONObject(it) }.firstOrNull { t ->
                 t.optString("person") == want && t.optString("name").startsWith("EinzelTicket") && !t.optString("name").contains("Automat") } }
             val lastRide = (0 until legs.length()).mapNotNull { legs.optJSONObject(it) }.lastOrNull { l -> (l.optJSONObject("transportation")?.optJSONObject("product")?.optInt("class", 100) ?: 100) < 97 }
-            Trip(dep, arr, line, ride.optJSONObject("origin")?.optString("name") ?: "der Haltestelle", time(ride.optJSONObject("origin"), "departureTime") ?: dep,
+            Trip(dep, arr, lineAll, ride.optJSONObject("origin")?.optString("name") ?: "der Haltestelle", time(ride.optJSONObject("origin"), "departureTime") ?: dep,
                 ticket?.optString("name") ?: "", ticket?.optDouble("priceBrutto", 0.0) ?: 0.0, lastRide?.optJSONObject("destination")?.optString("name") ?: "")
         }
     } catch (_: Exception) { emptyList() }

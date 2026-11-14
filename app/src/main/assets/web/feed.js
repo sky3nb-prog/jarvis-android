@@ -51,22 +51,23 @@
     const d = m.data || {}, p = d.plan || {}, bahn = p.mode === "transit", home = m.kind === "heimweg";
     const veh = p.vehicle === "rad" ? "Fahrrad" : p.vehicle === "fuss" ? "zu Fuß" : "E-Bike";
     const times = bahn
-      ? [["LOSGEHEN", hm(p.go)], ["BAHN", esc(p.line) + " " + hm(p.ride_dep)], ["AN", hm(p.arr)]]
+      ? [[p.rad ? "RAD LOS" : "LOSGEHEN", hm(p.go)], ["BAHN", esc(p.line) + " " + hm(p.ride_dep)], ["AN", hm(p.arr)]]
       : home ? [["LOSFAHREN", hm(p.go)], ["FAHRZEIT", Math.round(p.ride || p.min || 0) + " Min."], ["ZUHAUSE", hm(d.home_at)]]
         : [["LOSFAHREN", hm(p.go || d.leave)], ["ANKUNFT CA.", hm(p.arr)], ["ZUHAUSE", d.home_at ? hm(d.home_at) : "–"]];
     let h = `<div class="fp-hero ${bahn ? "blue" : ""}">${bahn ? "" : '<div class="fp-orb"></div>'}
       <div class="k">${home ? "HEIMWEG" : d.vorschau ? "PLAN" : d.fest ? "FESTER WEG" : d.test ? "TEST" : "FAHRT"}${d.ziel && !home ? " · " + esc(String(d.ziel).toUpperCase()) : ""}</div>
-      <h1>${esc(m.title)}</h1><div class="s">${bahn ? "Es soll regnen – DWD, ECMWF und GFS." : p.rain ? "Es soll regnen – Regensachen mit." : "Kein Regen – heute mit dem " + veh + "."}</div>
+      <h1>${esc(m.title)}</h1><div class="s">${bahn ? (p.rain ? "Es soll regnen – DWD, ECMWF und GFS." : p.rad ? "Rad + Bahn (VVS) – Rad kommt mit." : "Mit Bus und Bahn (VVS).") : p.rain ? "Es soll regnen – Regensachen mit." : "Kein Regen – heute mit dem " + veh + "."}</div>
       <div class="fp-times">${times.map(([k, v]) => `<div class="fp-tb"><small>${k}</small><b>${v}</b></div>`).join("")}</div></div>`;
     h += `<div class="fp-card"><div class="fp-mode"><div class="fp-ic">${bahn ? "🚆" : p.vehicle === "fuss" ? "🚶" : "🚲"}</div><div>
-      <b>${bahn ? esc(p.line) + " ab " + esc(p.stop) : veh + " · etwa " + Math.round(p.ride || p.min || 0) + " Min."}</b>
-      <small>${bahn ? "Losgehen um " + hm(p.go) + ", an um " + hm(p.arr) : p.learned ? "gelernt aus deinen letzten " + p.learned + " Fahrten" : "geschätzt – wird mit jeder Fahrt genauer"}</small></div></div></div>`;
+      <b>${bahn ? esc(p.line) + " ab " + esc(p.stop) + (p.dest_stop ? " bis " + esc(p.dest_stop) : "") : veh + " · etwa " + Math.round(p.ride || p.min || 0) + " Min."}</b>
+      <small>${bahn ? (p.rad ? "🚲 " + p.bike1 + " Min. zum Bahnhof · Rad mit · 🚲 " + p.bike2 + " Min. vom Bahnhof · an um " + hm(p.arr) : "Losgehen um " + hm(p.go) + ", an um " + hm(p.arr)) : p.learned ? "gelernt aus deinen letzten " + p.learned + " Fahrten" : "geschätzt – wird mit jeder Fahrt genauer"}</small></div></div></div>`;
     if (d.wx_hin || d.wx_back) h += card("🌡️ WETTER", "var(--cyan)", `<div class="fp-wx">${wxBox(home ? "LOS " + hm(p.go) : "HIN " + hm(p.go || d.leave), d.wx_hin)}${wxBox("ZURÜCK " + hm(d.back), d.wx_back)}</div>`);
     h += outfit(d.outfit, d.anziehen);
     if (d.achtung && d.achtung.length) h += card("⚠️ PASS AUF", "var(--gold)", warns(d.achtung));
     if (d.denk && d.denk.length) h += card("🎒 DENK AN", "var(--gold-l)", todos(d.denk));
     if (p.ticket) h += card("🎫 TICKET", "var(--cyan)", `<div class="fp-row"><span class="z">${p.price ? p.price.toFixed(2).replace(".", ",") + " €" : "✓"}</span><span>${esc(p.ticket)}</span></div>` +
-      (p.buy ? `<div class="fp-btns" style="margin-top:8px"><div class="fp-btn" data-buy="${esc(p.buy)}">Ticket kaufen (DB Navigator)</div></div>` : ""));
+      (p.buy ? `<div class="fp-btns" style="margin-top:8px"><div class="fp-btn" data-buy="${esc(p.buy)}">Ticket kaufen (${esc(p.buy_app || "VVS Mobil")})</div></div>` : ""));
+    if (p.alt) h += card("🚌 ODER MIT BUS UND BAHN", "var(--cyan)", `<div class="fp-say">${esc(p.alt)}</div>`);
     if (d.sms_to) h += `<div class="fp-card"><div class="fp-sms"><i></i>SMS an ${esc(d.sms_to)} geht automatisch raus, ca. 5 Min. bevor du da bist.</div></div>`;
     h += say(m.text);
     if (p.mode === "transit" || p.go) h += `<div class="fp-btns"><div class="fp-btn" data-maps="${bahn ? "transit" : "bicycling"}">Route zeigen</div></div>`;

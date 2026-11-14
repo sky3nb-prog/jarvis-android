@@ -51,6 +51,8 @@
     <!-- Android 11+: Spracherkennung und Sprachausgabe des Handys sichtbar machen -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <package android:name="com.mentz.vvsmobile" />
+        <package android:name="com.mdv.VVSMobil" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>

@@ -530,6 +530,29 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun testBahn() = testAlltag2(true)
 
+        /** Bahn-Test zu einem beliebigen Ziel ("" = Oma und Opa / fester Weg). */
+        @JavascriptInterface
+        fun testBahnZiel(ziel: String) {
+            if (ziel.isBlank()) { testAlltag2(true); return }
+            Thread({
+                send("state", JSONObject().put("state", "thinking"))
+                val t = try { Alltag.bahnTest(this@MainActivity, ziel) } catch (e: Exception) { "Test ging nicht: ${e.message ?: ""}" }
+                send("agent", JSONObject().put("text", t))
+                Alltag.lastTestFeed?.let { send("feed_open", JSONObject().put("id", it)) }
+                send("state", JSONObject().put("state", "ended"))
+            }, "jarvis-bahntest").start()
+        }
+
+        @JavascriptInterface
+        fun getBahn(): String = JSONObject().put("art", prefs.getString("bahn_art", "rad_bahn")).put("app", prefs.getString("ticket_app", "vvs")).toString()
+
+        @JavascriptInterface
+        fun setBahn(art: String, app: String, ticket: String) {
+            prefs.edit().putString("bahn_art", art.ifBlank { "rad_bahn" }).putString("ticket_app", app.ifBlank { "vvs" })
+                .putString("ticket_art", ticket.ifBlank { "erwachsen" }).apply()
+            Alltag.syncBahn(this@MainActivity)
+        }
+
         /** Was er über deine Zwischenstopps gelernt hat. */
         @JavascriptInterface
         fun halteInfo(): String = try { Halte.test(this@MainActivity) } catch (e: Exception) { "" }
@@ -631,6 +654,13 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun openUrl(url: String) = runOnUiThread {
+            if (url.startsWith("app:")) {   // App öffnen (z. B. VVS Mobil fürs Ticket), sonst Play Store
+                val pkg = url.removePrefix("app:")
+                val i = packageManager.getLaunchIntentForPackage(pkg)
+                try { startActivity(i ?: Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg"))) }
+                catch (_: Exception) { try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))) } catch (_: Exception) {} }
+                return@runOnUiThread
+            }
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) {}
         }
 

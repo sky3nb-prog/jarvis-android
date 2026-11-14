@@ -232,6 +232,18 @@
         </div>
       </div>
       <div class="spane" id="sp-wege">
+        <div class="sec" style="--c:#3cc8ff"><h3>BAHN &amp; TICKET (VVS)</h3>
+          <div class="f"><label>Wenn du Bahn fährst</label><select id="bahn-art">
+            <option value="rad_bahn">Rad + Bahn – mit dem Rad zum Bahnhof, nur Züge, Rad mit, vom Bahnhof mit dem Rad weiter</option>
+            <option value="bus_bahn">Bus und Bahn – zu Fuß zur Haltestelle, Busse erlaubt</option>
+            <option value="beide">Beides zeigen – Rad + Bahn, dazu Bus und Bahn als zweite Möglichkeit</option></select></div>
+          <div class="f"><label>Ticket</label><select id="set-ticket"><option value="erwachsen">Kein Abo – immer EinzelTicket kaufen</option><option value="kind">EinzelTicket Kind (bis 14)</option><option value="abo">Ich hab ein Abo (Deutschlandticket/Schülerabo)</option></select></div>
+          <div class="f"><label>Ticket kaufen in</label><select id="ticket-app"><option value="vvs">VVS Mobil (App)</option><option value="db">DB Navigator</option></select></div>
+          <div class="note">Fahrplan und Ticketpreis kommen vom VVS. „Ticket kaufen“ öffnet die VVS-App, bezahlen tust du dort selbst. Rad in S-Bahn/Regio: kostenlos, nur Mo–Fr 6–9 Uhr braucht es ein Kinderticket. Wird sofort gespeichert.</div>
+          <div class="f"><label>Bahn-Test – wohin?</label><input id="bahn-ziel" type="text" placeholder="leer = Oma und Opa · z. B. Ditzingen"></div>
+          <div class="srow"><div>Bahn-Test<small>Echte Verbindung ab jetzt, mit Ticket und „Ticket kaufen“ – kommt als Mitteilung</small></div><div class="sbtn" id="set-testbahn">Suchen</div></div>
+          <div class="srow"><div>Gelernte Stopps<small id="set-halte">Wie lange du beim Rewe, Bäcker usw. hältst</small></div><div class="sbtn" id="set-haltebtn">Zeigen</div></div>
+        </div>
         <div class="sec" style="--c:#6effcd"><h3>MEINE ORTE</h3>
           <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Name, Doppelpunkt, Adresse. Dann reicht „Ich will zu Opa“. Gilt auch am PC.</div>
           <div class="f"><textarea id="set-morte" rows="4" placeholder="Opa: Musterstraße 5, 71277 Rutesheim&#10;Großeltern: …&#10;Arbeit: …"></textarea></div>
@@ -292,11 +304,8 @@
             <div class="f" style="flex:1"><label>Zuhause sein um</label><input id="fw-heim" type="time"></div></div>
           <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>Hinweg</label><select id="fw-bhin"><option value="regen">Bahn bei Regen</option><option value="immer">Immer Bahn</option><option value="nie">Nie Bahn</option></select></div>
             <div class="f" style="flex:1"><label>Rückweg</label><select id="fw-bback"><option value="regen">Bahn bei Regen</option><option value="immer">Immer Bahn</option><option value="nie">Nie Bahn</option></select></div></div>
-          <div class="f"><label>Ticket</label><select id="set-ticket"><option value="erwachsen">Kein Abo – immer EinzelTicket kaufen</option><option value="kind">EinzelTicket Kind (bis 14)</option><option value="abo">Ich hab ein Abo (Deutschlandticket/Schülerabo)</option></select></div>
           <div class="note">Regnet es, sagt er dir im Briefing „Heute fährst du Bahn“ und wann du dafür losgehen musst. Wie lange du hin und zurück brauchst und wie lange du zum Fertigmachen brauchst, lernt er selbst. Wird mit „Speichern“ übernommen.</div>
           <div class="srow"><div>Testnachricht<small>So sieht das Briefing aus (mit dem Wetter von jetzt)</small></div><div class="sbtn" id="set-test">Senden</div></div>
-          <div class="srow"><div>Bahn-Test<small>Echte Bahnverbindung zu Oma und Opa ab jetzt – mit Ticket und „Ticket kaufen“</small></div><div class="sbtn" id="set-testbahn">Suchen</div></div>
-          <div class="srow"><div>Gelernte Stopps<small id="set-halte">Wie lange du beim Rewe, Bäcker usw. hältst</small></div><div class="sbtn" id="set-haltebtn">Zeigen</div></div>
         </div>
         <div class="sec" style="--c:#ff9a8a"><h3>EINMALIGER TERMIN</h3>
           <div class="note" style="margin:0 0 8px">Für einen bestimmten Tag – läuft genauso wie der feste Weg, nur einmal.</div>
@@ -368,6 +377,7 @@
           <div class="srow"><div>Skill freischalten<small>Ploppt auf und fliegt in die Kugel (verschwindet nach dem Test wieder)</small></div><div class="sbtn" id="tst-skill">Zeigen</div></div>
           <div class="srow"><div>Jarvis-Erinnerung<small>Kommt in 5 Sekunden – mit Ton, Erledigt und 15 Min. später</small></div><div class="sbtn" id="tst-rem">Testen</div></div>
           <div class="srow"><div>Fahrt-Mitteilung<small>Briefing mit Wetter, Anziehen, Bahn/Ticket</small></div><div class="sbtn" id="tst-fahrt">Testen</div></div>
+          <div class="srow"><div>Bahn + Ticket<small>Echte Bahnverbindung zu Oma und Opa ab jetzt (VVS), mit „Ticket kaufen“</small></div><div class="sbtn" id="tst-bahn">Testen</div></div>
           <div class="srow"><div>Neue Fähigkeiten nochmal zeigen<small>Was das letzte Update gebracht hat</small></div><div class="sbtn" id="tst-neu">Zeigen</div></div>
         </div>
       </div>

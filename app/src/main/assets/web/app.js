@@ -404,7 +404,11 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
-  $("set-testbahn").addEventListener("click", () => { A.testBahn(); toast("Ich suche die Verbindung …"); });
+  $("set-testbahn").addEventListener("click", () => { A.testBahnZiel(($("bahn-ziel").value || "").trim()); toast("Ich suche die Verbindung beim VVS …"); });
+  { const tb = $("tst-bahn"); if (tb) tb.addEventListener("click", () => { A.testBahnZiel(""); toast("Ich suche die Verbindung beim VVS …"); }); }
+  try { const bs = JSON.parse(A.getBahn() || "{}"); $("bahn-art").value = bs.art || "rad_bahn"; $("ticket-app").value = bs.app || "vvs"; } catch (e) {}
+  const saveBahn = () => { try { A.setBahn($("bahn-art").value, $("ticket-app").value, $("set-ticket").value); toast("Gespeichert."); } catch (e) {} };
+  ["bahn-art", "ticket-app", "set-ticket"].forEach((id) => $(id).addEventListener("change", saveBahn));
   $("set-haltebtn").addEventListener("click", () => { try { $("set-halte").textContent = A.halteInfo() || "Noch nichts gelernt."; } catch (e) {} });
   // --- Jarvis-Erinnerungen ---
   function rmList() {
