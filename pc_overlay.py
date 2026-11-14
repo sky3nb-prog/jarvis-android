@@ -325,172 +325,251 @@ class EdgeGlow:
 
 
 # --- Kleiner Kreis oben links ------------------------------------------------------
+class NewSphere:
+    """Die neue goldene 3D-Kugel (wie im HUD/am Handy) als fertige Bilder aus pc_web/orb_frames/kugel.png (100 Bilder, nahtlos).
+    Wird einmal pro Größe vorbereitet (fertige Tk-Bilder) – danach kostet jedes Bild fast nichts."""
+
+    def __init__(self):
+        self.strip = None
+        self.n = 0
+        self._cache = {}
+        try:
+            import pc_webhud
+            f = os.path.join(pc_webhud.web_dir(), "orb_frames", "kugel.png")
+            im = Image.open(f).convert("RGB")
+            self.n = im.width // im.height
+            self.strip = im
+        except Exception as e:
+            print("Neue Kugel nicht gefunden:", e)
+
+    def ok(self) -> bool:
+        return self.strip is not None and self.n > 0
+
+    def frame(self, d: int, i: int):
+        key = (d, i % self.n)
+        ph = self._cache.get(key)
+        if ph is None:
+            h = self.strip.height
+            m = int(h * 0.06)
+            im = self.strip.crop((key[1] * h + m, m, key[1] * h + h - m, h - m)).resize((d, d), Image.LANCZOS)
+            lum = im.convert("L").point(lambda v: 255 if v > 26 else 0)
+            circle = Image.new("L", (d, d), 0)
+            ImageDraw.Draw(circle).ellipse((1, 1, d - 2, d - 2), fill=255)
+            im = Image.composite(im, Image.new("RGB", (d, d), KEY_RGB), ImageChops.multiply(lum, circle))
+            ph = ImageTk.PhotoImage(im)
+            if len(self._cache) > 2 * self.n:
+                self._cache.clear()
+            self._cache[key] = ph
+        return ph
+
+
 class StrandOverlay:
-    """Goldener Nervenstrang (wie im HUD-Hintergrund): wächst beim Aufwachen aus dem Bildschirm-Eck an den Rändern entlang
-    bis zur Kugel, Lichtimpulse laufen darin (schneller, wenn er spricht), danach zieht er sich zurück.
-    Eigenes durchsichtiges Fenster, Mausklicks gehen hindurch. (Tk statt WebView: keine grauen Kästen.)"""
+    """Goldener Nervenstrang wie im HUD-Hintergrund: geschwungene Leiterbahnen wachsen beim Aufwachen aus dem Bildschirm-Eck
+    an den Rändern entlang bis zur Kugel, Lichtimpulse laufen darin (mehr und schneller, wenn er spricht), danach zieht er sich zurück.
+    Eigenes durchsichtiges Fenster, Klicks gehen hindurch. Flüssig: Linien werden einmal angelegt, danach nur verschoben."""
+
+    FPS_MS = 20
 
     def __init__(self, root: tk.Tk, k: float, corner: str, orb_box):
         self.root, self.k, self.corner = root, k, corner
-        self.orb_box = orb_box            # () -> (x, y, d) der Kugel auf dem Bildschirm
+        self.orb_box = orb_box
         self.win = tk.Toplevel(root)
         self.win.withdraw()
         self.win.overrideredirect(True)
         self.win.attributes("-topmost", True)
         self.win.configure(bg=KEY)
         self.win.attributes("-transparentcolor", KEY)
-        self.W, self.H = int(560 * k), int(300 * k)
+        self.W, self.H = int(520 * k), int(320 * k)
         self.cv = tk.Canvas(self.win, width=self.W, height=self.H, bg=KEY, highlightthickness=0, bd=0)
         self.cv.pack()
         self.grow, self.want, self.state = 0.0, 0.0, "idle"
         self.pulses = []
         self._job = None
         self._styled = False
-        self.traces = []
+        self._drawn = -1.0
         self._build()
 
     def set_corner(self, corner: str):
         self.corner = corner
         self._build()
 
+    # --- Form: geschwungene Bahnen am Rand, Abzweige mit Knoten ---
     def _build(self):
+        import math
         import random
-        r = random.Random(4242)
+        r = random.Random(77)
         k, W, H = self.k, self.W, self.H
         R, B = "rechts" in self.corner, "unten" in self.corner
-        sx, sy = (-1 if R else 1), (-1 if B else 1)
-        cx, cy = (W - 3 if R else 3), (H - 3 if B else 3)
+        fx = (lambda x: W - x) if R else (lambda x: x)
+        fy = (lambda y: H - y) if B else (lambda y: y)
         tr = []
 
-        def main(horiz, length, off, w):
-            x, y = (cx, cy + sy * off) if horiz else (cx + sx * off, cy)
-            pts, d = [(x, y)], 0
-            while d < length:
-                st = (14 + r.random() * 26) * k
-                d += st
-                if horiz:
-                    x += sx * st
-                    if r.random() < .28:
-                        j = (1 if r.random() < .5 else -1) * (4 + r.random() * 6) * k
-                        x += sx * abs(j); y += sy * j * .7
-                        y = cy + sy * max(2 * k, min(abs(y - cy), off + 6 * k))   # am Rand bleiben
-                else:
-                    y += sy * st
-                    if r.random() < .28:
-                        j = (1 if r.random() < .5 else -1) * (4 + r.random() * 6) * k
-                        y += sy * abs(j); x += sx * j * .7
-                        x = cx + sx * max(2 * k, min(abs(x - cx), off + 6 * k))   # am Rand bleiben, nicht in die Kugel
-                pts.append((x, y))
-            tr.append({"pts": pts, "w": w, "branch": False, "at": 0})
-            for i in range(2, len(pts) - 1, 3):
-                if r.random() < .55:
-                    bx, by = pts[i]
-                    bl = (10 + r.random() * 22) * k
-                    dx, dy = (sx * bl * .7, sy * bl) if horiz else (sx * bl, sy * bl * .7)
-                    tr.append({"pts": [(bx, by), (bx + dx * .6, by + dy * .6), (bx + dx, by + dy)], "w": w * .6, "branch": True, "at": i / len(pts)})
+        def curve(pts_fn, n):
+            return [pts_fn(i / n) for i in range(n + 1)]
 
-        main(True, W * .62, 6 * k, 2)
-        main(True, W * .40, 15 * k, 1)
-        main(False, H * .9, 6 * k, 2)
-        main(False, H * .6, 15 * k, 1)
+        def add(pts, w, branch=False, at=0.0, node=False):
+            pts = [(fx(x), fy(y)) for x, y in pts]
+            tr.append({"pts": pts, "w": w, "branch": branch, "at": at, "node": node})
+
+        # Hauptbahnen oben (waagerecht) und an der Seite (senkrecht), sanft gewellt
+        for off, length, amp, ph, w in ((7, .95, 5, .0, 2.2), (17, .70, 7, 1.7, 1.4), (27, .42, 6, 3.1, 1.0)):
+            L = W * length
+            add(curve(lambda u, off=off, L=L, amp=amp, ph=ph: (u * L, (off + amp * math.sin(u * 7.0 + ph) * u) * k), 28), w)
+        for off, length, amp, ph, w in ((7, .95, 5, .8, 2.2), (17, .66, 7, 2.4, 1.4), (27, .40, 6, 4.0, 1.0)):
+            L = H * length
+            add(curve(lambda u, off=off, L=L, amp=amp, ph=ph: ((off + amp * math.sin(u * 6.0 + ph) * u) * k, u * L), 24), w)
+        # Abzweige: schwingen nach innen und enden in einem Knoten
+        for i in range(9):
+            horiz = i % 3 != 0
+            at = .16 + (i // 2 if horiz else i // 3) * (.2 if horiz else .25) + r.random() * .06
+            if horiz:
+                x0, y0 = W * .9 * at, (7 + 5 * math.sin(at * 7.0) * at) * k
+                ln = (18 + r.random() * 18) * k
+                add(curve(lambda u, x0=x0, y0=y0, ln=ln: (x0 + ln * .55 * u + ln * .25 * u * u, y0 + ln * u * u), 10), .9, True, at, True)
+            else:
+                x0, y0 = (7 + 5 * math.sin(at * 6.0 + .8) * at) * k, H * .9 * at
+                ln = (18 + r.random() * 20) * k
+                add(curve(lambda u, x0=x0, y0=y0, ln=ln: (x0 + ln * u * u, y0 + ln * .55 * u + ln * .2 * u * u), 10), .9, True, at, True)
         for t in tr:
-            t["len"] = self._plen(t["pts"])
+            p = t["pts"]
+            acc = [0.0]
+            for i in range(1, len(p)):
+                acc.append(acc[-1] + ((p[i][0] - p[i - 1][0]) ** 2 + (p[i][1] - p[i - 1][1]) ** 2) ** .5)
+            t["acc"], t["len"] = acc, acc[-1]
         self.traces = tr
+        self._make_items()
 
-    @staticmethod
-    def _plen(p):
-        return sum(((p[i][0] - p[i - 1][0]) ** 2 + (p[i][1] - p[i - 1][1]) ** 2) ** .5 for i in range(1, len(p)))
+    def _make_items(self):
+        cv, k = self.cv, self.k
+        cv.delete("all")
+        for t in self.traces:
+            w = t["w"]
+            t["ids"] = [cv.create_line(0, 0, 0, 0, fill=c, width=max(1, int(w * f * k)), capstyle="round", joinstyle="round", smooth=True,
+                                       state="hidden") for c, f in (("#2e1e06", 4.2), ("#8a5c18", 2.2), ("#ffd678", 1.0))]
+            t["node"] = cv.create_oval(0, 0, 0, 0, fill="#ffe2a0", outline="#8a5c18", state="hidden") if t["node"] else None
+        self.link = [cv.create_line(0, 0, 0, 0, fill=c, width=max(1, int(f * k)), smooth=True, capstyle="round", state="hidden")
+                     for c, f in (("#8a5c18", 3.0), ("#ffd678", 1.3))]
+        self._drawn = -1.0
 
-    @staticmethod
-    def _cut(p, upto):
-        out, l = [p[0]], 0.0
+    def _upto(self, t, length):
+        p, acc = t["pts"], t["acc"]
+        out = [p[0]]
         for i in range(1, len(p)):
-            s = ((p[i][0] - p[i - 1][0]) ** 2 + (p[i][1] - p[i - 1][1]) ** 2) ** .5
-            if s > 0 and l + s >= upto:
-                f = (upto - l) / s
+            if acc[i] >= length:
+                s = acc[i] - acc[i - 1]
+                f = (length - acc[i - 1]) / s if s else 0
                 out.append((p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f))
                 return out
-            out.append(p[i]); l += s
+            out.append(p[i])
         return out
 
     def _place(self):
         sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
         x = 0 if "links" in self.corner else sw - self.W
-        y = 0 if "oben" in self.corner else sh - self.H - int(48 * self.k)   # unten: über der Taskleiste
+        y = 0 if "oben" in self.corner else sh - self.H - int(48 * self.k)
         self.win.geometry(f"{self.W}x{self.H}+{x}+{y}")
-        return x, y
 
     def show(self, state: str):
         self.state, self.want = state, 1.0
-        if self.grow <= 0.001:
+        if self.grow <= 0.001 and self._job is None:
             self._place()
             self.win.deiconify()
             if not self._styled:
-                make_style(self.win, True)   # Klicks gehen durch
+                make_style(self.win, True)
                 self._styled = True
         if self._job is None:
-            self._tick()
+            self._job = self.root.after(self.FPS_MS, self._tick)
 
     def hide(self):
         self.want = 0.0
         if self._job is None and self.grow > 0:
-            self._tick()
+            self._job = self.root.after(self.FPS_MS, self._tick)
 
     def _tick(self):
-        self.grow += (self.want - self.grow) * (.09 if self.want > self.grow else .14)
-        if abs(self.grow - self.want) < .004:
-            self.grow = self.want
+        import random
         cv, k = self.cv, self.k
-        cv.delete("all")
+        self.grow += (self.want - self.grow) * (.08 if self.want > self.grow else .12)
+        if abs(self.grow - self.want) < .003:
+            self.grow = self.want
         g = self.grow
         if g <= 0.001:
-            self.win.withdraw()
+            for t in self.traces:
+                for i in t["ids"]:
+                    cv.itemconfigure(i, state="hidden")
+                if t["node"]:
+                    cv.itemconfigure(t["node"], state="hidden")
+            for i in self.link:
+                cv.itemconfigure(i, state="hidden")
+            for p in self.pulses:
+                cv.delete(p[3])
             self.pulses = []
+            self._drawn = -1.0
+            self.win.withdraw()
             self._job = None
             return
-        for t in self.traces:
-            tg = max(0.0, (g - t["at"] * .8) / .3) if t["branch"] else g
-            if tg <= 0:
-                continue
-            pts = self._cut(t["pts"], t["len"] * min(1.0, tg))
-            if len(pts) < 2:
-                continue
-            flat = [c for p in pts for c in p]
-            cv.create_line(*flat, fill="#5a3a0c", width=max(1, int(t["w"] * 3 * k)), capstyle="round", joinstyle="round")
-            cv.create_line(*flat, fill="#ffd678", width=max(1, int(t["w"] * k)), capstyle="round", joinstyle="round")
-            if tg < 1 and not t["branch"]:
-                x, y = pts[-1]; rr = 3 * k
-                cv.create_oval(x - rr, y - rr, x + rr, y + rr, fill="#fff3c8", outline="")
-        # Verbindung zur Kugel
-        try:
-            ox, oy, d = self.orb_box()
-            wx, wy = self.win.winfo_rootx(), self.win.winfo_rooty()
-            R = "rechts" in self.corner
-            ex = (ox + d - wx) if R else (ox - wx)
-            ey = oy + d / 2 - wy
-            sx = (self.W - 3 - 15 * k) if R else (3 + 15 * k)
-            if g > .6 and 0 < ey < self.H:
-                f = min(1.0, (g - .6) / .4)
-                cv.create_line(sx, ey, sx + (ex - sx) * f, ey, fill="#ffd678", width=max(1, int(1.5 * k)))
-                cv.create_oval(sx - 3 * k, ey - 3 * k, sx + 3 * k, ey + 3 * k, fill="#ffd678", outline="")
-        except Exception:
-            pass
+        if abs(g - self._drawn) > .002:   # nur wenn er wächst oder schrumpft
+            self._drawn = g
+            for t in self.traces:
+                tg = max(0.0, min(1.0, (g - t["at"] * .7) / .3)) if t["branch"] else g
+                if tg <= .02:
+                    for i in t["ids"]:
+                        cv.itemconfigure(i, state="hidden")
+                    if t["node"]:
+                        cv.itemconfigure(t["node"], state="hidden")
+                    continue
+                pts = self._upto(t, t["len"] * tg)
+                if len(pts) < 2:
+                    continue
+                flat = [c for p in pts for c in p]
+                for i in t["ids"]:
+                    cv.coords(i, *flat)
+                    cv.itemconfigure(i, state="normal")
+                if t["node"]:
+                    if tg >= .98:
+                        x, y = pts[-1]; rr = 2.6 * k
+                        cv.coords(t["node"], x - rr, y - rr, x + rr, y + rr)
+                        cv.itemconfigure(t["node"], state="normal")
+                    else:
+                        cv.itemconfigure(t["node"], state="hidden")
+            # geschwungene Verbindung zur Kugel
+            try:
+                ox, oy, d = self.orb_box()
+                wx, wy = self.win.winfo_rootx(), self.win.winfo_rooty()
+                R = "rechts" in self.corner
+                ex, ey = (ox + d - wx + 2) if R else (ox - wx - 2), oy + d / 2 - wy
+                sx = (self.W - 17 * k) if R else 17 * k
+                sy = ey - 26 * k
+                if g > .55 and 0 < ey < self.H:
+                    f = min(1.0, (g - .55) / .45)
+                    mx = sx + (ex - sx) * .1
+                    pts = [(sx, sy), (mx, ey - 4 * k), (sx + (ex - sx) * f, ey)]
+                    for i in self.link:
+                        cv.coords(i, *[c for p in pts for c in p])
+                        cv.itemconfigure(i, state="normal")
+                else:
+                    for i in self.link:
+                        cv.itemconfigure(i, state="hidden")
+            except Exception:
+                pass
         # Lichtimpulse
-        import random
-        if g > .9 and random.random() < (.3 if self.state == "speaking" else .1):
+        busy = self.state in ("speaking", "thinking")
+        if g > .9 and random.random() < (.22 if busy else .06):
             mains = [t for t in self.traces if not t["branch"]]
             t = random.choice(mains)
-            self.pulses.append([t, 0.0, (9 if self.state == "speaking" else 5) * k * (1 + random.random())])
+            rr = 2.4 * k
+            pid = cv.create_oval(-9, -9, -9 + 2 * rr, -9 + 2 * rr, fill="#fff3d0", outline="#ffd678")
+            self.pulses.append([t, 0.0, (7 if busy else 4) * k * (1 + random.random() * .6), pid])
         keep = []
         for p in self.pulses:
             p[1] += p[2]
-            if p[1] < p[0]["len"]:
-                x, y = self._cut(p[0]["pts"], p[1])[-1]; rr = 2.2 * k
-                cv.create_oval(x - rr, y - rr, x + rr, y + rr, fill="#fff0c8", outline="")
+            if p[1] < p[0]["len"] * min(1.0, g) and g > .3:
+                x, y = self._upto(p[0], p[1])[-1]; rr = 2.4 * k
+                cv.coords(p[3], x - rr, y - rr, x + rr, y + rr)
                 keep.append(p)
+            else:
+                cv.delete(p[3])
         self.pulses = keep
-        cv.create_oval(3, 3, 3, 3, outline="")
-        self._job = self.root.after(33, self._tick)
+        self._job = self.root.after(self.FPS_MS, self._tick)
 
 
 class CompactOverlay:
@@ -524,6 +603,7 @@ class CompactOverlay:
         self._t0 = time.time()
         self.sphere = None  # pc_sphere.SphereFrames vom HUD
         self.strand = None  # StrandOverlay (Anzeige "neu")
+        self.newsphere = None  # NewSphere (Anzeige "neu")
         self._small: dict = {}  # (Größe, Farbe, Bild-Nr.) -> fertiges kleines Bild
 
     def set_size(self, size: int):
@@ -641,6 +721,16 @@ class CompactOverlay:
     def _animate(self):
         if not self._visible:
             self._anim_job = None
+            return
+        ns = self.newsphere
+        if ns is not None and ns.ok():   # neue Kugel: fertige Bilder, schneller wenn er redet
+            now = time.time()
+            sp = {"speaking": 2.0, "thinking": 2.4, "listening": 1.5}.get(self.state, 1.0)
+            self._fpos = getattr(self, "_fpos", 0.0) + (now - getattr(self, "_flast", now)) * 20 * sp
+            self._flast = now
+            self._photo_orb = ns.frame(self.d, int(self._fpos))
+            self.canvas.itemconfigure(self.orb_item, image=self._photo_orb)
+            self._anim_job = self.root.after(40, self._animate)
             return
         img = self._sphere_img(time.time() - self._t0)
         if img is None:
@@ -989,9 +1079,11 @@ class UI:
         self.style = style if style in ("gross", "neu") else "klein"
         if self.style == "neu" and self.compact.strand is None:   # Kugel + Nervenstrang
             self.compact.strand = StrandOverlay(self.root, self.k, self.compact.corner, self.compact.orb_box)
+            self.compact.newsphere = NewSphere()
         elif self.style != "neu" and self.compact.strand is not None:
             self.compact.strand.hide()
             self.compact.strand = None
+            self.compact.newsphere = None
         if self.style == "gross" and self.big is None:
             self.big = BigOverlay(self.root, self.k)
 
@@ -1922,7 +2014,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 03:15"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 03:45"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
