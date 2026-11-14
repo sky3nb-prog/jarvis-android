@@ -8,11 +8,18 @@ Dezent: Er sagt nur etwas, wenn es wichtig ist –
   - etwa 60 und 20 Minuten vor der Ruhezeit
   - Auftrag abgeliefert (Lohn, Kilometer), Strafzettel
 Fragen gehen jederzeit: "wie weit noch?", "wie viel Sprit?", "wann muss ich schlafen?", "was verdiene ich?".
+Tankstellen und Schlafplätze lernt er selbst: Jedes Mal, wenn du tankst oder schläfst, merkt er sich die Stelle
+(ets2_orte.json). Wird der Tank knapp oder die Ruhezeit kommt, sagt er dir die nächste bekannte voraus –
+"wo ist die nächste Tankstelle?" / "wo kann ich schlafen?" geht auch, "merk dir die Tankstelle hier" ebenso.
 Die Fahrtenseite im HUD zeigt alles live (STATE).
 """
 
 import ctypes
+import json
+import math
+import os
 import re
+import sys
 import threading
 import time
 
@@ -92,6 +99,7 @@ Map = _st("Map", [
 ])
 
 STATE = {"aktiv": False}     # für HUD und Fragen
+LAST_T = None                 # letzte Rohdaten (für Ortsfragen)
 ON_SAY = None                 # vom Programm gesetzt: Ansage (dezent, wie eine Nachricht)
 _lock = threading.Lock()
 
@@ -157,6 +165,112 @@ def snapshot(t) -> dict:
     }
 
 
+# --- Gelernte Orte: Tankstellen und Schlafplätze -----------------------------------------------------------
+def _orte_file() -> str:
+    base = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, "ets2_orte.json")
+
+
+def _orte_load() -> dict:
+    try:
+        with open(_orte_file(), encoding="utf-8") as fh:
+            d = json.load(fh)
+            d.setdefault("orte", []); d.setdefault("faktor", 0.0)
+            return d
+    except Exception:
+        return {"orte": [], "faktor": 0.0}
+
+
+ORTE = _orte_load()
+_trail = []          # letzte Positionen (x, z) für die Fahrtrichtung
+_cal = {"odo": None, "x": None, "z": None, "wkm": 0.0, "okm": 0.0}
+
+
+def _orte_save():
+    try:
+        with open(_orte_file(), "w", encoding="utf-8") as fh:
+            json.dump(ORTE, fh)
+    except Exception as e:
+        print("ETS2-Orte speichern ging nicht:", e)
+
+
+def _faktor() -> float:
+    """Spiel-Kilometer pro Welt-Kilometer (lernt er beim Fahren aus dem Tacho; bis dahin 1)."""
+    return ORTE.get("faktor") or 1.0
+
+
+def remember_place(art: str, t, city: str = "") -> bool:
+    """art = "tank" oder "schlaf". Doppelte (unter 400 m) werden nur gezählt."""
+    x, z = float(t.coordX), float(t.coordZ)
+    game = "ATS" if t.game == 2 else "ETS2"
+    for o in ORTE["orte"]:
+        if o["art"] == art and o.get("spiel", "ETS2") == game and math.hypot(o["x"] - x, o["z"] - z) < 400:
+            o["n"] = o.get("n", 1) + 1; o["t"] = time.time(); _orte_save()
+            return False
+    ORTE["orte"].append({"art": art, "x": round(x, 1), "z": round(z, 1), "spiel": game, "n": 1, "t": time.time(),
+                         "bei": city})
+    _orte_save()
+    print(f"ETS2: {'neue Tankstelle' if art == 'tank' else 'neuer Schlafplatz'} gemerkt ({len(ORTE['orte'])} Orte)")
+    return True
+
+
+def _heading():
+    """Fahrtrichtung aus den letzten ~150 m (x, z) – oder None."""
+    if len(_trail) < 2:
+        return None
+    x1, z1 = _trail[-1]
+    for x0, z0 in reversed(_trail[:-1]):
+        d = math.hypot(x1 - x0, z1 - z0)
+        if d > 60:
+            return ((x1 - x0) / d, (z1 - z0) / d)
+    return None
+
+
+def nearest(art: str, t, max_km: float = 0, ahead_only: bool = True):
+    """Nächster bekannter Ort dieser Art. -> (km Luftlinie in Spiel-km, Richtung als Text) oder None."""
+    x, z = float(t.coordX), float(t.coordZ)
+    game = "ATS" if t.game == 2 else "ETS2"
+    h = _heading()
+    best = None
+    for o in ORTE["orte"]:
+        if o["art"] != art or o.get("spiel", "ETS2") != game:
+            continue
+        dx, dz = o["x"] - x, o["z"] - z
+        wd = math.hypot(dx, dz)
+        km = wd / 1000 * _faktor()
+        if km < 0.3 or (max_km and km > max_km):
+            continue
+        cos = (dx * h[0] + dz * h[1]) / wd if h and wd else 1.0
+        if ahead_only and h and cos < 0.2:   # hinter dir oder weit seitlich: nicht vorschlagen
+            continue
+        score = km * (1.0 if cos > 0.7 else 1.6)
+        if best is None or score < best[0]:
+            cross = h[0] * dz - h[1] * dx if h else 0      # x = Osten, z = Süden: positiv = rechts
+            if not h:
+                way = ""
+            elif cos > 0.9:
+                way = "geradeaus voraus"
+            elif cos > 0.2:
+                way = "rechts voraus" if cross > 0 else "links voraus"
+            else:
+                way = "hinter dir"
+            best = (score, round(km), way, o)
+    return (best[1], best[2], best[3]) if best else None
+
+
+def _place_text(art: str, t, max_km: float = 0) -> str:
+    n = nearest(art, t, max_km) or nearest(art, t, max_km, ahead_only=False)
+    what = "Tankstelle" if art == "tank" else "Schlafplatz"
+    if not n:
+        cnt = sum(1 for o in ORTE["orte"] if o["art"] == art)
+        return (f"Eine {what} in der Nähe kenne ich noch nicht" if art == "tank" else f"Einen {what} in der Nähe kenne ich noch nicht") + \
+            (f" – ich habe erst {cnt} gelernt." if cnt else " – ich lerne sie, sobald du tankst oder schläfst.")
+    km, way, o = n
+    bei = f" bei {o['bei']}" if o.get("bei") else ""
+    pre = "Die nächste Tankstelle, die ich kenne" if art == "tank" else "Der nächste Schlafplatz, den ich kenne"
+    return f"{pre}{bei}: etwa {km} Kilometer Luftlinie{', ' + way if way else ''}."
+
+
 def _say(text: str):
     print(f"ETS2: {text}")
     if ON_SAY:
@@ -190,7 +304,29 @@ def _loop(stop: threading.Event):
         s = snapshot(t)
         with _lock:
             STATE = s
+        global LAST_T
+        LAST_T = t
+        x, z = float(t.coordX), float(t.coordZ)
+        if not _trail or math.hypot(x - _trail[-1][0], z - _trail[-1][1]) > 20:
+            _trail.append((x, z)); del _trail[:-30]
+        # Maßstab lernen: Tacho-km gegen Welt-km (nur beim normalen Fahren, nicht Fähre/Zug/Teleport)
+        if _cal["odo"] is not None and 1 < s["kmh"] < 140:
+            wd = math.hypot(x - _cal["x"], z - _cal["z"]) / 1000; od = float(t.odometer) - _cal["odo"]
+            if 0 < od < 1.0 and wd < 2.0:
+                _cal["wkm"] += wd; _cal["okm"] += od
+                if _cal["okm"] > 5 and _cal["wkm"] > 0.05:
+                    ORTE["faktor"] = round(_cal["okm"] / _cal["wkm"], 2)
+                    if _cal["okm"] > 40:   # gelegentlich speichern und neu sammeln
+                        _orte_save(); _cal["okm"] = _cal["wkm"] = 0.0
+        _cal.update(odo=float(t.odometer), x=x, z=z)
         if last is not None:
+            # Tanken bezahlt -> Tankstelle merken; Ruhezeit springt hoch -> Schlafplatz merken
+            if t.refuelPayed != last.refuelPayed or (t.fuel - last.fuel > max(20.0, (t.fuelCapacity or 400) * 0.08) and abs(t.speed) < 1):
+                if remember_place("tank", t, _s(t.citySrc) if not s["auftrag"] else ""):
+                    _say("Die Tankstelle merk ich mir.")
+            if last.restStop >= 0 and t.restStop - last.restStop > 300:
+                if remember_place("schlaf", t):
+                    _say("Guten Morgen. Den Schlafplatz merk ich mir.")
             # Ereignisse (die Felder werden bei jedem Ereignis umgeschaltet)
             if t.jobDelivered != last.jobDelivered:
                 km = round(t.jobDeliveredDistanceKm)
@@ -210,7 +346,8 @@ def _loop(stop: threading.Event):
                     else f". Bis zum Ziel sind es {s['rest_km']}, das sollte reichen."
             else:
                 msg += "."
-            _say(msg + (" Such dir eine Tankstelle." if not s["rest_km"] or s["rest_km"] > s["reichweite_km"] * 0.85 else ""))
+            need = not s["rest_km"] or s["rest_km"] > s["reichweite_km"] * 0.85
+            _say(msg + (" " + _place_text("tank", t, s["reichweite_km"] or 0) if need else ""))
         if s["tank_pct"] >= 30:
             warned["fuel"] = False
         # Ruhezeit (restStop = Minuten Spielzeit bis zur nächsten Pause; 0/negativ = aus)
@@ -220,7 +357,7 @@ def _loop(stop: threading.Event):
             _say(f"In etwa einer Stunde Spielzeit musst du schlafen.")
         if 0 < r <= 20 and not warned["rest20"] and not t.paused:
             warned["rest20"] = True
-            _say(f"In {r} Minuten musst du schlafen. Such dir einen Rastplatz.")
+            _say(f"In {r} Minuten musst du schlafen. " + _place_text("schlaf", t, max(20, s["kmh"] * r / 60 * 1.3)))
         if r > 90:
             warned["rest60"] = warned["rest20"] = False
         last = t
@@ -233,7 +370,8 @@ def start(stop: threading.Event):
 
 ASK = re.compile(r"\b(wie weit (?:ist es |muss ich )?noch|wie lange (?:fahr ich |dauert es )?noch|wann bin ich da|wie viel sprit|wie viel diesel|wie voll|tank\b|reichweite|"
                  r"wann muss ich schlafen|muss ich (?:bald )?schlafen|ruhezeit|was verdien|mein lohn|den auftrag|mein auftrag|"
-                 r"welche ladung|was hab ich geladen|wohin fahr|wo muss ich hin|wie schnell darf|tempolimit|wie viel darf ich)", re.I)
+                 r"welche ladung|was hab ich geladen|wohin fahr|wo muss ich hin|wie schnell darf|tempolimit|wie viel darf ich|"
+                 r"tankstelle|tanken|schlafplatz|rastplatz|raststätte|parkplatz|wo kann ich schlafen|wo schlaf ich|merk dir)", re.I)
 
 
 def handle(command: str):
@@ -245,6 +383,16 @@ def handle(command: str):
     if not ASK.search(low):
         return None
     parts = []
+    t = LAST_T
+    if t is not None and re.search(r"merk dir", low) and re.search(r"tank|schlaf|rast|park", low):
+        art = "tank" if "tank" in low else "schlaf"
+        new = remember_place(art, t)
+        return ("Gemerkt." if new else "Die kenne ich schon.") + f" Ich kenne jetzt {sum(1 for o in ORTE['orte'] if o['art'] == art)} " + \
+            ("Tankstellen." if art == "tank" else "Schlafplätze.")
+    if t is not None and re.search(r"tankstelle|wo (kann ich )?tanken", low):
+        return _place_text("tank", t)
+    if t is not None and re.search(r"schlafplatz|rastplatz|raststätte|parkplatz|wo kann ich schlafen|wo schlaf ich", low):
+        return _place_text("schlaf", t)
     if re.search(r"wie weit|wie lange noch|wann bin ich da|wo muss ich hin|wohin", low):
         if s["rest_km"]:
             parts.append(f"Noch {s['rest_km']} Kilometer bis {s['nach'] or 'zum Ziel'}, etwa {_hm(s['rest_min'])} Fahrzeit.")

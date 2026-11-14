@@ -1,5 +1,5 @@
-{"stand": "2026-11-14 17:10", "neu": [
-  {"title": "Neuer Start", "text": "Lichtpunkte steigen auf, werden zur Kugel, dann baut sich das HUD auf. Testen: „Startanimation“."},
-  {"title": "Nur die Kugel", "text": "Im Fokus oben ◉ – Text und Eingabe gleiten weg."},
-  {"title": "Immer Fokus", "text": "Das HUD öffnet jetzt immer auf dem Fokus-Bildschirm."}
+{"stand": "2026-11-14 17:40", "neu": [
+  {"title": "ETS2: Tankstellen", "text": "Ich merke mir jede Tankstelle, an der du tankst, und sag dir bei leerem Tank die nächste."},
+  {"title": "ETS2: Schlafplätze", "text": "Wo du schläfst, merke ich mir – vor der Ruhezeit sag ich dir den nächsten."},
+  {"title": "Zwischenstopps", "text": "Wie lange du beim Rewe & Co. hältst, lernt das Handy – ich weiß es dann auch."}
 ]}
