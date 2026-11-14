@@ -544,6 +544,21 @@ class JarvisService : Service() {
     private fun onPcTask(m: JSONObject) {
         val id = m.optString("id")
         when (m.optString("kind")) {
+            "feed" -> worker.execute {   // PC-HUD: Mitteilungen (Briefings) zeigen
+                val ls = Feed.list(this); val list = org.json.JSONArray(); val items = JSONObject()
+                for (i in 0 until minOf(ls.length(), 25)) {
+                    val e = ls.optJSONObject(i) ?: continue
+                    list.put(e)
+                    if (items.length() < 8 && e.optString("kind") in setOf("morgen", "abend", "woche", "vorschau", "bilanz", "fahrt", "heimweg"))
+                        Feed.get(this, e.optString("id"))?.let { items.put(e.optString("id"), it) }
+                }
+                Link.replyPc(this, id, true, "", extra = JSONObject().put("list", list).put("items", items))
+            }
+            "feed_now" -> worker.execute {
+                val r = try { when (m.optString("what")) { "woche" -> Alltag.weekAhead(this); "rueckblick" -> Alltag.weekBack(this)
+                    "morgen" -> Alltag.eveningBrief(this); else -> Alltag.dayBrief(this, 0) } } catch (_: Exception) { null }
+                Link.replyPc(this, id, r != null, r?.first ?: "Ging gerade nicht.", extra = JSONObject().put("feed_id", r?.second ?: ""))
+            }
             "do" -> worker.execute {
                 val key = prefs.getString("groq_key", "") ?: ""
                 val text = m.optString("text")
