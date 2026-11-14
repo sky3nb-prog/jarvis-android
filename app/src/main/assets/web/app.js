@@ -301,7 +301,8 @@
       sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "20:00";
       sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
       sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "20:30";
-      sw("set-schlaftipp", c.schlaf_tipp !== false);       sw("set-bilanz", c.bilanz !== false); $("set-bilanzzeit").value = c.bilanz_zeit || "22:00";
+      sw("set-schlaftipp", c.schlaf_tipp !== false); sw("set-termerin", c.termin_erinnern !== false); $("set-termvor").value = c.termin_vorher != null ? c.termin_vorher : 15; rmList();
+      sw("set-bilanz", c.bilanz !== false); $("set-bilanzzeit").value = c.bilanz_zeit || "22:00";
       perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
       sw("wk-an", c.wecker_an !== false); $("wk-schule").value = (c.wecker_schule || "07:10").padStart(5, "0"); $("wk-we").value = c.wecker_we ? c.wecker_we.padStart(5, "0") : "";
       wkDays(c.wecker_tage || {});
@@ -402,6 +403,17 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  // --- Jarvis-Erinnerungen ---
+  function rmList() {
+    if (!A || !A.remindList) return;
+    let a = []; try { a = JSON.parse(A.remindList() || "[]"); } catch (e) {}
+    const when = (r) => r.at ? new Date(r.at).toLocaleString("de-DE", { weekday: "short", hour: "2-digit", minute: "2-digit" }) : (r.datum ? new Date(r.datum + "T12:00").toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" }) + " · ohne Uhrzeit" : "");
+    $("rm-list").innerHTML = a.length ? a.map((r) => `<div class="srow"><div>${r.text}<small>${when(r)}</small></div><div class="sbtn" data-rmdone="${r.id}">Erledigt</div></div>`).join("")
+      : '<div class="note" style="margin:0">Keine offenen Erinnerungen. Sag z. B. „Friday, erinnere mich um 12:30 an Brot“.</div>';
+    $("rm-list").querySelectorAll("[data-rmdone]").forEach((e) => e.addEventListener("click", () => { A.remindDone(e.dataset.rmdone); rmList(); }));
+  }
+  document.querySelectorAll("[data-calnotif]").forEach((e) => e.addEventListener("click", () => A && A.openCalNotif && A.openCalNotif(e.dataset.calnotif)));
+
   // --- Kleiderschrank ---
   let WS = null;
   const LAYERS = [["jacke", "🧥 JACKEN – DRÜBER", "#ffd678"], ["drunter", "👕 OBERTEILE – DRUNTER", "#6effcd"], ["mitte", "🧶 PULLIS & CO.", "#d7a8ff"], ["hose", "👖 HOSEN", "#3cc8ff"], ["extra", "🧢 EXTRAS", "#ff9a8a"]];
@@ -581,7 +593,7 @@
       brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "20:00",
       bi_wetter: sw("set-biwetter"), bi_anzieh: sw("set-bianzieh"), bi_termine: sw("set-bitermine"), bi_mitnehmen: sw("set-bimit"),
       rueckblick: sw("set-rueck"), rueckblick_zeit: $("set-rueckzeit").value || "20:30",
-      schlaf_tipp: sw("set-schlaftipp"),       bilanz: sw("set-bilanz"), bilanz_zeit: $("set-bilanzzeit").value || "22:00",
+      schlaf_tipp: sw("set-schlaftipp"), termin_erinnern: sw("set-termerin"), termin_vorher: +($("set-termvor").value || 15),       bilanz: sw("set-bilanz"), bilanz_zeit: $("set-bilanzzeit").value || "22:00",
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
     };

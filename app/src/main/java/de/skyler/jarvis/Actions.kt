@@ -49,7 +49,9 @@ class Actions(private val ctx: Context) {
             "search" -> url("https://www.google.com/search?q=" + Uri.encode(a.optString("query")))
             "torch" -> torch(a.optBoolean("on", true))
             "settings" -> settings(a.optString("what"))
-            "calendar_add" -> Cal.add(ctx, a)
+            "calendar_add" -> Cal.add(ctx, a.put("remind", -1))   // Erinnern macht Jarvis selbst (Remind.tick sieht den Termin)
+            "erinnerung" -> Remind.addSpoken(ctx, a.optString("text"), a.optString("datum").let { if (it == "null") "" else it },
+                a.optString("zeit").let { if (it == "null") "" else it }, a.optInt("in_minuten", 0))
             "calendar_list" -> Cal.list(ctx, a.optString("from"), a.optInt("days", 1))
             "calendar_delete" -> Cal.delete(ctx, a.optString("title"), a.optString("date"))
             "jarvis_volume" -> jarvisVolume(a.optString("what"), a.optInt("value", -1))

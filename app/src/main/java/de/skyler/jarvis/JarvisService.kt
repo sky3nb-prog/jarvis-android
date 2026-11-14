@@ -45,8 +45,15 @@ class JarvisService : Service() {
         const val ACTION_PAUSE = "de.skyler.jarvis.PAUSE" // Mikrofon kurz freigeben (z. B. für ElevenLabs)
         const val ACTION_RESUME = "de.skyler.jarvis.RESUME"
         const val ACTION_RELOAD = "de.skyler.jarvis.RELOAD"
+        const val ACTION_SAY = "de.skyler.jarvis.SAY"         // etwas laut sagen (Erinnerung zuhause), Text in "text"
         @Volatile var running = false
             private set
+
+        fun say(ctx: Context, text: String) {
+            if (!running) return
+            val i = Intent(ctx, JarvisService::class.java).setAction(ACTION_SAY).putExtra("text", text)
+            try { if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i) else ctx.startService(i) } catch (_: Exception) {}
+        }
 
         fun start(ctx: Context, action: String? = null) {
             val i = Intent(ctx, JarvisService::class.java)
@@ -196,6 +203,7 @@ class JarvisService : Service() {
             ACTION_PAUSE -> { paused = true; endTalk() }
             ACTION_RESUME -> paused = false
             ACTION_RELOAD -> { reload(); setupVoice(); syncNow(); startLocation() }
+            ACTION_SAY -> intent.getStringExtra("text")?.takeIf { it.isNotBlank() }?.let { announce(it) }
         }
         return START_STICKY
     }

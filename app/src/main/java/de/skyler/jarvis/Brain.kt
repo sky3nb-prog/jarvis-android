@@ -61,7 +61,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"wecker","zeiten":["HH:mm", …],"aus":false}   (nur wenn er GENAU sagt, wann es klingeln soll: "stell einen Wecker auf 6", "Wecker um 6:30 und 6:40"; aus true = Wecker ausschalten, zeiten leer = alle von Jarvis)
 {"action":"wecker_zeigen"}   ("zeig meine Wecker")
 {"action":"timer","seconds":<Sekunden>,"label":"<optional>"}   ("Timer auf 10 Minuten" – für Zeitspannen immer Timer, keinen Wecker)
-{"action":"calendar_add","title":"<Titel>","start":"<yyyy-MM-ddTHH:mm oder yyyy-MM-dd für ganztägig>","minutes":<Dauer, Standard 60>,"location":"<optional>","remind":<Minuten vorher erinnern, Standard 30>}   (trägt direkt in den Kalender ein; auch für "erinnere mich morgen um 9 an ..." mit remind 0)
+{"action":"calendar_add","title":"<Titel>","start":"<yyyy-MM-ddTHH:mm oder yyyy-MM-dd für ganztägig>","minutes":<Dauer, Standard 60>,"location":"<optional>","remind":<Minuten vorher erinnern, Standard 30>}   (trägt direkt in den Kalender ein – nur echte Termine; kleine Erinnerungen sind "erinnerung")
 {"action":"calendar_list","from":"<yyyy-MM-dd>","days":<Anzahl Tage>}   (Termine nachschauen, wenn die Frage über heute und morgen hinausgeht)
 {"action":"calendar_delete","title":"<Teil des Titels>","date":"<yyyy-MM-dd, optional>"}
 {"action":"route","text":"<der ganze Wegewunsch des Nutzers, wörtlich>"}   (für JEDE Frage nach Weg, Route, Dauer, "wann muss ich los", Bahn/Bus-Verbindung, auch mit Zwischenstopps wie Bäcker oder Supermarkt; plant smart und öffnet Google Maps)
@@ -77,6 +77,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"ort_erinnerung","ort":"<gespeicherter Ort wie Opa, oder zuhause>","text":"<woran erinnern>"}   ("erinnere mich, wenn ich bei Opa bin, an das Ladekabel", "wenn ich zu Opa fahre, denk an …", "Donnerstag bei Opa an … denken", "wenn ich heimkomme, erinnere mich an …")
 {"action":"briefing","tag":"heute" | "morgen"}   ("gib mir das Briefing", "was ist morgen los und was zieh ich an?")
 {"action":"rueckblick"}   ("wie war meine Woche?", "Wochenrückblick", die letzten 7 Tage)
+{"action":"erinnerung","text":"<woran, kurz, z. B. Brot holen>","datum":"yyyy-MM-dd oder null","zeit":"HH:mm oder null","in_minuten":<nur bei "in 20 Minuten", sonst 0>}   (IMMER für "erinnere mich um 12:30 an Brot", "erinnere mich in 20 Minuten an den Ofen", "morgen Brot holen", "denk dran, dass ich Montag das Formular abgeben muss" – NICHT in den Kalender. Ohne Uhrzeit: datum setzen, zeit null; Jarvis sucht die beste Gelegenheit. Zwischen 0 und 5 Uhr heißt "morgen" heute.)
 {"action":"statuscheck"}   ("Statuscheck", "Systemcheck", "laufen alle Systeme?", "ist alles okay mit dir?")
 {"action":"gesundheit","was":"heute" | "gestern" | "woche" | "schlaf" | "bilanz"}   ("wie viele Kalorien hab ich heute verbraucht?", "war ich im Defizit?", "wie aktiv war ich die Woche?", "wie hab ich geschlafen?", "Tagesbilanz") – Daten aus Samsung Health und der Schlaf-Erkennung, NIE raten
 {"action":"wochenvorschau"}   ("was steht nächste Woche an?", "Wochen-Update", die nächsten 7 Tage)

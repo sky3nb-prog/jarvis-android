@@ -26,8 +26,8 @@ object Termin {
         var low = text.lowercase().trim()
         low = low.replace(Regex("^(?:jarvis|friday|hey|okay|ok)[ ,]+"), "").replace(Regex("^(?:kannst du|könntest du|würdest du|bitte)\\s+(?:mir\\s+)?"), "")
         if (QUESTION.containsMatchIn(low) && !Regex("\\b(?:ein)?trag|einträg").containsMatchIn(low)) return false
-        return (WORD.containsMatchIn(low) && VERB.containsMatchIn(low)) || low.startsWith("neuer termin") ||
-            Regex("^(?:kannst du mich |du sollst mich )?erinner\\w* (?:mich|du mich)\\b").containsMatchIn(low)   // Erinnerungen auch in den Kalender (und an den PC)
+        // "Erinnere mich um 12:30 an Brot" ist KEIN Kalendertermin – das merkt sich Jarvis selbst (Aktion "erinnerung")
+        return (WORD.containsMatchIn(low) && VERB.containsMatchIn(low)) || low.startsWith("neuer termin")
     }
 
     class R(val say: String, val ok: Boolean, val title: String = "", val start: Long = 0, val remindAt: Long = 0)
@@ -72,7 +72,7 @@ Antworte NUR mit JSON:
         val a = JSONObject().put("title", title)
             .put("start", SimpleDateFormat(if (allDay) "yyyy-MM-dd" else "yyyy-MM-dd'T'HH:mm", de).format(Date(start)))
             .put("minutes", j.optInt("dauer_minuten", 60).coerceIn(5, 24 * 60))
-            .put("remind", if (allDay) (if (j.has("erinnern_vorher")) remind else -1) else remind)
+            .put("remind", -1)   // kein Kalender-Alarm: nur Jarvis erinnert
         j.optString("ort").takeIf { it.isNotBlank() && it != "null" }?.let { a.put("location", it) }
         val res = Cal.add(ctx, a)
         if (!res.startsWith("Eingetragen")) return R(res, false)
@@ -88,6 +88,9 @@ Antworte NUR mit JSON:
         val day = SimpleDateFormat("EEEE, d. MMMM", de).format(Date(start))
         val at = if (allDay) day else "$day um ${SimpleDateFormat("H:mm", de).format(Date(start))} Uhr"
         val remindAt = if (allDay) start + 9 * 3600_000L else start - remind * 60_000L   // ganztägig: um 9 Uhr am Tag
+        if (!allDay || j.has("erinnern_vorher")) try {   // Jarvis erinnert selbst (laut, auffällig); Kalender-Termine von anderen kommen über Remind.tick
+            Remind.add(ctx, "$title" + (if (allDay) "" else " um ${SimpleDateFormat("H:mm", de).format(Date(start))}"), remindAt, "", "termin")
+        } catch (_: Exception) {}
         val rem = when {
             allDay -> ""
             remind == 0 -> " Ich erinnere dich genau dann."

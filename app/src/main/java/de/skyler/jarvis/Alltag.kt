@@ -378,6 +378,7 @@ object Alltag {
         try { appUpdate(ctx, s) } catch (_: Exception) {}
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
         try { wardrobeAsk(ctx, s) } catch (_: Exception) {}
+        try { Remind.tick(ctx, s, s.optBoolean("is_home"), todayWege(ctx).isNotEmpty()) } catch (e: Exception) { Log.w(TAG, "erinnern: $e") }
         try {   // einmal am Tag still prüfen, nur bei Problemen eine Benachrichtigung
             val now = System.currentTimeMillis()
             if (now - s.optLong("syscheck_t") > 24 * 3_600_000L && Calendar.getInstance().get(Calendar.HOUR_OF_DAY) in 9..21) {
@@ -725,6 +726,18 @@ object Alltag {
         return base + day.filter { !it.optBoolean("aus") }.mapIndexedNotNull { i, o -> festOf(o, dow, "einmal$i") }
     }
 
+    /** Weg an einem Tag (yyyy-MM-dd): Name/Ziel oder null – für Erledigungen ohne Uhrzeit. */
+    fun wegOn(ctx: Context, d: String): String? {
+        val dow = Calendar.getInstance().apply { time = SimpleDateFormat("yyyy-MM-dd", de).parse(d) ?: Date() }.get(Calendar.DAY_OF_WEEK)
+        val day = list(einmalig(ctx)).filter { it.optString("datum") == d }
+        day.firstOrNull { !it.optBoolean("aus") }?.let { return it.optString("name").ifBlank { it.optString("ziel") } }
+        if (day.any { it.optBoolean("aus") }) return null
+        return festeWege(ctx).firstOrNull { it.day == dow }?.let { it.label }
+    }
+
+    /** Bin ich gerade zuhause? (letzte Erkennung) */
+    fun isHome(ctx: Context): Boolean = state(ctx).optBoolean("is_home", false)
+
     /** Per Sprache: "heute will ich um 19 Uhr zuhause sein", "heute fahr ich nicht zu Opa", "morgen um 14 Uhr zur Musikschule". */
     fun setToday(ctx: Context, ziel: String, los: String, zuhause: String, aus: Boolean, datum: String = ""): String {
         val d = datum.ifBlank { today() }
@@ -765,8 +778,9 @@ object Alltag {
     private fun remindersFor(ctx: Context, place: String): List<String> {
         val a = try { JSONArray(prefs(ctx).getString("ort_erinnerungen", "[]")) } catch (_: Exception) { return emptyList() }
         val p = Chats.norm(place)
+        val errands = try { if (todayWege(ctx).any { near(it.label, place) || near(it.to, place) }) Remind.errands(ctx, today()).map { it.optString("text") } else emptyList() } catch (_: Exception) { emptyList() }
         return list(a).filter { o -> val w = Chats.norm(o.optString("ort")); w.isNotBlank() && (w == p || p.contains(w) || w.contains(p) && p.length >= 3) }
-            .map { it.optString("text") }
+            .map { it.optString("text") } + errands
     }
 
     /**

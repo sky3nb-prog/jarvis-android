@@ -310,7 +310,8 @@ class MainActivity : ComponentActivity() {
             .put("anzieh", prefs.getString("anzieh", "").let { if (it.isNullOrBlank()) Alltag.ANZIEH_DEFAULT else it })
             .put("brief_morgen", prefs.getBoolean("brief_morgen", true)).put("brief_abend", prefs.getBoolean("brief_abend", true))
             .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "20:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
-            .put("bilanz", prefs.getBoolean("bilanz", true)).put("schlaf_tipp", prefs.getBoolean("schlaf_tipp", true)).put("bilanz_zeit", prefs.getString("bilanz_zeit", "22:00"))
+            .put("bilanz", prefs.getBoolean("bilanz", true)).put("schlaf_tipp", prefs.getBoolean("schlaf_tipp", true))
+            .put("termin_erinnern", prefs.getBoolean("termin_erinnern", true)).put("termin_vorher", prefs.getInt("termin_vorher", 15)).put("bilanz_zeit", prefs.getString("bilanz_zeit", "22:00"))
             .put("rueckblick_zeit", prefs.getString("rueckblick_zeit", "20:30"))
             .put("wecker_an", prefs.getBoolean("wecker_an", true)).put("wecker_schule", prefs.getString("wecker_schule", "7:10"))
             .put("wecker_we", prefs.getString("wecker_we", "")).put("wecker_vorher", Wecker.offsets(this@MainActivity).joinToString(", "))
@@ -350,7 +351,8 @@ class MainActivity : ComponentActivity() {
                 .putBoolean("brief_morgen", o.optBoolean("brief_morgen", true)).putBoolean("brief_abend", o.optBoolean("brief_abend", true))
                 .putString("brief_abend_zeit", o.optString("brief_abend_zeit", "20:00").trim().ifBlank { "20:00" })
                 .putBoolean("rueckblick", o.optBoolean("rueckblick", true))
-                .putBoolean("bilanz", o.optBoolean("bilanz", true)).putBoolean("schlaf_tipp", o.optBoolean("schlaf_tipp", true)).putString("bilanz_zeit", o.optString("bilanz_zeit", "22:00").trim().ifBlank { "22:00" })
+                .putBoolean("bilanz", o.optBoolean("bilanz", true)).putBoolean("schlaf_tipp", o.optBoolean("schlaf_tipp", true))
+                .putBoolean("termin_erinnern", o.optBoolean("termin_erinnern", true)).putInt("termin_vorher", o.optInt("termin_vorher", 15).coerceIn(0, 180)).putString("bilanz_zeit", o.optString("bilanz_zeit", "22:00").trim().ifBlank { "22:00" })
                 .putString("rueckblick_zeit", o.optString("rueckblick_zeit", "20:30").trim().ifBlank { "20:30" })
                 .putBoolean("wecker_an", o.optBoolean("wecker_an", true)).putString("wecker_schule", o.optString("wecker_schule").trim())
                 .putString("wecker_we", o.optString("wecker_we").trim()).putString("wecker_vorher", o.optString("wecker_vorher").trim().ifBlank { Wecker.VORHER_DEFAULT })
@@ -459,6 +461,25 @@ class MainActivity : ComponentActivity() {
                 .put("schlaf", Sleep.night(this@MainActivity, 0) ?: JSONObject.NULL)
                 .put("touch", ScreenService.enabled()).toString()
         } catch (e: Exception) { JSONObject().put("error", e.toString()).toString() }
+
+        /** Jarvis-Erinnerungen (Liste in den Einstellungen) */
+        @JavascriptInterface
+        fun remindList(): String = org.json.JSONArray(
+            (0 until Remind.all(this@MainActivity).length()).map { Remind.all(this@MainActivity).getJSONObject(it) }.filter { !it.optBoolean("done") && it.optString("kind") != "termin" }
+        ).toString()
+
+        @JavascriptInterface
+        fun remindDone(id: String) = Remind.done(this@MainActivity, id)
+
+        @JavascriptInterface
+        fun openCalNotif(want: String) = runOnUiThread {   // Benachrichtigungen der Kalender-App/TimeTree ausschalten (Android-Einstellungen der App)
+            val pkg = try { packageManager.getPackageInfo(want, 0); want } catch (_: Exception) {
+                val key = if (want.contains("timetree")) "timetree" else if (want.contains("samsung")) "samsung.android.calendar" else "calendar"
+                packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
+                    .map { it.activityInfo.packageName }.firstOrNull { it.lowercase().contains(key) } ?: want }
+            try { startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            catch (_: Exception) { try { startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {} }
+        }
 
         /** Kleiderschrank */
         @JavascriptInterface
