@@ -424,6 +424,30 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun feedGet(id: String): String { Vorschlag.usedFeed(this@MainActivity, id); return Feed.get(this@MainActivity, id)?.toString() ?: "null" }
 
+        /** Test-SMS an eine Person aus den Kontakten. */
+        @JavascriptInterface
+        fun testSms(wer: String): String {
+            val w = wer.trim().ifBlank { return "Wem soll ich die Test-SMS schicken?" }
+            val nr = Actions(this@MainActivity).number(w) ?: return "„$w“ finde ich nicht in deinen Kontakten."
+            val ok = Butler.sms(this@MainActivity, nr, "Hier ist Jarvis, das ist nur ein Test.")
+            return if (ok) "Test-SMS an $w ist raus." else "Die SMS ging nicht raus – erlaube SMS in den Einstellungen unter Leute."
+        }
+
+        @JavascriptInterface
+        fun getGassi(): String = JSONObject().put("an", Gassi.on(this@MainActivity)).put("sms", Gassi.smsOn(this@MainActivity))
+            .put("wer", Gassi.who(this@MainActivity)).put("text", Gassi.text(this@MainActivity)).toString()
+
+        @JavascriptInterface
+        fun setGassi(an: Boolean, sms: Boolean, wer: String, text: String) {
+            prefs.edit().putBoolean("gassi_an", an).putBoolean("gassi_sms", sms).putString("gassi_wer", wer.trim()).putString("gassi_text", text.trim()).apply()
+        }
+
+        @JavascriptInterface
+        fun gassiTestSms(): String = Gassi.send(this@MainActivity, true)
+
+        @JavascriptInterface
+        fun gassiStatus(): String = Gassi.status(this@MainActivity)
+
         @JavascriptInterface
         fun lernInfo(): String = Vorschlag.paused(this@MainActivity)
 

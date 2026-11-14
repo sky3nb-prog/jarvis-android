@@ -404,6 +404,14 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  // Gassi + SMS-Tests (sofort gespeichert)
+  try { const g = JSON.parse(A.getGassi() || "{}"); sw("gs-an", !!g.an); sw("gs-sms", !!g.sms); $("gs-wer").value = g.wer || "Mama"; $("gs-text").value = g.text || ""; } catch (e) {}
+  const saveGassi = () => { try { A.setGassi($("gs-an").classList.contains("on"), $("gs-sms").classList.contains("on"), $("gs-wer").value, $("gs-text").value); } catch (e) {} };
+  ["gs-an", "gs-sms"].forEach((id) => $(id).addEventListener("click", () => setTimeout(saveGassi, 50)));
+  ["gs-wer", "gs-text"].forEach((id) => $(id).addEventListener("change", saveGassi));
+  $("gs-test").addEventListener("click", () => { saveGassi(); toast(A.gassiTestSms()); });
+  $("gs-infobtn").addEventListener("click", () => { $("gs-info").textContent = A.gassiStatus(); });
+  $("tst-sms").addEventListener("click", () => toast(A.testSms($("tst-smswer").value || "")));
   $("lern-btn").addEventListener("click", () => { try { $("lern-info").textContent = A.lernInfo(); } catch (e) {} });
   $("lern-reset").addEventListener("click", () => { try { A.lernReset(); $("lern-info").textContent = A.lernInfo(); toast("Alles wieder an."); } catch (e) {} });
   $("set-testbahn").addEventListener("click", () => { A.testBahnZiel(($("bahn-ziel").value || "").trim()); toast("Ich suche die Verbindung beim VVS …"); });

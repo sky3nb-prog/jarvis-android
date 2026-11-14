@@ -438,6 +438,7 @@ object Alltag {
         try { homeAndAway(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "zuhause: $e") }
         try { arrival(ctx, s) } catch (e: Exception) { Log.w(TAG, "ankunft: $e") }
         try { Halte.tick(ctx, fix, isHome(ctx)) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
+        try { Gassi.tick(ctx, fix, isHome(ctx)) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
         try { leaveInTime(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "losfahren: $e") }
         try { routines(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "feste wege: $e") }
         try { alarms(ctx, s) } catch (_: Exception) {}
@@ -931,14 +932,13 @@ object Alltag {
         val art = prefs(ctx).getString("ticket_art", "erwachsen") ?: "erwachsen"
         o.put("rad", b.rad).put("bike1", b.bike1).put("bike2", b.bike2).put("dest_stop", b.destStop)
         if (art == "abo") { o.put("ticket", "Dein Abo gilt"); return " Dein Abo gilt." }
-        if (b.ticket.isBlank()) return ""
         val price = if (b.price > 0) " für ${"%.2f".format(Locale.GERMANY, b.price)} €" else ""
-        o.put("ticket", b.ticket.trim()).put("price", b.price)
+        o.put("ticket", b.ticket.trim().ifBlank { "EinzelTicket (Preis siehst du in der App)" }).put("price", b.price)
         val app = prefs(ctx).getString("ticket_app", "vvs") ?: "vvs"
         if (app == "db") o.put("buy_app", "DB Navigator").put("buy", "https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=" + Uri.encode(b.stop) + "&zo=" + Uri.encode(b.destStop.ifBlank { o.optString("ziel_name") }) +
             "&kl=2&hd=" + Uri.encode(SimpleDateFormat("yyyy-MM-dd'T'HH:mm:00", de).format(Date(b.rideDep))) + "&hza=D")
         else o.put("buy_app", "VVS Mobil").put("buy", "app:com.mentz.vvsmobile")
-        return " Ticket: ${b.ticket}$price – von ${b.stop}${if (b.destStop.isNotBlank()) " nach ${b.destStop}" else ""}, tipp in der Mitteilung auf „Ticket kaufen“ (${o.optString("buy_app")})."
+        return " Ticket: ${b.ticket.ifBlank { "EinzelTicket" }}$price – von ${b.stop}${if (b.destStop.isNotBlank()) " nach ${b.destStop}" else ""}, tipp in der Mitteilung auf „Ticket kaufen“ (${o.optString("buy_app")})."
     }
 
     private fun tripPlan(ctx: Context, from: Route.P, dest: Route.P, leave: Long, name: String, vehicle: String = "ebike", bahnPolicy: String = "regen"): JSONObject {

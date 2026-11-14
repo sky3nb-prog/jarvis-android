@@ -46,6 +46,7 @@ Antworten kurz und gesprochen (1 bis 2 Sätze), Deutsch, keine Listen, keine Son
 RATGEBER: Bittet er dich um Rat (Streit in einer Gruppe, "was soll ich machen", "wie soll ich entscheiden", Ärger mit jemandem, schwierige Entscheidung), dann bist du ein fairer, ruhiger Ratgeber und darfst 4 bis 8 Sätze sagen: fehlt Wichtiges, zuerst höchstens zwei kurze Rückfragen; sonst kurz zusammenfassen, beide Seiten fair betrachten, zwei bis drei Möglichkeiten mit Vor- und Nachteilen, eine klare Empfehlung, und anbieten, eine Nachricht vorzuschreiben. Kein Witz dabei. Es ist $now (ISO: $iso).
 $cal
 ${try { Halte.summary(ctx) } catch (_: Exception) { "" }}
+${try { Gassi.summary(ctx) } catch (_: Exception) { "" }}
 ${Memory.block(ctx)}
 ${Interests.block(ctx)}
 ${snap.optJSONObject("pc_media")?.let { pm -> val m = pm.optJSONArray("music"); if (m == null || m.length() == 0) "" else "Am PC hört er vor allem: " + (0 until m.length()).joinToString(", ") { m.optString(it) } + "." } ?: ""}

@@ -404,8 +404,11 @@ Antworte NUR mit dem JSON."""
             // Ticket aus dem VVS-Tarif: EinzelTicket (Handy-Preis, ohne "Automat") für Erwachsene bzw. Kind
             val tk = js.optJSONObject(i)?.optJSONObject("fare")?.optJSONArray("tickets")
             val want = if (ticketArt == "kind") "CHILD" else "ADULT"
-            val ticket = tk?.let { a -> (0 until a.length()).map { a.getJSONObject(it) }.firstOrNull { t ->
-                t.optString("person") == want && t.optString("name").startsWith("EinzelTicket") && !t.optString("name").contains("Automat") } }
+            // Kurze Strecken: dann gibt es nur das KurzstreckenTicket (günstiger) statt EinzelTicket
+            val ticket = tk?.let { a -> (0 until a.length()).map { a.getJSONObject(it) }.filter { t ->
+                t.optString("person") == want && !t.optString("name").contains("Automat") &&
+                    (t.optString("name").startsWith("EinzelTicket") || t.optString("name").startsWith("Kurzstrecken")) }
+                .minByOrNull { it.optDouble("priceBrutto", 99.0) } }
             val lastRide = (0 until legs.length()).mapNotNull { legs.optJSONObject(it) }.lastOrNull { l -> (l.optJSONObject("transportation")?.optJSONObject("product")?.optInt("class", 100) ?: 100) < 97 }
             Trip(dep, arr, lineAll, ride.optJSONObject("origin")?.optString("name") ?: "der Haltestelle", time(ride.optJSONObject("origin"), "departureTime") ?: dep,
                 ticket?.optString("name") ?: "", ticket?.optDouble("priceBrutto", 0.0) ?: 0.0, lastRide?.optJSONObject("destination")?.optString("name") ?: "")
