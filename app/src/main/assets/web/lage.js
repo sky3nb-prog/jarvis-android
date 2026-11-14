@@ -331,6 +331,7 @@
 
   // ---------- Schnittstelle für app.js ----------
   window.JLage = {
+    map() { return map; },
     shown() { init(); if (map) setTimeout(() => map.resize(), 50); if (!data) load(false); else homeMarkers(); },
     onData(d, tour) {
       const fuer = d.ort === "Für dich";
