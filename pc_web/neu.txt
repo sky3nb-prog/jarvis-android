@@ -1,0 +1,7 @@
+{"stand": "2026-11-14 14:20", "neu": [
+  {"title": "Iron-Man-Start", "text": "Nach dem Anmelden starte ich mit Hologramm. Testen: „Startanimation“."},
+  {"title": "Systemcheck", "text": "Sag „Statuscheck“ – oben im HUD: SYSTEME."},
+  {"title": "Mitteilungen im HUD", "text": "Die Glocke oben zeigt deine Briefings vom Handy."},
+  {"title": "Routinen", "text": "„Gaming-Modus“, „Schulmodus“, „Gute Nacht“."},
+  {"title": "Ich melde mich selbst", "text": "Volle Festplatte, heiße Grafikkarte, neue Videos von Laser Luca, Steam-Angebote."}
+]}

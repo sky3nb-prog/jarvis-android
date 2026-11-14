@@ -2126,7 +2126,7 @@ def main():
         def _new_features():   # neue Fähigkeiten aus pc_web/neu.json in der Kugel zeigen
             try:
                 import json as _j
-                with open(os.path.join(pc_webhud.web_dir(), "neu.json"), encoding="utf-8") as f:
+                with open(os.path.join(pc_webhud.web_dir(), "neu.txt"), encoding="utf-8") as f:
                     for it in _j.load(f).get("neu", [])[:5]:
                         if getattr(ui, "web", None):
                             ui.web.push("skill", {"title": it.get("title", ""), "text": it.get("text", ""), "kind": "funktion"})
