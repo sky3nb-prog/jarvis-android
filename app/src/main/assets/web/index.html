@@ -15,6 +15,7 @@
   <section id="v-fokus" class="view active">
     <div class="switch on" id="powerbtn" role="switch" aria-label="Jarvis an oder aus"><span class="knob"></span></div>
     <div class="roundbtn feedbtn" id="feedbtn-f" title="Mitteilungen">🔔<i class="fdot"></i></div>
+    <div class="roundbtn cleanbtn" id="cleanbtn" title="Nur die Kugel">◉</div>
     <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Jarvis zu reden</div>
     <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
     <div class="name">J.A.R.V.I.S.</div>
@@ -433,5 +434,13 @@
 <script src="skill.js"></script>
 <script src="neu.js"></script>
 <script>(function(){const J=window.jarvis;if(!J)return;const prev=J.onEvent;J.onEvent=function(t,d){if(t==="skill"){window.JSkill&&JSkill.show(d||{});return;}return prev&&prev.call(J,t,d);};setTimeout(function(){try{const N=window.JNEU;let seen="";try{seen=localStorage.getItem("neu_seen")||"";}catch(e){}if(N&&seen!==N.stand){N.neu.forEach(function(x){JSkill.show({title:x.title,text:x.text,kind:"funktion"});});try{localStorage.setItem("neu_seen",N.stand);}catch(e){}}}catch(e){}},2500);})();</script>
+<script>
+(function(){ // Nur-Kugel-Modus im Fokus: Text, Gesprächsknopf und Schreibfeld gleiten nach unten weg
+  var b=document.getElementById("cleanbtn"); if(!b) return;
+  function set(on){ document.body.classList.toggle("clean",on); b.classList.toggle("on",on); try{localStorage.setItem("hud_clean",on?"1":"")}catch(e){} }
+  try{ set(localStorage.getItem("hud_clean")==="1") }catch(e){}
+  b.addEventListener("click",function(e){ e.stopPropagation(); set(!document.body.classList.contains("clean")) });
+})();
+</script>
 </body>
 </html>
