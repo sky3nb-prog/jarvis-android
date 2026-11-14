@@ -559,6 +559,17 @@ def handle_fixed(text: str):
     if intent:
         return request_power(intent)
 
+    # Systemcheck: "Statuscheck", "Systemcheck", "laufen alle Systeme?"
+    if re.search(r"status ?check|system ?check|system ?status|alle systeme|diagnose", low) and len(low.split()) <= 8:
+        import pc_systemcheck
+        items = pc_systemcheck.run()
+        if pc_systemcheck.ON_RESULT:
+            try:
+                pc_systemcheck.ON_RESULT(items)
+            except Exception:
+                pass
+        return pc_systemcheck.summary(items)
+
     # Selbst-Update: "such nach Updates", "gibt es ein Update?", "update dich", "installier das Update"
     if re.search(r"\bupdates?\b|aktualisier", low) and len(low.split()) <= 8:
         import pc_update, pc_nachrichten

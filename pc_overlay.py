@@ -2090,6 +2090,10 @@ def main():
                                           0 if on else 4000, glow=True, log=True)
     pc_fern.start(stop)  # HUD, Webcam und Handy-Kamera über Tailscale
     pc_nachrichten.ON_QUIT = shutdown
+    import pc_systemcheck
+    pc_systemcheck.SETTINGS = lambda: ui.settings
+    pc_systemcheck.ON_RESULT = lambda items: ui.web.push("syscheck", {"items": items, "text": pc_systemcheck.summary(items)}) if getattr(ui, "web", None) else None
+    pc_systemcheck.start_daily(lambda t: pc_nachrichten.incoming({"kind": "say", "text": "Kurzer Systemcheck: " + t}))
     if "--nach-update" in sys.argv:
         pc_nachrichten.incoming({"kind": "say", "force": True, "text": f"Update installiert. Ich bin wieder da, Stand {VERSION}."})
     pc_update.start(lambda: pc_nachrichten.incoming({"kind": "offer", "action": "update", "title": "Update",

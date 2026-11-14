@@ -339,6 +339,11 @@ class WebHud:
         if name == "phonecam":
             import pc_fern
             return {"live": time.time() - pc_fern.PHONE_FRAME["t"] < 4}
+        if name == "syscheck":   # Statusseite: grüne/rote Punkte (frisch prüfen, wenn älter als 2 Min. oder ?neu=1)
+            import pc_systemcheck
+            if qs.get("neu") or time.time() - pc_systemcheck.LAST["t"] > 120:
+                pc_systemcheck.run()
+            return {"t": pc_systemcheck.LAST["t"], "items": pc_systemcheck.LAST["items"], "text": pc_systemcheck.summary()}
         if name == "ets2":   # Fahrtenseite (ETS2-Beifahrer)
             import pc_ets2
             return pc_ets2.STATE
