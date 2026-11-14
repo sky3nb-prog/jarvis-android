@@ -140,11 +140,17 @@ object Alltag {
     private fun checkIn(ctx: Context, s: JSONObject) {
         if (!on(ctx, "melden")) return
         val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY)
-        val slot = 16 + (today().hashCode() and 0x7fffffff) % 4   // jeden Tag eine andere Stunde zwischen 16 und 19 Uhr
-        if (h < slot || h >= 20 || done(s, "melden|${today()}") || !Vorschlag.allowed(ctx, "persoenlich")) return
+        // zwei Gelegenheiten am Tag: mittags (12–15 Uhr) und abends (16–20 Uhr), jeweils zu einer anderen Stunde
+        val r = (today().hashCode() and 0x7fffffff)
+        val mid = 12 + r % 3; val eve = 16 + (r / 3) % 4
+        val slotKey = when { h in mid..14 && !done(s, "melden1|${today()}") -> "melden1|${today()}"; h in eve..19 && !done(s, "melden|${today()}") -> "melden|${today()}"; else -> return }
+        if (!Vorschlag.allowed(ctx, "persoenlich")) return
         val now = System.currentTimeMillis()
         val dayStart = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
         val obs = mutableListOf<String>()
+        // an Sachen von gestern anknüpfen ("Gestern war Elternsprechtag – wie lief's?")
+        try { Cal.events(ctx, dayStart - 86_400_000L, dayStart).firstOrNull { Regex("(?i)klassenarbeit|klausur|test|prüfung|arzt|elternsprechtag|referat|präsentation|geburtstag|party|treffen|training|spiel|turnier").containsMatchIn(it.title) }
+            ?.let { obs.add("Gestern war „${it.title}“ – frag interessiert und persönlich, wie es gelaufen ist") } } catch (_: Exception) {}
         Memory.upcoming(ctx).split("; ").firstOrNull { it.contains("morgen") || Regex("in [23] Tagen").containsMatchIn(it) }?.takeIf { it.isNotBlank() }
             ?.let { obs.add("Bald ist etwas Wichtiges: $it (vielleicht an ein Geschenk oder eine Nachricht denken)") }
         festeWege(ctx).firstOrNull()?.let { f ->
@@ -162,14 +168,18 @@ object Alltag {
         if (mood != null && mood.optDouble("score") <= -0.5) {   // eher schlechter Tag: keine Vorschläge, nur kurz da sein
             obs.clear(); obs.add("Er scheint heute ${mood.optString("label")} zu sein (${(0 until (mood.optJSONArray("why")?.length() ?: 0)).joinToString(", ") { mood.getJSONArray("why").optString(it) }}). Frag behutsam, wie sein Tag war, KEIN Vorschlag, keine Aufgabe")
         }
+        val usedToday = s.optString("melden_was|${today()}")
+        obs.removeAll { it.take(25) == usedToday }   // nicht zweimal am Tag dasselbe
         if (obs.isEmpty()) return
-        mark(s, "melden|${today()}")
+        mark(s, slotKey)
         val what = obs.first()
+        s.put("melden_was|${today()}", what.take(25))
         Thread({
             var text = when {
                 what.startsWith("Bald") -> "Kleine Erinnerung: ${what.substringAfter(": ").substringBefore(" (")} – soll ich dir helfen, was vorzubereiten?"
                 what.contains("nicht mehr bei") -> "Sag mal, du warst schon eine Weile nicht mehr bei ${festeWege(ctx).firstOrNull()?.label ?: "Oma und Opa"}. Lust, mal wieder vorbeizuschauen?"
                 what.startsWith("Er scheint") -> "Hey, alles okay bei dir? Klang nach einem langen Tag. Wenn du reden willst, ich bin da."
+                what.startsWith("Gestern war") -> "Sag mal, gestern war ${what.substringAfter("„").substringBefore("“")} – wie ist es gelaufen?"
                 what.contains("draußen") -> "Du warst heute noch gar nicht draußen. Kurz an die frische Luft?"
                 else -> "Heute war noch keine Hunderunde – der Hund freut sich bestimmt."
             }
