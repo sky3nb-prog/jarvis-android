@@ -88,6 +88,7 @@ import pc_news
 import pc_handy
 import pc_nachrichten
 import pc_ets2
+import pc_update
 import pc_fern
 import pc_sehen
 import pc_media
@@ -2014,7 +2015,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 03:45"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 12:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -2088,6 +2089,11 @@ def main():
     pc_fern.ON_WATCH = lambda on: ui.post("Fernzugriff", "Die Webcam wird gerade von unterwegs angesehen." if on else "Webcam aus.",
                                           0 if on else 4000, glow=True, log=True)
     pc_fern.start(stop)  # HUD, Webcam und Handy-Kamera über Tailscale
+    pc_nachrichten.ON_QUIT = shutdown
+    if "--nach-update" in sys.argv:
+        pc_nachrichten.incoming({"kind": "say", "force": True, "text": f"Update installiert. Ich bin wieder da, Stand {VERSION}."})
+    pc_update.start(lambda: pc_nachrichten.incoming({"kind": "offer", "action": "update", "title": "Update",
+                                                     "question": "Ein Update für mich ist fertig. Soll ich kurz neu starten?"}))
     pc_media.start(stop)  # mitschreiben, was du hörst und schaust (für deine Interessen)
     threading.Thread(target=assistant_runner, args=(ui, stop, shutdown), daemon=True).start()
     try:

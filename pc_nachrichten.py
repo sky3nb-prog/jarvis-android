@@ -21,7 +21,8 @@ import threading
 import time
 
 PENDING = None            # aktuelle Nachricht + Gesprächsstand
-ON_SHOW = None            # vom Programm gesetzt: längeren Text im HUD zeigen (Wochenrückblick)
+ON_SHOW = None
+ON_QUIT = None   # vom Programm gesetzt: Programm beenden (Neustart nach einem Update)
 ON_STATUS = None          # vom Programm gesetzt: kurze Zwischenmeldung ("Einen Moment …") anzeigen und sagen
 _announce = []            # Nachrichten, die noch angesagt werden müssen
 _lock = threading.Lock()
@@ -254,6 +255,9 @@ def handle(text: str):
             if m.get("action") == "shutdown":
                 import pc_alltag
                 return pc_alltag.shutdown_sequence()
+            if m.get("action") == "update" and ON_QUIT:
+                import pc_update
+                return pc_update.restart(ON_QUIT)
             if ON_SHOW and m.get("text"):
                 try:
                     ON_SHOW(m.get("title") or "Jarvis", m["text"])
@@ -262,7 +266,7 @@ def handle(text: str):
             return m.get("text") or "Okay."
         if NO.match(low):
             PENDING = None
-            return "Okay, " + ("der PC bleibt an." if m.get("action") == "shutdown" else "später.")
+            return "Okay, " + ("der PC bleibt an." if m.get("action") == "shutdown" else "dann beim nächsten Mal." if m.get("action") == "update" else "später.")
         return None
     # "antworte/schreib ihm: …" – Rest ist entweder der Text oder ein Wunsch ("auf Altdeutsch")
     direct = re.match(r"^(?:dann\s+|ok(?:ay)?\s+|ja\s+)?(?:antworte|antwort|schreib|schreibe|sag|sende)\w*\s*(?:ihm|ihr|ihnen|zurück)?\s*[:,]?\s+(.{2,})$",

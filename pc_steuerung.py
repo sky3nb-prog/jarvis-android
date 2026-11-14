@@ -559,6 +559,14 @@ def handle_fixed(text: str):
     if intent:
         return request_power(intent)
 
+    # Selbst-Update: "such nach Updates", "gibt es ein Update?", "update dich", "installier das Update"
+    if re.search(r"\bupdates?\b|aktualisier", low) and len(low.split()) <= 8:
+        import pc_update, pc_nachrichten
+        if pc_update._state.get("ready") and re.search(r"install|neu ?start|mach|jetzt|starte", low) and pc_nachrichten.ON_QUIT:
+            return pc_update.restart(pc_nachrichten.ON_QUIT)
+        return pc_update.check_now(lambda: pc_nachrichten.incoming({"kind": "offer", "action": "update", "title": "Update", "force": True,
+                                                                     "question": "Das Update ist fertig. Soll ich kurz neu starten?"}))
+
     # Lautstärke einzelner Kanäle in Elgato Wave Link ("Musik lauter", "Discord leiser", "mach mich lauter")
     if len(low.split()) <= 9:
         try:
