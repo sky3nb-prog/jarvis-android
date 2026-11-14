@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Jarvis darf auf Kommando ("Schau mal hier") ein Bildschirmfoto machen. Er liest sonst nichts mit. -->
+<!-- Jarvis darf auf Kommando ("Schau mal hier") ein Bildschirmfoto machen. Sonst merkt er sich nur den Zeitpunkt der letzten Berührung (Schlaf). -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewClicked|typeViewLongClicked|typeViewScrolled|typeViewTextChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:notificationTimeout="1000"
+    android:notificationTimeout="5000"
     android:canRetrieveWindowContent="false"
     android:canTakeScreenshot="true"
     android:description="@string/screen_desc" />

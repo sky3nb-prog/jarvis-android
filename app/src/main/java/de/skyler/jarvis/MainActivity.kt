@@ -49,6 +49,11 @@ class MainActivity : ComponentActivity() {
         else send("info", JSONObject().put("text", "Ohne Standort-Erlaubnis nutze ich deinen Wohnort."))
     }
 
+    // Samsung Health über Health Connect: Lese-Rechte anfragen
+    private val healthPerm = registerForActivityResult(androidx.health.connect.client.PermissionController.createRequestPermissionResultContract()) { got ->
+        send("health", JSONObject().put("connected", got.any { it in Health.PERMS }).put("all", got.containsAll(Health.PERMS)))
+    }
+
     private fun hasMic() = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     private val busListener: (String, JSONObject) -> Unit = { type, data ->
@@ -303,6 +308,7 @@ class MainActivity : ComponentActivity() {
             .put("anzieh", prefs.getString("anzieh", "").let { if (it.isNullOrBlank()) Alltag.ANZIEH_DEFAULT else it })
             .put("brief_morgen", prefs.getBoolean("brief_morgen", true)).put("brief_abend", prefs.getBoolean("brief_abend", true))
             .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "21:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
+            .put("bilanz", prefs.getBoolean("bilanz", true)).put("bilanz_zeit", prefs.getString("bilanz_zeit", "22:00"))
             .put("rueckblick_zeit", prefs.getString("rueckblick_zeit", "18:00"))
             .put("wecker_an", prefs.getBoolean("wecker_an", true)).put("wecker_schule", prefs.getString("wecker_schule", "7:10"))
             .put("wecker_we", prefs.getString("wecker_we", "")).put("wecker_vorher", Wecker.offsets(this@MainActivity).joinToString(", "))
@@ -342,6 +348,7 @@ class MainActivity : ComponentActivity() {
                 .putBoolean("brief_morgen", o.optBoolean("brief_morgen", true)).putBoolean("brief_abend", o.optBoolean("brief_abend", true))
                 .putString("brief_abend_zeit", o.optString("brief_abend_zeit", "21:00").trim().ifBlank { "21:00" })
                 .putBoolean("rueckblick", o.optBoolean("rueckblick", true))
+                .putBoolean("bilanz", o.optBoolean("bilanz", true)).putString("bilanz_zeit", o.optString("bilanz_zeit", "22:00").trim().ifBlank { "22:00" })
                 .putString("rueckblick_zeit", o.optString("rueckblick_zeit", "18:00").trim().ifBlank { "18:00" })
                 .putBoolean("wecker_an", o.optBoolean("wecker_an", true)).putString("wecker_schule", o.optString("wecker_schule").trim())
                 .putString("wecker_we", o.optString("wecker_we").trim()).putString("wecker_vorher", o.optString("wecker_vorher").trim().ifBlank { Wecker.VORHER_DEFAULT })
@@ -418,13 +425,38 @@ class MainActivity : ComponentActivity() {
         fun feedNow(kind: String) {
             Thread({
                 val r = try {
-                    when (kind) { "woche" -> Alltag.weekAhead(this@MainActivity); "rueckblick" -> Alltag.weekBack(this@MainActivity)
+                    when (kind) { "woche" -> Alltag.weekAhead(this@MainActivity); "rueckblick" -> Alltag.weekBack(this@MainActivity); "bilanz" -> Alltag.dayHealth(this@MainActivity)
                         "morgen" -> Alltag.dayBrief(this@MainActivity, 1); else -> Alltag.dayBrief(this@MainActivity, 0) }
                 } catch (_: Exception) { null }
                 if (r != null) send("feed_open", JSONObject().put("id", r.second))
                 else send("info", JSONObject().put("text", "Das Update ging gerade nicht (Groq-Schlüssel? Internet?)."))
             }, "jarvis-feed").start()
         }
+
+        /** Gesundheit: Health Connect verbinden (Samsung Health muss dort "Daten teilen" an haben). */
+        @JavascriptInterface
+        fun healthConnect() = runOnUiThread {
+            when (Health.status(this@MainActivity)) {
+                androidx.health.connect.client.HealthConnectClient.SDK_AVAILABLE -> try { healthPerm.launch(Health.PERMS) } catch (_: Exception) { Health.openSettings(this@MainActivity) }
+                androidx.health.connect.client.HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> Health.openStore(this@MainActivity)
+                else -> send("info", JSONObject().put("text", "Health Connect gibt es auf diesem Handy nicht."))
+            }
+        }
+
+        @JavascriptInterface
+        fun healthOpen() = Health.openSettings(this@MainActivity)
+
+        /** Stand für die Seite Gesundheit: verbunden?, heute, letzte Nacht, Schlaf-Genauigkeit (Bedienungshilfe an?). */
+        @JavascriptInterface
+        fun healthInfo(): String = try {
+            val st = Health.status(this@MainActivity)
+            JSONObject().put("da", st == androidx.health.connect.client.HealthConnectClient.SDK_AVAILABLE)
+                .put("update", st == androidx.health.connect.client.HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED)
+                .put("connected", Health.connected(this@MainActivity))
+                .put("heute", Health.day(this@MainActivity, 0) ?: JSONObject.NULL)
+                .put("schlaf", Sleep.night(this@MainActivity, 0) ?: JSONObject.NULL)
+                .put("touch", ScreenService.enabled()).toString()
+        } catch (e: Exception) { JSONObject().put("error", e.toString()).toString() }
 
         /** Fester Weg (jede Woche) */
         @JavascriptInterface

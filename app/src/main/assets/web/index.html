@@ -139,7 +139,7 @@
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="fit">Gesundheit</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-home">
         <div class="sgrp">JARVIS</div>
@@ -153,6 +153,7 @@
         <div class="slist">
           <div class="sitem" data-go="alltag"><i style="background:#2a1a05">⏰</i><div><b>Alltag & Wecker</b><small>Wecker, fester Weg, Termine, Briefings, Zuhause</small></div><span>›</span></div>
           <div class="sitem" data-go="wege"><i style="background:#0b2a22">🗺️</i><div><b>Wege & Orte</b><small>Meine Orte, Feldwege, Routen schicken</small></div><span>›</span></div>
+          <div class="sitem" data-go="fit"><i style="background:#2a0f18">❤️</i><div><b>Gesundheit & Schlaf</b><small>Samsung Health, Kalorien, Aktivität, Schlaf, Tagesbilanz</small></div><span>›</span></div>
           <div class="sitem" data-go="leute"><i style="background:#2a1306">👥</i><div><b>Leute & Anrufe</b><small>Wichtige Leute, Sprachnachrichten, Anruf-Butler</small></div><span>›</span></div>
         </div>
         <div class="sgrp">WELT & GERÄTE</div>
@@ -314,6 +315,27 @@
         <div class="sec" style="--c:#ff9a8a"><h3>WOCHENRÜCKBLICK</h3>
           <div class="srow"><div>Sonntags Wochenrückblick<small>Besuche bei Opa, Rad-Kilometer, Musik-Zeit, Termine nächste Woche. Karte am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-rueck"></div></div>
           <div class="f"><label>Um</label><input id="set-rueckzeit" type="time"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-fit">
+        <div class="sec" style="--c:#ff7a9a"><h3>SAMSUNG HEALTH</h3>
+          <div class="note" id="fit-state">–</div>
+          <div class="srow"><div>Mit Health Connect verbinden<small>Jarvis liest nur: verbrauchte Kalorien, Schritte, Sport und – falls du Essen einträgst – gegessene Kalorien. Er schreibt nichts.</small></div><div class="sbtn" id="fit-connect">Verbinden</div></div>
+          <div class="note" style="margin:0 0 6px">Einmal in Samsung Health: Einstellungen → Health Connect → Samsung Health darf Daten <b>schreiben</b> (Kalorien, Schritte, Training, Ernährung).</div>
+          <div class="srow"><div>Health Connect öffnen<small>Rechte ansehen oder ändern</small></div><div class="sbtn" id="fit-open">Öffnen</div></div>
+        </div>
+        <div class="sec" style="--c:#6effcd"><h3>HEUTE BISHER</h3>
+          <div class="fit-tiles" id="fit-today"><div class="note" style="margin:0">–</div></div>
+        </div>
+        <div class="sec" style="--c:#d7a8ff"><h3>SCHLAF</h3>
+          <div class="note" id="fit-sleep" style="margin:0 0 6px">–</div>
+          <div class="note" style="margin:0 0 6px">Ohne Uhr: Schlaf = vom letzten Finger auf dem Display bis zum Entsperren am Morgen. Läuft nachts noch ein Video, zählt trotzdem die letzte Berührung. Kurz aufs Handy schauen (unter 10 Min.) ist nur eine Unterbrechung.</div>
+          <div class="srow"><div>Genau mit Berührungen<small>Bedienungshilfe „Jarvis“ an – er merkt sich nur, WANN du das Display berührt hast, nicht was. Ohne: ab „Bildschirm aus“.</small></div><div class="sbtn" id="fit-touch">Einrichten</div></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>TAGESBILANZ</h3>
+          <div class="srow"><div>Abends Tagesbilanz<small>Kalorien verbraucht, Defizit (wenn du Essen einträgst), wie aktiv im Vergleich zu sonst, Schlaf, kleiner Tipp. Am PC, wenn du dran sitzt, sonst am Handy. Sonntags kommt die Woche in den Rückblick.</small></div><div class="sw" id="set-bilanz"></div></div>
+          <div class="f"><label>Um</label><input id="set-bilanzzeit" type="time"></div>
+          <div class="srow"><div>Jetzt zeigen</div><div class="sbtn" id="fit-now">Zeigen</div></div>
         </div>
       </div>
       <div class="spane" id="sp-fern">

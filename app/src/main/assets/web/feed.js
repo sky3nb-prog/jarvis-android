@@ -13,7 +13,7 @@
     fahrt: ["🚲", "#0b2a3c", "fahrt"], heimweg: ["🏠", "#3a2608", "fahrt"], ankunft: ["💬", "#0b2a22", "fahrt"],
     morgen: ["☀️", "#1f1430", "brief"], abend: ["🌙", "#1f1430", "brief"], woche: ["📊", "#2a1a05", "brief"],
     anruf: ["📞", "#2a1306", "anruf"], erinnerung: ["📌", "#2a1a05", "brief"], test: ["🧪", "#0b2a3c", "fahrt"],
-    vorschau: ["🗓️", "#0b2a3c", "brief"], wecker: ["⏰", "#2a1a05", "brief"],
+    vorschau: ["🗓️", "#0b2a3c", "brief"], wecker: ["⏰", "#2a1a05", "brief"], bilanz: ["❤️", "#2a0f18", "brief"],
   };
   const FILTERS = [["alle", "Alle"], ["fahrt", "Fahrten"], ["brief", "Updates"], ["anruf", "Anrufe"]];
   let filter = "alle", stack = [];
@@ -82,6 +82,7 @@
       `<div class="fp-wx">${w.hours.map((x) => `<div class="fp-w"><small>${x.h}:00</small><div class="i">${wxIcon(x.code, x.dark)}</div><b>${x.temp}°</b><div class="f">gefühlt ${x.feel}° · ${x.rain_pct} %</div></div>`).join("")}</div>`);
     h += outfit(d.outfit, d.anziehen);
     if (d.achtung && d.achtung.length) h += card("⚠️ PASS AUF", "var(--gold)", warns(d.achtung));
+    h += sleepCard(d.schlaf);
     if (d.termine && d.termine.length) h += card("📅 TERMINE", "var(--green)", d.termine.map((t) => `<div class="fp-row"><span class="z">${esc(t.zeit)}</span><span>${esc(t.titel)}${t.ort ? `<span class="o">${esc(t.ort)}</span>` : ""}</span></div>`).join(""));
     if (d.mitnehmen && d.mitnehmen.length) h += card("🎒 MITNEHMEN", "var(--gold-l)", todos(d.mitnehmen));
     return h + say(m.text);
@@ -95,9 +96,43 @@
     h += `<div class="fp-card"><div class="fp-tiles"><div class="fp-tile"><b>${visits}</b><small>Besuche</small></div>
       <div class="fp-tile"><b>${Math.round(d.rad_km || 0)}</b><small>km Rad</small></div>
       <div class="fp-tile"><b>${Math.floor((d.musik_min || 0) / 60)}<span style="font-size:14px">h ${(d.musik_min || 0) % 60}m</span></b><small>Musik</small></div></div></div>`;
+    const fit = d.fit || [], sl = d.schlaf || [];
+    if (fit.length) h += `<div class="fp-card"><div class="fp-tiles"><div class="fp-tile"><b>${nf(d.kcal_avg)}</b><small>kcal / Tag</small></div>
+      <div class="fp-tile"><b>${nf(d.schritte)}</b><small>Schritte</small></div>
+      <div class="fp-tile"><b>${d.schlaf_avg ? dur(d.schlaf_avg) : "–"}</b><small>Schlaf / Nacht</small></div></div></div>` +
+      bars("🔥 KALORIEN VERBRAUCHT", "#ff9a5a", fit, (r) => r.kcal || 0, (r) => nf(r.kcal)) + bars("👣 SCHRITTE", "#6effcd", fit, (r) => r.schritte || 0, (r) => nf(r.schritte));
+    if (sl.length) h += bars("🌙 SCHLAF", "#b98cff", sl, (r) => r.min || 0, (r) => dur(r.min));
     if (d.besuche && d.besuche.length) h += card("📍 BESUCHE", "var(--green)", d.besuche.map((b) => `<div class="fp-row"><span class="z">${b.n}×</span><span>${esc(b.ort)}</span></div>`).join(""));
     if (d.termine && d.termine.length) h += card(d.richtung === "zurueck" ? "📅 WAS LOS WAR" : "📅 NÄCHSTE WOCHE", "var(--cyan)", d.termine.map((t) => `<div class="fp-row"><span class="z">${esc(t.zeit)}</span><span>${esc(t.titel)}${t.ort ? `<span class="o">${esc(t.ort)}</span>` : ""}</span></div>`).join(""));
     if (d.mitnehmen && d.mitnehmen.length) h += card("🎒 VORBEREITEN", "var(--gold-l)", todos(d.mitnehmen));
+    return h + say(m.text);
+  }
+
+  const nf = (v) => Number(v || 0).toLocaleString("de-DE");
+  const dur = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
+  function sleepCard(s) {
+    if (!s) return "";
+    return card("🌙 SCHLAF LETZTE NACHT", "#d7a8ff", `<div class="fp-row"><span class="z">${hm(s.start)} – ${hm(s.end)}</span><span><b style="color:#fff">${dur(s.min)} Std.</b>${s.wach ? `<span class="o">${s.wach} Min. zwischendurch wach</span>` : ""}</span></div>`);
+  }
+  // Balken pro Tag (Woche): Kalorien / Schritte / Schlaf
+  function bars(title, color, rows, val, fmt) {
+    const max = Math.max(1, ...rows.map(val));
+    return card(title, color, rows.map((r) => `<div class="fp-bar"><span>${esc(r.tag)}</span><i><u style="width:${Math.round((val(r) / max) * 100)}%;background:${color}"></u></i><b>${fmt(r)}</b></div>`).join(""));
+  }
+
+  function viewBilanz(m) {
+    const d = m.data || {}, f = d.fit || null, s = d.schlaf || null;
+    const vs = f && d.avg_kcal ? Math.round(((f.kcal || 0) - d.avg_kcal) / d.avg_kcal * 100) : null;
+    let h = `<div class="fp-hero violet"><div class="k">TAGESBILANZ · ${esc(String(d.datum || "").toUpperCase())}</div><h1>${esc(m.title)}</h1>
+      <div class="s">${f && f.defizit != null ? (f.defizit > 0 ? nf(f.defizit) + " kcal Defizit" : nf(-f.defizit) + " kcal Überschuss") : vs != null ? (vs >= 0 ? "+" : "") + vs + " % Kalorien gegenüber deinem Schnitt" : ""}</div>
+      <div class="fp-times"><div class="fp-tb"><small>VERBRAUCHT</small><b>${f ? nf(f.kcal) : "–"}</b></div>
+      <div class="fp-tb"><small>SCHRITTE</small><b>${f ? nf(f.schritte) : "–"}</b></div>
+      <div class="fp-tb"><small>SCHLAF</small><b>${s ? dur(s.min) : "–"}</b></div></div></div>`;
+    if (f) h += `<div class="fp-card"><div class="fp-tiles"><div class="fp-tile"><b>${nf(f.aktiv)}</b><small>kcal aktiv</small></div>
+      <div class="fp-tile"><b>${nf(f.sport_min)}</b><small>Min. Sport</small></div>
+      <div class="fp-tile"><b>${f.gegessen ? nf(f.gegessen) : "–"}</b><small>kcal gegessen</small></div></div>
+      ${d.avg_kcal ? `<div class="note" style="margin:8px 0 0">Dein Schnitt der letzten Tage: ${nf(d.avg_kcal)} kcal · ${nf(d.avg_schritte)} Schritte</div>` : ""}</div>`;
+    h += sleepCard(s);
     return h + say(m.text);
   }
 
@@ -149,6 +184,9 @@
       add("TERMINE", (d.termine || []).length ? "Termine: " + d.termine.map((t) => t.zeit + " " + t.titel).join(". ") : "Keine Termine.");
       add("MITNEHMEN", (d.mitnehmen || []).length ? "Mitnehmen: " + d.mitnehmen.join(", ") : "");
       if (d.wecker) add("hero", "Dein Wecker klingelt um " + hm(d.wecker) + ".");
+    } else if (m.kind === "bilanz") {
+      add("hero", m.text);
+      if (d.schlaf) add("SCHLAF", `Geschlafen ${Math.floor(d.schlaf.min / 60)} Stunden ${d.schlaf.min % 60} Minuten.`);
     } else if (m.kind === "vorschau") {
       add("hero", "Deine nächste Woche.");
       (d.tage || []).forEach((t, i) => add("#day" + i, t.tag + ": " + (t.wx ? `${t.wx.min} bis ${t.wx.max} Grad. ` : "") + ((t.termine || []).map((x) => x.zeit + " " + x.titel).join(". ") || "keine Termine")));
@@ -156,6 +194,8 @@
     } else if (m.kind === "woche") {
       const v = (d.besuche || []).reduce((s, b) => s + b.n, 0);
       add("hero", `Deine letzten 7 Tage: ${v} Besuche, ${Math.round(d.rad_km || 0)} Kilometer Rad, ${Math.floor((d.musik_min || 0) / 60)} Stunden Musik.`);
+      if ((d.fit || []).length) add("KALORIEN", `Im Schnitt ${d.kcal_avg} Kalorien am Tag verbraucht, ${d.schritte} Schritte in der Woche.`);
+      if ((d.schlaf || []).length && d.schlaf_avg) add("SCHLAF", `Geschlafen im Schnitt ${Math.floor(d.schlaf_avg / 60)} Stunden ${d.schlaf_avg % 60} Minuten.`);
       add("WAS LOS WAR", (d.termine || []).length ? "Was los war: " + d.termine.map((t) => t.zeit + " " + t.titel).join(". ") : "");
     } else {
       add("JARVIS SAGT", m.text);
@@ -211,11 +251,11 @@
     if (push) stack.push("list");
     $("fp-ttl").textContent = "MITTEILUNG";
     const v = m.kind === "fahrt" || m.kind === "heimweg" || m.kind === "test" ? viewFahrt(m)
-      : m.kind === "morgen" || m.kind === "abend" ? viewDay(m) : m.kind === "woche" ? viewWeek(m) : m.kind === "vorschau" ? viewAhead(m) : viewSimple(m);
+      : m.kind === "morgen" || m.kind === "abend" ? viewDay(m) : m.kind === "bilanz" ? viewBilanz(m) : m.kind === "woche" ? viewWeek(m) : m.kind === "vorschau" ? viewAhead(m) : viewSimple(m);
     current = m;
     $("fp-body").innerHTML = readBar() + v;
     hookRead();
-    if (/^(morgen|abend|woche|vorschau)$/.test(m.kind) && autoRead) readNow();
+    if (/^(morgen|abend|woche|vorschau|bilanz)$/.test(m.kind) && autoRead) readNow();
     autoRead = true;
     $("fp-body").scrollTop = 0;
     $("fp-body").querySelectorAll("[data-maps]").forEach((e) => e.addEventListener("click", () => {

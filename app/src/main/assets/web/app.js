@@ -235,7 +235,7 @@
   newDots();
   // Einstellungen wie am Handy: Übersicht -> Bereich antippen -> eigene Seite, "‹" zurück
   const PAGE_NAMES = { home: "EINSTELLUNGEN", allg: "ALLGEMEIN", hoer: "ZUHÖREN", stimme: "STIMME", anz: "ANZEIGE", alltag: "ALLTAG & WECKER",
-    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF" };
+    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF", fit: "GESUNDHEIT & SCHLAF" };
   let setPage = "home";
   function showPage(p) {
     setPage = p;
@@ -301,6 +301,7 @@
       sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "21:00";
       sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
       sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "18:00";
+      sw("set-bilanz", c.bilanz !== false); $("set-bilanzzeit").value = c.bilanz_zeit || "22:00";
       perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
       sw("wk-an", c.wecker_an !== false); $("wk-schule").value = (c.wecker_schule || "07:10").padStart(5, "0"); $("wk-we").value = c.wecker_we ? c.wecker_we.padStart(5, "0") : "";
       wkDays(c.wecker_tage || {});
@@ -401,6 +402,43 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  // --- Gesundheit: Samsung Health (Health Connect) + Schlaf ---
+  const nf = (v) => Number(v || 0).toLocaleString("de-DE");
+  const hmT = (t) => new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  function fitShow() {
+    if (!A || !A.healthInfo) return;
+    $("fit-state").textContent = "lädt …";
+    setTimeout(() => {
+      let h = {}; try { h = JSON.parse(A.healthInfo() || "{}"); } catch (e) {}
+      $("fit-state").textContent = h.connected ? "● Verbunden mit Health Connect" : h.update ? "Health Connect muss aktualisiert werden – tipp auf Verbinden." :
+        h.da === false ? "Health Connect nicht gefunden." : "Noch nicht verbunden.";
+      perm("fit-connect", h.connected, "Verbinden");
+      perm("fit-touch", h.touch, "Einrichten");
+      const d = h.heute;
+      $("fit-today").innerHTML = d ? [["🔥", nf(d.kcal), "kcal verbraucht"], ["⚡", nf(d.aktiv), "davon aktiv"], ["👣", nf(d.schritte), "Schritte"],
+        d.defizit != null ? [d.defizit > 0 ? "📉" : "📈", nf(Math.abs(d.defizit)), d.defizit > 0 ? "Defizit" : "Überschuss"] : ["🏃", nf(d.sport_min), "Min. Sport"]]
+        .map(([i, v, l]) => `<div class="fit-t"><span>${i}</span><b>${v}</b><small>${l}</small></div>`).join("")
+        : `<div class="note" style="margin:0">${h.connected ? "Noch keine Daten von heute – Samsung Health teilt sie evtl. noch nicht (siehe oben)." : "Erst verbinden."}</div>`;
+      const s = h.schlaf;
+      $("fit-sleep").innerHTML = s ? `Letzte Nacht: <b>${Math.floor(s.min / 60)}:${String(s.min % 60).padStart(2, "0")} Std.</b> · ${hmT(s.start)} – ${hmT(s.end)} Uhr` +
+        (s.wach ? ` · ${s.wach} Min. wach` : "") + (s.quelle === "touch" ? "" : " · (ab Bildschirm aus)")
+        : "Letzte Nacht: noch keine Daten – die Erkennung läuft ab jetzt.";
+    }, 30);
+  }
+  document.querySelector('[data-p="fit"]').addEventListener("click", fitShow);
+  $("fit-connect").addEventListener("click", () => A.healthConnect && A.healthConnect());
+  $("fit-open").addEventListener("click", () => A.healthOpen && A.healthOpen());
+  $("fit-touch").addEventListener("click", () => A.openScreenAccess && A.openScreenAccess());
+  $("fit-now").addEventListener("click", () => { toast("Tagesbilanz kommt …"); A.feedNow("bilanz"); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && setPage === "fit") fitShow(); });
+  (function () {
+    const prev = window.jarvis && window.jarvis.onEvent;
+    if (!window.jarvis) return;
+    window.jarvis.onEvent = function (type, data) {
+      if (type === "health") { toast(data.connected ? (data.all ? "Verbunden mit Samsung Health." : "Verbunden – aber nicht alles erlaubt.") : "Nicht verbunden."); fitShow(); return; }
+      return prev && prev.call(window.jarvis, type, data);
+    };
+  })();
   // --- Fernzugriff über Tailscale ---
   let fern = {};
   function fernShow(refresh) {
@@ -471,6 +509,7 @@
       brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "21:00",
       bi_wetter: sw("set-biwetter"), bi_anzieh: sw("set-bianzieh"), bi_termine: sw("set-bitermine"), bi_mitnehmen: sw("set-bimit"),
       rueckblick: sw("set-rueck"), rueckblick_zeit: $("set-rueckzeit").value || "18:00",
+      bilanz: sw("set-bilanz"), bilanz_zeit: $("set-bilanzzeit").value || "22:00",
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
     };

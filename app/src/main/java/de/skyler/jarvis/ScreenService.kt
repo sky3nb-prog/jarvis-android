@@ -11,7 +11,8 @@ import java.util.concurrent.TimeUnit
 
 /**
  * "Schau mal hier": macht auf Kommando ein Bildschirmfoto (Bedienungshilfe, einmal in den Einstellungen einschalten).
- * Liest keine Inhalte mit, reagiert auf keine Ereignisse – nur takeScreenshot(), wenn Jarvis gefragt wird.
+ * Liest keine Inhalte mit. Einzige Ausnahme: der ZEITPUNKT der letzten Berührung (Tippen, Wischen, Tippen auf der Tastatur)
+ * wird für die Schlaf-Erkennung gemerkt (Sleep.touch) – was berührt wurde, sieht Jarvis nicht.
  */
 class ScreenService : AccessibilityService() {
     companion object {
@@ -44,7 +45,12 @@ class ScreenService : AccessibilityService() {
     }
 
     override fun onServiceConnected() { inst = this }
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        when (event?.eventType) {
+            AccessibilityEvent.TYPE_VIEW_CLICKED, AccessibilityEvent.TYPE_VIEW_LONG_CLICKED, AccessibilityEvent.TYPE_VIEW_SCROLLED,
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> try { Sleep.touch(this) } catch (_: Exception) {}
+        }
+    }
     override fun onInterrupt() {}
     override fun onUnbind(intent: Intent?): Boolean { inst = null; return super.onUnbind(intent) }
     override fun onDestroy() { inst = null; super.onDestroy() }

@@ -120,7 +120,7 @@ class JarvisService : Service() {
         main.postDelayed(alltagTask, 20_000)
         startLocation()
         try {
-            registerReceiver(unlockReceiver, android.content.IntentFilter(Intent.ACTION_USER_PRESENT))
+            registerReceiver(unlockReceiver, android.content.IntentFilter(Intent.ACTION_USER_PRESENT).apply { addAction(Intent.ACTION_SCREEN_OFF) })
         } catch (_: Exception) {}
     }
 
@@ -134,7 +134,11 @@ class JarvisService : Service() {
     }
 
     private val unlockReceiver = object : android.content.BroadcastReceiver() {
-        override fun onReceive(c: Context, i: Intent) { Alltag.onUnlock(this@JarvisService) { t -> announce(t) } }
+        override fun onReceive(c: Context, i: Intent) {
+            if (i.action == Intent.ACTION_SCREEN_OFF) { Thread { try { Sleep.screenOff(this@JarvisService) } catch (_: Exception) {} }.start(); return }
+            Thread { try { Sleep.unlock(this@JarvisService) } catch (_: Exception) {} }.start()
+            Alltag.onUnlock(this@JarvisService) { t -> announce(t) }
+        }
     }
 
     private val locListener = android.location.LocationListener { l -> Alltag.onFix(l) }

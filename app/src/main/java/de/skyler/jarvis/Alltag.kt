@@ -300,6 +300,7 @@ object Alltag {
         } catch (_: Exception) {}
         try { evening(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "abend: $e") }
         try { weekly(ctx, s) } catch (e: Exception) { Log.w(TAG, "rückblick: $e") }
+        try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
         save(ctx, s)
     }
 
@@ -924,12 +925,15 @@ object Alltag {
         if (wege.isNotEmpty()) parts.add("Feste Wege: ${wege.joinToString()}")
         parts.add("Was du über ihn weißt:\n" + Memory.facts(ctx).takeLast(40).joinToString("\n") { "- $it" })
         if (wecker != null) parts.add("Sein Wecker morgen: ${clock(wecker)}")
+        val schlaf = if (day == 0) try { Sleep.night(ctx, 0) } catch (_: Exception) { null } else null
+        if (schlaf != null) parts.add("Sein Schlaf letzte Nacht: ${Sleep.text(schlaf)}")
         val topics = listOf("bi_wetter" to "Wetter (vor allem für die Radfahrt)", "bi_anzieh" to "was er anziehen soll, genau nach seinen Regeln",
             "bi_termine" to "Termine", "bi_mitnehmen" to "was er mitnehmen oder vorbereiten sollte (nur wenn es aus den Terminen folgt)")
             .filter { want(it.first) }.joinToString(", ") { it.second }
         val sys = "Du bist Jarvis und gibst Skyler sein ${if (day == 0) "Tages-Update für heute" else "Update für morgen"}. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 4 bis 6 kurze Sätze. Inhalt: $topics" +
-            (if (wecker != null) ", zum Schluss wann sein Wecker klingelt" else "") + ". Beginne mit " + (if (day == 0) "'Guten Morgen'" else "'Kurz zu morgen'") + "\", " +
+            (if (wecker != null) ", zum Schluss wann sein Wecker klingelt" else "") +
+            (if (schlaf != null) ", und ein halber Satz zum Schlaf nur wenn er unter 7 Stunden war (dann locker, nicht belehrend)" else "") + ". Beginne mit " + (if (day == 0) "'Guten Morgen'" else "'Kurz zu morgen'") + "\", " +
             "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"], \"achtung\": [\"kurze Hinweise fürs Rad: Glätte, Wind, Regen, früh dunkel – nur wenn zutreffend\"], " +
             "\"mitnehmen\": [\"was mitnehmen/vorbereiten, nur wenn es aus den Terminen folgt\"]}. Keine Bahn-Verbindungen. Erfinde nichts."
         val ai = aiJson(ctx, sys, parts.joinToString("\n\n"), 700) ?: return null
@@ -943,6 +947,7 @@ object Alltag {
             .put("wx", wx ?: JSONObject.NULL).put("anziehen", strs(ai.optJSONArray("anziehen"))).put("achtung", strs(ai.optJSONArray("achtung")))
             .put("outfit", ai.optJSONObject("outfit") ?: JSONObject.NULL)
             .put("mitnehmen", strs(ai.optJSONArray("mitnehmen"))).put("termine", termine).put("wecker", wecker ?: 0L)
+            .put("schlaf", schlaf ?: JSONObject.NULL)
         val sub = listOfNotNull(wx?.let { "${it.optInt("min")}–${it.optInt("max")}°" + (if (it.optInt("rain_pct") >= 50) ", Regen" else ", trocken") },
             strs(ai.optJSONArray("anziehen")).optString(0).ifBlank { null }, "${termine.length()} Termin" + (if (termine.length() == 1) "" else "e")).joinToString(" · ")
         val id = Feed.add(ctx, if (day == 0) "morgen" else "abend", if (day == 0) "Guten Morgen" else "Kurz zu morgen", sub, text, d)
@@ -985,21 +990,96 @@ object Alltag {
         val radKm = week.filter { it.optString("mode") == "rad" }.sumOf { it.optDouble("km") }
         val music = Interests.musicMinutes(ctx, since)
         val past = Cal.events(ctx, since, now).distinctBy { it.id to it.begin }
+        val fit = try { Health.week(ctx) } catch (_: Exception) { JSONArray() }
+        val nights = try { Sleep.week(ctx) } catch (_: Exception) { JSONArray() }
+        val fl = (0 until fit.length()).map { fit.getJSONObject(it) }
+        val nl = (0 until nights.length()).map { nights.getJSONObject(it) }
+        val kcalAvg = fl.filter { it.has("kcal") }.map { it.optLong("kcal") }.average().let { if (it.isNaN()) 0L else Math.round(it) }
+        val steps = fl.sumOf { it.optLong("schritte") }
+        val sleepAvg = nl.map { it.optLong("min") }.average().let { if (it.isNaN()) 0L else Math.round(it) }
+        val fitText = if (fl.isEmpty()) "" else "\nAktivität pro Tag (Samsung Health): " + fl.joinToString("; ") { "${it.optString("tag")} ${it.optLong("kcal")} kcal, ${it.optLong("schritte")} Schritte" +
+            (if (it.optLong("sport_min") > 0) ", ${it.optLong("sport_min")} Min. Sport" else "") + (if (it.has("defizit")) ", Defizit ${it.optLong("defizit")}" else "") } +
+            "\nDurchschnitt verbraucht: $kcalAvg kcal am Tag, Schritte gesamt: $steps"
+        val sleepText = if (nl.isEmpty()) "" else "\nSchlaf pro Nacht: " + nl.joinToString("; ") { "${it.optString("tag")} ${Sleep.dur(it.optLong("min"))} (${SimpleDateFormat("H:mm", de).format(Date(it.optLong("start")))}–${SimpleDateFormat("H:mm", de).format(Date(it.optLong("end")))})" } +
+            "\nDurchschnitt Schlaf: ${Sleep.dur(sleepAvg)}"
         val data = "Besuche (Fahrten zu gespeicherten Orten): ${visits.entries.joinToString { "${it.key}: ${it.value}x" }.ifBlank { "keine erfasst" }}\n" +
             "Rad-Kilometer: ${"%.1f".format(radKm)}\nFahrten: ${week.size}\nMusik gehört (Handy): etwa ${music / 60} Stunden ${music % 60} Minuten\n" +
-            "Termine der letzten 7 Tage:\n${Cal.describe(past).ifBlank { "keine" }}"
+            "Termine der letzten 7 Tage:\n${Cal.describe(past).ifBlank { "keine" }}" + fitText + sleepText
         val sys = "Du bist Jarvis und machst Skylers Wochenrückblick über die letzten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
-            "ohne Listen: wie oft er bei Oma und Opa war, wie viele Kilometer er Rad gefahren ist, wie lange er Musik gehört hat (keine Liedliste), was sonst los war\"}. Erfinde nichts."
+            "ohne Listen: wie oft er bei Oma und Opa war, wie viele Kilometer er Rad gefahren ist, wie lange er Musik gehört hat (keine Liedliste), was sonst los war" +
+            (if (fitText.isNotEmpty()) ", wie aktiv er war (Kalorien am Tag, Schritte, aktivster Tag)" else "") + (if (sleepText.isNotEmpty()) ", wie er geschlafen hat (Schnitt, späteste Nacht)" else "") +
+            (if (fitText.isNotEmpty() || sleepText.isNotEmpty()) ", dazu ein kurzer motivierender Tipp, nicht belehrend" else "") + "\"}. Erfinde nichts."
         val ai = aiJson(ctx, sys, data, 500) ?: return null
         val text = ai.optString("text").replace(Regex("[*#`]"), "").trim().ifBlank { return null }
         val termine = JSONArray()
         for (e in past.take(14)) termine.put(JSONObject().put("zeit", Cal.whenText(e, "EE d.M.")).put("titel", e.title).put("ort", e.place))
         val besuche = JSONArray(); for ((k, v) in visits) besuche.put(JSONObject().put("ort", k).put("n", v))
         val d = JSONObject().put("richtung", "zurueck").put("besuche", besuche).put("rad_km", Math.round(radKm * 10) / 10.0).put("fahrten", week.size)
-            .put("musik_min", music).put("termine", termine)
+            .put("musik_min", music).put("termine", termine).put("fit", fit).put("schlaf", nights).put("kcal_avg", kcalAvg).put("schritte", steps).put("schlaf_avg", sleepAvg)
             .put("von", SimpleDateFormat("EE d.M.", de).format(Date(since))).put("bis", SimpleDateFormat("EE d.M.", de).format(Date(now)))
         val sub = "${visits.values.sum()} Besuche · ${"%.0f".format(radKm)} km Rad · ${music / 60} h Musik"
         return text to Feed.add(ctx, "woche", "Dein Wochenrückblick", sub, text, d)
+    }
+
+    // --- Tagesbilanz (Samsung Health + Schlaf) -----------------------------------------------------------------
+    private fun bilanz(ctx: Context, s: JSONObject, say: (String) -> Unit) {
+        if (!on(ctx, "bilanz")) return
+        val (h, m) = hm(prefs(ctx).getString("bilanz_zeit", "22:00") ?: "22:00", 22)
+        val t0 = todayAt(h, m); val now = System.currentTimeMillis()
+        val key = "bilanz|${today()}"
+        if (now < t0 || now > t0 + 2 * 3_600_000L || done(s, key)) return
+        mark(s, key)
+        Thread({
+            val (t, fid) = dayHealth(ctx) ?: return@Thread
+            notify(ctx, 342, "Deine Tagesbilanz", t, feed = fid)
+            if (!pcSay(ctx, t) && !quiet(ctx)) say(t)
+        }, "jarvis-bilanz").start()
+    }
+
+    /** Tagesbilanz: verbraucht, aktiv, Schritte, (Defizit), Schlaf letzte Nacht, Vergleich mit der Woche. (Text, Mitteilungs-ID) */
+    fun dayHealth(ctx: Context): Pair<String, String>? {
+        val h = try { Health.day(ctx, 0) } catch (_: Exception) { null }
+        val sl = try { Sleep.night(ctx, 0) } catch (_: Exception) { null }
+        if (h == null && sl == null) return null
+        val wk = try { Health.week(ctx) } catch (_: Exception) { JSONArray() }
+        val prev = (0 until wk.length()).map { wk.getJSONObject(it) }.dropLast(1)
+        val avgK = prev.filter { it.has("kcal") }.map { it.optLong("kcal") }.average().let { if (it.isNaN()) 0L else Math.round(it) }
+        val avgS = prev.filter { it.has("schritte") }.map { it.optLong("schritte") }.average().let { if (it.isNaN()) 0L else Math.round(it) }
+        val data = "Heute: ${Health.text(h)}\nSchnitt der letzten Tage: $avgK kcal, $avgS Schritte\nSchlaf letzte Nacht: ${Sleep.text(sl)}"
+        val sys = "Du bist Jarvis und gibst Skyler am Abend seine Tagesbilanz. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 2 bis 4 kurze Sätze, ohne Listen: " +
+            "wie viele Kalorien er heute verbraucht hat, ob er im Defizit war (NUR wenn gegessene Kalorien in den Daten stehen), wie aktiv er war im Vergleich zu seinem Schnitt, " +
+            "kurz der Schlaf letzte Nacht; zum Schluss ein kleiner Tipp für morgen (z. B. früher schlafen, kurz raus) – freundlich, nicht belehrend, keine Diät-Vorgaben\"}. Erfinde nichts."
+        val ai = aiJson(ctx, sys, data, 300)
+        val text = ai?.optString("text")?.replace(Regex("[*#`]"), "")?.trim()?.ifBlank { null }
+            ?: listOfNotNull(h?.let { "Heute: " + Health.text(it) }, sl?.let { Sleep.text(it) }).joinToString(" ")
+        val d = JSONObject().put("fit", h ?: JSONObject.NULL).put("schlaf", sl ?: JSONObject.NULL).put("avg_kcal", avgK).put("avg_schritte", avgS)
+            .put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date()))
+        val sub = listOfNotNull(h?.takeIf { it.has("kcal") }?.let { "%,d kcal".format(de, it.optLong("kcal")) },
+            h?.takeIf { it.has("schritte") }?.let { "%,d Schritte".format(de, it.optLong("schritte")) },
+            h?.takeIf { it.has("defizit") }?.let { val x = it.optLong("defizit"); if (x > 0) "Defizit ${"%,d".format(de, x)}" else "Überschuss ${"%,d".format(de, -x)}" },
+            sl?.let { "Schlaf ${Sleep.dur(it.optLong("min"))}" }).joinToString(" · ")
+        return text to Feed.add(ctx, "bilanz", "Deine Tagesbilanz", sub, text, d)
+    }
+
+    /** "Wie viel hab ich heute verbraucht?", "Wie hab ich geschlafen?", "Wie aktiv war ich die Woche?" */
+    fun healthAnswer(ctx: Context, was: String): String = when (was) {
+        "schlaf" -> Sleep.text(Sleep.night(ctx, 0))
+        "gestern" -> Health.day(ctx, 1)?.let { "Gestern: " + Health.text(it) } ?: Health.text(null)
+        "woche" -> {
+            val fl = Health.week(ctx).let { a -> (0 until a.length()).map { a.getJSONObject(it) } }
+            val nl = Sleep.week(ctx).let { a -> (0 until a.length()).map { a.getJSONObject(it) } }
+            if (fl.isEmpty() && nl.isEmpty()) Health.text(null) else listOfNotNull(
+                fl.takeIf { it.isNotEmpty() }?.let { l ->
+                    val avg = l.filter { it.has("kcal") }.map { it.optLong("kcal") }.average().let { if (it.isNaN()) 0L else Math.round(it) }
+                    val top = l.maxByOrNull { it.optLong("schritte") }
+                    "Die letzten 7 Tage hast du im Schnitt ${"%,d".format(de, avg)} Kalorien am Tag verbraucht und ${"%,d".format(de, l.sumOf { it.optLong("schritte") })} Schritte gemacht" +
+                        (if (top != null) ", am aktivsten warst du am ${top.optString("tag")}." else ".")
+                },
+                nl.takeIf { it.isNotEmpty() }?.let { l -> "Geschlafen hast du im Schnitt ${Sleep.dur(Math.round(l.map { it.optLong("min") }.average()))}." }
+            ).joinToString(" ")
+        }
+        "bilanz" -> dayHealth(ctx)?.first ?: Health.text(null)
+        else -> Health.day(ctx, 0)?.let { "Heute bisher: " + Health.text(it) } ?: Health.text(null)
     }
 
     /** Wochenvorschau: genau die nächsten 7 Tage – Tag für Tag Wetter und Termine (mehrtägige mit "bis"), was vorbereiten. */
