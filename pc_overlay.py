@@ -39,9 +39,7 @@ if "--hud" in sys.argv:   # zweiter Prozess: nur das HUD-Fenster (pc_hudwin), oh
     import pc_hudwin
     pc_hudwin.main()
     sys.exit(0)
-if "--orb" in sys.argv:   # dritter Prozess: nur das kleine Overlay (Kugel mit Nervenstrang)
-    import pc_orbwin
-    pc_orbwin.main()
+if "--orb" in sys.argv:   # alter Overlay-Prozess (gibt es nicht mehr) – sofort beenden
     sys.exit(0)
 import threading
 import time
@@ -327,6 +325,172 @@ class EdgeGlow:
 
 
 # --- Kleiner Kreis oben links ------------------------------------------------------
+class StrandOverlay:
+    """Goldener Nervenstrang (wie im HUD-Hintergrund): wächst beim Aufwachen aus dem Bildschirm-Eck an den Rändern entlang
+    bis zur Kugel, Lichtimpulse laufen darin (schneller, wenn er spricht), danach zieht er sich zurück.
+    Eigenes durchsichtiges Fenster, Mausklicks gehen hindurch. (Tk statt WebView: keine grauen Kästen.)"""
+
+    def __init__(self, root: tk.Tk, k: float, corner: str, orb_box):
+        self.root, self.k, self.corner = root, k, corner
+        self.orb_box = orb_box            # () -> (x, y, d) der Kugel auf dem Bildschirm
+        self.win = tk.Toplevel(root)
+        self.win.withdraw()
+        self.win.overrideredirect(True)
+        self.win.attributes("-topmost", True)
+        self.win.configure(bg=KEY)
+        self.win.attributes("-transparentcolor", KEY)
+        self.W, self.H = int(560 * k), int(300 * k)
+        self.cv = tk.Canvas(self.win, width=self.W, height=self.H, bg=KEY, highlightthickness=0, bd=0)
+        self.cv.pack()
+        self.grow, self.want, self.state = 0.0, 0.0, "idle"
+        self.pulses = []
+        self._job = None
+        self._styled = False
+        self.traces = []
+        self._build()
+
+    def set_corner(self, corner: str):
+        self.corner = corner
+        self._build()
+
+    def _build(self):
+        import random
+        r = random.Random(4242)
+        k, W, H = self.k, self.W, self.H
+        R, B = "rechts" in self.corner, "unten" in self.corner
+        sx, sy = (-1 if R else 1), (-1 if B else 1)
+        cx, cy = (W - 3 if R else 3), (H - 3 if B else 3)
+        tr = []
+
+        def main(horiz, length, off, w):
+            x, y = (cx, cy + sy * off) if horiz else (cx + sx * off, cy)
+            pts, d = [(x, y)], 0
+            while d < length:
+                st = (14 + r.random() * 26) * k
+                d += st
+                if horiz:
+                    x += sx * st
+                    if r.random() < .28:
+                        j = (1 if r.random() < .5 else -1) * (4 + r.random() * 6) * k
+                        x += sx * abs(j); y += sy * j * .7
+                else:
+                    y += sy * st
+                    if r.random() < .28:
+                        j = (1 if r.random() < .5 else -1) * (4 + r.random() * 6) * k
+                        y += sy * abs(j); x += sx * j * .7
+                pts.append((x, y))
+            tr.append({"pts": pts, "w": w, "branch": False, "at": 0})
+            for i in range(2, len(pts) - 1, 3):
+                if r.random() < .55:
+                    bx, by = pts[i]
+                    bl = (10 + r.random() * 22) * k
+                    dx, dy = (sx * bl * .7, sy * bl) if horiz else (sx * bl, sy * bl * .7)
+                    tr.append({"pts": [(bx, by), (bx + dx * .6, by + dy * .6), (bx + dx, by + dy)], "w": w * .6, "branch": True, "at": i / len(pts)})
+
+        main(True, W * .92, 6 * k, 2)
+        main(True, W * .62, 15 * k, 1)
+        main(False, H * .9, 6 * k, 2)
+        main(False, H * .6, 15 * k, 1)
+        for t in tr:
+            t["len"] = self._plen(t["pts"])
+        self.traces = tr
+
+    @staticmethod
+    def _plen(p):
+        return sum(((p[i][0] - p[i - 1][0]) ** 2 + (p[i][1] - p[i - 1][1]) ** 2) ** .5 for i in range(1, len(p)))
+
+    @staticmethod
+    def _cut(p, upto):
+        out, l = [p[0]], 0.0
+        for i in range(1, len(p)):
+            s = ((p[i][0] - p[i - 1][0]) ** 2 + (p[i][1] - p[i - 1][1]) ** 2) ** .5
+            if s > 0 and l + s >= upto:
+                f = (upto - l) / s
+                out.append((p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f))
+                return out
+            out.append(p[i]); l += s
+        return out
+
+    def _place(self):
+        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        x = 0 if "links" in self.corner else sw - self.W
+        y = 0 if "oben" in self.corner else sh - self.H - int(48 * self.k)   # unten: über der Taskleiste
+        self.win.geometry(f"{self.W}x{self.H}+{x}+{y}")
+        return x, y
+
+    def show(self, state: str):
+        self.state, self.want = state, 1.0
+        if self.grow <= 0.001:
+            self._place()
+            self.win.deiconify()
+            if not self._styled:
+                make_style(self.win, True)   # Klicks gehen durch
+                self._styled = True
+        if self._job is None:
+            self._tick()
+
+    def hide(self):
+        self.want = 0.0
+        if self._job is None and self.grow > 0:
+            self._tick()
+
+    def _tick(self):
+        self.grow += (self.want - self.grow) * (.09 if self.want > self.grow else .14)
+        if abs(self.grow - self.want) < .004:
+            self.grow = self.want
+        cv, k = self.cv, self.k
+        cv.delete("all")
+        g = self.grow
+        if g <= 0.001:
+            self.win.withdraw()
+            self.pulses = []
+            self._job = None
+            return
+        for t in self.traces:
+            tg = max(0.0, (g - t["at"] * .8) / .3) if t["branch"] else g
+            if tg <= 0:
+                continue
+            pts = self._cut(t["pts"], t["len"] * min(1.0, tg))
+            if len(pts) < 2:
+                continue
+            flat = [c for p in pts for c in p]
+            cv.create_line(*flat, fill="#5a3a0c", width=max(1, int(t["w"] * 3 * k)), capstyle="round", joinstyle="round")
+            cv.create_line(*flat, fill="#ffd678", width=max(1, int(t["w"] * k)), capstyle="round", joinstyle="round")
+            if tg < 1 and not t["branch"]:
+                x, y = pts[-1]; rr = 3 * k
+                cv.create_oval(x - rr, y - rr, x + rr, y + rr, fill="#fff3c8", outline="")
+        # Verbindung zur Kugel
+        try:
+            ox, oy, d = self.orb_box()
+            wx, wy = self.win.winfo_rootx(), self.win.winfo_rooty()
+            R = "rechts" in self.corner
+            ex = (ox + d - wx) if R else (ox - wx)
+            ey = oy + d / 2 - wy
+            sx = (self.W - 3 - 15 * k) if R else (3 + 15 * k)
+            if g > .6 and 0 < ey < self.H:
+                f = min(1.0, (g - .6) / .4)
+                cv.create_line(sx, ey, sx + (ex - sx) * f, ey, fill="#ffd678", width=max(1, int(1.5 * k)))
+                cv.create_oval(sx - 3 * k, ey - 3 * k, sx + 3 * k, ey + 3 * k, fill="#ffd678", outline="")
+        except Exception:
+            pass
+        # Lichtimpulse
+        import random
+        if g > .9 and random.random() < (.3 if self.state == "speaking" else .1):
+            mains = [t for t in self.traces if not t["branch"]]
+            t = random.choice(mains)
+            self.pulses.append([t, 0.0, (9 if self.state == "speaking" else 5) * k * (1 + random.random())])
+        keep = []
+        for p in self.pulses:
+            p[1] += p[2]
+            if p[1] < p[0]["len"]:
+                x, y = self._cut(p[0]["pts"], p[1])[-1]; rr = 2.2 * k
+                cv.create_oval(x - rr, y - rr, x + rr, y + rr, fill="#fff0c8", outline="")
+                keep.append(p)
+        self.pulses = keep
+        cv.create_oval(3, 3, 3, 3, outline="")
+        self._job = self.root.after(33, self._tick)
+
+
 class CompactOverlay:
     """Winziger animierter Kreis oben links, daneben bei Bedarf ein kleines Textfeld."""
 
@@ -357,6 +521,7 @@ class CompactOverlay:
         self._hide_job = None
         self._t0 = time.time()
         self.sphere = None  # pc_sphere.SphereFrames vom HUD
+        self.strand = None  # StrandOverlay (Anzeige "neu")
         self._small: dict = {}  # (Größe, Farbe, Bild-Nr.) -> fertiges kleines Bild
 
     def set_size(self, size: int):
@@ -366,6 +531,11 @@ class CompactOverlay:
     def set_corner(self, corner: str):
         self.corner = corner
         self._last = None
+        if self.strand:
+            self.strand.set_corner(corner)
+
+    def orb_box(self):
+        return self.win.winfo_rootx(), self.win.winfo_rooty() + (self.win.winfo_height() - self.d) // 2, self.d
 
     def show(self, role: str, text: str, hide_ms: int, state: str):
         if self._hide_job:
@@ -377,6 +547,8 @@ class CompactOverlay:
         if (role, text) != self._last:
             self._render(role, text)
             self._last = (role, text)
+        if self.strand:
+            self.strand.show(state)
         self.win.deiconify()
         self.win.lift()
         self._visible = True
@@ -500,6 +672,8 @@ class CompactOverlay:
         self._hide_job = None
         self._visible = False
         self.win.withdraw()
+        if self.strand:
+            self.strand.hide()
 
 
 # --- Früheres Overlay: Leuchtrahmen + Textfeld oben (OVERLAY_STYLE = "gross") ----------
@@ -672,9 +846,6 @@ class UI:
         except Exception as e:
             print(f"Neues HUD nicht verfügbar ({e}), nehme das klassische.")
             self.web = None
-        self.orb = None   # neues kleines Overlay (Kugel + Nervenstrang), braucht den HUD-Server
-        if self.web and settings.get("overlay_style", "neu") == "neu":
-            self._start_orb()
         self._allow_old = False   # nur für Dinge, die es im neuen HUD noch nicht gibt (Flug-Modus, Routen-Karte)
         if self.web:
             old_show = self.hud.show
@@ -804,24 +975,13 @@ class UI:
             self.hud.show()
             self.root.after(250, self.hud.open_settings)
 
-    def _start_orb(self):
-        try:
-            import pc_orbwin
-            self.orb = pc_orbwin.OrbWin(self.web.port, self.settings.get("orb_corner", "oben links"))
-        except Exception as e:
-            print("Neues Overlay nicht verfügbar:", e)
-            self.orb = None
-
-    def _orb_ok(self) -> bool:
-        return bool(self.style == "neu" and self.orb and self.orb.ok())
-
     def _set_style(self, style: str):
         self.style = style if style in ("gross", "neu") else "klein"
-        if self.style == "neu" and getattr(self, "web", None) and getattr(self, "orb", None) is None:
-            self._start_orb()
-        if self.style != "neu" and getattr(self, "orb", None):
-            self.orb.stop()
-            self.orb = None
+        if self.style == "neu" and self.compact.strand is None:   # Kugel + Nervenstrang
+            self.compact.strand = StrandOverlay(self.root, self.k, self.compact.corner, self.compact.orb_box)
+        elif self.style != "neu" and self.compact.strand is not None:
+            self.compact.strand.hide()
+            self.compact.strand = None
         if self.style == "gross" and self.big is None:
             self.big = BigOverlay(self.root, self.k)
 
@@ -837,8 +997,6 @@ class UI:
         pc_settings.save(new)
         apply_settings(new)
         self._set_style(new.get("overlay_style", "neu"))
-        if self.orb:
-            self.orb.set_corner(new.get("orb_corner", "oben links"))
         self.compact.set_size(new.get("orb_size", 68))
         self.compact.set_corner(new.get("orb_corner", "oben links"))
         if self.big:
@@ -897,8 +1055,6 @@ class UI:
             while True:
                 item = self.q.get_nowait()
                 if item[0] == "quit":
-                    if self.orb:
-                        self.orb.stop()
                     self.root.destroy()
                     return
                 if item[0] == "apply":   # Einstellungen vom Handy übernommen
@@ -1020,14 +1176,6 @@ class UI:
             self.compact.hide()
             if self.big:
                 self.big.hide()
-            if self.web:
-                self.web.push("orb", {"show": False})
-            return
-        if self._orb_ok():     # neues Overlay: Kugel mit Nervenstrang (bekommt state/msg oben schon über /events)
-            self.compact.hide()
-            if self.big:
-                self.big.hide()
-            self.web.push("orb", {"show": True})
             return
         if self.style == "gross" and self.big:
             self.compact.hide()
@@ -1764,7 +1912,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 02:40"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 03:00"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
