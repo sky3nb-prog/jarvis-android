@@ -136,7 +136,7 @@ object Halte {
             val parts = listOfNotNull(k.takeIf { it.isNotEmpty() }?.let { "schnell was holen ${med(it)} Min." },
                 e.takeIf { it.isNotEmpty() }?.let { "Einkauf ${med(it)} Min." })
             "$n " + (if (parts.isEmpty()) "${med(l)} Min." else parts.joinToString(", ")) + " (${l.size}×)"
-        } + ".")
+        } + "."
     }
 
     fun test(ctx: Context): String {
