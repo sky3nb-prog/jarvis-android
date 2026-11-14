@@ -105,6 +105,11 @@ object Alltag {
      */
     private fun sleepNudge(ctx: Context, s: JSONObject) {
         if (!on(ctx, "schlaf_tipp")) return
+        val pmx = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val tt = s.optLong("schlaf_tipp_t")   // nach dem Hinweis innerhalb 30 Min. Handy weg = er hat drauf gehört
+        if (tt > 0) { if (!pmx.isInteractive && System.currentTimeMillis() - tt < 30 * 60_000L) { Vorschlag.used(ctx, "schlaf_tipp"); s.remove("schlaf_tipp_t") }
+            else if (System.currentTimeMillis() - tt >= 30 * 60_000L) s.remove("schlaf_tipp_t") }
+        if (!Vorschlag.allowed(ctx, "schlaf_tipp")) return
         val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY); val mi = c.get(Calendar.MINUTE)
         if (!((h == 22 && mi >= 30) || h == 23 || h < 4)) return
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
@@ -121,6 +126,7 @@ object Alltag {
         val t = "Wenn du jetzt schläfst, sind es noch ${Sleep.dur(left)} bis zum Aufstehen um ${SimpleDateFormat("H:mm", de).format(Date(up))}." +
             (if (stage == 2) " Das wird knapp – leg das Handy weg." else "")
         notify(ctx, 346, "Schlafenszeit", t)
+        Vorschlag.shown(ctx, "schlaf_tipp"); s.put("schlaf_tipp_t", now)
     }
 
     /** Wieder zuhause nach einem echten Ausflug (Briefing mit Anziehen): einmal am Tag "zu kalt / passt / zu warm". */
@@ -128,7 +134,7 @@ object Alltag {
     private fun wardrobeAsk(ctx: Context, s: JSONObject) {
         if (!s.optBoolean("is_home")) return
         val lt = Wardrobe.lastTrip(ctx) ?: return
-        if (!Wardrobe.get(ctx).optBoolean("fragen", true)) return
+        if (!Wardrobe.get(ctx).optBoolean("fragen", true) || !Vorschlag.allowed(ctx, "schrank")) return
         val now = System.currentTimeMillis(); val age = now - lt.optLong("ts")
         if (age < 60 * 60_000L) return
         if (age > 14 * 3_600_000L) { prefs(ctx).edit().remove("schrank_letzt").apply(); return }
@@ -145,7 +151,7 @@ object Alltag {
         val b = NotificationCompat.Builder(ctx, CH).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("Wie war's mit den Klamotten?")
             .setContentText(txt).setStyle(NotificationCompat.BigTextStyle().bigText(txt)).setAutoCancel(true)
             .addAction(act(-1, "🥶 Zu kalt")).addAction(act(0, "👍 Passt")).addAction(act(1, "🥵 Zu warm"))
-        try { nm.notify(362, b.build()) } catch (_: Exception) {}
+        try { nm.notify(362, b.build()); Vorschlag.shown(ctx, "schrank") } catch (_: Exception) {}
     }
 
     /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
@@ -284,6 +290,9 @@ object Alltag {
         val km = pathKm(pts)
         val kmh = if (min > 0) km / (min / 60) else 0.0
         val mode = when { kmh < 6.5 -> "walk"; kmh < 28 -> "rad"; else -> "bahn" }
+        if (System.currentTimeMillis() - s.optLong("bahn_sug") < 4 * 3_600_000L) {   // Bahn war vorgeschlagen: genommen oder doch Rad?
+            Vorschlag.shown(ctx, "bahn"); if (mode == "bahn") Vorschlag.used(ctx, "bahn"); s.remove("bahn_sug")
+        }
         if (min in 2.0..300.0 && to != t.optString("from")) {
             val a = trips(ctx)
             a.put(JSONObject().put("from", t.optString("from")).put("to", to).put("start", start).put("end", System.currentTimeMillis())
@@ -936,7 +945,7 @@ object Alltag {
         val km = Route.distKm(from, dest)
         val rain = rainAt(from.lat, from.lon, leave)
         syncBahn(ctx)
-        val wantBahn = km >= 1.2 && (bahnPolicy == "immer" || (bahnPolicy != "nie" && rain))
+        val wantBahn = km >= 1.2 && (bahnPolicy == "immer" || (bahnPolicy != "nie" && rain && Vorschlag.allowed(ctx, "bahn")))
         if (wantBahn) Route.bahnFrom(from, dest, leave)?.let { b ->
             val o = JSONObject().put("mode", "transit").put("go", b.dep).put("min", (b.arr - b.dep) / 60_000.0).put("km", km).put("rain", rain)
                 .put("line", b.line).put("ride_dep", b.rideDep).put("stop", b.stop).put("arr", b.arr).put("ziel_name", name)
@@ -992,6 +1001,7 @@ object Alltag {
             val pl = s.optJSONObject("fest_plan")?.takeIf { it.optString("id") == id }
             if (pl != null && now in leave - 5 * 60_000L until leave + 10 * 60_000L && !done(s, "$id|brief")) {
                 mark(s, "$id|brief"); s.put("last_ready", now)
+                if (pl.optString("mode") == "transit" && pl.optBoolean("rain") && f.bahnHin != "immer") s.put("bahn_sug", now)   // nimmt er die Bahn wirklich?
                 val go = pl.optLong("go", leave)
                 val intro = if (pl.optString("mode") == "transit") "Zu ${f.label}:" else "Um ${clock(leave)} geht's los zu ${f.label}."
                 val (t0, fid) = rideBrief(ctx, "fahrt", if (pl.optString("mode") == "transit") "Heute fährst du Bahn" else "Gleich los zu ${f.label}", intro,
@@ -1523,6 +1533,7 @@ class AlltagReceiver : BroadcastReceiver() {
         if (intent.action == Alltag.ACTION_ZIEL) Alltag.zielAnswer(ctx, intent.getStringExtra("place") ?: "", intent.getBooleanExtra("yes", false))
         if (intent.action == Alltag.ACTION_SCHRANK) {
             val r = Wardrobe.feedback(ctx, intent.getIntExtra("v", 0))
+            Vorschlag.used(ctx, "schrank")
             ctx.getSystemService(android.app.NotificationManager::class.java).cancel(362)
             android.widget.Toast.makeText(ctx, r, android.widget.Toast.LENGTH_SHORT).show()
         }

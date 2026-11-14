@@ -422,7 +422,13 @@ class MainActivity : ComponentActivity() {
         fun feedList(): String = Feed.list(this@MainActivity).toString()
 
         @JavascriptInterface
-        fun feedGet(id: String): String = Feed.get(this@MainActivity, id)?.toString() ?: "null"
+        fun feedGet(id: String): String { Vorschlag.usedFeed(this@MainActivity, id); return Feed.get(this@MainActivity, id)?.toString() ?: "null" }
+
+        @JavascriptInterface
+        fun lernInfo(): String = Vorschlag.paused(this@MainActivity)
+
+        @JavascriptInterface
+        fun lernReset() = Vorschlag.reset(this@MainActivity)
 
         /** Tages-, Morgen- oder Wochen-Update jetzt erzeugen (kind: heute, morgen, woche). Antwort kommt als "feed_open". */
         @JavascriptInterface

@@ -404,6 +404,8 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  $("lern-btn").addEventListener("click", () => { try { $("lern-info").textContent = A.lernInfo(); } catch (e) {} });
+  $("lern-reset").addEventListener("click", () => { try { A.lernReset(); $("lern-info").textContent = A.lernInfo(); toast("Alles wieder an."); } catch (e) {} });
   $("set-testbahn").addEventListener("click", () => { A.testBahnZiel(($("bahn-ziel").value || "").trim()); toast("Ich suche die Verbindung beim VVS …"); });
   { const tb = $("tst-bahn"); if (tb) tb.addEventListener("click", () => { A.testBahnZiel(""); toast("Ich suche die Verbindung beim VVS …"); }); }
   try { const bs = JSON.parse(A.getBahn() || "{}"); $("bahn-art").value = bs.art || "rad_bahn"; $("ticket-app").value = bs.app || "vvs"; } catch (e) {}
