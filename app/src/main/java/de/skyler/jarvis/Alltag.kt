@@ -352,6 +352,19 @@ object Alltag {
         try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
         try { appUpdate(ctx, s) } catch (_: Exception) {}
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
+        try {   // einmal am Tag still prüfen, nur bei Problemen eine Benachrichtigung
+            val now = System.currentTimeMillis()
+            if (now - s.optLong("syscheck_t") > 24 * 3_600_000L && Calendar.getInstance().get(Calendar.HOUR_OF_DAY) in 9..21) {
+                s.put("syscheck_t", now)
+                Thread({
+                    try {
+                        val a = SysCheck.run(ctx)
+                        if ((0 until a.length()).any { a.getJSONObject(it).opt("ok") == false })
+                            notify(ctx, 361, "Jarvis-Systemcheck", SysCheck.summary(a))
+                    } catch (_: Exception) {}
+                }, "jarvis-check").start()
+            }
+        } catch (_: Exception) {}
         save(ctx, s)
     }
 

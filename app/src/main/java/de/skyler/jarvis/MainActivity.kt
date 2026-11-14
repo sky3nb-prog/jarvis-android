@@ -460,6 +460,13 @@ class MainActivity : ComponentActivity() {
                 .put("touch", ScreenService.enabled()).toString()
         } catch (e: Exception) { JSONObject().put("error", e.toString()).toString() }
 
+        /** Systemstatus (Seite in den Einstellungen): Handy-Prüfung. */
+        @JavascriptInterface
+        fun sysCheck(fresh: Boolean): String = try {
+            if (fresh || System.currentTimeMillis() - SysCheck.lastT > 120_000L) SysCheck.run(this@MainActivity)
+            JSONObject().put("items", SysCheck.last).put("t", SysCheck.lastT).put("text", SysCheck.summary()).toString()
+        } catch (e: Exception) { JSONObject().put("items", org.json.JSONArray()).put("text", e.toString()).toString() }
+
         /** Fester Weg (jede Woche) */
         @JavascriptInterface
         fun festGet(): String = Alltag.festerWeg(this@MainActivity).toString()

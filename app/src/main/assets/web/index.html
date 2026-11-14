@@ -139,7 +139,7 @@
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="fit">Gesundheit</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="fit">Gesundheit</span><span data-p="sys">System</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-home">
         <div class="sgrp">JARVIS</div>
@@ -147,6 +147,7 @@
           <div class="sitem" data-go="allg"><i style="background:#3a2608">⚙️</i><div><b>Allgemein</b><small>Name, Kopplung mit dem PC, Schlüssel, Standort</small></div><span>›</span></div>
           <div class="sitem" data-go="hoer"><i style="background:#0b2a3c">🎙️</i><div><b>Zuhören</b><small>Aktivierungswort, im Hintergrund</small></div><span>›</span></div>
           <div class="sitem" data-go="stimme"><i style="background:#1f1430">🔊</i><div><b>Stimme</b><small>Stimme, Lautstärke, Online-Stimme</small></div><span>›</span></div>
+          <div class="sitem" data-go="sys"><i style="background:#0b2a22">●</i><div><b>Systemstatus</b><small id="sys-sub">Läuft alles? Grüne und rote Punkte</small></div><span>›</span></div>
           <div class="sitem" data-go="anz"><i style="background:#13202a">◐</i><div><b>Anzeige</b><small>Strang, Leuchtrand, Berechtigungen</small></div><span>›</span></div>
         </div>
         <div class="sgrp">DEIN ALLTAG</div>
@@ -315,6 +316,13 @@
         <div class="sec" style="--c:#ff9a8a"><h3>WOCHENRÜCKBLICK</h3>
           <div class="srow"><div>Sonntags Wochenrückblick<small>Besuche bei Opa, Rad-Kilometer, Musik-Zeit, Termine nächste Woche. Karte am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-rueck"></div></div>
           <div class="f"><label>Um</label><input id="set-rueckzeit" type="time"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-sys">
+        <div class="sec" style="--c:#6effcd"><h3>SYSTEMSTATUS</h3>
+          <div class="note" id="sys-sum" style="margin:0 0 6px">–</div>
+          <div id="sys-list"></div>
+          <div class="srow"><div>Neu prüfen<small>Auch per Sprache: „Friday, Statuscheck“. Einmal am Tag prüft er still und meldet sich nur bei Problemen.</small></div><div class="sbtn" id="sys-again">Prüfen</div></div>
         </div>
       </div>
       <div class="spane" id="sp-fit">

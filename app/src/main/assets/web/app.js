@@ -235,7 +235,7 @@
   newDots();
   // Einstellungen wie am Handy: Übersicht -> Bereich antippen -> eigene Seite, "‹" zurück
   const PAGE_NAMES = { home: "EINSTELLUNGEN", allg: "ALLGEMEIN", hoer: "ZUHÖREN", stimme: "STIMME", anz: "ANZEIGE", alltag: "ALLTAG & WECKER",
-    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF", fit: "GESUNDHEIT & SCHLAF" };
+    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF", fit: "GESUNDHEIT & SCHLAF", sys: "SYSTEMSTATUS" };
   let setPage = "home";
   function showPage(p) {
     setPage = p;
@@ -402,6 +402,20 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  // --- Systemstatus ---
+  function sysShow(fresh) {
+    if (!A || !A.sysCheck) return;
+    $("sys-sum").textContent = "prüfe …";
+    setTimeout(() => {
+      let d = {}; try { d = JSON.parse(A.sysCheck(!!fresh) || "{}"); } catch (e) {}
+      const it = d.items || [], bad = it.filter((i) => i.ok === false).length;
+      $("sys-sum").textContent = bad ? `${bad} Problem${bad > 1 ? "e" : ""} – siehe rot` : "● Alle Systeme laufen";
+      $("sys-sub").textContent = bad ? `${bad} Problem${bad > 1 ? "e" : ""}` : "Alle Systeme laufen";
+      $("sys-list").innerHTML = it.map((i) => `<div class="sys-row ${i.ok === true ? "g" : i.ok === false ? "r" : "n"}"><i></i><div><b>${i.name}</b><small>${i.detail || ""}</small>${i.ok === false && i.fix ? `<em>${i.fix}</em>` : ""}</div></div>`).join("");
+    }, 30);
+  }
+  document.querySelector('[data-p="sys"]').addEventListener("click", () => sysShow(false));
+  $("sys-again").addEventListener("click", () => sysShow(true));
   // --- Gesundheit: Samsung Health (Health Connect) + Schlaf ---
   const nf = (v) => Number(v || 0).toLocaleString("de-DE");
   const hmT = (t) => new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
