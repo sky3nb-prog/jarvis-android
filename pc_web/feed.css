@@ -34,6 +34,7 @@
 .fp-hero.blue h1 { color: #bfe9ff; } .fp-hero.violet h1 { color: #ead8ff; }
 .fp-hero .s { font-size: 14px; color: #e9cfa0; } .fp-hero.blue .s { color: #a9d6ee; } .fp-hero.violet .s { color: #d8c6f0; }
 .fp-orb { position: absolute; right: -18px; top: -18px; width: 110px; height: 110px; border-radius: 50%; opacity: .5;
+  background: radial-gradient(circle at 40% 40%, #ffd678 0, #ff9a1a 30%, rgba(255,140,0,.2) 60%, transparent 70%); }
 .fp-times { display: flex; gap: 8px; margin-top: 12px; }
 .fp-tb { flex: 1; border-radius: 14px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,214,120,.25); padding: 8px 10px; min-width: 0; }
 .fp-tb small { display: block; font-size: 10px; letter-spacing: .12em; color: #b08a50; font-weight: 700; }
@@ -76,6 +77,6 @@
 .fp-bar u{display:block;height:100%;border-radius:5px;opacity:.85}.fp-bar b{text-align:right;color:#fff;font-weight:600}
 .fp-read{display:none!important}
 #feed{z-index:85}
-#feed.feedpage{position:fixed;left:50%;top:64px;bottom:24px;inset-inline:auto;width:min(560px,94vw);transform:translateX(-50%);border:1px solid #6b4a14;border-radius:22px;box-shadow:0 0 40px rgba(255,170,40,.2);overflow:hidden}
+#feed.feedpage{position:fixed;left:50%;right:auto;top:64px;bottom:24px;width:min(560px,94vw);transform:translateX(-50%);border:1px solid #6b4a14;border-radius:22px;box-shadow:0 0 40px rgba(255,170,40,.2);overflow:hidden}
 .feedbtn-pc{margin-left:10px;position:relative;font-size:15px;cursor:pointer;width:30px;height:30px;border-radius:50%;border:1.5px solid #5a3e14;display:flex;align-items:center;justify-content:center}
 .fp-body{overflow-y:auto}
