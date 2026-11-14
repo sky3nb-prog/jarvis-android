@@ -460,6 +460,17 @@ class MainActivity : ComponentActivity() {
                 .put("touch", ScreenService.enabled()).toString()
         } catch (e: Exception) { JSONObject().put("error", e.toString()).toString() }
 
+        /** Kleiderschrank */
+        @JavascriptInterface
+        fun schrankGet(): String = Wardrobe.get(this@MainActivity).put("ortnamen", org.json.JSONArray(
+            (Route.placeNames(this@MainActivity) + listOf(Alltag.festerWeg(this@MainActivity).optString("name"))).filter { it.isNotBlank() }.map { it.lowercase() }.distinct())).toString()
+
+        @JavascriptInterface
+        fun schrankSave(json: String) { try { val o = JSONObject(json); o.remove("ortnamen"); Wardrobe.save(this@MainActivity, o) } catch (_: Exception) {} }
+
+        @JavascriptInterface
+        fun schrankHeute(): String = try { Alltag.wardrobeToday(this@MainActivity).toString() } catch (e: Exception) { JSONObject().put("error", e.toString()).toString() }
+
         /** Systemstatus (Seite in den Einstellungen): Handy-Prüfung. */
         @JavascriptInterface
         fun sysCheck(fresh: Boolean): String = try {

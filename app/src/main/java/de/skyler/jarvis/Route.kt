@@ -91,6 +91,9 @@ object Route {
         return Lage.geocode(ctx, v, near)?.let { P(it.first, it.second, s) }
     }
 
+    /** Namen aller gespeicherten Orte (für den Kleiderschrank: drinnen/draußen pro Ort). */
+    fun placeNames(ctx: Context): List<String> = lines(ctx, "orte").keys.toList()
+
     /** Ist der Text ein gespeicherter Ort? Gibt dessen Namen zurück. */
     fun savedName(ctx: Context, text: String): String? {
         val t = text.lowercase()

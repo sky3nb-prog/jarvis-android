@@ -123,6 +123,31 @@ object Alltag {
         notify(ctx, 346, "Schlafenszeit", t)
     }
 
+    /** Wieder zuhause nach einem echten Ausflug (Briefing mit Anziehen): einmal am Tag "zu kalt / passt / zu warm". */
+    const val ACTION_SCHRANK = "de.skyler.jarvis.SCHRANK"
+    private fun wardrobeAsk(ctx: Context, s: JSONObject) {
+        if (!s.optBoolean("is_home")) return
+        val lt = Wardrobe.lastTrip(ctx) ?: return
+        if (!Wardrobe.get(ctx).optBoolean("fragen", true)) return
+        val now = System.currentTimeMillis(); val age = now - lt.optLong("ts")
+        if (age < 60 * 60_000L) return
+        if (age > 14 * 3_600_000L) { prefs(ctx).edit().remove("schrank_letzt").apply(); return }
+        val key = "schrank|${today()}"
+        if (done(s, key)) return
+        mark(s, key)
+        val p = lt.optJSONObject("pick") ?: return
+        val txt = "Du hattest ${p.optString("jacke")} an" + (if (p.optString("oben").isNotBlank()) ", drunter ${p.optString("oben")}" else "") +
+            (if (lt.optString("wo").isNotBlank()) " (${lt.optString("wo")})" else "") + ". War das richtig?"
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CH, "Alltag (Losfahren, Briefings, Zuhause)", NotificationManager.IMPORTANCE_HIGH))
+        fun act(v: Int, label: String) = NotificationCompat.Action(0, label, PendingIntent.getBroadcast(ctx, 600 + v + 1,
+            Intent(ctx, AlltagReceiver::class.java).setAction(ACTION_SCHRANK).putExtra("v", v), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        val b = NotificationCompat.Builder(ctx, CH).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("Wie war's mit den Klamotten?")
+            .setContentText(txt).setStyle(NotificationCompat.BigTextStyle().bigText(txt)).setAutoCancel(true)
+            .addAction(act(-1, "🥶 Zu kalt")).addAction(act(0, "👍 Passt")).addAction(act(1, "🥵 Zu warm"))
+        try { nm.notify(362, b.build()) } catch (_: Exception) {}
+    }
+
     /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
     private const val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/neueste/Jarvis.apk"
     private fun appUpdate(ctx: Context, s: JSONObject) {
@@ -352,6 +377,7 @@ object Alltag {
         try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
         try { appUpdate(ctx, s) } catch (_: Exception) {}
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
+        try { wardrobeAsk(ctx, s) } catch (_: Exception) {}
         try {   // einmal am Tag still prüfen, nur bei Problemen eine Benachrichtigung
             val now = System.currentTimeMillis()
             if (now - s.optLong("syscheck_t") > 24 * 3_600_000L && Calendar.getInstance().get(Calendar.HOUR_OF_DAY) in 9..21) {
@@ -386,6 +412,7 @@ object Alltag {
         val isAway = !isHome && ((wifiKnown && (dHome == null && !lastNearHome || dHome != null && dHome > 0.3)) ||
             (!wifiKnown && dHome != null && dHome > 0.3))
         if (!isHome && !isAway) return   // weiß nicht, wo du bist
+        s.put("is_home", isHome)
 
         val trip = s.optJSONObject("trip") ?: JSONObject().put("from", "zuhause").put("start", 0L).put("pts", JSONArray())
         s.put("trip", trip)
@@ -837,6 +864,25 @@ object Alltag {
         "${w.optInt("temp")}° (gefühlt ${w.optInt("feel")}°), Regen ${w.optInt("rain_pct")} % / ${w.optDouble("rain_mm")} mm, Wind ${w.optInt("wind")} km/h, " +
             "Böen ${w.optInt("gust")} km/h, ${if (w.optBoolean("dark")) "dunkel" else "hell"}, Wettercode ${w.optInt("code")}"
 
+    /** Kleiderschrank-Auswahl -> Outfit-Karte (Jacke, oben, Hose, Extras) */
+    private fun outfitOf(p: JSONObject) = JSONObject().put("jacke", p.optString("jacke")).put("oben", p.optString("oben"))
+        .put("hose", p.optString("hose")).put("extras", p.optJSONArray("extras") ?: JSONArray())
+
+    /** Kleiderschrank für einen ganzen Tag (Morgen-/Abend-Briefing): kälteste/wärmste gefühlte Temperatur von 7 bis 19 Uhr. */
+    private fun dayPick(ctx: Context, wx: JSONObject?): JSONObject? = try {
+        val h = wx?.optJSONArray("hours") ?: throw Exception()
+        val f = (0 until h.length()).map { h.getJSONObject(it).optDouble("feel") }.filter { !it.isNaN() }
+        if (f.isEmpty()) null else Wardrobe.pick(ctx, f.min(), f.max(), (wx.optInt("rain_pct") >= 50), true, Wardrobe.get(ctx).optBoolean("tag_drinnen", true))
+    } catch (_: Exception) { null }
+
+    /** Vorschau für die Kleiderschrank-Seite: was heute (bzw. ab 18 Uhr: morgen) dran ist. */
+    fun wardrobeToday(ctx: Context): JSONObject {
+        val tomorrow = Calendar.getInstance().get(Calendar.HOUR_OF_DAY) >= 18
+        val wx = dayWx(ctx, if (tomorrow) 1 else 0)
+        val p = dayPick(ctx, wx) ?: return JSONObject().put("error", "Kein Wetter (Wohnort in den Einstellungen?)")
+        return p.put("tag", if (tomorrow) "Morgen" else "Heute").put("min", wx?.optInt("min")).put("max", wx?.optInt("max"))
+    }
+
     /** KI liefert gesprochenen Text + Listen als JSON. */
     private fun aiJson(ctx: Context, sys: String, data: String, maxTok: Int = 600): JSONObject? {
         val key = prefs(ctx).getString("groq_key", "") ?: ""
@@ -858,9 +904,15 @@ object Alltag {
                           remind: List<String> = emptyList(), short: Boolean = false, extra: JSONObject = JSONObject()): Pair<String, String> {
         val w1 = wxAt(from.lat, from.lon, leave)
         val w2 = if (back > 0) wxAt(from.lat, from.lon, back) else null
+        // Kleiderschrank: nach der kältesten Temperatur der ganzen Strecke, Fahrtwind, drinnen am Ziel
+        val temps = listOfNotNull(w1?.optDouble("feel"), w2?.optDouble("feel")).filter { !it.isNaN() }
+        val bike = pl.optString("mode") != "transit" && pl.optString("vehicle") != "fuss"
+        val wet = pl.optBoolean("rain") || listOfNotNull(w1, w2).any { it.optDouble("rain_mm", 0.0) > 0.1 }
+        val pick = if (temps.isNotEmpty()) try { Wardrobe.pick(ctx, temps.min(), temps.max(), wet, bike, Wardrobe.isIndoor(ctx, extra.optString("ziel"))) } catch (_: Exception) { null } else null
+        if (pick != null && kind == "fahrt" && !extra.optBoolean("test")) Wardrobe.rememberTrip(ctx, pick, extra.optString("ziel"))
         val data = "Ansage: $intro\nVerkehrsmittel: ${pl.optString("text")}\nWetter bei der Abfahrt (${clock(leave)}): ${wxText(w1)}" +
             (if (w2 != null) "\nWetter auf dem Rückweg (${clock(back)}): ${wxText(w2)}" else "") +
-            "\nSeine Anzieh-Regeln:\n" + ((prefs(ctx).getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }) +
+            "\n" + (pick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + ((prefs(ctx).getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))) +
             (if (remind.isNotEmpty()) "\nEr wollte daran erinnert werden: ${remind.joinToString("; ")}" else "")
         val sys = "Du bist Jarvis und gibst Skyler ein Briefing für seine Fahrt. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochenes Briefing, " + (if (short) "höchstens 2 kurze Sätze" else "3 bis 5 kurze Sätze") +
@@ -873,11 +925,12 @@ object Alltag {
         val text = ai?.optString("text")?.replace(Regex("[*#`]"), "")?.trim()?.ifBlank { null } ?: "$intro ${pl.optString("text")}$denk Gute Fahrt!"
         val d = JSONObject().put("intro", intro).put("plan", pl).put("leave", leave).put("back", back)
             .put("wx_hin", w1 ?: JSONObject.NULL).put("wx_back", w2 ?: JSONObject.NULL)
-            .put("anziehen", strs(ai?.optJSONArray("anziehen"))).put("achtung", strs(ai?.optJSONArray("achtung")))
-            .put("outfit", ai?.optJSONObject("outfit") ?: JSONObject.NULL).put("denk", JSONArray(remind))
+            .put("anziehen", pick?.optJSONArray("anziehen") ?: strs(ai?.optJSONArray("anziehen"))).put("achtung", strs(ai?.optJSONArray("achtung")))
+            .put("outfit", pick?.let { outfitOf(it) } ?: ai?.optJSONObject("outfit") ?: JSONObject.NULL).put("denk", JSONArray(remind))
+            .put("warum", pick?.optString("warum") ?: "")
         for (k in extra.keys()) d.put(k, extra.get(k))
         val sub = listOfNotNull(if (pl.optString("mode") == "transit") "Bahn" else if (pl.optString("vehicle") == "rad") "Fahrrad" else if (pl.optString("vehicle") == "fuss") "zu Fuß" else "E-Bike",
-            w1?.let { "${it.optInt("temp")}°" }, strs(ai?.optJSONArray("anziehen")).let { a -> (0 until minOf(3, a.length())).joinToString(", ") { a.optString(it) }.ifBlank { null } }).joinToString(" · ")
+            w1?.let { "${it.optInt("temp")}°" }, (pick?.optJSONArray("anziehen") ?: strs(ai?.optJSONArray("anziehen"))).let { a -> (0 until minOf(3, a.length())).joinToString(", ") { a.optString(it) }.ifBlank { null } }).joinToString(" · ")
         val id = Feed.add(ctx, kind, title, sub, text, d)
         return text to id
     }
@@ -997,7 +1050,8 @@ object Alltag {
         val wege = if (day == 0) todayWege(ctx).map { "${it.label} um %d:%02d".format(it.h, it.m) } else emptyList()
         val parts = mutableListOf<String>()
         if (wx != null) parts.add("Wetter Leonberg: $wx")
-        parts.add("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT })
+        val pick = dayPick(ctx, wx)
+        parts.add(pick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))
         parts.add("Termine:\n" + (Cal.describe(evs).ifBlank { "keine" }))
         if (wege.isNotEmpty()) parts.add("Feste Wege: ${wege.joinToString()}")
         parts.add("Was du über ihn weißt:\n" + Memory.facts(ctx).takeLast(40).joinToString("\n") { "- $it" })
@@ -1021,8 +1075,8 @@ object Alltag {
             .put("titel", e.title).put("ort", e.place))
         for (f in if (day == 0) todayWege(ctx) else emptyList()) termine.put(JSONObject().put("zeit", "%d:%02d".format(f.h, f.m)).put("titel", "Los zu ${f.label}").put("ort", ""))
         val d = JSONObject().put("day", day).put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date(dayStart)))
-            .put("wx", wx ?: JSONObject.NULL).put("anziehen", strs(ai.optJSONArray("anziehen"))).put("achtung", strs(ai.optJSONArray("achtung")))
-            .put("outfit", ai.optJSONObject("outfit") ?: JSONObject.NULL)
+            .put("wx", wx ?: JSONObject.NULL).put("anziehen", pick?.optJSONArray("anziehen") ?: strs(ai.optJSONArray("anziehen"))).put("achtung", strs(ai.optJSONArray("achtung")))
+            .put("outfit", pick?.let { outfitOf(it) } ?: ai.optJSONObject("outfit") ?: JSONObject.NULL).put("warum", pick?.optString("warum") ?: "")
             .put("mitnehmen", strs(ai.optJSONArray("mitnehmen"))).put("termine", termine).put("wecker", wecker ?: 0L)
             .put("schlaf", schlaf ?: JSONObject.NULL)
         val sub = listOfNotNull(wx?.let { "${it.optInt("min")}–${it.optInt("max")}°" + (if (it.optInt("rain_pct") >= 50) ", Regen" else ", trocken") },
@@ -1061,7 +1115,8 @@ object Alltag {
         parts.add("MORGEN – " + (if (up != null) "Aufstehen um ${clock(up)}" + (if (wecker.isNotEmpty()) ", Wecker ${wecker.joinToString(", ")}" else "")
             else if (firstAlarm != null) "erster Wecker ${clock(firstAlarm)}" else "kein Wecker, er kann ausschlafen"))
         if (wx != null) parts.add("MORGEN – Wetter Leonberg: $wx")
-        parts.add("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT })
+        val epick = dayPick(ctx, wx)
+        parts.add(epick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))
         val sys = "Du bist Jarvis und gibst Skyler seinen Tagesabschluss am Abend. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 3 bis 5 kurze Sätze: kurzer Rückblick auf heute (was los war" +
             (if (fit != null) ", wie viele Kalorien er verbraucht hat und ob er aktiv war, Defizit nur wenn gegessene Kalorien in den Daten stehen" else "") +
@@ -1074,7 +1129,8 @@ object Alltag {
         val d = JSONObject().put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date(d0)))
             .put("heute", strs(ai?.optJSONArray("heute"))).put("fit", fit ?: JSONObject.NULL).put("schlaf", schlaf ?: JSONObject.NULL)
             .put("aufstehen", up ?: 0L).put("bett", if (up != null) up - 8 * 3_600_000L else 0L).put("wecker", JSONArray(wecker)).put("erster_wecker", firstAlarm ?: 0L)
-            .put("wx", wx ?: JSONObject.NULL).put("outfit", ai?.optJSONObject("outfit") ?: JSONObject.NULL).put("anziehen", strs(ai?.optJSONArray("anziehen")))
+            .put("wx", wx ?: JSONObject.NULL).put("outfit", epick?.let { outfitOf(it) } ?: ai?.optJSONObject("outfit") ?: JSONObject.NULL)
+            .put("anziehen", epick?.optJSONArray("anziehen") ?: strs(ai?.optJSONArray("anziehen"))).put("warum", epick?.optString("warum") ?: "")
         val sub = listOfNotNull(up?.let { "Aufstehen ${SimpleDateFormat("H:mm", de).format(Date(it))}" },
             strs(ai?.optJSONArray("anziehen")).optString(0).ifBlank { null }, fit?.takeIf { it.has("kcal") }?.let { "%,d kcal".format(de, it.optLong("kcal")) }).joinToString(" · ")
         return text to Feed.add(ctx, "abend", "Dein Tagesabschluss", sub, text, d)
@@ -1261,5 +1317,10 @@ object Alltag {
 class AlltagReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action == Alltag.ACTION_CANCEL) Alltag.cancelAway(ctx)
+        if (intent.action == Alltag.ACTION_SCHRANK) {
+            val r = Wardrobe.feedback(ctx, intent.getIntExtra("v", 0))
+            ctx.getSystemService(android.app.NotificationManager::class.java).cancel(362)
+            android.widget.Toast.makeText(ctx, r, android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 }

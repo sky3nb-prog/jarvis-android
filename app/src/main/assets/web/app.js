@@ -235,7 +235,7 @@
   newDots();
   // Einstellungen wie am Handy: Übersicht -> Bereich antippen -> eigene Seite, "‹" zurück
   const PAGE_NAMES = { home: "EINSTELLUNGEN", allg: "ALLGEMEIN", hoer: "ZUHÖREN", stimme: "STIMME", anz: "ANZEIGE", alltag: "ALLTAG & WECKER",
-    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF", fit: "GESUNDHEIT & SCHLAF", sys: "SYSTEMSTATUS" };
+    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF", fit: "GESUNDHEIT & SCHLAF", sys: "SYSTEMSTATUS", schrank: "KLEIDERSCHRANK" };
   let setPage = "home";
   function showPage(p) {
     setPage = p;
@@ -402,6 +402,64 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  // --- Kleiderschrank ---
+  let WS = null;
+  const LAYERS = [["jacke", "🧥 JACKEN – DRÜBER", "#ffd678"], ["drunter", "👕 OBERTEILE – DRUNTER", "#6effcd"], ["mitte", "🧶 PULLIS & CO.", "#d7a8ff"], ["hose", "👖 HOSEN", "#3cc8ff"], ["extra", "🧢 EXTRAS", "#ff9a8a"]];
+  const LO = -15, HI = 35;
+  const tlabel = (v, lo) => (lo && v <= LO ? "kalt" : !lo && v >= HI ? "heiß" : v + " °C");
+  function wsSave() { if (A && A.schrankSave) A.schrankSave(JSON.stringify(WS)); wsToday(); }
+  function wsToday() {
+    let p = {}; try { p = JSON.parse(A.schrankHeute() || "{}"); } catch (e) {}
+    const icon = (n) => { const it = (WS.items || []).find((x) => x.name === n); return it ? it.icon : "•"; };
+    $("ws-hero").querySelector("small").textContent = (p.tag || "HEUTE").toUpperCase() + " ANZIEHEN" + (p.min != null ? ` · ${p.min}° BIS ${p.max}°` : "");
+    $("ws-today").innerHTML = p.error ? `<span class="ws-chip">${p.error}</span>` : (p.anziehen || []).map((n) => `<span class="ws-chip">${icon(n)} ${n}</span>`).join("");
+    $("ws-why").textContent = p.warum || "";
+  }
+  function wsRender() {
+    $("ws-layers").innerHTML = LAYERS.map(([l, title, col]) => `<div class="sec" style="--c:${col}"><h3>${title}</h3>` +
+      (WS.items || []).map((it, i) => it.layer !== l ? "" : `<div class="ws-card ${it.on === false ? "off" : ""}" data-i="${i}">
+        <div class="ws-top"><span class="ws-ic">${it.icon}</span><b>${it.name}</b>${it.rain ? '<span class="ws-tag">bei Regen</span>' : ""}<div class="sw ${it.on !== false ? "on" : ""}" data-on="${i}"></div></div>
+        ${it.rain && l === "extra" ? '<div class="ws-rng-l">kommt nur bei Regen mit</div>' : `<div class="ws-rng" style="--a:${(Math.max(LO, it.min) - LO) / (HI - LO) * 100}%;--b:${(Math.min(HI, it.max) - LO) / (HI - LO) * 100}%">
+          <input type="range" min="${LO}" max="${HI}" step="1" value="${Math.max(LO, it.min)}" data-min="${i}"><input type="range" min="${LO}" max="${HI}" step="1" value="${Math.min(HI, it.max)}" data-max="${i}"></div>
+        <div class="ws-rng-l"><span>${tlabel(Math.max(LO, it.min), true)}</span><span>bis</span><span>${tlabel(Math.min(HI, it.max), false)}</span></div>`}
+        ${it.custom ? `<div class="ws-del" data-del="${i}">entfernen</div>` : ""}</div>`).join("") + "</div>").join("");
+    $("ws-layers").querySelectorAll("[data-on]").forEach((e) => e.addEventListener("click", () => { const it = WS.items[+e.dataset.on]; it.on = it.on === false; wsRender(); wsSave(); }));
+    $("ws-layers").querySelectorAll("[data-del]").forEach((e) => e.addEventListener("click", () => { WS.items.splice(+e.dataset.del, 1); wsRender(); wsSave(); }));
+    $("ws-layers").querySelectorAll(".ws-rng input").forEach((e) => {
+      e.addEventListener("input", () => {
+        const i = +(e.dataset.min || e.dataset.max), it = WS.items[i], wrap = e.parentElement;
+        const a = +wrap.querySelector("[data-min]").value, b = +wrap.querySelector("[data-max]").value;
+        const lo = Math.min(a, b), hi = Math.max(a, b);
+        it.min = lo <= LO ? -30 : lo; it.max = hi >= HI ? 40 : hi;
+        wrap.style.setProperty("--a", (lo - LO) / (HI - LO) * 100 + "%"); wrap.style.setProperty("--b", (hi - LO) / (HI - LO) * 100 + "%");
+        const l = wrap.nextElementSibling.children; l[0].textContent = tlabel(lo, true); l[2].textContent = tlabel(hi, false);
+      });
+      e.addEventListener("change", wsSave);
+    });
+    sw("ws-dick", WS.dickeJacke !== false); sw("ws-wind", WS.wind !== false); sw("ws-tag", WS.tag_drinnen !== false); sw("ws-fragen", WS.fragen !== false);
+    $("ws-in").value = WS.drinnen || 21; $("ws-inv").textContent = WS.drinnen || 21;
+    const orte = WS.orte || {}, names = [...new Set([...(WS.ortnamen || []), ...Object.keys(orte)])];
+    $("ws-orte").innerHTML = names.length ? names.map((n) => `<div class="srow"><div style="text-transform:capitalize">${n}</div><div class="ws-seg" data-ort="${n}"><span data-v="drinnen" class="${orte[n] === "drinnen" ? "on" : ""}">Drinnen</span><span data-v="draussen" class="${orte[n] !== "drinnen" ? "on" : ""}">Draußen</span></div></div>`).join("")
+      : '<div class="note" style="margin:0">Noch keine Orte – trag sie unter Wege & Orte ein.</div>';
+    $("ws-orte").querySelectorAll(".ws-seg span").forEach((e) => e.addEventListener("click", () => { WS.orte = WS.orte || {}; WS.orte[e.parentElement.dataset.ort] = e.dataset.v; wsRender(); wsSave(); }));
+    const adj = +(WS.adj || 0);
+    $("ws-adj").innerHTML = adj ? `Gelernt: <b>${adj > 0 ? "dir ist schnell warm" : "dir ist schnell kalt"}</b> – Grenzen ${adj > 0 ? "+" : ""}${adj.toFixed(1)} °C verschoben<small>aus ${(WS.log || []).length} Rückmeldungen</small>` : "Noch nichts angepasst<small>Kommt mit deinen Rückmeldungen</small>";
+  }
+  function wsShow() { try { WS = JSON.parse(A.schrankGet() || "{}"); } catch (e) { WS = { items: [] }; } wsRender(); setTimeout(wsToday, 30); }
+  document.querySelector('[data-p="schrank"]').addEventListener("click", wsShow);
+  $("go-schrank").addEventListener("click", () => { showPage("schrank"); wsShow(); });
+  [["ws-dick", "dickeJacke"], ["ws-wind", "wind"], ["ws-tag", "tag_drinnen"], ["ws-fragen", "fragen"]].forEach(([id, k]) =>
+    $(id).addEventListener("click", () => setTimeout(() => { WS[k] = sw(id); wsSave(); }, 0)));
+  $("ws-in").addEventListener("input", () => { $("ws-inv").textContent = $("ws-in").value; });
+  $("ws-in").addEventListener("change", () => { WS.drinnen = +$("ws-in").value; wsSave(); });
+  $("ws-reset").addEventListener("click", () => { WS.adj = 0; WS.log = []; wsRender(); wsSave(); toast("Zurückgesetzt."); });
+  $("ws-add").addEventListener("click", () => {
+    const n = $("ws-nname").value.trim(); if (!n) return toast("Name fehlt.");
+    const l = $("ws-nlayer").value, def = { jacke: [5, 15], mitte: [-30, 14], drunter: [-30, 40], hose: [-30, 20], extra: [-30, 4] }[l];
+    WS.items.push({ id: "c" + Date.now(), name: n, icon: $("ws-nicon").value, layer: l, min: def[0], max: def[1], rain: false, on: true, custom: true });
+    $("ws-nname").value = ""; wsRender(); wsSave(); toast(n + " ist im Schrank.");
+  });
+
   // --- Systemstatus ---
   function sysShow(fresh) {
     if (!A || !A.sysCheck) return;

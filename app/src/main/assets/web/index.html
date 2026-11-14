@@ -139,7 +139,7 @@
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="fit">Gesundheit</span><span data-p="sys">System</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="fit">Gesundheit</span><span data-p="sys">System</span><span data-p="schrank">Schrank</span><span data-p="anz">Anzeige</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-home">
         <div class="sgrp">JARVIS</div>
@@ -153,6 +153,7 @@
         <div class="sgrp">DEIN ALLTAG</div>
         <div class="slist">
           <div class="sitem" data-go="alltag"><i style="background:#2a1a05">⏰</i><div><b>Alltag & Wecker</b><small>Wecker, fester Weg, Termine, Briefings, Zuhause</small></div><span>›</span></div>
+          <div class="sitem" data-go="schrank"><i style="background:#1f1430">👔</i><div><b>Kleiderschrank</b><small>Deine Sachen, Temperaturen, drinnen/draußen, lernt dazu</small></div><span>›</span></div>
           <div class="sitem" data-go="wege"><i style="background:#0b2a22">🗺️</i><div><b>Wege & Orte</b><small>Meine Orte, Feldwege, Routen schicken</small></div><span>›</span></div>
           <div class="sitem" data-go="fit"><i style="background:#2a0f18">❤️</i><div><b>Gesundheit & Schlaf</b><small>Samsung Health, Kalorien, Aktivität, Schlaf, Tagesbilanz</small></div><span>›</span></div>
           <div class="sitem" data-go="leute"><i style="background:#2a1306">👥</i><div><b>Leute & Anrufe</b><small>Wichtige Leute, Sprachnachrichten, Anruf-Butler</small></div><span>›</span></div>
@@ -311,11 +312,36 @@
           <div class="srow"><div>Was anziehen</div><div class="sw" id="set-bianzieh"></div></div>
           <div class="srow"><div>Termine</div><div class="sw" id="set-bitermine"></div></div>
           <div class="srow"><div>Was mitnehmen</div><div class="sw" id="set-bimit"></div></div>
-          <div class="f"><label>Deine Anzieh-Regeln</label><textarea id="set-anzieh" rows="5"></textarea></div>
+          <div class="srow"><div>Was anziehen – Kleiderschrank<small>Deine Sachen mit Temperaturen, drinnen/draußen pro Ort, lernt dazu</small></div><div class="sbtn" id="go-schrank">Öffnen</div></div>
+          <textarea id="set-anzieh" rows="5" style="display:none"></textarea>
         </div>
         <div class="sec" style="--c:#ff9a8a"><h3>WOCHENRÜCKBLICK</h3>
           <div class="srow"><div>Sonntags Wochenrückblick<small>Besuche bei Opa, Rad-Kilometer, Musik-Zeit, Termine nächste Woche. Karte am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-rueck"></div></div>
           <div class="f"><label>Um</label><input id="set-rueckzeit" type="time"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-schrank">
+        <div class="ws-hero" id="ws-hero"><small>HEUTE ANZIEHEN</small><div class="ws-chips" id="ws-today">…</div><div class="ws-why" id="ws-why"></div></div>
+        <div id="ws-layers"></div>
+        <div class="sec" style="--c:#ffd678"><h3>EIGENES TEIL</h3>
+          <div style="display:flex;gap:8px"><div class="f" style="flex:1"><label>Name</label><input id="ws-nname" type="text" placeholder="z. B. Fleecejacke"></div>
+            <div class="f" style="flex:0 0 76px"><label>Symbol</label><select id="ws-nicon"><option>🧥</option><option>👕</option><option>🧶</option><option>👖</option><option>🩳</option><option>🧢</option><option>🧤</option><option>🧣</option><option>☔</option><option>👟</option><option>🕶️</option></select></div></div>
+          <div style="display:flex;gap:8px;align-items:flex-end"><div class="f" style="flex:1"><label>Art</label><select id="ws-nlayer"><option value="jacke">Jacke (drüber)</option><option value="mitte">Pulli & Co.</option><option value="drunter">Oberteil (drunter)</option><option value="hose">Hose</option><option value="extra">Extra (Mütze …)</option></select></div>
+            <div class="sbtn" id="ws-add" style="margin-bottom:12px">Hinzufügen</div></div>
+        </div>
+        <div class="sec" style="--c:#d7a8ff"><h3>VORLIEBEN</h3>
+          <div class="srow"><div>Lieber dicke Jacke als Pulli drunter<small>Wenn beides passt: T-Shirt + wärmere Jacke statt T-Shirt + Pulli</small></div><div class="sw" id="ws-dick"></div></div>
+          <div class="srow"><div>Fahrtwind einrechnen<small>Auf dem Rad/E-Bike fühlt es sich etwa 3 °C kälter an</small></div><div class="sw" id="ws-wind"></div></div>
+          <div class="srow"><div>Tagsüber meist drinnen<small>Schule: drunter so, dass du drinnen nicht schwitzt – die Jacke macht draußen warm</small></div><div class="sw" id="ws-tag"></div></div>
+          <div class="f"><label>So warm ist es drinnen: <b id="ws-inv">21</b> °C</label><input type="range" id="ws-in" min="16" max="26" step="1"></div>
+        </div>
+        <div class="sec" style="--c:#3cc8ff"><h3>ORTE – DRINNEN ODER DRAUSSEN?</h3>
+          <div class="note" style="margin:0 0 6px">Drinnen (länger dort, z. B. Oma und Opa): drunter nur, was drinnen passt – die warme Jacke kommt drüber und wird dort ausgezogen.</div>
+          <div id="ws-orte"></div>
+        </div>
+        <div class="sec" style="--c:#6effcd"><h3>DAZULERNEN</h3>
+          <div class="srow"><div>Nach Ausflügen fragen<small>Wieder zuhause: „Zu kalt / passt / zu warm“ – höchstens einmal am Tag</small></div><div class="sw" id="ws-fragen"></div></div>
+          <div class="srow"><div id="ws-adj">Noch nichts angepasst</div><div class="sbtn" id="ws-reset">Zurücksetzen</div></div>
         </div>
       </div>
       <div class="spane" id="sp-sys">
