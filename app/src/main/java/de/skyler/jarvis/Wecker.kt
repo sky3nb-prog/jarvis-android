@@ -105,9 +105,11 @@ object Wecker {
     }
 
     // --- Automatisch: "An Schultagen will ich um 7:10 aufstehen" -> jeden Abend die Wecker für morgen ---------
-    /** Minuten vor dem Aufstehen, z. B. "25, 20, 10, 5" -> 6:45, 6:50, 7:00, 7:05 bei 7:10. */
-    fun offsets(ctx: Context): List<Int> = (prefs(ctx).getString("wecker_vorher", "25, 20, 10, 5") ?: "").split(',', ';', ' ')
-        .mapNotNull { it.trim().removePrefix("-").toIntOrNull() }.filter { it in 1..180 }.distinct().sortedDescending().ifEmpty { listOf(25, 20, 10, 5) }
+    const val VORHER_DEFAULT = "25, 20, 5"
+
+    /** Minuten vor dem Aufstehen: "25, 20, 5" -> bei 7:10 Wecker um 6:45, 6:50 und 7:05. */
+    fun offsets(ctx: Context): List<Int> = (prefs(ctx).getString("wecker_vorher", VORHER_DEFAULT)?.let { if (it.trim() == "25, 20, 10, 5") VORHER_DEFAULT else it } ?: "")
+        .split(',', ';', ' ').mapNotNull { it.trim().removePrefix("-").toIntOrNull() }.filter { it in 1..180 }.distinct().sortedDescending().ifEmpty { listOf(25, 20, 5) }
 
     /** Aufsteh-Zeit für einen Tag (Schultag Mo–Fr oder Wochenende) laut Einstellung, sonst null. */
     /** Aufsteh-Zeit je Wochentag (Calendar.SUNDAY=1 … SATURDAY=7), "" = kein Wecker. */
@@ -149,15 +151,79 @@ object Wecker {
             "Ich stelle dir jeden Abend die Wecker für den nächsten Tag: ${ts.joinToString(", ")}. Dein Tages-Update kommt um ${"%d:%02d".format(up.first, up.second)}."
     }
 
+    private fun dateOf(t: Long) = SimpleDateFormat("yyyy-MM-dd", de).format(Date(t))
+    private fun fmt(h: Int, m: Int) = "%d:%02d".format(h, m)
+    private fun minus(h: Int, m: Int, d: Int): Pair<Int, Int> { val t = (h * 60 + m - d + 1440) % 1440; return t / 60 to t % 60 }
+    private fun dayWord(datum: String): String {
+        val t = Calendar.getInstance()
+        val today = dateOf(t.timeInMillis); t.add(Calendar.DAY_OF_YEAR, 1); val tom = dateOf(t.timeInMillis)
+        return when (datum) { today -> "heute"; tom -> "morgen"; else -> try { SimpleDateFormat("EEEE", de).format(SimpleDateFormat("yyyy-MM-dd", de).parse(datum)!!) } catch (_: Exception) { datum } }
+    }
+
+    /** "Ich will morgen um 7:10 aufstehen": nur für diesen Tag (der feste Plan bleibt). Wecker nach "Minuten vorher". */
+    fun wakeOnce(ctx: Context, datum: String, zeit: String): String {
+        val up = hm(zeit) ?: return "Um wie viel Uhr willst du aufstehen?"
+        val times = timesFor(ctx, up)
+        val first = hm(times.first())!!
+        val d = datum.ifBlank { dateOf(nextAt(first.first, first.second)) }
+        val o = try { JSONObject(prefs(ctx).getString("wecker_einmal", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
+        o.put(d, fmt(up.first, up.second))
+        prefs(ctx).edit().putString("wecker_einmal", o.toString()).apply()
+        // liegt der Tag schon in den nächsten 24 Stunden: gleich stellen
+        val r = if (dateOf(nextAt(first.first, first.second)) == d) {
+            prefs(ctx).edit().putString("wecker_tag", d).apply()
+            set(ctx, times, fmt(up.first, up.second), "")
+        } else "Ich stelle sie am Abend vorher."
+        return "Okay, ${dayWord(d)} aufstehen um ${fmt(up.first, up.second)}: Wecker um ${times.joinToString(", ")}. " + if (r.startsWith("Ich stelle")) r else "Gestellt."
+    }
+
+    /** "Erinnere mich morgen um 10, dass ich los muss" -> ein Wecker mit dem Text, vorlauf Minuten früher. */
+    fun reminder(ctx: Context, datum: String, zeit: String, text: String, vorlauf: Int): String {
+        val at = hm(zeit) ?: return "Um wie viel Uhr?"
+        val (h, m) = minus(at.first, at.second, vorlauf.coerceIn(0, 120))
+        val d = datum.ifBlank { dateOf(nextAt(h, m)) }
+        val label = text.trim().ifBlank { "Erinnerung" }.take(40)
+        val vor = if (vorlauf > 0) " – $vorlauf Minuten vorher, damit du um ${fmt(at.first, at.second)} bereit bist" else ""
+        if (dateOf(nextAt(h, m)) == d) {
+            setOne(ctx, h, m, label)
+            return "Okay, ${dayWord(d)} um ${fmt(h, m)} klingelt ein Wecker: „$label“$vor."
+        }
+        val a = try { JSONArray(prefs(ctx).getString("wecker_offen", "[]")) } catch (_: Exception) { JSONArray() }
+        a.put(JSONObject().put("datum", d).put("h", h).put("m", m).put("text", label))
+        prefs(ctx).edit().putString("wecker_offen", a.toString()).apply()
+        return "Okay, ${dayWord(d)} um ${fmt(h, m)} kommt ein Wecker: „$label“$vor. Ich stelle ihn am Abend vorher."
+    }
+
+    /** Einzelner Wecker mit eigenem Text (Erinnerung), wird nicht in die Aufsteh-Liste übernommen. */
+    private fun setOne(ctx: Context, h: Int, m: Int, label: String) {
+        try {
+            ctx.startActivity(Intent(AlarmClock.ACTION_SET_ALARM).putExtra(AlarmClock.EXTRA_HOUR, h).putExtra(AlarmClock.EXTRA_MINUTES, m)
+                .putExtra(AlarmClock.EXTRA_MESSAGE, label).putExtra(AlarmClock.EXTRA_SKIP_UI, true).putExtra(AlarmClock.EXTRA_VIBRATE, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION))
+            Thread.sleep(900)
+        } catch (_: Exception) {}
+    }
+
     /** Aus dem Hintergrund (jede Minute): ab 19 Uhr die Wecker für morgen stellen, wenn morgen ein Tag mit Aufsteh-Zeit ist. */
     fun tick(ctx: Context, frei: (Long) -> Boolean): String? {
         val c = Calendar.getInstance()
+        // offene Erinnerungs-Wecker, die jetzt in die nächsten 24 Stunden fallen
+        try {
+            val a = JSONArray(prefs(ctx).getString("wecker_offen", "[]")); val keep = JSONArray()
+            for (i in 0 until a.length()) {
+                val o = a.getJSONObject(i)
+                if (dateOf(nextAt(o.optInt("h"), o.optInt("m"))) == o.optString("datum")) setOne(ctx, o.optInt("h"), o.optInt("m"), o.optString("text"))
+                else if (o.optString("datum") > dateOf(System.currentTimeMillis())) keep.put(o)
+            }
+            if (keep.length() != a.length()) prefs(ctx).edit().putString("wecker_offen", keep.toString()).apply()
+        } catch (_: Exception) {}
         if (c.get(Calendar.HOUR_OF_DAY) < 19) return null
         val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }
         val key = SimpleDateFormat("yyyy-MM-dd", de).format(tomorrow.time)
         if (prefs(ctx).getString("wecker_tag", "") == key) return null
         prefs(ctx).edit().putString("wecker_tag", key).apply()
-        val up = planFor(ctx, tomorrow.get(Calendar.DAY_OF_WEEK)) ?: return null
+        val einmal = try { JSONObject(prefs(ctx).getString("wecker_einmal", "{}") ?: "{}").optString(key) } catch (_: Exception) { "" }
+        val up = hm(einmal) ?: planFor(ctx, tomorrow.get(Calendar.DAY_OF_WEEK)) ?: return null
         if (frei(tomorrow.timeInMillis)) return "Morgen ist frei (Ferien/Feiertag im Kalender) – ich stelle keinen Wecker."
         return set(ctx, timesFor(ctx, up), "%d:%02d".format(up.first, up.second), "")
     }

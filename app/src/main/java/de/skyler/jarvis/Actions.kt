@@ -32,6 +32,8 @@ class Actions(private val ctx: Context) {
                 else Wecker.set(ctx, list, a.optString("aufstehen").let { if (it == "null") "" else it }, a.optString("tage").let { if (it == "null") "" else it })
             }
             "wecker_zeigen" -> Wecker.openApp(ctx)
+            "aufstehen" -> Wecker.wakeOnce(ctx, a.optString("datum").let { if (it == "null") "" else it }, a.optString("zeit"))
+            "wecker_erinnerung" -> Wecker.reminder(ctx, a.optString("datum").let { if (it == "null") "" else it }, a.optString("zeit"), a.optString("text"), a.optInt("vorlauf", 5))
             "wecker_plan" -> Wecker.setPlan(ctx, a.optString("aufstehen"), a.optString("tage"), a.optString("vorher").let { if (it == "null") "" else it })
             "timer" -> timer(a.optInt("seconds", 0), a.optString("label"))
             "navigate" -> navigate(a.optString("to"), a.optString("mode", "d"))

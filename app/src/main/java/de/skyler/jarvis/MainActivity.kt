@@ -299,7 +299,7 @@ class MainActivity : ComponentActivity() {
             .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "21:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
             .put("rueckblick_zeit", prefs.getString("rueckblick_zeit", "18:00"))
             .put("wecker_an", prefs.getBoolean("wecker_an", true)).put("wecker_schule", prefs.getString("wecker_schule", "7:10"))
-            .put("wecker_we", prefs.getString("wecker_we", "")).put("wecker_vorher", prefs.getString("wecker_vorher", "25, 20, 10, 5"))
+            .put("wecker_we", prefs.getString("wecker_we", "")).put("wecker_vorher", Wecker.offsets(this@MainActivity).joinToString(", "))
             .put("wecker_tage", Wecker.tage(this@MainActivity))
             .apply { for (k in listOf("bi_wetter", "bi_anzieh", "bi_termine", "bi_mitnehmen")) put(k, prefs.getBoolean(k, true)) }
             .put("loc_always", android.os.Build.VERSION.SDK_INT < 29 || ContextCompat.checkSelfPermission(this@MainActivity,
@@ -338,7 +338,7 @@ class MainActivity : ComponentActivity() {
                 .putBoolean("rueckblick", o.optBoolean("rueckblick", true))
                 .putString("rueckblick_zeit", o.optString("rueckblick_zeit", "18:00").trim().ifBlank { "18:00" })
                 .putBoolean("wecker_an", o.optBoolean("wecker_an", true)).putString("wecker_schule", o.optString("wecker_schule").trim())
-                .putString("wecker_we", o.optString("wecker_we").trim()).putString("wecker_vorher", o.optString("wecker_vorher").trim().ifBlank { "25, 20, 10, 5" })
+                .putString("wecker_we", o.optString("wecker_we").trim()).putString("wecker_vorher", o.optString("wecker_vorher").trim().ifBlank { Wecker.VORHER_DEFAULT })
                 .apply { o.optJSONObject("wecker_tage")?.let { t -> if (t.toString() != Wecker.tage(this@MainActivity).toString()) remove("wecker_tag"); putString("wecker_tage", t.toString()) } }
                 .apply { if (o.optString("wecker_schule").trim() != prefs.getString("wecker_schule", "7:10") || o.optString("wecker_we").trim() != prefs.getString("wecker_we", "")) remove("wecker_tag") }
                 .apply { for (k in listOf("bi_wetter", "bi_anzieh", "bi_termine", "bi_mitnehmen")) putBoolean(k, o.optBoolean(k, true)) }

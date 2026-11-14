@@ -285,7 +285,7 @@
       perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
       sw("wk-an", c.wecker_an !== false); $("wk-schule").value = (c.wecker_schule || "07:10").padStart(5, "0"); $("wk-we").value = c.wecker_we ? c.wecker_we.padStart(5, "0") : "";
       wkDays(c.wecker_tage || {});
-      $("wk-vorher").value = c.wecker_vorher || "25, 20, 10, 5"; wkInfo();
+      $("wk-vorher").value = c.wecker_vorher || "25, 20, 5"; wkInfo();
       perm("set-butlerok", c.butler_ok); perm("set-files", c.files_ok); perm("set-media2", !!c.media_ok);
       perm("set-overlay", c.overlay); perm("set-usage", c.usage); perm("set-media", !!c.media_ok);
       $("set-mediastate").textContent = c.media || "";
@@ -321,7 +321,7 @@
     const tg = wkTage(); const first = WK.map(([k]) => tg[k]).find((x) => x);
     if (first) $("wk-schule").value = first;
     const up = first; if (!up) { $("wk-info").textContent = "An keinem Tag ein Wecker."; return; }
-    const [h, m] = up.split(":").map(Number), off = ($("wk-vorher").value || "25,20,10,5").split(/[,; ]+/).map((x) => Math.abs(parseInt(x, 10))).filter((x) => x > 0).sort((a, b) => b - a);
+    const [h, m] = up.split(":").map(Number), off = ($("wk-vorher").value || "25,20,5").split(/[,; ]+/).map((x) => Math.abs(parseInt(x, 10))).filter((x) => x > 0).sort((a, b) => b - a);
     const t = off.map((o) => { const v = (h * 60 + m - o + 1440) % 1440; return Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); });
     const tage = WK.filter(([k]) => wkTage()[k]).map(([, n]) => n).join(", ");
     $("wk-info").textContent = `${tage}: z. B. bei ${h}:${String(m).padStart(2, "0")} Wecker um ${t.join(", ")}. Jeden Abend ab 19 Uhr für den nächsten Tag gestellt, dein Tages-Update kommt zur Aufsteh-Zeit.`;

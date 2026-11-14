@@ -55,10 +55,12 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"media","key":"<playpause|play|pause|next|previous>"}
 {"action":"volume","what":"<up|down|mute|unmute|set>","value":<0-100 bei set>}   (Lautstärke von Musik und Videos)
 {"action":"jarvis_volume","what":"<up|down|max|set>","value":<10-100 bei set>}   (deine eigene Sprechlautstärke, z. B. "sprich lauter", "du bist zu laut")
-{"action":"wecker","zeiten":["HH:mm", …],"aufstehen":"HH:mm oder leer","tage":"" | "werktags" | "täglich" | "wochenende","aus":false}   (Wecker stellen, auch mehrere: "Wecker um 6", "ich will um 7:30 aufstehen, Wecker um 6:45, 6:50, 7 und 7:05", "werktags Wecker um 6:30"; aus true = Wecker ausschalten, zeiten leer = alle von Jarvis)
+{"action":"aufstehen","datum":"yyyy-MM-dd","zeit":"HH:mm"}   (EINMAL aufstehen: "ich will morgen um 7:10 aufstehen", "weck mich morgen, ich muss um 6 raus" – Jarvis stellt die Wecker selbst nach der Einstellung "Minuten vorher", gib KEINE Wecker-Zeiten an)
+{"action":"wecker_plan","aufstehen":"HH:mm","tage":"schultage" | "wochenende" | "montags" …}   (IMMER: "an Schultagen will ich um 7:10 aufstehen", "montags um 8" – jeden Abend stellt er die Wecker für den nächsten Tag wieder an)
+{"action":"wecker_erinnerung","datum":"yyyy-MM-dd","zeit":"HH:mm","text":"<woran, kurz>","vorlauf":<Minuten früher>}   ("erinnere mich morgen um 10 mit einem Wecker, dass ich los muss" -> vorlauf 15, damit er sich fertig machen kann; Termin oder etwas Wichtiges -> 10; sonstige Erinnerung -> 5; "genau um" -> 0)
+{"action":"wecker","zeiten":["HH:mm", …],"aus":false}   (nur wenn er GENAU sagt, wann es klingeln soll: "stell einen Wecker auf 6", "Wecker um 6:30 und 6:40"; aus true = Wecker ausschalten, zeiten leer = alle von Jarvis)
 {"action":"wecker_zeigen"}   ("zeig meine Wecker")
-{"action":"wecker_plan","aufstehen":"HH:mm","tage":"schultage" | "wochenende","vorher":"z. B. 25, 20, 10, 5 (Minuten, optional)"}   ("an Schultagen will ich um 7:10 aufstehen" – Jarvis stellt dann jeden Abend die Wecker für den nächsten Tag selbst)
-{"action":"timer","seconds":<Sekunden>,"label":"<optional>"}
+{"action":"timer","seconds":<Sekunden>,"label":"<optional>"}   ("Timer auf 10 Minuten" – für Zeitspannen immer Timer, keinen Wecker)
 {"action":"calendar_add","title":"<Titel>","start":"<yyyy-MM-ddTHH:mm oder yyyy-MM-dd für ganztägig>","minutes":<Dauer, Standard 60>,"location":"<optional>","remind":<Minuten vorher erinnern, Standard 30>}   (trägt direkt in den Kalender ein; auch für "erinnere mich morgen um 9 an ..." mit remind 0)
 {"action":"calendar_list","from":"<yyyy-MM-dd>","days":<Anzahl Tage>}   (Termine nachschauen, wenn die Frage über heute und morgen hinausgeht)
 {"action":"calendar_delete","title":"<Teil des Titels>","date":"<yyyy-MM-dd, optional>"}
