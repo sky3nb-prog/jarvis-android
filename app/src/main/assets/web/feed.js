@@ -55,7 +55,7 @@
       : home ? [["LOSFAHREN", hm(p.go)], ["FAHRZEIT", Math.round(p.ride || p.min || 0) + " Min."], ["ZUHAUSE", hm(d.home_at)]]
         : [["LOSFAHREN", hm(p.go || d.leave)], ["ANKUNFT CA.", hm(p.arr)], ["ZUHAUSE", d.home_at ? hm(d.home_at) : "–"]];
     let h = `<div class="fp-hero ${bahn ? "blue" : ""}">${bahn ? "" : '<div class="fp-orb"></div>'}
-      <div class="k">${home ? "HEIMWEG" : d.fest ? "FESTER WEG" : d.test ? "TEST" : "FAHRT"}${d.ziel && !home ? " · " + esc(String(d.ziel).toUpperCase()) : ""}</div>
+      <div class="k">${home ? "HEIMWEG" : d.vorschau ? "PLAN" : d.fest ? "FESTER WEG" : d.test ? "TEST" : "FAHRT"}${d.ziel && !home ? " · " + esc(String(d.ziel).toUpperCase()) : ""}</div>
       <h1>${esc(m.title)}</h1><div class="s">${bahn ? "Es soll regnen – DWD, ECMWF und GFS." : p.rain ? "Es soll regnen – Regensachen mit." : "Kein Regen – heute mit dem " + veh + "."}</div>
       <div class="fp-times">${times.map(([k, v]) => `<div class="fp-tb"><small>${k}</small><b>${v}</b></div>`).join("")}</div></div>`;
     h += `<div class="fp-card"><div class="fp-mode"><div class="fp-ic">${bahn ? "🚆" : p.vehicle === "fuss" ? "🚶" : "🚲"}</div><div>

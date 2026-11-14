@@ -825,19 +825,57 @@ object Alltag {
     fun isHome(ctx: Context): Boolean = state(ctx).optBoolean("is_home", false)
 
     /** Per Sprache: "heute will ich um 19 Uhr zuhause sein", "heute fahr ich nicht zu Opa", "morgen um 14 Uhr zur Musikschule". */
-    fun setToday(ctx: Context, ziel: String, los: String, zuhause: String, aus: Boolean, datum: String = ""): String {
+    /**
+     * Per Sprache: "heute fahr ich um 16:10 zu Opa" (los = hier losfahren) oder "ich will um 14:50 bei Oma und Opa sein"
+     * (an = dort ankommen -> Jarvis rechnet die Losfahr-Zeit selbst: Fahrzeit gelernt, bei Regen/Bahn die passende Verbindung).
+     * Danach gleich ein Vorab-Briefing (worauf achten), und der Rest läuft wie beim festen Weg.
+     */
+    fun setToday(ctx: Context, ziel: String, los: String, zuhause: String, aus: Boolean, datum: String = "", an: String = ""): String {
         val d = datum.ifBlank { today() }
         if (aus) return einmaligAdd(ctx, JSONObject().put("datum", d).put("aus", true))
         val dow = Calendar.getInstance().apply { time = SimpleDateFormat("yyyy-MM-dd", de).parse(d) ?: Date() }.get(Calendar.DAY_OF_WEEK)
-        val f = festerWeg(ctx).takeIf { DAYS[it.optString("tag").lowercase().take(2)] == dow && it.optBoolean("an", true) && ziel.isBlank() }
-        val o = JSONObject().put("datum", d).put("ziel", ziel.ifBlank { f?.optString("ziel") ?: "" }).put("name", if (ziel.isBlank()) f?.optString("name") ?: "" else "")
-            .put("los", los.ifBlank { f?.optString("los") ?: "" }).put("zuhause", zuhause.ifBlank { f?.optString("zuhause") ?: "" })
-            .put("mode", f?.optString("mode") ?: "ebike").put("wer", f?.optString("wer") ?: "")
+        val fw = festerWeg(ctx)
+        val sameDest = ziel.isBlank() || near(ziel, fw.optString("ziel")) || near(ziel, fw.optString("name"))
+        val f = fw.takeIf { DAYS[it.optString("tag").lowercase().take(2)] == dow && it.optBoolean("an", true) && sameDest }
+        val tmpl = if (sameDest) fw else null   // gleiches Ziel wie der feste Weg: SMS-Empfänger, Fahrzeit, Bahn-Einstellung übernehmen
+        val o = JSONObject().put("datum", d).put("ziel", ziel.ifBlank { fw.optString("ziel") }.let { if (sameDest) fw.optString("ziel").ifBlank { it } else it })
+            .put("name", if (sameDest) fw.optString("name") else "")
+            .put("los", los.ifBlank { if (an.isBlank()) f?.optString("los") ?: "" else "" }).put("zuhause", zuhause.ifBlank { f?.optString("zuhause") ?: "" })
+            .put("mode", tmpl?.optString("mode") ?: "ebike").put("wer", tmpl?.optString("wer") ?: "")
+            .put("bahn_hin", tmpl?.optString("bahn_hin") ?: "regen").put("bahn_zurueck", tmpl?.optString("bahn_zurueck") ?: "regen")
+        val label = o.optString("name").ifBlank { o.optString("ziel") }
+        val home = Route.home(ctx); val dest = Route.place(ctx, o.optString("ziel"))
+        // Ankunftszeit -> Losfahr-Zeit selbst rechnen
+        if (an.isNotBlank() && o.optString("los").isBlank()) {
+            val (h, m) = hmOf(an) ?: return "Um wie viel Uhr willst du bei $label sein?"
+            val arriveAt = Calendar.getInstance().apply { time = SimpleDateFormat("yyyy-MM-dd", de).parse(d) ?: Date(); set(Calendar.HOUR_OF_DAY, h); set(Calendar.MINUTE, m); set(Calendar.SECOND, 0) }.timeInMillis
+            if (home == null || dest == null) return "Ich weiß noch nicht, wo $label ist. Trag es unter Wege & Orte ein."
+            val guess = tripPlan(ctx, home, dest, arriveAt - 30 * 60_000L, o.optString("ziel"), o.optString("mode"), o.optString("bahn_hin"))
+            val leave = if (guess.optString("mode") == "transit") (Route.bahnBy(home, dest, arriveAt)?.dep ?: guess.optLong("go"))
+                else arriveAt - ((guess.optDouble("min", 20.0) + 2) * 60_000).toLong()
+            o.put("los", SimpleDateFormat("HH:mm", de).format(Date(leave))).put("an", an)
+        }
         if (f != null) {   // der feste Weg wird an dem Tag durch den geänderten ersetzt
             val keep = einmalig(ctx); keep.put(JSONObject().put("datum", d).put("aus", true))
             prefs(ctx).edit().putString("einmalig", keep.toString()).apply()
         }
-        return einmaligAdd(ctx, o)
+        val r = einmaligAdd(ctx, o)
+        // Vorab-Briefing gleich jetzt (nur heute und wenn es noch nicht los geht): worauf achten, was anziehen, Bahn/Rad
+        if (d == today() && home != null && dest != null) hmOf(o.optString("los"))?.let { (h, m) ->
+            val leave = todayAt(h, m)
+            if (leave > System.currentTimeMillis()) Thread({
+                try {
+                    val pl = tripPlan(ctx, home, dest, leave, o.optString("ziel"), o.optString("mode"), o.optString("bahn_hin"))
+                    val back = hmOf(o.optString("zuhause"))?.let { todayAt(it.first, it.second) } ?: 0L
+                    val intro = (if (an.isNotBlank()) "Du willst um $an bei $label sein – dafür musst du um ${clock(pl.optLong("go", leave))} los."
+                        else "Um ${clock(leave)} geht's los zu $label.") + " Ich sag dir rechtzeitig Bescheid."
+                    val (t, fid) = rideBrief(ctx, "fahrt", "Plan: $label um ${an.ifBlank { o.optString("los") }}", intro, home, pl.optLong("go", leave), back, pl,
+                        remindersFor(ctx, label), true, JSONObject().put("ziel", label).put("vorschau", true).put("sms_to", o.optString("wer")))
+                    notify(ctx, 333, "Plan: $label", t, feed = fid)
+                } catch (e: Exception) { Log.w(TAG, "vorab: $e") }
+            }, "jarvis-vorab").start()
+        }
+        return if (an.isNotBlank()) "Okay: um $an bei $label – du musst um ${o.optString("los")} los. Ich schick dir gleich ein kurzes Briefing und sag rechtzeitig Bescheid." else r
     }
 
     /** Fahrt planen: Regen -> Bahn (erste Verbindung ab "leave"), sonst Rad. */
@@ -1029,7 +1067,7 @@ object Alltag {
         val bike = pl.optString("mode") != "transit" && pl.optString("vehicle") != "fuss"
         val wet = pl.optBoolean("rain") || listOfNotNull(w1, w2).any { it.optDouble("rain_mm", 0.0) > 0.1 }
         val pick = if (temps.isNotEmpty()) try { Wardrobe.pick(ctx, temps.min(), temps.max(), wet, bike, Wardrobe.isIndoor(ctx, extra.optString("ziel"))) } catch (_: Exception) { null } else null
-        if (pick != null && kind == "fahrt" && !extra.optBoolean("test")) Wardrobe.rememberTrip(ctx, pick, extra.optString("ziel"))
+        if (pick != null && kind == "fahrt" && !extra.optBoolean("test") && !extra.optBoolean("vorschau")) Wardrobe.rememberTrip(ctx, pick, extra.optString("ziel"))
         val data = "Ansage: $intro\nVerkehrsmittel: ${pl.optString("text")}\nWetter bei der Abfahrt (${clock(leave)}): ${wxText(w1)}" +
             (if (w2 != null) "\nWetter auf dem Rückweg (${clock(back)}): ${wxText(w2)}" else "") +
             "\n" + (pick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + ((prefs(ctx).getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))) +

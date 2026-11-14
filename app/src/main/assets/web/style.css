@@ -439,3 +439,4 @@ html, body, * { scrollbar-color: #a0702a #0a0703; }
 .ws-del{color:#ff9a8a;font-size:12px;text-align:right;margin-top:4px}
 .ws-seg{display:flex;border:1px solid #5a3e14;border-radius:16px;overflow:hidden}
 .ws-seg span{padding:6px 12px;font-size:13px;color:#c8965a}.ws-seg span.on{background:#3a2608;color:#ffd678}
+.sys-tb{align-self:center;padding:5px 12px;font-size:12px}.sys-res{color:#ffd678;font-size:12.5px;margin-top:3px;line-height:1.3}

@@ -484,6 +484,9 @@ class MainActivity : ComponentActivity() {
             catch (_: Exception) { try { startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {} }
         }
 
+        @JavascriptInterface
+        fun sysTest(id: String): String = SysCheck.test(this@MainActivity, id)
+
         /** Kleiderschrank */
         @JavascriptInterface
         fun schrankGet(): String = Wardrobe.get(this@MainActivity).put("ortnamen", org.json.JSONArray(

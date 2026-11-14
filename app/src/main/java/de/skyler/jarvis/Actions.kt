@@ -60,7 +60,8 @@ class Actions(private val ctx: Context) {
             "mood" -> { Memory.mood(ctx, a.optString("text")); null }
             "sms" -> sms(a.optString("to"), a.optString("text"))
             "heute" -> Alltag.setToday(ctx, a.optString("ziel").let { if (it == "null") "" else it }, a.optString("los").let { if (it == "null") "" else it },
-                a.optString("zuhause").let { if (it == "null") "" else it }, a.optBoolean("aus"), a.optString("datum").let { if (it == "null") "" else it })
+                a.optString("zuhause").let { if (it == "null") "" else it }, a.optBoolean("aus"), a.optString("datum").let { if (it == "null") "" else it },
+                a.optString("an").let { if (it == "null") "" else it })
             "test_fahrt" -> Alltag.testMessage(ctx)
             "losfahren" -> Alltag.departNow(ctx, a.optString("ziel"))
             "ort_erinnerung" -> Alltag.addPlaceReminder(ctx, a.optString("ort"), a.optString("text"))

@@ -24,6 +24,7 @@
   #skl .skl-burst{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,214,120,.9);transform:translate(-50%,-50%) scale(1);opacity:1;
     transition:transform .9s ease-out,opacity .9s ease-out}
   #skl .skl-burst.go{transform:translate(-50%,-50%) scale(14);opacity:0}
+  #skl .skl-burst.s.go{transform:translate(-50%,-50%) scale(3.5)}
   #skl .skl-card{position:absolute;transform:translate(-50%,0) translateY(14px);opacity:0;min-width:240px;max-width:min(420px,86vw);text-align:center;
     background:rgba(12,9,4,.94);border:1px solid #8a5c18;border-radius:16px;padding:10px 16px;box-shadow:0 0 24px rgba(255,170,40,.25);transition:opacity .4s,transform .4s}
   #skl .skl-card.in{opacity:1;transform:translate(-50%,0)}
@@ -47,10 +48,14 @@
     if (busy || !queue.length) return;
     busy = true;
     const s = queue.shift(), c = center(), kind = s.kind || guess(s.text);
-    const emoji = s.emoji || ICON[kind] || "✦";
-    const B = window.JarvisBrain, idx = B && B.addSkill ? B.addSkill({ emoji, title: s.title || s.text || "" }) : -1;
+    const B = window.JarvisBrain, idx = B && B.addSkill ? B.addSkill({ kind, title: s.title || s.text || "" }) : -1;
     const burst = document.createElement("div"); burst.className = "skl-burst"; burst.style.left = c.x + "px"; burst.style.top = c.y + "px";
-    const hex = document.createElement("div"); hex.className = "skl-hex"; hex.textContent = ICON[kind] || "✦"; hex.style.left = c.x + "px"; hex.style.top = c.y + "px";
+    const hex = document.createElement("div"); hex.className = "skl-hex";
+    // gleiches Strich-Symbol wie in der Kugel (dunkel auf Gold)
+    const ic = document.createElement("canvas"); ic.width = ic.height = 120; ic.style.width = ic.style.height = "48px";
+    const ig = ic.getContext("2d"); ig.translate(60, 60); ig.strokeStyle = ig.fillStyle = "#3a2204";
+    if (B && B.drawIcon) B.drawIcon(ig, kind, 74); else { ig.font = "60px sans-serif"; ig.textAlign = "center"; ig.textBaseline = "middle"; ig.fillText(ICON[kind] || "✦", 0, 4); }
+    hex.appendChild(ic); hex.style.left = c.x + "px"; hex.style.top = c.y + "px";
     const card = document.createElement("div"); card.className = "skl-card"; card.style.left = c.x + "px"; card.style.top = Math.min(innerHeight - 110, c.y + Math.max(70, c.r * .75)) + "px";
     card.innerHTML = `<small>${kind === "funktion" ? "NEUE FÄHIGKEIT" : "NEUER SKILL FREIGESCHALTET"}</small><b></b><span></span>`;
     card.querySelector("b").textContent = s.title || "Gelernt"; card.querySelector("span").textContent = s.text || "";
@@ -69,7 +74,7 @@
       if (idx >= 0) {
         B.landSkill(idx);
         const t = B.skillPos(idx);
-        if (t) { const b2 = document.createElement("div"); b2.className = "skl-burst"; b2.style.left = t.x + "px"; b2.style.top = t.y + "px"; root.appendChild(b2);
+        if (t) { const b2 = document.createElement("div"); b2.className = "skl-burst s"; b2.style.left = t.x + "px"; b2.style.top = t.y + "px"; root.appendChild(b2);
           requestAnimationFrame(() => b2.classList.add("go")); setTimeout(() => b2.remove(), 1000); }
         if (s.test) setTimeout(() => B.removeSkill(idx), 9000);   // Test: verschwindet wieder
       }

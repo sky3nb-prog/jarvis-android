@@ -65,6 +65,30 @@ object SysCheck {
         return a
     }
 
+    /** Test-Knopf neben jedem Punkt: probiert es wirklich aus. */
+    fun test(ctx: Context, id: String): String = try {
+        val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        when (id) {
+            "net" -> { val t0 = System.currentTimeMillis(); val c = get("https://www.google.com/generate_204"); if (c in 200..399) "Internet antwortet in ${System.currentTimeMillis() - t0} ms." else "Keine Verbindung." }
+            "groq" -> "Groq sagt: " + Groq.chat(p.getString("groq_key", "") ?: "", JSONArray().put(JSONObject().put("role", "user")
+                .put("content", "Sag in höchstens 8 Wörtern auf Deutsch hallo, als Jarvis.")), 40).trim()
+            "gemini" -> if (get("https://generativelanguage.googleapis.com/v1beta/models?key=${p.getString("gemini_key", "")}&pageSize=1") == 200) "Gemini antwortet." else "Gemini antwortet nicht – Schlüssel prüfen."
+            "mic", "wake" -> "Sag jetzt „Friday“ – wenn die Kugel reagiert und „hört zu“ erscheint, passt alles."
+            "pc" -> Link.command(ctx, JSONObject().put("type", "say").put("text", "Test vom Handy – die Verbindung steht.").put("need_active", false), 15_000)
+                ?.let { if (it.optBoolean("ok")) "Der PC hat geantwortet und sagt gleich einen Testsatz." else "Der PC hat abgelehnt: ${it.optString("text")}" } ?: "Der PC antwortet nicht (aus oder Jarvis zu)."
+            "notif" -> "Schick dir eine WhatsApp von einem deiner wichtigen Leute – am PC wird sie angesagt, wenn alles passt."
+            "akku" -> { val b = ctx.registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+                "Akku ${(b?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1)} %, " + (if ((ctx.getSystemService(Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)) "Jarvis darf im Hintergrund laufen." else "Android bremst Jarvis noch.") }
+            "loc" -> Alltag.fix?.let { "Letzter Standort vor ${(System.currentTimeMillis() - it.time) / 60_000} Min., genau auf ${it.accuracy.toInt()} m. " + (if (Alltag.isHome(ctx)) "Du bist zuhause." else "Du bist unterwegs.") } ?: "Noch kein Standort – kurz rausgehen oder die App öffnen."
+            "svc" -> { JarvisService.say(ctx, "Test. Ich laufe im Hintergrund."); "Ich sage gleich einen Testsatz." }
+            "health" -> Health.text(Health.day(ctx, 0))
+            "screen" -> Sleep.text(Sleep.night(ctx, 0))
+            "wx" -> { val js = JSONObject(http.newCall(Request.Builder().url("https://api.open-meteo.com/v1/forecast?latitude=48.8&longitude=9.0&current=temperature_2m,apparent_temperature").build()).execute().use { it.body?.string() ?: "{}" }).optJSONObject("current")
+                "Leonberg gerade ${js?.optDouble("temperature_2m")} °C, gefühlt ${js?.optDouble("apparent_temperature")} °C." }
+            else -> "Für diesen Punkt gibt es keinen Test."
+        }
+    } catch (e: Exception) { "Test ging nicht: ${e.message}" }
+
     fun summary(a: JSONArray = last): String {
         val bad = (0 until a.length()).map { a.getJSONObject(it) }.filter { it.opt("ok") == false }
         if (bad.isEmpty()) return "Alle Systeme laufen, Sir. ${(0 until a.length()).count { a.getJSONObject(it).opt("ok") == true }} Prüfungen grün."

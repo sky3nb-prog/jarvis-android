@@ -482,7 +482,11 @@
       const it = d.items || [], bad = it.filter((i) => i.ok === false).length;
       $("sys-sum").textContent = bad ? `${bad} Problem${bad > 1 ? "e" : ""} – siehe rot` : "● Alle Systeme laufen";
       $("sys-sub").textContent = bad ? `${bad} Problem${bad > 1 ? "e" : ""}` : "Alle Systeme laufen";
-      $("sys-list").innerHTML = it.map((i) => `<div class="sys-row ${i.ok === true ? "g" : i.ok === false ? "r" : "n"}"><i></i><div><b>${i.name}</b><small>${i.detail || ""}</small>${i.ok === false && i.fix ? `<em>${i.fix}</em>` : ""}</div></div>`).join("");
+      $("sys-list").innerHTML = it.map((i) => `<div class="sys-row ${i.ok === true ? "g" : i.ok === false ? "r" : "n"}"><i></i><div style="flex:1"><b>${i.name}</b><small>${i.detail || ""}</small>${i.ok === false && i.fix ? `<em>${i.fix}</em>` : ""}<div class="sys-res" id="syr-${i.id}"></div></div><div class="sbtn sys-tb" data-test="${i.id}">Test</div></div>`).join("");
+      $("sys-list").querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => {
+        const out = $("syr-" + b.dataset.test); out.textContent = "teste …";
+        setTimeout(() => { try { out.textContent = A.sysTest(b.dataset.test) || "–"; } catch (e) { out.textContent = "Test ging nicht."; } }, 30);
+      }));
     }, 30);
   }
   document.querySelector('[data-p="sys"]').addEventListener("click", () => sysShow(false));
