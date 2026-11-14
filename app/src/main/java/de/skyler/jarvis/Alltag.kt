@@ -99,6 +99,28 @@ object Alltag {
         try { nm.notify(id, b.build()) } catch (_: Exception) {}
     }
 
+    /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
+    private const val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/neueste/Jarvis.apk"
+    private fun appUpdate(ctx: Context, s: JSONObject) {
+        val now = System.currentTimeMillis()
+        if (now - s.optLong("upd_check") < 3 * 3_600_000L) return
+        s.put("upd_check", now)
+        Thread({
+            try {
+                val js = JSONObject(http.newCall(Request.Builder().url("https://api.github.com/repos/sky3nb-prog/jarvis-android/releases/tags/neueste")
+                    .header("Accept", "application/vnd.github+json").build()).execute().use { it.body?.string() ?: "{}" })
+                val build = Regex("Build (\\d+)").find(js.optString("name"))?.groupValues?.get(1)?.toLongOrNull() ?: return@Thread
+                val pi = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
+                val mine = if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode else @Suppress("DEPRECATION") pi.versionCode.toLong()
+                val p = prefs(ctx)
+                if (build > mine && p.getLong("upd_told", 0) != build) {
+                    p.edit().putLong("upd_told", build).apply()
+                    notify(ctx, 360, "Neue Jarvis-Version da", "Antippen zum Herunterladen, dann installieren (Build $build).", url = APK)
+                }
+            } catch (e: Exception) { Log.w(TAG, "update: $e") }
+        }, "jarvis-upd").start()
+    }
+
     /** "Abbrechen" in der Weg-Benachrichtigung: PC bleibt an. */
     fun cancelAway(ctx: Context) {
         val s = state(ctx); s.put("pc_down_at", -1L); save(ctx, s)
@@ -304,6 +326,7 @@ object Alltag {
         try { evening(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "abend: $e") }
         try { weekly(ctx, s) } catch (e: Exception) { Log.w(TAG, "rückblick: $e") }
         try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
+        try { appUpdate(ctx, s) } catch (_: Exception) {}
         save(ctx, s)
     }
 
