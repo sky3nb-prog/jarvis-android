@@ -1,5 +1,7 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-14 19:05", neu: [
+window.JNEU = { stand: "2026-11-14 21:00", neu: [
+  { title: "Ich lese, wie du drauf bist", text: "Aus Schlaf, Bewegung, Terminen und dem, was du sagst – an schweren Tagen bin ich ruhiger, an guten lockerer." },
+  { title: "Persönlicher Tagesabschluss", text: "Ich kommentiere deinen Tag – z. B. „Elternsprechtag – hoffentlich lief es gut“." },
   { title: "SMS beim Heimkommen", text: "„Schick Mama eine SMS, wenn ich wieder heimkomme“ – einmalig, kurz bevor du da bist." },
   { title: "SMS ist raus", text: "Jede SMS, die ich für dich schicke, bestätige ich kurz – an wen und was." },
   { title: "Bahn & Ticket (VVS)", text: "Rad + Bahn oder Bus und Bahn – mit Ticket und „Ticket kaufen“ in VVS Mobil. Einstellungen → Wege & Orte." },

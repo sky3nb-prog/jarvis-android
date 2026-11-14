@@ -62,6 +62,7 @@ object Memory {
 
     fun mood(ctx: Context, text: String) {
         if (text.isBlank()) return
+        try { Stimmung.feedback(ctx, text) } catch (_: Exception) {}
         val o = JSONObject().put("text", text.trim()).put("ts", System.currentTimeMillis() / 1000)
         val l = local(ctx, "local_moods"); l.put(o)
         while (l.length() > 10) l.remove(0)

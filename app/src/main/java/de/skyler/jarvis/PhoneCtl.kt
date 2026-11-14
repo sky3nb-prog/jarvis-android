@@ -48,6 +48,7 @@ object PhoneCtl {
                 if (Health.connected(ctx)) Health.day(ctx, 0)?.let { g.put("heute", "Heute: " + Health.text(it)) }
                 Halte.summary(ctx).takeIf { it.isNotBlank() }?.let { g.put("halte", it) }
                 Gassi.summary(ctx).takeIf { it.isNotBlank() }?.let { g.put("gassi", it) }
+                Stimmung.prompt(ctx).takeIf { it.isNotBlank() }?.let { g.put("stimmung", it) }
                 gesund = g; gesundT = System.currentTimeMillis()
             }
             if (gesund.length() > 0) o.put("gesund", gesund)

@@ -47,6 +47,7 @@ RATGEBER: Bittet er dich um Rat (Streit in einer Gruppe, "was soll ich machen", 
 $cal
 ${try { Halte.summary(ctx) } catch (_: Exception) { "" }}
 ${try { Gassi.summary(ctx) } catch (_: Exception) { "" }}
+${Stimmung.prompt(ctx)}
 ${Memory.block(ctx)}
 ${Interests.block(ctx)}
 ${snap.optJSONObject("pc_media")?.let { pm -> val m = pm.optJSONArray("music"); if (m == null || m.length() == 0) "" else "Am PC hört er vor allem: " + (0 until m.length()).joinToString(", ") { m.optString(it) } + "." } ?: ""}

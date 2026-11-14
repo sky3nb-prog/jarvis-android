@@ -158,6 +158,10 @@ object Alltag {
             val todayW = wk.count { it.optLong("start") >= dayStart }; val week = wk.count { it.optLong("start") >= now - 7 * 86_400_000L }
             if (todayW == 0 && week >= 5) obs.add("Heute war noch keine Hunderunde, sonst geht er fast jeden Tag")
         }
+        val mood = try { Stimmung.read(ctx) } catch (_: Exception) { null }
+        if (mood != null && mood.optDouble("score") <= -0.5) {   // eher schlechter Tag: keine Vorschläge, nur kurz da sein
+            obs.clear(); obs.add("Er scheint heute ${mood.optString("label")} zu sein (${(0 until (mood.optJSONArray("why")?.length() ?: 0)).joinToString(", ") { mood.getJSONArray("why").optString(it) }}). Frag behutsam, wie sein Tag war, KEIN Vorschlag, keine Aufgabe")
+        }
         if (obs.isEmpty()) return
         mark(s, "melden|${today()}")
         val what = obs.first()
@@ -165,6 +169,7 @@ object Alltag {
             var text = when {
                 what.startsWith("Bald") -> "Kleine Erinnerung: ${what.substringAfter(": ").substringBefore(" (")} – soll ich dir helfen, was vorzubereiten?"
                 what.contains("nicht mehr bei") -> "Sag mal, du warst schon eine Weile nicht mehr bei ${festeWege(ctx).firstOrNull()?.label ?: "Oma und Opa"}. Lust, mal wieder vorbeizuschauen?"
+                what.startsWith("Er scheint") -> "Hey, alles okay bei dir? Klang nach einem langen Tag. Wenn du reden willst, ich bin da."
                 what.contains("draußen") -> "Du warst heute noch gar nicht draußen. Kurz an die frische Luft?"
                 else -> "Heute war noch keine Hunderunde – der Hund freut sich bestimmt."
             }
@@ -1380,6 +1385,8 @@ object Alltag {
         val wx = dayWx(ctx, 1)
         val parts = mutableListOf<String>()
         parts.add("HEUTE – Termine:\n" + Cal.describe(heute).ifBlank { "keine" })
+        parts.add(Stimmung.prompt(ctx))
+        Gassi.summary(ctx).takeIf { it.isNotBlank() }?.let { parts.add("HEUTE – $it") }
         if (fahrten.isNotEmpty()) parts.add("HEUTE – Fahrten zu: ${fahrten.joinToString()}")
         if (fit != null) parts.add("HEUTE – Aktivität: ${Health.text(fit)}")
         if (schlaf != null) parts.add("Schlaf letzte Nacht: ${Sleep.text(schlaf)}")
@@ -1390,7 +1397,7 @@ object Alltag {
         val epick = dayPick(ctx, wx)
         parts.add(epick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))
         val sys = "Du bist Jarvis und gibst Skyler seinen Tagesabschluss am Abend. Antworte NUR mit JSON: " +
-            "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 3 bis 5 kurze Sätze: kurzer Rückblick auf heute (was los war" +
+            "{\"text\": \"gesprochen, persönlich wie ein guter Freund, ohne Listen und Sonderzeichen, 3 bis 6 kurze Sätze: kurzer Rückblick auf heute (was los war – kommentiere 1 bis 2 Termine oder Dinge von heute kurz und persönlich, z. B. Elternsprechtag -> 'hoffentlich lief's gut', Klassenarbeit -> 'ich drück dir die Daumen fürs Ergebnis', Treffen mit Freunden -> 'klingt nach einem guten Tag'; passend zu seiner Stimmung: war der Tag eher schwer, warm und aufmunternd, ohne Ratschläge; war er gut, freu dich mit" +
             (if (fit != null) ", wie viele Kalorien er verbraucht hat und ob er aktiv war, Defizit nur wenn gegessene Kalorien in den Daten stehen" else "") +
             "), dann für morgen NUR: wann er aufsteht (mit dem Tipp, wann er für 8 Stunden Schlaf ins Bett sollte) und was er anziehen soll. KEINE Termine von morgen. Beginne mit 'Dein Tagesabschluss'\", " +
             "\"heute\": [\"2 bis 4 kurze Stichpunkte, was heute los war\"], " +
