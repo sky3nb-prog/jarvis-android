@@ -105,5 +105,15 @@
     show(i, { x: p.clientX, y: p.clientY });
   }
   document.addEventListener("click", onTap, true);
+  // Kernerinnerungen aus dem Gedächtnis in die Kugel holen (damit es dort immer etwas zum Antippen gibt)
+  setTimeout(async () => {
+    try {
+      let f = [];
+      if (A && A.coreFacts) f = JSON.parse(A.coreFacts() || "[]");
+      else if (!A) f = (await (await fetch("/api/core")).json()).facts || [];
+      const g = (window.JSkill && JSkill.guess) || (() => "wissen");
+      if (window.JarvisBrain) JarvisBrain.ensure(f.slice(-16).map((t) => ({ text: t, kind: g(t), title: "Über dich" })));
+    } catch (e) {}
+  }, 1500);
   window.JBrainCard = { show };
 })();

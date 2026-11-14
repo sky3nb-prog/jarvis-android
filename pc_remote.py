@@ -117,6 +117,12 @@ def execute(cmd: dict) -> str:
     t = cmd.get("type")
     if t == "status":
         return ""
+    if t == "gassi_log":   # Protokoll der Hunderunde vom Handy: zum Nachsehen speichern
+        import json, os, sys, time as _t
+        base = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(base, "gassi_log.json"), "w", encoding="utf-8") as f:
+            json.dump({"empfangen": _t.strftime("%Y-%m-%d %H:%M:%S"), "log": cmd.get("log", []), "runden": cmd.get("runden", []), "home": cmd.get("home", [])}, f, ensure_ascii=False, indent=1)
+        return "Protokoll gespeichert."
     if t == "media" and cmd.get("key") in ("playpause", "nexttrack", "prevtrack", "volumemute"):
         S.media(cmd["key"])
         return {"playpause": "Play/Pause gedrückt.", "nexttrack": "Nächster Titel.", "prevtrack": "Vorheriger Titel.",

@@ -350,6 +350,9 @@ class WebHud:
         if name == "systest":   # Test-Knopf neben einem Punkt der Statusseite
             import pc_systemcheck
             return {"text": pc_systemcheck.test(str(qs.get("id") or ""))}
+        if name == "core":   # Kernerinnerungen für die Kugel
+            import pc_memory
+            return {"facts": [f for f in pc_memory.facts() if pc_memory.is_core(f)][-16:]}
         if name == "boot_pending":   # Seite lädt: soll die Start-Animation laufen? (nur einmal)
             p = getattr(self, "boot_pending", False); self.boot_pending = False
             return {"boot": bool(p)}

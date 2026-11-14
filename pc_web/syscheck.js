@@ -27,7 +27,11 @@
   function open(fresh) { box.classList.add("on"); load(fresh); }
   if (dot) dot.addEventListener("click", () => open(false));
   document.getElementById("sp-x").addEventListener("click", () => box.classList.remove("on"));
-  document.getElementById("sp-again").addEventListener("click", () => load(true));
+  document.getElementById("sp-again").addEventListener("click", () => {
+    const p = fetch("/api/syscheck?neu=1").then((r) => r.json());
+    if (window.JCheck) { box.classList.remove("on"); JCheck.play(p.then((d) => d.items || [])); p.then((d) => { render(d); setTimeout(() => box.classList.add("on"), 5200); }); }
+    else load(true);
+  });
   box.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => {
     const t = b.dataset.t;
     if (t === "skill") { box.classList.remove("on"); setTimeout(() => window.JSkill && JSkill.test(), 300); return; }

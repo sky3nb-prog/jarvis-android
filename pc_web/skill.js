@@ -83,6 +83,7 @@
   }
   window.JSkill = {
     show(s) { queue.push(s || {}); next(); },
+    guess,
     test() { this.show({ title: "Test-Skill", text: "So sieht es aus, wenn ich etwas Neues lerne.", kind: "wissen", test: true }); },
   };
 })();
