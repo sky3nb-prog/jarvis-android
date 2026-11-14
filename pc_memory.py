@@ -24,6 +24,9 @@ MAX_FACTS = 600
 _LOCK = threading.Lock()
 
 
+ON_LEARN = None   # vom Programm gesetzt: etwas Neues gelernt -> Animation in der Kugel
+
+
 def path() -> str:
     return os.path.join(base_dir(), FILE)
 
@@ -91,6 +94,11 @@ def remember(text: str, date: str = None) -> str:
         data["facts"].append(entry)
         del data["facts"][:-MAX_FACTS]
         _save(data)
+    if ON_LEARN:   # "Neuer Skill freigeschaltet" in der Kugel
+        try:
+            ON_LEARN(text)
+        except Exception:
+            pass
     return "Gemerkt."
 
 

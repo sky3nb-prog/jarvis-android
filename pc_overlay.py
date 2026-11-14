@@ -2107,8 +2107,24 @@ def main():
     if "--autostart" in sys.argv and ui.settings.get("boot_animation", True):
         threading.Timer(3.0, _boot).start()   # nach dem Anmelden: Hologramm-Start
     pc_systemcheck.start_daily(lambda t: pc_nachrichten.incoming({"kind": "say", "text": "Kurzer Systemcheck: " + t}))
+    def _learned(text):
+        if getattr(ui, "web", None):
+            ui.web.push("skill", {"title": "Gelernt", "text": text})
+        ui.post("Neuer Skill", text, 5000, glow=True)
+    pc_memory.ON_LEARN = _learned
     if "--nach-update" in sys.argv:
         pc_nachrichten.incoming({"kind": "say", "force": True, "text": f"Update installiert. Ich bin wieder da, Stand {VERSION}."})
+        def _new_features():   # neue Fähigkeiten aus pc_web/neu.json in der Kugel zeigen
+            try:
+                import json as _j
+                with open(os.path.join(pc_webhud.web_dir(), "neu.json"), encoding="utf-8") as f:
+                    for it in _j.load(f).get("neu", [])[:5]:
+                        if getattr(ui, "web", None):
+                            ui.web.push("skill", {"title": it.get("title", ""), "text": it.get("text", ""), "kind": "funktion"})
+                        time.sleep(4.6)
+            except Exception as e:
+                print("Neue Fähigkeiten:", e)
+        threading.Timer(10.0, _new_features).start()
     pc_update.start(lambda: pc_nachrichten.incoming({"kind": "offer", "action": "update", "title": "Update",
                                                      "question": "Ein Update für mich ist fertig. Soll ich kurz neu starten?"}))
     pc_media.start(stop)  # mitschreiben, was du hörst und schaust (für deine Interessen)
