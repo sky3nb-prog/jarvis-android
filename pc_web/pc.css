@@ -202,3 +202,11 @@ body.handy .typebar{bottom:96px}
 .tb-reply.on{display:block}.tb-reply .who{margin-bottom:4px}
 #pv-steuern .st-wrap{padding-bottom:96px}#pv-info .col{bottom:84px;overflow-y:auto}
 #pv-fokus .talk{max-height:24vh;overflow-y:auto}
+
+/* Scrollbalken in Jarvis-Farben (statt weiß) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0a0703; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8a5c18, #c8902e); border-radius: 8px; border: 2px solid #0a0703; }
+::-webkit-scrollbar-thumb:hover { background: #ffd678; }
+::-webkit-scrollbar-corner { background: #0a0703; }
+html, body, * { scrollbar-color: #a0702a #0a0703; }

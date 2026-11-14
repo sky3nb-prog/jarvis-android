@@ -271,3 +271,11 @@ nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 72px; d
 #ask-aus .sheet, #ask-text .sheet { height: auto; padding: 18px 18px 30px; border-radius: 22px 22px 0 0; display: block; }
 .toast.ok { background: #04140f; border-color: #1f8f6a; color: #cdeee2; }
 #info-pc .row { font-size: 13px; } #info-pc .row b { white-space: nowrap; }
+
+/* Scrollbalken in Jarvis-Farben (statt weiß) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0a0703; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8a5c18, #c8902e); border-radius: 8px; border: 2px solid #0a0703; }
+::-webkit-scrollbar-thumb:hover { background: #ffd678; }
+::-webkit-scrollbar-corner { background: #0a0703; }
+html, body, * { scrollbar-color: #a0702a #0a0703; }

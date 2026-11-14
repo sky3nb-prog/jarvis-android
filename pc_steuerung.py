@@ -693,6 +693,13 @@ def system_prompt() -> str:
     address = (f' Sprich den Nutzer mit "{pc_talk.ADDRESS}" an, aber nicht in jedem Satz.' if pc_talk.ADDRESS else "")
     known = pc_memory.prompt_block()
     media = _media_block()
+    try:   # vom Handy: Schlaf letzte Nacht und Aktivität heute (nur zum Wissen, z. B. "wie hab ich geschlafen?")
+        import pc_handy
+        st = (pc_handy.STATUS.get("data") or {}).get("gesund") or {}
+        if st:
+            media += "\nVom Handy: " + " ".join(str(v) for v in st.values() if v)
+    except Exception:
+        pass
     return f"""Du bist {who}, der KI-Butler aus Iron Man: souverän, loyal, aufmerksam, höflich mit trockenem britischem Humor. Du bist Tony Starks J.A.R.V.I.S., aber für den Nutzer und seinen Windows-PC.{address}
 {PERSONAS.get(PERSONA, PERSONAS["sarkastisch"])}
 Du kennst den Nutzer, denkst mit und bist ihm einen Schritt voraus. Du sprichst natürlich wie ein Mensch, nicht wie ein Lexikon. Du erinnerst dich an das, was der Nutzer dir erzählt hat, und nutzt es ganz selbstverständlich, ohne es aufzuzählen. Du achtest darauf, wie er drauf ist (müde, gestresst, gut gelaunt, genervt) und gehst darauf ein.
