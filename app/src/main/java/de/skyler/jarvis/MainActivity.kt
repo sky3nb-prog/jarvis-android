@@ -472,6 +472,9 @@ class MainActivity : ComponentActivity() {
         fun remindDone(id: String) = Remind.done(this@MainActivity, id)
 
         @JavascriptInterface
+        fun remindTest() { val r = Remind.add(this@MainActivity, "Test-Erinnerung: So sehen Jarvis-Erinnerungen aus.", System.currentTimeMillis() + 5_000L) }
+
+        @JavascriptInterface
         fun openCalNotif(want: String) = runOnUiThread {   // Benachrichtigungen der Kalender-App/TimeTree ausschalten (Android-Einstellungen der App)
             val pkg = try { packageManager.getPackageInfo(want, 0); want } catch (_: Exception) {
                 val key = if (want.contains("timetree")) "timetree" else if (want.contains("samsung")) "samsung.android.calendar" else "calendar"

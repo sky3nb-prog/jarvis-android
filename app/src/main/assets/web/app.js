@@ -487,6 +487,11 @@
   }
   document.querySelector('[data-p="sys"]').addEventListener("click", () => sysShow(false));
   $("sys-again").addEventListener("click", () => sysShow(true));
+  const closeSettings = () => { $("settings").classList.remove("on"); if (window.show) try { show("fokus"); } catch (e) {} };
+  $("tst-skill").addEventListener("click", () => { closeSettings(); setTimeout(() => window.JSkill && JSkill.test(), 400); });
+  $("tst-rem").addEventListener("click", () => { if (A.remindTest) A.remindTest(); toast("Erinnerung kommt in 5 Sekunden."); });
+  $("tst-fahrt").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  $("tst-neu").addEventListener("click", () => { closeSettings(); setTimeout(() => (window.JNEU && JNEU.neu || []).forEach((x) => JSkill.show({ title: x.title, text: x.text, kind: "funktion", test: true })), 400); });
   // --- Gesundheit: Samsung Health (Health Connect) + Schlaf ---
   const nf = (v) => Number(v || 0).toLocaleString("de-DE");
   const hmT = (t) => new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
