@@ -128,7 +128,7 @@
       <div class="fp-times"><div class="fp-tb"><small>MORGEN AUF</small><b>${d.aufstehen ? hm(d.aufstehen) : d.erster_wecker ? hm(d.erster_wecker) : "frei"}</b></div>
       <div class="fp-tb"><small>MORGEN</small><b>${w ? w.min + "° / " + w.max + "°" : "–"}</b></div>
       <div class="fp-tb"><small>${f ? "VERBRAUCHT" : "SCHLAF"}</small><b>${f ? nf(f.kcal) : d.schlaf ? dur(d.schlaf.min) : "–"}</b></div></div></div>`;
-    if ((d.heute || []).length) h += card("📅 HEUTE", "var(--green)", d.heute.map((x) => `<div class="fp-row"><span class="z">•</span><span>${esc(x)}</span></div>`).join(""));
+    if ((d.heute || []).length) h += card("📅 HEUTE", "var(--green)", d.heute.map((x) => `<div class="fp-todo" style="gap:9px"><span style="color:var(--green)">•</span>${esc(x)}</div>`).join(""));
     if (f) h += `<div class="fp-card"><h3>🔥 AKTIVITÄT HEUTE</h3><div class="fp-tiles"><div class="fp-tile"><b>${nf(f.kcal)}</b><small>kcal verbraucht</small></div>
       <div class="fp-tile"><b>${nf(f.schritte)}</b><small>Schritte</small></div>
       <div class="fp-tile"><b>${f.defizit != null ? nf(Math.abs(f.defizit)) : nf(f.aktiv)}</b><small>${f.defizit != null ? (f.defizit > 0 ? "kcal Defizit" : "kcal Überschuss") : "kcal aktiv"}</small></div></div></div>`;
