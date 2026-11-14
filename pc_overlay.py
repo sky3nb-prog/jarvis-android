@@ -373,11 +373,13 @@ class StrandOverlay:
                     if r.random() < .28:
                         j = (1 if r.random() < .5 else -1) * (4 + r.random() * 6) * k
                         x += sx * abs(j); y += sy * j * .7
+                        y = cy + sy * max(2 * k, min(abs(y - cy), off + 6 * k))   # am Rand bleiben
                 else:
                     y += sy * st
                     if r.random() < .28:
                         j = (1 if r.random() < .5 else -1) * (4 + r.random() * 6) * k
                         y += sy * abs(j); x += sx * j * .7
+                        x = cx + sx * max(2 * k, min(abs(x - cx), off + 6 * k))   # am Rand bleiben, nicht in die Kugel
                 pts.append((x, y))
             tr.append({"pts": pts, "w": w, "branch": False, "at": 0})
             for i in range(2, len(pts) - 1, 3):
@@ -387,8 +389,8 @@ class StrandOverlay:
                     dx, dy = (sx * bl * .7, sy * bl) if horiz else (sx * bl, sy * bl * .7)
                     tr.append({"pts": [(bx, by), (bx + dx * .6, by + dy * .6), (bx + dx, by + dy)], "w": w * .6, "branch": True, "at": i / len(pts)})
 
-        main(True, W * .92, 6 * k, 2)
-        main(True, W * .62, 15 * k, 1)
+        main(True, W * .62, 6 * k, 2)
+        main(True, W * .40, 15 * k, 1)
         main(False, H * .9, 6 * k, 2)
         main(False, H * .6, 15 * k, 1)
         for t in tr:
@@ -535,7 +537,7 @@ class CompactOverlay:
             self.strand.set_corner(corner)
 
     def orb_box(self):
-        return self.win.winfo_rootx(), self.win.winfo_rooty() + (self.win.winfo_height() - self.d) // 2, self.d
+        return self.win.winfo_rootx() + getattr(self, "_orb_x", 0), self.win.winfo_rooty() + (self.win.winfo_height() - self.d) // 2, self.d
 
     def show(self, role: str, text: str, hide_ms: int, state: str):
         if self._hide_job:
@@ -580,7 +582,9 @@ class CompactOverlay:
             gap = int(10 * k)
             h = max(d, ph)
             w = d + gap + pw
-            px, py = d + gap, (h - ph) // 2
+            # rechts: Kugel ins Eck (außen), Textfeld nach innen – so hängt sie am Nervenstrang
+            px, py = (0 if "rechts" in self.corner else d + gap), (h - ph) // 2
+            self._pill_w = pw
             self.canvas.delete("txt")
             self.canvas.itemconfigure(self.pill_item, image=self._photo_pill)
             self.canvas.coords(self.pill_item, px, py)
@@ -593,7 +597,12 @@ class CompactOverlay:
             for line in lines:
                 self.canvas.create_text(px + padx, y, text=line, font=self.f_msg, fill="#ffe9c8", anchor="nw", tags="txt")
                 y += line_h
-        self.canvas.coords(self.orb_item, 0, (h - d) // 2)
+        ox = (w - d) if ("rechts" in self.corner and text) else 0
+        self._orb_x = ox
+        self.canvas.coords(self.orb_item, ox, (h - d) // 2)
+        self.canvas.delete("ring")   # goldener Ring um die Kugel (wie im HUD)
+        rr = max(1, int(1.2 * k))
+        self.canvas.create_oval(ox + rr, (h - d) // 2 + rr, ox + d - rr, (h + d) // 2 - rr, outline="#c8902e", width=rr, tags="ring")
         self.canvas.config(width=w, height=h)
         self._draw_close(w, h, bool(text))
         sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
@@ -615,7 +624,8 @@ class CompactOverlay:
         cv = self.canvas
         cv.delete("xbtn")
         if has_text:
-            cx, cy = w - int(14 * k) - r, h // 2
+            right_end = getattr(self, "_pill_w", w) if "rechts" in self.corner else w
+            cx, cy = right_end - int(14 * k) - r, h // 2
         else:
             cx, cy = w - r - 1, (h + self.d) // 2 - r - 1
         cv.create_oval(cx - r, cy - r, cx + r, cy + r, fill="#1a1006", outline="#a0702a", width=1, tags="xbtn")
@@ -1912,7 +1922,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 03:00"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 03:15"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
