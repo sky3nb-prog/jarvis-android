@@ -81,6 +81,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         showOverLock(intent)
         getSharedPreferences("jarvis", MODE_PRIVATE).let { p ->   // einmalig (Wunsch 14.11.): alle Wecker von Jarvis raus, Schultags-Plan bleibt
+            if (!p.getBoolean("zeiten_v2", false))   // Wunsch 14.11.: Tagesabschluss 20:00, Wochenrückblick 20:30
+                p.edit().putBoolean("zeiten_v2", true).putString("brief_abend_zeit", "20:00").putString("rueckblick_zeit", "20:30").apply()
             if (!p.getBoolean("wecker_aufraeumen_1", false)) {
                 p.edit().putBoolean("wecker_aufraeumen_1", true).apply()
                 Thread { try { Wecker.off(this, emptyList()) } catch (_: Exception) {} }.start()
@@ -307,9 +309,9 @@ class MainActivity : ComponentActivity() {
             .put("losfahren", prefs.getBoolean("losfahren", true)).put("ankunft", prefs.getString("ankunft", ""))
             .put("anzieh", prefs.getString("anzieh", "").let { if (it.isNullOrBlank()) Alltag.ANZIEH_DEFAULT else it })
             .put("brief_morgen", prefs.getBoolean("brief_morgen", true)).put("brief_abend", prefs.getBoolean("brief_abend", true))
-            .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "21:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
+            .put("brief_abend_zeit", prefs.getString("brief_abend_zeit", "20:00")).put("rueckblick", prefs.getBoolean("rueckblick", true))
             .put("bilanz", prefs.getBoolean("bilanz", true)).put("bilanz_zeit", prefs.getString("bilanz_zeit", "22:00"))
-            .put("rueckblick_zeit", prefs.getString("rueckblick_zeit", "18:00"))
+            .put("rueckblick_zeit", prefs.getString("rueckblick_zeit", "20:30"))
             .put("wecker_an", prefs.getBoolean("wecker_an", true)).put("wecker_schule", prefs.getString("wecker_schule", "7:10"))
             .put("wecker_we", prefs.getString("wecker_we", "")).put("wecker_vorher", Wecker.offsets(this@MainActivity).joinToString(", "))
             .put("wecker_tage", Wecker.tage(this@MainActivity))
@@ -346,10 +348,10 @@ class MainActivity : ComponentActivity() {
                 .putBoolean("losfahren", o.optBoolean("losfahren", true)).putString("ankunft", o.optString("ankunft").trim())
                 .putString("anzieh", o.optString("anzieh").trim().let { if (it == Alltag.ANZIEH_DEFAULT) "" else it })
                 .putBoolean("brief_morgen", o.optBoolean("brief_morgen", true)).putBoolean("brief_abend", o.optBoolean("brief_abend", true))
-                .putString("brief_abend_zeit", o.optString("brief_abend_zeit", "21:00").trim().ifBlank { "21:00" })
+                .putString("brief_abend_zeit", o.optString("brief_abend_zeit", "20:00").trim().ifBlank { "20:00" })
                 .putBoolean("rueckblick", o.optBoolean("rueckblick", true))
                 .putBoolean("bilanz", o.optBoolean("bilanz", true)).putString("bilanz_zeit", o.optString("bilanz_zeit", "22:00").trim().ifBlank { "22:00" })
-                .putString("rueckblick_zeit", o.optString("rueckblick_zeit", "18:00").trim().ifBlank { "18:00" })
+                .putString("rueckblick_zeit", o.optString("rueckblick_zeit", "20:30").trim().ifBlank { "20:30" })
                 .putBoolean("wecker_an", o.optBoolean("wecker_an", true)).putString("wecker_schule", o.optString("wecker_schule").trim())
                 .putString("wecker_we", o.optString("wecker_we").trim()).putString("wecker_vorher", o.optString("wecker_vorher").trim().ifBlank { Wecker.VORHER_DEFAULT })
                 .apply { o.optJSONObject("wecker_tage")?.let { t -> if (t.toString() != Wecker.tage(this@MainActivity).toString()) remove("wecker_tag"); putString("wecker_tage", t.toString()) } }

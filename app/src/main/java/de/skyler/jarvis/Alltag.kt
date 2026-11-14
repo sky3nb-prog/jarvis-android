@@ -291,11 +291,14 @@ object Alltag {
             Wecker.tick(ctx) { day -> Cal.events(ctx, day, day + 86_400_000L).any { it.allDay && Regex("(?i)ferien|feiertag|frei\\b|urlaub").containsMatchIn(it.title) } }
                 ?.let { msg -> notify(ctx, 345, "Wecker für morgen", msg, feed = Feed.add(ctx, "wecker", "Wecker für morgen", msg, msg)) }
         } catch (e: Exception) { Log.w(TAG, "wecker: $e") }
-        try {   // Aufsteh-Zeit erreicht und Handy ist an: Tages-Update (auch ohne neues Entsperren)
-            val up = Wecker.upToday(ctx); val now = System.currentTimeMillis()
-            val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-            if (up != null && now - up in 0..15 * 60_000L && pm.isInteractive && !done(s, "morgen|${today()}") && on(ctx, "brief_morgen")) {
-                save(ctx, s); onUnlock(ctx, say); s.put("done", state(ctx).optJSONObject("done") ?: JSONObject())
+        try {   // Morgen-Briefing: 10 Minuten vor der Aufsteh-Zeit als Benachrichtigung bereit (ohne Entsperren)
+            val up = upTime(ctx); val now = System.currentTimeMillis(); val key = "morgen|${today()}"
+            if (up != null && now >= up - 10 * 60_000L && now < up + 4 * 3_600_000L && !done(s, key) && on(ctx, "brief_morgen")) {
+                mark(s, key); save(ctx, s)
+                Thread({
+                    val (t, fid) = dayBrief(ctx, 0) ?: return@Thread
+                    notify(ctx, 340, "Guten Morgen – dein Tag", t, feed = fid)
+                }, "jarvis-morgen").start()
             }
         } catch (_: Exception) {}
         try { evening(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "abend: $e") }
@@ -833,6 +836,14 @@ object Alltag {
             (if (who != null) "Ich sag $who Bescheid, kurz bevor du da bist." else "Wem ich Bescheid sagen soll, trägst du unter Alltag → Ankunft ein, z. B. „$name: Opa“.")
     }
 
+    /** Am PC anbieten (nur wenn du dran sitzt): "… ist da. Soll ich ihn öffnen?" */
+    private fun pcOffer(ctx: Context, title: String, question: String, text: String) {
+        try {
+            if (Link.paired(ctx)) Link.command(ctx, JSONObject().put("type", "offer").put("need_active", true).put("title", title)
+                .put("question", question).put("text", text), 15_000)
+        } catch (_: Exception) {}
+    }
+
     /** Am PC sagen, wenn du dort sitzt, sonst am Handy. */
     private fun deliverSay(ctx: Context, text: String, say: (String) -> Unit) {
         if (pcSay(ctx, text)) return
@@ -848,22 +859,27 @@ object Alltag {
         s.put("alarm_next", am.nextAlarmClock?.triggerTime ?: 0L)
     }
 
-    /** Erstes Entsperren nach dem Wecker -> Morgen-Briefing (auf dem Handy, du hältst es ja gerade). */
+    /** Aufsteh-Zeit heute (einmalig > Plan > zuletzt gestellt), sonst null. */
+    private fun upTime(ctx: Context): Long? = try {
+        val d0 = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        Wecker.upToday(ctx) ?: Wecker.upFor(ctx, d0)
+    } catch (_: Exception) { null }
+
+    /** Ohne Aufsteh-Zeit: erstes Entsperren nach dem Wecker -> Morgen-Briefing als Benachrichtigung. (Mit Aufsteh-Zeit macht das tick.) */
     fun onUnlock(ctx: Context, say: (String) -> Unit) {
         if (!on(ctx, "brief_morgen")) return
+        if (upTime(ctx) != null) return
         val s = state(ctx)
         alarms(ctx, s)
         val now = System.currentTimeMillis()
         val key = "morgen|${today()}"
-        // Aufsteh-Zeit von Jarvis' Weckern hat Vorrang: erst ab dann (frühere Wecker = nur Vorwarnung)
-        val up = Wecker.upToday(ctx)
+        val up: Long? = null
         val last = up ?: s.optLong("alarm_last")
         if (last <= 0 || now - last !in -2 * 60_000L..3 * 3_600_000L || done(s, key)) return
         mark(s, key); save(ctx, s)
         Thread({
             val (t, fid) = dayBrief(ctx, 0) ?: return@Thread
-            notify(ctx, 340, "Guten Morgen", t, feed = fid)
-            say(t)
+            notify(ctx, 340, "Guten Morgen – dein Tag", t, feed = fid)
         }, "jarvis-morgen").start()
     }
 
@@ -874,7 +890,7 @@ object Alltag {
 
     private fun evening(ctx: Context, s: JSONObject, say: (String) -> Unit) {
         if (!on(ctx, "brief_abend")) return
-        val (h, m) = hm(prefs(ctx).getString("brief_abend_zeit", "21:00") ?: "21:00", 21)
+        val (h, m) = hm(prefs(ctx).getString("brief_abend_zeit", "20:00") ?: "20:00", 20)
         val t0 = todayAt(h, m); val now = System.currentTimeMillis()
         val key = "abend|${today()}"
         if (now < t0 || now > t0 + 2 * 3_600_000L || done(s, key)) return
@@ -882,7 +898,7 @@ object Alltag {
         Thread({
             val (t, fid) = eveningBrief(ctx) ?: return@Thread
             notify(ctx, 341, "Dein Tagesabschluss", t, feed = fid)
-            if (!pcSay(ctx, t) && !quiet(ctx)) say(t)
+            pcOffer(ctx, "Tagesabschluss", "Dein Tagesabschluss ist da. Soll ich ihn öffnen?", t)
         }, "jarvis-abend").start()
     }
 
@@ -1007,7 +1023,7 @@ object Alltag {
         if (!on(ctx, "rueckblick")) return
         val c = Calendar.getInstance()
         if (c.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) return
-        val (h, m) = hm(prefs(ctx).getString("rueckblick_zeit", "18:00") ?: "18:00", 18)
+        val (h, m) = hm(prefs(ctx).getString("rueckblick_zeit", "20:30") ?: "20:30", 20)
         val t0 = todayAt(h, m); val now = System.currentTimeMillis()
         val key = "woche|${today()}"
         if (now < t0 || now > t0 + 4 * 3_600_000L || done(s, key)) return
@@ -1016,10 +1032,7 @@ object Alltag {
             val (t, fid) = weekBack(ctx) ?: return@Thread
             try { weekAhead(ctx) } catch (_: Exception) {}
             notify(ctx, 350, "Dein Wochenrückblick", t, feed = fid)
-            try {
-                if (Link.paired(ctx)) Link.command(ctx, JSONObject().put("type", "offer").put("need_active", true).put("title", "Wochenrückblick")
-                    .put("question", "Dein Wochenrückblick ist da. Soll ich ihn öffnen?").put("text", t), 15_000)
-            } catch (_: Exception) {}
+            pcOffer(ctx, "Wochenrückblick", "Dein Wochenrückblick ist da. Soll ich ihn öffnen?", t)
         }, "jarvis-woche").start()
     }
 

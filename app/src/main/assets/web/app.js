@@ -298,9 +298,9 @@
       $("set-wichtig").value = c.wichtig || ""; $("set-absage").value = c.absage || ""; sw("set-butler", c.butler !== false);
       $("set-wlan").value = c.heim_wlan || ""; sw("set-wegauto", c.weg_auto !== false); sw("set-losfahren", c.losfahren !== false); fwShow();
       $("set-ankunft").value = c.ankunft || ""; $("set-anzieh").value = c.anzieh || "";
-      sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "21:00";
+      sw("set-bmorgen", c.brief_morgen !== false); sw("set-babend", c.brief_abend !== false); $("set-babendzeit").value = c.brief_abend_zeit || "20:00";
       sw("set-biwetter", c.bi_wetter !== false); sw("set-bianzieh", c.bi_anzieh !== false); sw("set-bitermine", c.bi_termine !== false); sw("set-bimit", c.bi_mitnehmen !== false);
-      sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "18:00";
+      sw("set-rueck", c.rueckblick !== false); $("set-rueckzeit").value = c.rueckblick_zeit || "20:30";
       sw("set-bilanz", c.bilanz !== false); $("set-bilanzzeit").value = c.bilanz_zeit || "22:00";
       perm("set-locall", c.loc_ok && c.loc_always, "Erlauben");
       sw("wk-an", c.wecker_an !== false); $("wk-schule").value = (c.wecker_schule || "07:10").padStart(5, "0"); $("wk-we").value = c.wecker_we ? c.wecker_we.padStart(5, "0") : "";
@@ -506,9 +506,9 @@
       wecker_tage: wkTage(),
       heim_wlan: $("set-wlan").value.trim(), weg_auto: sw("set-wegauto"), losfahren: sw("set-losfahren"),
       ankunft: $("set-ankunft").value.trim(), anzieh: $("set-anzieh").value.trim(),
-      brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "21:00",
+      brief_morgen: sw("set-bmorgen"), brief_abend: sw("set-babend"), brief_abend_zeit: $("set-babendzeit").value || "20:00",
       bi_wetter: sw("set-biwetter"), bi_anzieh: sw("set-bianzieh"), bi_termine: sw("set-bitermine"), bi_mitnehmen: sw("set-bimit"),
-      rueckblick: sw("set-rueck"), rueckblick_zeit: $("set-rueckzeit").value || "18:00",
+      rueckblick: sw("set-rueck"), rueckblick_zeit: $("set-rueckzeit").value || "20:30",
       bilanz: sw("set-bilanz"), bilanz_zeit: $("set-bilanzzeit").value || "22:00",
       lage_jump: sw("set-ljump"), lage_zoom: sw("set-lzoom"), lage_spin: sw("set-lspin"), lage_orbits: sw("set-lorbit"),
       lage_labels: sw("set-llabels"), strand: sw("set-strand"),
