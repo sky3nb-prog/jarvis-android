@@ -64,6 +64,21 @@ object Wecker {
             Thread.sleep(900)   // der Uhr-App Zeit lassen, sonst gehen Wecker verloren
         }
         prefs(ctx).edit().putString("wecker_liste", list.toString()).apply()
+        // Prüfen, ob die Samsung Uhr den (frühesten) Wecker wirklich übernommen hat
+        var hinweis = ""
+        if (times.isNotEmpty()) try {
+            Thread.sleep(1500)
+            val am = ctx.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            val expected = times.minOf { nextAt(it.first, it.second) }
+            val next = am.nextAlarmClock?.triggerTime
+            if (next == null || next > expected + 90_000L) {
+                val (h, m) = times.first()
+                ctx.startActivity(Intent(AlarmClock.ACTION_SET_ALARM).putExtra(AlarmClock.EXTRA_HOUR, h).putExtra(AlarmClock.EXTRA_MINUTES, m)
+                    .putExtra(AlarmClock.EXTRA_MESSAGE, LABEL).putExtra(AlarmClock.EXTRA_SKIP_UI, false).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                hinweis = " Achtung: Die Samsung Uhr hat den Wecker nicht von selbst übernommen – ich hab sie dir geöffnet, tipp dort auf Speichern."
+                android.util.Log.w("JarvisWecker", "Wecker nicht übernommen: erwartet $expected, nächster $next")
+            }
+        } catch (_: Exception) {}
         // Aufsteh-Zeit: dann kommt das Morgen-Briefing (beim nächsten Mal; bei "werktags"/"täglich" jedes Mal)
         val upT = up ?: times.lastOrNull()
         if (upT != null) prefs(ctx).edit().putString("aufstehen", JSONObject().put("h", upT.first).put("m", upT.second).put("tage", tage)
@@ -73,7 +88,7 @@ object Wecker {
         val day = if (d != null) " ($tage)" else if (times.isNotEmpty() && nextAt(times[0].first, times[0].second) - System.currentTimeMillis() > 12 * 3_600_000L) " für morgen" else ""
         return (if (times.size == 1) "Wecker auf $zt gestellt$day." else "Wecker auf $zt gestellt$day.") +
             (if (wieder > 0 && neu == 0) " Die gab es schon, ich hab sie wieder eingeschaltet." else if (wieder > 0) " $wieder davon gab es schon, die hab ich wieder eingeschaltet." else "") +
-            (if (up != null) " Aufstehen um ${"%d:%02d".format(up.first, up.second)} – dann bekommst du dein Tages-Update." else "")
+            (if (up != null) " Aufstehen um ${"%d:%02d".format(up.first, up.second)} – dann bekommst du dein Tages-Update." else "") + hinweis
     }
 
     /** Wecker ausschalten: bestimmte Zeiten oder alle von Jarvis. */
@@ -165,7 +180,11 @@ object Wecker {
         val up = hm(zeit) ?: return "Um wie viel Uhr willst du aufstehen?"
         val times = timesFor(ctx, up)
         val first = hm(times.first())!!
-        val d = datum.ifBlank { dateOf(nextAt(first.first, first.second)) }
+        var d = datum.ifBlank { dateOf(nextAt(first.first, first.second)) }
+        // Nach Mitternacht (bis 5 Uhr) meint "morgen" den Morgen nach dem Schlafen, also heute
+        val now = Calendar.getInstance()
+        val tom = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
+        if (now.get(Calendar.HOUR_OF_DAY) < 5 && d == dateOf(tom.timeInMillis) && nextAt(first.first, first.second) < tom.timeInMillis - 5 * 3_600_000L) d = dateOf(now.timeInMillis)
         val o = try { JSONObject(prefs(ctx).getString("wecker_einmal", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
         o.put(d, fmt(up.first, up.second))
         prefs(ctx).edit().putString("wecker_einmal", o.toString()).apply()
@@ -181,7 +200,9 @@ object Wecker {
     fun reminder(ctx: Context, datum: String, zeit: String, text: String, vorlauf: Int): String {
         val at = hm(zeit) ?: return "Um wie viel Uhr?"
         val (h, m) = minus(at.first, at.second, vorlauf.coerceIn(0, 120))
-        val d = datum.ifBlank { dateOf(nextAt(h, m)) }
+        var d = datum.ifBlank { dateOf(nextAt(h, m)) }
+        val nowC = Calendar.getInstance(); val tomC = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
+        if (nowC.get(Calendar.HOUR_OF_DAY) < 5 && d == dateOf(tomC.timeInMillis) && dateOf(nextAt(h, m)) == dateOf(nowC.timeInMillis)) d = dateOf(nowC.timeInMillis)
         val label = text.trim().ifBlank { "Erinnerung" }.take(40)
         val vor = if (vorlauf > 0) " – $vorlauf Minuten vorher, damit du um ${fmt(at.first, at.second)} bereit bist" else ""
         if (dateOf(nextAt(h, m)) == d) {
