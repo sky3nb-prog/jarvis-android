@@ -350,6 +350,9 @@ class WebHud:
         if name == "systest":   # Test-Knopf neben einem Punkt der Statusseite
             import pc_systemcheck
             return {"text": pc_systemcheck.test(str(qs.get("id") or ""))}
+        if name == "boot_pending":   # Seite lädt: soll die Start-Animation laufen? (nur einmal)
+            p = getattr(self, "boot_pending", False); self.boot_pending = False
+            return {"boot": bool(p)}
         if name == "syscheck":   # Statusseite: grüne/rote Punkte (frisch prüfen, wenn älter als 2 Min. oder ?neu=1)
             import pc_systemcheck
             if qs.get("neu") or time.time() - pc_systemcheck.LAST["t"] > 120:
@@ -428,6 +431,9 @@ class WebHud:
     def action(self, name: str, body: dict):
         if name == "boot_done":   # Start-Animation: Gruß sprechen
             import pc_nachrichten, pc_talk
+            if not getattr(self, "boot_test", False):   # beim echten Start begrüßt er danach ohnehin
+                return {}
+            self.boot_test = False
             bad = int(body.get("bad") or 0)
             who = getattr(pc_talk, "ADDRESS", "") or "Sir"
             t = f"Willkommen zurück, {who}. " + (f"{bad} System{'e brauchen' if bad > 1 else ' braucht'} Aufmerksamkeit – sag Statuscheck." if bad else "Alle Systeme bereit.")
@@ -440,6 +446,7 @@ class WebHud:
         if name == "test":   # Testknöpfe in der Statusseite
             w = str(body.get("what") or "")
             if w == "boot":
+                self.boot_test = True
                 import pc_systemcheck
                 if pc_systemcheck.BOOT:
                     pc_systemcheck.BOOT()

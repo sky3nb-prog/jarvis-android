@@ -1,7 +1,5 @@
-{"stand": "2026-11-14 14:20", "neu": [
-  {"title": "Iron-Man-Start", "text": "Nach dem Anmelden starte ich mit Hologramm. Testen: „Startanimation“."},
-  {"title": "Systemcheck", "text": "Sag „Statuscheck“ – oben im HUD: SYSTEME."},
-  {"title": "Mitteilungen im HUD", "text": "Die Glocke oben zeigt deine Briefings vom Handy."},
-  {"title": "Routinen", "text": "„Gaming-Modus“, „Schulmodus“, „Gute Nacht“."},
-  {"title": "Ich melde mich selbst", "text": "Volle Festplatte, heiße Grafikkarte, neue Videos von Laser Luca, Steam-Angebote."}
+{"stand": "2026-11-14 17:10", "neu": [
+  {"title": "Neuer Start", "text": "Lichtpunkte steigen auf, werden zur Kugel, dann baut sich das HUD auf. Testen: „Startanimation“."},
+  {"title": "Nur die Kugel", "text": "Im Fokus oben ◉ – Text und Eingabe gleiten weg."},
+  {"title": "Immer Fokus", "text": "Das HUD öffnet jetzt immer auf dem Fokus-Bildschirm."}
 ]}

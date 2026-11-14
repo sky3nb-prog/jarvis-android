@@ -1732,7 +1732,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
             if (GREET_ON_START or pc_assistent_announce[0] or ui.settings.get("briefing_on_start", True)) and not _GREETED:
                 _GREETED = True
                 if ui.settings.get("boot_animation", True) and "--nach-update" not in sys.argv:
-                    time.sleep(14)   # erst die Start-Animation mit ihrem Gruß ausspielen lassen
+                    time.sleep(6)   # erst die Start-Animation (ca. 4 s) ausspielen lassen
                 if pc_assistent_announce[0]:
                     pc_timetree.wait_first_sync(25)  # neueste Termine holen, bevor er sie ansagt
                     day = pc_calendar.today_text()
@@ -2030,7 +2030,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 15:50"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 17:10"
 
 
 def main():
@@ -2113,12 +2113,23 @@ def main():
     pc_systemcheck.SETTINGS = lambda: ui.settings
     pc_systemcheck.ON_RESULT = lambda items: ui.web.push("syscheck", {"items": items, "text": pc_systemcheck.summary(items)}) if getattr(ui, "web", None) else None
     import pc_bootwin
-    def _boot():
-        if getattr(ui, "web", None):
-            pc_bootwin.launch(ui.web.port, (pc_talk.ADDRESS or "Sir") if hasattr(pc_talk, "ADDRESS") else "Sir")
+    def _boot():   # Start-Animation läuft jetzt im HUD selbst (kein eigenes Fenster mehr)
+        w = None
+        for _ in range(40):   # beim Start: kurz warten, bis das HUD bereit ist
+            w = getattr(ui, "web", None)
+            if w:
+                break
+            time.sleep(0.25)
+        if not w:
+            return
+        if w.clients:          # HUD ist schon offen: gleich abspielen
+            w.push("boot", {})
+        else:                  # HUD aufmachen, die Seite fragt beim Laden nach und spielt sie ab
+            w.boot_pending = True
+        ui.q.put(("hud", "show"))
     pc_systemcheck.BOOT = _boot
     if ui.settings.get("boot_animation", True) and "--nach-update" not in sys.argv:
-        threading.Timer(2.5, _boot).start()   # bei jedem Start (auch nach dem Anmelden): Hologramm-Start
+        threading.Timer(0.3, _boot).start()   # bei jedem Start (auch nach dem Anmelden): Hologramm-Start
     pc_systemcheck.start_daily(lambda t: pc_nachrichten.incoming({"kind": "say", "text": "Kurzer Systemcheck: " + t}))
     def _learned(text):
         if getattr(ui, "web", None):

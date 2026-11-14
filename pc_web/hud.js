@@ -5,7 +5,7 @@
   const name = (S.assistant_name || "J.A.R.V.I.S.");
   $("aname").textContent = name; $("f-name").textContent = name; $("i-name").textContent = name; $("s-name").textContent = name;
   document.body.classList.toggle("handy", S.hud_layout === "handy");   // Aufbau wie die Handy-App (Leiste unten)
-  let mode = ["fokus", "info", "lage", "steuern"].includes(S.hud_mode) ? S.hud_mode : "info";
+  let mode = "fokus";   // beim Öffnen immer Fokus
   let level = 0, target = 0, state = "idle";
 
   // Kugeln (jede Seite hat ihre eigene, gezeichnet wird nur die sichtbare)
@@ -39,21 +39,25 @@
     const from = PORDER.indexOf(mode), to = PORDER.indexOf(m);
     pageDir = to >= from ? 1 : -1; if (to >= 0) strandTarget = to;
     document.body.style.setProperty("--pdir", pageDir);
-    mode = m;
+    mode = m; document.body.dataset.mode = m;
     document.querySelectorAll(".pv").forEach((e) => { const on = e.id === "pv-" + m || (m === "lage" && e.id === "v-lage");
-      if (on && !e.classList.contains("on")) { e.classList.remove("slidein"); void e.offsetWidth; e.classList.add("slidein"); }
+      if (on && !e.classList.contains("on")) { const cls = m === "lage" ? "fadein" : "slidein"; e.classList.remove("slidein", "fadein"); void e.offsetWidth; e.classList.add(cls); }
       e.classList.toggle("on", on); });
     document.querySelectorAll("#modes span, #pnav div").forEach((e) => e.classList.toggle("on", e.dataset.m === m));
     if (m === "steuern" && window.JHandy) window.JHandy.shown();
     $("strand").style.display = "";
     $("typebar").style.display = m === "lage" ? "none" : "";
     $("tb-reply").classList.remove("on");
-    if (m === "lage" && window.JLage) window.JLage.shown();
+    if (m === "lage" && window.JLage) setTimeout(() => { if (mode === "lage") window.JLage.shown(); }, 60);   // erst umschalten, dann Globus (flüssiger)
     if (m === "info") info(true);
     if (save) window.PC.post("mode", { mode: m });
   }
   document.querySelectorAll("#modes span, #pnav div").forEach((e) => e.addEventListener("click", () => setMode(e.dataset.m, true)));
   $("gear").addEventListener("click", () => window.JSettings && window.JSettings.open());
+  // Nur-Kugel-Modus: Gesprochenes und Eingabe gleiten nach unten weg
+  const setClean = (on) => { document.body.classList.toggle("clean", on); $("cleanbtn").classList.toggle("on", on); try { localStorage.setItem("hud_clean", on ? "1" : ""); } catch (e) {} };
+  try { setClean(localStorage.getItem("hud_clean") === "1"); } catch (e) {}
+  $("cleanbtn").addEventListener("click", () => setClean(!document.body.classList.contains("clean")));
   try { if ((window.PC.get("settings_new") || []).length) $("gear").classList.add("hasnew"); } catch (e) {}
   if (window.JLage) window.JLage.prefs(S);
 

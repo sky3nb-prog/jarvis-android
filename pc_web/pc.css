@@ -233,3 +233,13 @@ html, body, * { scrollbar-color: #a0702a #0a0703; }
 .pv.slidein{animation:pvin .34s cubic-bezier(.2,.8,.3,1)}
 @keyframes pvin{from{opacity:0;transform:translateX(calc(var(--pdir,1) * 70px))}to{opacity:1;transform:none}}
 #strand{transition:opacity .25s}
+/* Lage: nur einblenden (Globus ist schwer zu schieben) */
+.pv.fadein{animation:pvfade .22s ease-out}
+@keyframes pvfade{from{opacity:0}to{opacity:1}}
+/* Nur-Kugel-Modus */
+.cleanbtn{width:30px;height:30px;border-radius:50%;border:1.5px solid #5a3e14;display:flex;align-items:center;justify-content:center;color:#c8965a;cursor:pointer;font-size:14px}
+.cleanbtn.on{background:#3a2608;color:#ffd678;border-color:#ffaa28;box-shadow:0 0 10px rgba(255,170,40,.4)}
+#f-talk,#typebar,#f-state{transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .4s}
+body.clean[data-mode=fokus] #f-talk,body.clean[data-mode=fokus] #typebar{transform:translateY(160px);opacity:0;pointer-events:none}
+body.clean[data-mode=fokus] #f-state{opacity:0}
+.cleanbtn{display:none}body[data-mode=fokus] .cleanbtn{display:flex}
