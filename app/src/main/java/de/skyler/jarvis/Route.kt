@@ -137,7 +137,7 @@ Zerlege seinen Wunsch in JSON:
  "ziel_name":"<kurz, wie er es nennt, z. B. Großeltern>",
  "mode":"bicycling" | "walking" | "driving" | "transit",
  "stopps":[ in seiner Reihenfolge, jeder entweder
-    {"art":"kette","ketten":["REWE","Aldi"],"was":"Supermarkt","minuten":10}   (Läden/Ketten/Bäckereien: bevorzugte zuerst; minuten = Aufenthalt)
+    {"art":"kette","ketten":["REWE","Aldi"],"was":"<was er dort will, mit seinen Worten: Brot, Einkauf, Getränke …>","minuten":10}   (Läden/Ketten/Bäckereien: bevorzugte zuerst; minuten = Aufenthalt, nur wenn er eine Dauer nennt)
     oder {"art":"ort","ort":"<Adresse oder bekannter Ort>","was":"<kurz>","minuten":5}
     oder {"art":"weg","ort":"<Punkt, über den der Weg führen soll, z. B. aus dem Gedächtnis für 'oberer Feldweg'>","was":"<Name des Wegs>"} ],
  "ankunft":"HH:mm" oder null,   (wenn er irgendwo um eine Uhrzeit sein muss)
@@ -212,10 +212,16 @@ Antworte NUR mit dem JSON."""
             val ketten = s.optJSONArray("ketten")?.let { k -> (0 until k.length()).map { k.optString(it) }.filter { it.isNotBlank() } } ?: emptyList()
             pts[i] = bestOnTheWay(a, b, ketten, s.optString("was"))
             if (pts[i] == null) notes.add("${ketten.joinToString(" oder ")} liegt nicht auf dem Weg")
-            else if (!Regex("(?i)\\d+\\s*min").containsMatchIn(text)) {   // keine Zeit genannt: gelernte Aufenthaltsdauer nehmen
+            else {
                 val label = pts[i]!!.name.substringBefore(" (")
-                Halte.minutes(ctx, label, *ketten.toTypedArray())?.let { m ->
-                    dwell[i] = m; notes.add("beim $label rechne ich $m Minuten, so lange hältst du da meistens")
+                val kind = Halte.kind(s.optString("was") + " " + text)
+                Halte.expect(ctx, label, kind)
+                if (!Regex("(?i)\\d+\\s*min").containsMatchIn(text)) {   // keine Zeit genannt: gelernte Aufenthaltsdauer nehmen
+                    val learned = Halte.minutes(ctx, label, *ketten.toTypedArray(), kind = kind)
+                    val m = learned ?: Halte.planMinutes(ctx, label, kind)
+                    dwell[i] = m
+                    val wozu = when (kind) { "kurz" -> "für schnell was holen"; "gross" -> "fürs Einkaufen"; else -> "" }
+                    notes.add("beim $label rechne ich $m Minuten $wozu" + (if (learned != null) ", so lange brauchst du da meistens" else "").trim())
                 }
             }
         }

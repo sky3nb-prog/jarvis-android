@@ -44,12 +44,21 @@ object Halte {
     private fun close(ctx: Context, cur: JSONObject) {
         val min = (cur.optLong("last") - cur.optLong("t0")) / 60_000.0
         if (min < 2.0 || min > 90.0) return
+        // Jeder Halt (auch ohne Laden) zählt, damit gelernte Fahrzeiten ohne die Pause gerechnet werden
+        try {
+            val raw = JSONArray(prefs(ctx).getString("halt_raw", "[]") ?: "[]")
+            raw.put(JSONArray().put(cur.optLong("t0")).put(cur.optLong("last")))
+            while (raw.length() > 60) raw.remove(0)
+            prefs(ctx).edit().putString("halt_raw", raw.toString()).apply()
+        } catch (_: Exception) {}
         val la = cur.optDouble("lat"); val lo = cur.optDouble("lon")
+        val exp = try { JSONObject(prefs(ctx).getString("halt_expect", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
         Thread({
             val shop = shopAt(la, lo) ?: return@Thread
+            val zweck = exp.optString("kind").takeIf { exp.optLong("until") > cur.optLong("t0") && match(shop.first, exp.optString("name")) } ?: ""
             synchronized(this) {
                 val a = all(ctx)
-                a.put(JSONObject().put("name", shop.first).put("art", shop.second).put("lat", la).put("lon", lo)
+                a.put(JSONObject().put("name", shop.first).put("art", shop.second).put("lat", la).put("lon", lo).put("zweck", zweck)
                     .put("t", cur.optLong("t0")).put("min", Math.round(min * 10) / 10.0))
                 while (a.length() > 300) a.remove(0)
                 try { file(ctx).writeText(a.toString()) } catch (_: Exception) {}
@@ -80,23 +89,54 @@ object Halte {
         best
     } catch (_: Exception) { null }
 
-    private fun match(name: String, q: String) = name.contains(q, true) || q.contains(name, true) && name.length >= 3
+    private fun match(name: String, q: String) = q.isNotBlank() && (name.contains(q, true) || q.contains(name, true) && name.length >= 3)
 
-    /** Gelernte Aufenthaltsdauer (Minuten, Median der letzten 8) bei diesem Laden / dieser Kette, null = noch nicht gelernt. */
-    fun minutes(ctx: Context, vararg names: String): Int? {
-        val v = list(ctx).filter { o -> names.any { n -> n.isNotBlank() && match(o.optString("name"), n.substringBefore(" (").trim()) } }
-            .map { it.optDouble("min") }.takeLast(8).sorted()
-        return if (v.isEmpty()) null else Math.round(v[v.size / 2]).toInt().coerceIn(1, 90)
+    /** Was er dort will: "kurz" (Brot, schnell was holen) oder "gross" (einkaufen) – "" = nicht gesagt. */
+    fun kind(text: String): String = when {
+        Regex("(?i)brot|brötchen|bäcker|backwaren|nur (schnell )?|schnell (was|mal)|kurz (was|rein)|getränk|milch|snack|eis\\b|kaffee").containsMatchIn(text) -> "kurz"
+        Regex("(?i)einkauf|einkaufen|wocheneinkauf|großeinkauf|grosseinkauf|für die woche|vieles|liste").containsMatchIn(text) -> "gross"
+        else -> ""
     }
+
+    /** Plan hat einen Halt an [name] – der nächste Halt dort bekommt den Zweck (zum getrennten Lernen). */
+    fun expect(ctx: Context, name: String, kind: String) {
+        if (name.isBlank()) return
+        prefs(ctx).edit().putString("halt_expect", JSONObject().put("name", name.substringBefore(" (").trim()).put("kind", kind)
+            .put("until", System.currentTimeMillis() + 8 * 3_600_000L).toString()).apply()
+    }
+
+    /** Gelernte Aufenthaltsdauer (Minuten, Median der letzten 8) bei diesem Laden / dieser Kette und diesem Zweck, null = noch nicht gelernt. */
+    fun minutes(ctx: Context, vararg names: String, kind: String = ""): Int? {
+        val at = list(ctx).filter { o -> names.any { n -> match(o.optString("name"), n.substringBefore(" (").trim()) } }
+        fun med(l: List<JSONObject>): Int? { val v = l.map { it.optDouble("min") }.takeLast(8).sorted(); return if (v.isEmpty()) null else Math.round(v[v.size / 2]).toInt().coerceIn(1, 90) }
+        if (kind.isBlank()) return med(at)
+        med(at.filter { it.optString("zweck") == kind })?.let { return it }
+        val untagged = at.filter { it.optString("zweck").isBlank() }
+        return med(untagged.filter { if (kind == "kurz") it.optDouble("min") < 8 else it.optDouble("min") >= 8 })
+    }
+
+    /** Minuten fürs Planen: gelernt, sonst Brot 5 / Einkauf 15 / unbekannt 10. */
+    fun planMinutes(ctx: Context, name: String, kind: String): Int =
+        minutes(ctx, name, kind = kind) ?: when (kind) { "kurz" -> 5; "gross" -> 15; else -> minutes(ctx, name) ?: 10 }
+
+    /** Summe der Halte (Minuten) zwischen a und b – für Fahrzeiten ohne Zwischenstopp. */
+    fun dwellBetween(ctx: Context, a: Long, b: Long): Double = try {
+        val raw = JSONArray(prefs(ctx).getString("halt_raw", "[]") ?: "[]")
+        (0 until raw.length()).mapNotNull { raw.optJSONArray(it) }.filter { it.optLong(0) >= a && it.optLong(1) <= b }
+            .sumOf { (it.optLong(1) - it.optLong(0)) / 60_000.0 }
+    } catch (_: Exception) { 0.0 }
 
     /** Kurz für Briefings, Brain und den PC: "Beim REWE hältst du meist 9 Minuten (6 Mal) …" */
     fun summary(ctx: Context): String {
         val g = list(ctx).groupBy { it.optString("name") }.filter { it.key.isNotBlank() }.entries.sortedByDescending { it.value.size }.take(5)
         if (g.isEmpty()) return ""
-        return "Gelernte Zwischenstopps (wie lange er dort meist hält): " + g.joinToString(", ") { (n, l) ->
-            val v = l.map { it.optDouble("min") }.takeLast(8).sorted()
-            "$n ${Math.round(v[v.size / 2])} Min. (${l.size}×)"
-        } + "."
+        fun med(l: List<JSONObject>) = l.map { it.optDouble("min") }.takeLast(8).sorted().let { Math.round(it[it.size / 2]) }
+        return "Gelernte Zwischenstopps (wie lange er dort meist hält): " + g.joinToString("; ") { (n, l) ->
+            val k = l.filter { it.optString("zweck") == "kurz" }; val e = l.filter { it.optString("zweck") == "gross" }
+            val parts = listOfNotNull(k.takeIf { it.isNotEmpty() }?.let { "schnell was holen ${med(it)} Min." },
+                e.takeIf { it.isNotEmpty() }?.let { "Einkauf ${med(it)} Min." })
+            "$n " + (if (parts.isEmpty()) "${med(l)} Min." else parts.joinToString(", ")) + " (${l.size}×)"
+        } + ".")
     }
 
     fun test(ctx: Context): String {
