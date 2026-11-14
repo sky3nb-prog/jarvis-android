@@ -2101,6 +2101,10 @@ def main():
                                           0 if on else 4000, glow=True, log=True)
     pc_fern.start(stop)  # HUD, Webcam und Handy-Kamera über Tailscale
     pc_nachrichten.ON_QUIT = shutdown
+    import pc_watch   # meldet sich selbst: Festplatte, Hitze, neue Videos, Steam-Angebote
+    pc_watch.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t})
+    pc_watch.SETTINGS = lambda: ui.settings
+    pc_watch.start(stop)
     import pc_systemcheck
     pc_systemcheck.SETTINGS = lambda: ui.settings
     pc_systemcheck.ON_RESULT = lambda items: ui.web.push("syscheck", {"items": items, "text": pc_systemcheck.summary(items)}) if getattr(ui, "web", None) else None

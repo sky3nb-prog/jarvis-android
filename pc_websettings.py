@@ -119,7 +119,8 @@ def schema(s: dict) -> dict:
                  sw("show_hud_on_start", "HUD beim Start öffnen"),
                  sw("boot_animation", "Iron-Man-Start nach dem Anmelden", "Vollbild-Hologramm mit Systemstatus. Testen: „Friday, Startanimation“"),
                  sw("confirm_messages", "Nachrichten vor dem Senden zurückfragen", "WhatsApp, Discord"),
-                 sw("msg_ask_first", "Nachrichten wichtiger Leute: erst fragen", "„Neue Nachricht von Mama – weiter oder egal?“ Bei „egal“ ignoriert er sie.")),
+                 sw("msg_ask_first", "Nachrichten wichtiger Leute: erst fragen", "„Neue Nachricht von Mama – weiter oder egal?“ Bei „egal“ ignoriert er sie."),
+                 tx("lieblingskanaele", "Lieblingskanäle (neue Videos melden)", "YouTube-Kanäle mit Komma. Außerdem meldet er sich bei voller Festplatte, heißer Grafikkarte und Steam-Angeboten von deiner Wunschliste.", "Laser Luca")),
             card("Discord",
                  tx("discord_channels", "Sprachkanäle", "Genaue Namen mit Komma, auch mit Emoji, z. B. 🥒|Gurken, 🥑|Avocado."),
                  btn("custom", "Eigene Befehle bearbeiten (Programme, Ordner, Webseiten)")),
@@ -270,7 +271,7 @@ def schema(s: dict) -> dict:
     values = {
         "assistant_name": g("assistant_name"), "address_as": g("address_as"), "persona": g("persona"),
         "autostart": bool(g("autostart")), "greet_on_start": bool(g("greet_on_start")),
-        "show_hud_on_start": bool(g("show_hud_on_start")), "boot_animation": bool(g("boot_animation")), "msg_ask_first": bool(g("msg_ask_first")), "confirm_messages": bool(g("confirm_messages")),
+        "show_hud_on_start": bool(g("show_hud_on_start")), "boot_animation": bool(g("boot_animation")), "msg_ask_first": bool(g("msg_ask_first")), "lieblingskanaele": g("lieblingskanaele"), "confirm_messages": bool(g("confirm_messages")),
         "wake_words": ", ".join(g("wake_words") or []), "language": g("language"),
         "input_device": g("input_device") if not isinstance(g("input_device"), int) else pc_audio.device_name(g("input_device")),
         "output_device": g("output_device") if not isinstance(g("output_device"), int) else pc_audio.device_name(g("output_device")),
@@ -327,7 +328,7 @@ def save(s: dict, v: dict) -> dict:
             new[k] = num(k)
     for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
-              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave"):
+              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device"):
