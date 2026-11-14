@@ -32,7 +32,7 @@ HOVER = "#0a2a3c"
 
 LANGUAGES = [("Deutsch", "de-DE"), ("English (US)", "en-US"), ("English (UK)", "en-GB"),
              ("Français", "fr-FR"), ("Español", "es-ES"), ("Italiano", "it-IT")]
-STYLES = [("Kleiner Kreis", "klein"), ("Leuchtrahmen + großes Textfeld", "gross")]
+STYLES = [("Kugel mit Nervenstrang (neu)", "neu"), ("Kleiner Kreis", "klein"), ("Leuchtrahmen + großes Textfeld", "gross")]
 ENGINES = [("ElevenLabs (sehr natürlich, braucht Schlüssel)", "eleven"),
            ("Automatisch (Online-Stimme, sonst Windows)", "auto"), ("Nur Online-Stimme", "edge"),
            ("Nur Windows-Stimme (offline)", "windows")]
@@ -870,7 +870,7 @@ class SettingsDialog:
             voice_volume=int(float(self.v_vvol.get())),
             early_chime=bool(self.v_early.get()),
             accent=self.v_theme.get() if self.v_theme.get() in pc_settings.THEMES else "Cyan",
-            overlay_style=dict(STYLES).get(self.v_style.get(), "klein"),
+            overlay_style=dict(STYLES).get(self.v_style.get(), "neu"),
             orb_size=int(float(self.v_orb.get())),
             orb_corner=self.v_corner.get(),
             hud_alpha=int(float(self.v_alpha.get())),

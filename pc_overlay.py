@@ -39,6 +39,10 @@ if "--hud" in sys.argv:   # zweiter Prozess: nur das HUD-Fenster (pc_hudwin), oh
     import pc_hudwin
     pc_hudwin.main()
     sys.exit(0)
+if "--orb" in sys.argv:   # dritter Prozess: nur das kleine Overlay (Kugel mit Nervenstrang)
+    import pc_orbwin
+    pc_orbwin.main()
+    sys.exit(0)
 import threading
 import time
 import tkinter as tk
@@ -647,7 +651,7 @@ class UI:
                                       on_close=self.cancel_all)
         self.big = None
         self.style = "klein"
-        self._set_style(settings.get("overlay_style", "klein"))
+        self._set_style(settings.get("overlay_style", "neu"))
         self.hud = HudWindow(
             self.root, self.k, on_hud_command,
             get_settings=lambda: self.settings,
@@ -668,6 +672,9 @@ class UI:
         except Exception as e:
             print(f"Neues HUD nicht verfügbar ({e}), nehme das klassische.")
             self.web = None
+        self.orb = None   # neues kleines Overlay (Kugel + Nervenstrang), braucht den HUD-Server
+        if self.web and settings.get("overlay_style", "neu") == "neu":
+            self._start_orb()
         self._allow_old = False   # nur für Dinge, die es im neuen HUD noch nicht gibt (Flug-Modus, Routen-Karte)
         if self.web:
             old_show = self.hud.show
@@ -797,8 +804,24 @@ class UI:
             self.hud.show()
             self.root.after(250, self.hud.open_settings)
 
+    def _start_orb(self):
+        try:
+            import pc_orbwin
+            self.orb = pc_orbwin.OrbWin(self.web.port, self.settings.get("orb_corner", "oben links"))
+        except Exception as e:
+            print("Neues Overlay nicht verfügbar:", e)
+            self.orb = None
+
+    def _orb_ok(self) -> bool:
+        return bool(self.style == "neu" and self.orb and self.orb.ok())
+
     def _set_style(self, style: str):
-        self.style = "gross" if style == "gross" else "klein"
+        self.style = style if style in ("gross", "neu") else "klein"
+        if self.style == "neu" and getattr(self, "web", None) and getattr(self, "orb", None) is None:
+            self._start_orb()
+        if self.style != "neu" and getattr(self, "orb", None):
+            self.orb.stop()
+            self.orb = None
         if self.style == "gross" and self.big is None:
             self.big = BigOverlay(self.root, self.k)
 
@@ -813,7 +836,9 @@ class UI:
             self.web.push("mode", {"mode": new["hud_mode"]})
         pc_settings.save(new)
         apply_settings(new)
-        self._set_style(new.get("overlay_style", "klein"))
+        self._set_style(new.get("overlay_style", "neu"))
+        if self.orb:
+            self.orb.set_corner(new.get("orb_corner", "oben links"))
         self.compact.set_size(new.get("orb_size", 68))
         self.compact.set_corner(new.get("orb_corner", "oben links"))
         if self.big:
@@ -872,6 +897,8 @@ class UI:
             while True:
                 item = self.q.get_nowait()
                 if item[0] == "quit":
+                    if self.orb:
+                        self.orb.stop()
                     self.root.destroy()
                     return
                 if item[0] == "apply":   # Einstellungen vom Handy übernommen
@@ -993,6 +1020,14 @@ class UI:
             self.compact.hide()
             if self.big:
                 self.big.hide()
+            if self.web:
+                self.web.push("orb", {"show": False})
+            return
+        if self._orb_ok():     # neues Overlay: Kugel mit Nervenstrang (bekommt state/msg oben schon über /events)
+            self.compact.hide()
+            if self.big:
+                self.big.hide()
+            self.web.push("orb", {"show": True})
             return
         if self.style == "gross" and self.big:
             self.compact.hide()
@@ -1729,7 +1764,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-13 23:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 02:40"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
