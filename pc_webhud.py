@@ -415,6 +415,15 @@ class WebHud:
 
     # --- Aktionen der Seite ---------------------------------------------------------------------------------
     def action(self, name: str, body: dict):
+        if name == "boot_done":   # Start-Animation: Gruß sprechen
+            import pc_nachrichten, pc_talk
+            bad = int(body.get("bad") or 0)
+            who = getattr(pc_talk, "ADDRESS", "") or "Sir"
+            t = f"Willkommen zurück, {who}. " + (f"{bad} System{'e brauchen' if bad > 1 else ' braucht'} Aufmerksamkeit – sag Statuscheck." if bad else "Alle Systeme bereit.")
+            pc_nachrichten.incoming({"kind": "say", "force": True, "text": t})
+            return {}
+        if name == "boot_close":
+            return {}
         if name == "cmd" and str(body.get("text") or "").strip():
             self.run_text(str(body["text"]).strip())
             return {"ok": True}

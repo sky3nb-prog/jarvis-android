@@ -39,6 +39,10 @@ if "--hud" in sys.argv:   # zweiter Prozess: nur das HUD-Fenster (pc_hudwin), oh
     import pc_hudwin
     pc_hudwin.main()
     sys.exit(0)
+if "--boot" in sys.argv:   # Iron-Man-Start (Vollbild-Hologramm nach dem Anmelden)
+    import pc_bootwin
+    pc_bootwin.main()
+    sys.exit(0)
 if "--orb" in sys.argv:   # alter Overlay-Prozess (gibt es nicht mehr) – sofort beenden
     sys.exit(0)
 import threading
@@ -1718,6 +1722,8 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
             global _GREETED
             if (GREET_ON_START or pc_assistent_announce[0] or ui.settings.get("briefing_on_start", True)) and not _GREETED:
                 _GREETED = True
+                if "--autostart" in sys.argv and ui.settings.get("boot_animation", True):
+                    time.sleep(14)   # erst die Start-Animation mit ihrem Gruß ausspielen lassen
                 if pc_assistent_announce[0]:
                     pc_timetree.wait_first_sync(25)  # neueste Termine holen, bevor er sie ansagt
                     day = pc_calendar.today_text()
@@ -2015,7 +2021,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-14 12:30"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
+VERSION = "2026-11-14 13:10"   # bei jedem Update neu: steht im Protokoll, damit klar ist, welcher Stand läuft
 
 
 def main():
@@ -2093,6 +2099,13 @@ def main():
     import pc_systemcheck
     pc_systemcheck.SETTINGS = lambda: ui.settings
     pc_systemcheck.ON_RESULT = lambda items: ui.web.push("syscheck", {"items": items, "text": pc_systemcheck.summary(items)}) if getattr(ui, "web", None) else None
+    import pc_bootwin
+    def _boot():
+        if getattr(ui, "web", None):
+            pc_bootwin.launch(ui.web.port, (pc_talk.ADDRESS or "Sir") if hasattr(pc_talk, "ADDRESS") else "Sir")
+    pc_systemcheck.BOOT = _boot
+    if "--autostart" in sys.argv and ui.settings.get("boot_animation", True):
+        threading.Timer(3.0, _boot).start()   # nach dem Anmelden: Hologramm-Start
     pc_systemcheck.start_daily(lambda t: pc_nachrichten.incoming({"kind": "say", "text": "Kurzer Systemcheck: " + t}))
     if "--nach-update" in sys.argv:
         pc_nachrichten.incoming({"kind": "say", "force": True, "text": f"Update installiert. Ich bin wieder da, Stand {VERSION}."})

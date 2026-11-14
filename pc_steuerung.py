@@ -559,6 +559,12 @@ def handle_fixed(text: str):
     if intent:
         return request_power(intent)
 
+    # Iron-Man-Start zum Ansehen: "Startanimation", "zeig deinen Start"
+    if re.search(r"start ?animation|boot ?animation|zeig (mal )?(deinen|den) start|hochfahr ?animation", low):
+        import pc_systemcheck
+        if pc_systemcheck.BOOT:
+            pc_systemcheck.BOOT()
+            return "Initialisiere."
     # Systemcheck: "Statuscheck", "Systemcheck", "laufen alle Systeme?"
     if re.search(r"status ?check|system ?check|system ?status|alle systeme|diagnose", low) and len(low.split()) <= 8:
         import pc_systemcheck
