@@ -68,6 +68,7 @@ class Actions(private val ctx: Context) {
             "rueckblick" -> Alltag.weekText(ctx) ?: "Für den Rückblick brauche ich den Groq-Schlüssel."
             "gesundheit" -> Alltag.healthAnswer(ctx, a.optString("was", "heute"))
             "statuscheck" -> SysCheck.summary(SysCheck.run(ctx))
+            "modus" -> Modes.set(ctx, a.optString("name"))
             "wochenvorschau" -> Alltag.weekAhead(ctx)?.first ?: "Für die Vorschau brauche ich den Groq-Schlüssel."
             "youtube_neu" -> Interests.newVideos(ctx, a.optInt("days", 7).coerceIn(1, 30))
             else -> null

@@ -128,6 +128,7 @@ object PhoneCtl {
             } catch (_: Exception) { "Die Lampe lässt sich gerade nicht schalten." }
             "finden" -> { find(ctx); "Dein Handy klingelt jetzt 20 Sekunden lang." }
             "finden_stop" -> { stopFind(); "Klingeln gestoppt." }
+            "modus" -> { Modes.fromPc = true; try { Modes.set(ctx, c.optString("name")) } finally { Modes.fromPc = false } }
             else -> "Diesen Befehl kenne ich nicht."
         }
     }

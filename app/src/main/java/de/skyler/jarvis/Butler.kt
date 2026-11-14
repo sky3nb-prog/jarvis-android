@@ -77,6 +77,9 @@ object Butler {
         val name = contact(ctx, number) ?: return     // nicht in den Kontakten: vielleicht Spam -> nichts tun
         handled = number
         val nm = ctx.getSystemService(NotificationManager::class.java)
+        val modus = Modes.current(ctx)
+        val nn = Chats.norm(name); val important = Chats.important(ctx).any { it.isNotBlank() && (nn.contains(it) || it.contains(nn)) }
+        if (modus == "schule" && !important) { decline(ctx, name, number); return }   // Schulmodus: nur wichtige Leute kommen durch
         if (nm.currentInterruptionFilter > NotificationManager.INTERRUPTION_FILTER_ALL) {   // "Nicht stören" ist an
             decline(ctx, name, number)
             return
