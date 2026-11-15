@@ -2,8 +2,10 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const COL = { ideen: "#d7a8ff", schule: "#ffd678", allg: "#ffd678", hoer: "#3cc8ff", stim: "#ffb43c", lage: "#6effcd", anz: "#d7a8ff", kn: "#ffd678", inf: "#3cc8ff", ki: "#ffa03c", dat: "#6effcd", hdy: "#d7a8ff", wege: "#6effcd" };
-  let data = null, vals = {}, tab = "allg", dirty = false, voiceNames = {};
+  const COL = { schule: "#ffd678", wege: "#6effcd", leute: "#ffb43c", allg: "#ffd678", hoer: "#3cc8ff", anz: "#d7a8ff", fern: "#3cc8ff", gaming: "#ff7a9a", lage: "#6effcd" };
+  const BG = { schule: "#2a2205", wege: "#0b2a22", leute: "#2a1306", allg: "#3a2608", hoer: "#0b2a3c", anz: "#13202a", fern: "#05202e", gaming: "#2a0f18", lage: "#2a1a05" };
+  const OPEN = {};   // welche Karten aufgeklappt sind (pro Bereich)
+  let data = null, vals = {}, tab = "", dirty = false, voiceNames = {};
   const root = $("pset");
 
   function open() {
@@ -24,11 +26,16 @@
   function render() {
     const isNew = (k) => (data.new || []).includes(k);
     const tabNew = (t) => t.items.some((c) => c.items.some((i) => isNew(i.k)));
-    $("ps-tabs").innerHTML = data.tabs.map((t) => `<div class="pst${t.id === tab ? " on" : ""}" data-t="${t.id}" style="--c:${COL[t.id] || "#3cc8ff"}"><i>${t.i}</i>${esc(t.n)}${tabNew(t) ? '<b class="ndot"></b>' : ""}</div>`).join("");
+    if (!data.tabs.some((x) => x.id === tab)) tab = data.tabs[0].id;
+    let lastG = "";
+    $("ps-tabs").innerHTML = data.tabs.map((t) => { const g = t.g && t.g !== lastG ? `<div class="psg">${esc(t.g)}</div>` : ""; lastG = t.g || lastG;
+      return g + `<div class="pst${t.id === tab ? " on" : ""}" data-t="${t.id}" style="--c:${COL[t.id] || "#3cc8ff"};--bg:${BG[t.id] || "#0b1820"}"><i>${t.i}</i>${esc(t.n)}${tabNew(t) ? '<b class="ndot"></b>' : ""}</div>`; }).join("");
     $("ps-tabs").querySelectorAll(".pst").forEach((e) => e.addEventListener("click", () => { tab = e.dataset.t; render(); $("ps-body").scrollTop = 0; }));
     const t = data.tabs.find((x) => x.id === tab) || data.tabs[0];
     $("ps-title").textContent = t.n.toUpperCase();
-    $("ps-body").innerHTML = `<div class="ps-grid">${t.items.map((c) => card(c, COL[t.id])).join("")}</div>`;
+    if (!OPEN[t.id]) { OPEN[t.id] = {}; t.items.forEach((c, n) => { if (n === 0 || c.items.some((i) => isNew(i.k))) OPEN[t.id][n] = true; }); }
+    $("ps-body").innerHTML = `<div class="ps-grid">${t.items.map((c, n) => card(c, COL[t.id], n, !!OPEN[t.id][n])).join("")}</div>`;
+    $("ps-body").querySelectorAll(".ps-card > h3").forEach((h) => h.addEventListener("click", () => { const k = h.parentElement; const n = +k.dataset.n; OPEN[t.id][n] = !OPEN[t.id][n]; k.classList.toggle("open", OPEN[t.id][n]); }));
     (data.new || []).forEach((k) => { const e = $("ps-body").querySelector(`[data-k="${k}"]`); const f = e && e.closest(".ps-f, .ps-row"); const l = f && (f.querySelector("label") || f.firstElementChild); if (l) l.insertAdjacentHTML("beforeend", '<b class="ndot"></b>'); });
     // was du hier siehst, gilt als gesehen (der Punkt verschwindet beim nächsten Öffnen)
     const here = []; t.items.forEach((c) => c.items.forEach((i) => { if (i.k && isNew(i.k)) here.push(i.k); }));
@@ -36,8 +43,8 @@
     wire();
   }
 
-  function card(c, col) {
-    return `<div class="ps-card${c.items.some((i) => ["buttons", "plan", "schulkal", "ideen"].includes(i.t)) ? " wide" : ""}" style="--c:${col}"><h3>${esc(c.l.toUpperCase())}</h3>${c.items.map(item).join("")}</div>`;
+  function card(c, col, n, op) {
+    return `<div class="ps-card coll${op ? " open" : ""}${c.items.some((i) => ["buttons", "plan", "schulkal", "ideen"].includes(i.t)) ? " wide" : ""}" data-n="${n}" style="--c:${col}"><h3>${esc(c.l.toUpperCase())}</h3>${c.items.map(item).join("")}</div>`;
   }
   function hint(i) { return i.h ? `<small>${esc(i.h)}</small>` : ""; }
   function item(i) {

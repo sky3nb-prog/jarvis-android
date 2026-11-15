@@ -1,6 +1,6 @@
 """
 Ideen-Sammler: "Jarvis, ich hab eine Idee: …" / "schreib auf die Ideenliste …" -> ideen.json (neben den Einstellungen).
-Ideen vom Handy kommen als "notiere idee vom handy: …". Anschauen und löschen: HUD → Einstellungen → Ideen.
+Ideen vom Handy kommen als "notiere idee vom handy: …". Anschauen und löschen: HUD → Einstellungen → Allgemein → Meine Ideen.
 """
 import json
 import os

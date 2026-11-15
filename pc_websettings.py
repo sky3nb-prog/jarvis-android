@@ -168,7 +168,7 @@ def schema(s: dict) -> dict:
                      "Ein Ausgang, der in dein Discord-Mikro geht: bei Wave Link z. B. der Kanal, der im Stream-/Chat-Mix landet, sonst ein virtuelles Kabel (VB-CABLE: hier „CABLE Input“, in Discord als Mikro „CABLE Output“)."),
                  note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent.")),
             card("ElevenLabs",
-                 sec("eleven_key", "Schlüssel", "elevenlabs.io → Entwickler → API-Schlüssel. Wird verschlüsselt gespeichert."),
+                 sec("eleven_key", "ElevenLabs-Schlüssel", "elevenlabs.io → Entwickler → API-Schlüssel. Wird verschlüsselt gespeichert."),
                  sel("eleven_voice", "Stimme", _opts(voices)),
                  sel("eleven_model", "Modell", _opts(pc_eleven.MODELS)),
                  btn("el_load", "Stimmen aus dem Konto laden")),
@@ -221,7 +221,7 @@ def schema(s: dict) -> dict:
         {"id": "fern", "n": "Fernzugriff", "i": "⌁", "items": [
             card("Von unterwegs (Tailscale)",
                  note("Einmal einrichten: Tailscale auf PC und Handy installieren (tailscale.com, kostenlos) und auf beiden mit demselben "
-                      "Konto anmelden. Dann zeigt die Handy-App unter Einstellungen → Fern die Knöpfe für HUD, Webcam und Handy-Kamera. "
+                      "Konto anmelden. Dann zeigt die Handy-App unter Einstellungen → PC & Fernzugriff die Knöpfe für HUD, Webcam und Handy-Kamera. "
                       "Nur deine eigenen Geräte im Tailscale-Netz mit deinem Kopplungscode kommen rein. Beim ersten Mal fragt die "
                       "Windows-Firewall – auf „Zulassen“ klicken."),
                  note(FERN_STATUS()),
@@ -272,10 +272,10 @@ def schema(s: dict) -> dict:
         {"id": "ki", "n": "KI", "i": "✦", "items": [
             card("Gemini",
                  note("Mit einem Gemini-Schlüssel versteht Jarvis freie Sätze. Kostenlos auf aistudio.google.com/apikey."),
-                 {"k": "gemini_api_key", "t": "text", "l": "Schlüssel", "pw": True, "h": "Nie in Chats oder Mails weitergeben."},
+                 {"k": "gemini_api_key", "t": "text", "l": "Gemini-Schlüssel", "pw": True, "h": "Nie in Chats oder Mails weitergeben."},
                  btn("test_ai", "Verbindung testen")),
             card("Groq (kostenloser Ersatz)",
-                 sec("groq_key", "Schlüssel", "console.groq.com → API Keys. Springt ein, wenn Gemini nicht geht."),
+                 sec("groq_key", "Groq-Schlüssel (kostenloser Ersatz)", "console.groq.com → API Keys. Springt ein, wenn Gemini nicht geht."),
                  btn("test_groq", "Groq testen")),
             card("Hinweis", note("Was du frei sagst, geht zur Beantwortung an Google bzw. Groq. Sag keine Passwörter oder Privates.")),
         ]},
@@ -305,6 +305,8 @@ def schema(s: dict) -> dict:
                  note(link_status)),
         ]},
     ]
+
+    tabs = _ordnen(tabs, card)
 
     values = {
         "assistant_name": g("assistant_name"), "address_as": g("address_as"), "persona": g("persona"),
@@ -487,3 +489,38 @@ def run(ui, name: str, v: dict) -> dict:
         ui.q.put(("classic_settings",))
         return {"ok": True, "text": "Klassisches Fenster ist offen."}
     return {"ok": False, "text": "Unbekannt."}
+
+
+def _ordnen(tabs, card):
+    """Gleiche Ordnung wie am Handy: DEIN ALLTAG · JARVIS · PC & WELT, wichtigstes zuerst, gleiche Symbole."""
+    c = {x["l"]: x for t in tabs for x in t["items"]}
+    pick = lambda *n: [c[k] for k in n if k in c]  # noqa: E731
+
+    def split(title, keys):   # Felder aus einer Karte herausnehmen
+        cd = c.get(title) or {"items": []}
+        out = [i for i in cd["items"] if i.get("k") in keys or i.get("a") in keys]
+        cd["items"] = [i for i in cd["items"] if i not in out]
+        return out
+    nachr = split("Start", {"confirm_messages", "msg_ask_first"})
+    ort = split("Orte", {"home_city", "home_address"})
+    c["Orte"]["l"] = "Lieblingsorte & Themen"
+    befehle = split("Discord", {"custom"})
+    ki = card("KI & Schlüssel", *[i for n in ("Gemini", "Groq (kostenloser Ersatz)", "Hinweis") for i in (c.get(n) or {"items": []})["items"]])
+    infos = card("Infos im HUD", *[i for n in ("Wetter", "PC") for i in (c.get(n) or {"items": []})["items"]])
+    if befehle and "Schnellstart-Knöpfe" in c:
+        c["Schnellstart-Knöpfe"]["items"] += befehle
+    if "Kalender" in c:
+        c["Kalender"]["l"] = "Kalender"
+    T = lambda i, g, n, ic, items: {"id": i, "g": g, "n": n, "i": ic, "items": [x for x in items if x and x.get("items")]}  # noqa: E731
+    A, J, W = "DEIN ALLTAG", "JARVIS", "PC & WELT"
+    return [
+        T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),
+        T("wege", A, "Zuhause & Orte", "🗺️", [card("Zuhause", *ort)] + pick("Meine Orte", "Meine Wege", "Routen schicken")),
+        T("leute", A, "Leute & Anrufe", "👥", pick("Wichtige Leute") + [card("Nachrichten", *nachr)] + pick("Anruf-Butler")),
+        T("allg", J, "Allgemein", "⚙️", pick("Über dich") + [ki] + pick("Kalender", "Meine Ideen", "Start", "Zum Ausfüllen von Formularen")),
+        T("hoer", J, "Zuhören & Stimme", "🎙️", pick("Aktivierung", "Sprechen", "ElevenLabs", "Ersatzstimmen", "Wecksound")),
+        T("anz", J, "Anzeige", "◐", pick("HUD", "Beim Weckwort") + [infos] + pick("Schnellstart-Knöpfe")),
+        T("fern", W, "PC & Fernzugriff", "📡", pick("Handy-App koppeln", "Von unterwegs (Tailscale)")),
+        T("gaming", W, "Gaming & Discord", "🎮", pick("Discord", "Discord & Clips", "Gaming-Rückblick", "ETS2-Beifahrer")),
+        T("lage", W, "Lage", "🌍", pick("Lieblingsorte & Themen", "Globus", "Briefing")),
+    ]
