@@ -209,6 +209,8 @@ class WebHud:
         try:
             import pc_handy
             pc_handy.ON_STATUS = lambda d: self.push("phone", {"status": d, "age": 0})
+            import pc_modi
+            pc_modi.ON_CHANGE = lambda d: self.push("modi", d)
         except Exception:
             pass
 
@@ -381,6 +383,9 @@ class WebHud:
             import pc_handy
             d = pc_handy.STATUS
             return {"paired": pc_handy.paired(), "status": d["data"], "age": int(time.time() - d["t"]) if d["t"] else None}
+        if name == "modi":
+            import pc_modi
+            return pc_modi.snapshot()
         if name == "settings_new":
             import pc_websettings
             return pc_websettings.unseen(s)

@@ -142,6 +142,7 @@
     if (st === "idle") target = 0;
   }
   function onEvent(type, d) {
+    if (type === "modi") { if (window.JModi) window.JModi.update(d); return; }
     if (type === "state") setState(d.state);
     else if (type === "msg" && typedAt && Date.now() - typedAt < 120000 && d.role === "Assistent" && d.text && !/^(Denke nach|Einen Moment)/.test(d.text)) {
       tbShow(d.text); if (d.text) { $("f-jar").textContent = $("s-jar").textContent = d.text; }

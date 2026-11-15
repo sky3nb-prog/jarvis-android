@@ -568,31 +568,22 @@ def handle_fixed(text: str):
     if intent:
         return request_power(intent)
 
-    # Routinen: Gaming-Modus, Schulmodus, Gute Nacht, Modus aus
-    rm = re.search(r"(gaming|zock) ?modus|ich zock(e)? jetzt|schul ?modus|gute nacht|modus aus|alle modi aus|normaler modus", low)
+    # Routinen/Modi: Fokus, Gaming, Chill, Kino, Schule, Gute Nacht, Modus aus (pc_modi)
+    import pc_modi
+    r = pc_modi.from_text(low) if len(low.split()) <= 10 else None
+    if r:
+        return r
+    rm = re.search(r"(gaming|zock) ?modus|ich zock(e)? jetzt|schul ?modus|gute nacht|modus aus|alle modi aus|normaler modus|fokus (beenden|aus)", low)
     if rm and len(low.split()) <= 8:
-        import pc_handy
         w = rm.group(0)
-        from_phone = "vom handy" in low
-        def phone(name):
-            if from_phone:
-                return ""
-            try:
-                return str((pc_handy.control("modus", name=name) or {}).get("text") or "")
-            except Exception:
-                return ""
+        fp = "vom handy" in low
         if w.startswith(("gaming", "zock", "ich zock")):
-            r = discord_join_voice("Gurken")
-            p = phone("gaming")
-            return "Gaming-Modus an. " + (r if r and not r.startswith("Fehler") else "") + (" Handy: " + p if p else "")
+            return pc_modi.set_mode("gaming", fp)
         if w.startswith("schul"):
-            return phone("schule") or "Schulmodus ist am Handy – die Jarvis-App antwortet gerade nicht."
+            return pc_modi.set_mode("schule", fp)
         if w.startswith("gute nacht"):
-            p = phone("nacht")
-            import pc_alltag
-            _NIGHT = threading.Timer(14.0, pc_alltag.shutdown_sequence); _NIGHT.start()
-            return (p or "Gute Nacht.") + " Ich speichere alles und fahre den PC gleich herunter – sag „abbrechen“, wenn nicht."
-        return phone("aus") or "Okay, alles normal."
+            return pc_modi.set_mode("nacht", fp)
+        return pc_modi.set_mode("aus", fp)
 
     # Test der Skill-Animation: "teste Skill", "Skill-Test"
     if re.search(r"(teste?|test) ?(den |einen )?skill|skill ?test", low):

@@ -75,6 +75,19 @@ def _ck(m: dict) -> str:
     return str(m.get("key") or m.get("chat") or m.get("sender") or "").lower()
 
 
+def _mode_hold() -> bool:
+    try:
+        import pc_modi
+        return pc_modi.hold()
+    except Exception:
+        return False
+
+
+def release_held():
+    """Fokus-Pause oder Modus vorbei: Gesammeltes gleich sagen (die Wache prüft alle 3 Sekunden)."""
+    _front["t"] = min(_front["t"], time.time() - QUIET_AFTER_WA)
+
+
 def _watch_front():
     """Merkt sich, wann WhatsApp zuletzt vorne war, und sagt danach gesammelt Bescheid."""
     while True:
@@ -83,7 +96,7 @@ def _watch_front():
             if _whatsapp_vorne():
                 _front["t"] = now
             with _lock:
-                ready = [m for m in _held if now - _front["t"] >= QUIET_AFTER_WA and _mute.get(_ck(m), 0) <= now]
+                ready = [] if _mode_hold() else [m for m in _held if now - _front["t"] >= QUIET_AFTER_WA and _mute.get(_ck(m), 0) <= now]
                 for m in ready:
                     _held.remove(m)
             if ready and _idle_seconds() < 20 * 60:
@@ -109,7 +122,7 @@ def incoming(msg: dict):
         if _whatsapp_vorne() and _idle_seconds() < 120:   # du bist gerade in WhatsApp: siehst du selbst
             print(f"Nachricht von {msg.get('sender')}: WhatsApp ist vorne – keine Ansage")
             return
-        if _mute.get(_ck(msg), 0) > now or now - _front["t"] < QUIET_AFTER_WA:   # Chat ignoriert / WhatsApp gerade erst zu
+        if _mute.get(_ck(msg), 0) > now or now - _front["t"] < QUIET_AFTER_WA or _mode_hold():   # Chat ignoriert / WhatsApp gerade erst zu / Fokus, Kino
             with _lock:
                 _held.append(dict(msg, t=now)); del _held[:-15]
             print(f"Nachricht von {msg.get('sender')}: zurückgehalten (später gesammelt)")

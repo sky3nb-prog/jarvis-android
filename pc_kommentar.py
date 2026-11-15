@@ -54,6 +54,12 @@ def _loop(stop: threading.Event):
             st = SETTINGS() if SETTINGS else {}
             if not st.get("kommentare", True):
                 continue
+            try:
+                import pc_modi
+                if pc_modi.quiet():
+                    continue
+            except Exception:
+                pass
             now = time.time()
             idle = _idle()
             if idle > 600:   # Pause gemacht

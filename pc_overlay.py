@@ -2037,7 +2037,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-15 15:30"
+VERSION = "2026-11-15 15:40"
 
 
 def main():
@@ -2119,6 +2119,8 @@ def main():
     import pc_kommentar   # meldet sich mal von selbst (lange am Stück dran -> kurz raus?)
     pc_kommentar.SETTINGS = lambda: ui.settings
     pc_kommentar.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t})
+    import pc_modi
+    pc_modi.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})   # auch wenn du nicht am PC sitzt (lernst)
     pc_kommentar.start(stop)
     import pc_systemcheck
     pc_systemcheck.SETTINGS = lambda: ui.settings
