@@ -1,5 +1,6 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-15 14:30", neu: [
+window.JNEU = { stand: "2026-11-15 15:10", neu: [
+  { title: "Rote Punkte", text: "Neue Einstellungen haben wieder einen roten Punkt – am Zahnrad, am Bereich und an der Einstellung selbst." },
   { title: "Auflege-Knopf", text: "Ruft jemand an, erscheint über dem Anruf ein Knopf: auflegen und Nachricht schicken." },
   { title: "Nachtruhe", text: "Wenn du schläfst, bin ich still und springe nicht aufs Weckwort an – bis zu deiner Aufstehzeit." },
   { title: "Wann ich rede", text: "Laut nur zuhause oder mit deinen Kopfhörern, sonst Nachricht – in der Schulstunde erst in der Pause." },

@@ -164,7 +164,7 @@
     },
     back() {
       if (window.jSettingsBack && window.jSettingsBack()) return true;
-      if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); return true; }
+      if ($("settings").classList.contains("on")) { $("settings").classList.remove("on"); newDots(); return true; }
       for (const id of ["ask-aus", "ask-text"]) if ($(id) && $(id).classList.contains("on")) { $(id).classList.remove("on"); return true; }
       if (view !== "fokus") { show("fokus"); return true; } return false;
     },
@@ -214,23 +214,31 @@
     e.classList.toggle("on");
     if (e.id === "set-loc" && e.classList.contains("on") && A && A.askLocation) A.askLocation();
   }));
-  // Neue Einstellungen: kleiner roter Punkt (am Zahnrad und am Bereich), bis du den Bereich einmal geöffnet hast.
-  // Bei jedem Update ergänzen: Bereich -> Kennung des Updates
-  const NEW_TABS = { wege: "wege1", allg: "schau1", leute: "leute1", alltag: "alltag1", fern: "fern1" };
+  // Neue Einstellungen: kleiner roter Punkt am Zahnrad, am Bereich und an der neuen Einstellung selbst,
+  // bis du den Bereich einmal geöffnet hast. Bei jedem Update: neue Abschnitte in index.html mit data-neu="<Kennung>" markieren.
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };
-  const seenAdd = (k) => { try { const s = seenGet(); if (!s.includes(k)) { s.push(k); localStorage.setItem("seen_new", JSON.stringify(s)); } } catch (e) {} };
+  const seenAdd = (ks) => { try { const s = seenGet(); ks.forEach((k) => { if (!s.includes(k)) s.push(k); }); localStorage.setItem("seen_new", JSON.stringify(s)); } catch (e) {} };
+  const secKey = (sec) => sec.dataset.neu + ":" + ((sec.querySelector("h3") || {}).textContent || "").trim();
   function newDots() {
-    const seen = seenGet();
-    let any = false;
+    const seen = seenGet(), panes = {};
+    document.querySelectorAll(".sec[data-neu]").forEach((sec) => {
+      const n = !seen.includes(secKey(sec)), h = sec.querySelector("h3");
+      const pane = sec.closest(".spane"); if (n && pane) panes[pane.id.slice(3)] = true;
+      let d = h && h.querySelector(".ndot");
+      if (n && h && !d) h.insertAdjacentHTML("beforeend", '<b class="ndot"></b>');
+      if (!n && d) d.remove();
+    });
     document.querySelectorAll("#stabs span, .sitem").forEach((t) => {
-      const k = t.dataset.p || t.dataset.go;
-      const n = NEW_TABS[k] && !seen.includes(NEW_TABS[k]);
-      any = any || !!n;
-      let d = t.querySelector(".ndot");
+      const n = !!panes[t.dataset.p || t.dataset.go];
+      let d = t.querySelector(":scope > .ndot");
       if (n && !d) t.insertAdjacentHTML("beforeend", '<b class="ndot"></b>');
       if (!n && d) d.remove();
     });
-    $("btn-settings").classList.toggle("hasnew", any);
+    $("btn-settings").classList.toggle("hasnew", Object.keys(panes).length > 0);
+  }
+  function seePane(p) {
+    const ks = [...document.querySelectorAll(`#sp-${p} .sec[data-neu]`)].map(secKey);
+    if (ks.length) seenAdd(ks);   // Punkte verschwinden, sobald du den Bereich wieder verlässt
   }
   newDots();
   // Einstellungen wie am Handy: Übersicht -> Bereich antippen -> eigene Seite, "‹" zurück
@@ -238,13 +246,13 @@
     wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF", fit: "GESUNDHEIT & SCHLAF", sys: "SYSTEMSTATUS", schrank: "KLEIDERSCHRANK" };
   let setPage = "home";
   function showPage(p) {
-    setPage = p;
+    newDots(); setPage = p;
     document.querySelectorAll(".spane").forEach((x) => x.classList.toggle("on", x.id === "sp-" + p));
     document.querySelectorAll("#stabs span").forEach((x) => x.classList.toggle("on", x.dataset.p === p));
     document.querySelector("#settings .sttl").textContent = PAGE_NAMES[p] || "EINSTELLUNGEN";
     $("settings").classList.toggle("ssub", p !== "home");
     document.querySelector("#settings .spanes").scrollTop = 0;
-    if (NEW_TABS[p]) { seenAdd(NEW_TABS[p]); setTimeout(newDots, 1500); }
+    seePane(p);
     const tab = document.querySelector(`#stabs span[data-p="${p}"]`); if (tab) tab.click && tab.dispatchEvent(new Event("pageopen"));
   }
   window.jSettingsBack = () => { if ($("settings").classList.contains("on") && setPage !== "home") { showPage("home"); return true; } return false; };
@@ -547,7 +555,7 @@
   }
   document.querySelector('[data-p="sys"]').addEventListener("click", () => sysShow(false));
   $("sys-again").addEventListener("click", () => sysShow(true));
-  const closeSettings = () => { $("settings").classList.remove("on"); if (window.show) try { show("fokus"); } catch (e) {} };
+  const closeSettings = () => { $("settings").classList.remove("on"); newDots(); if (window.show) try { show("fokus"); } catch (e) {} };
   $("tst-skill").addEventListener("click", () => { closeSettings(); setTimeout(() => window.JSkill && JSkill.test(), 400); });
   $("tst-rem").addEventListener("click", () => { if (A.remindTest) A.remindTest(); toast("Erinnerung kommt in 5 Sekunden."); });
   $("tst-fahrt").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
@@ -631,7 +639,7 @@
   document.addEventListener("visibilitychange", () => { if (document.hidden) camStop(); });
   $("set-locall").addEventListener("click", () => { A.askLocationAlways(); toast("Erst „Genau“ erlauben, dann beim zweiten Mal „Immer erlauben“."); });
   $("set-wlanget").addEventListener("click", () => { const w = A.currentWifi(); if (w) { $("set-wlan").value = w; toast("Übernommen: " + w); } else toast("Kein WLAN erkannt – erst Standort erlauben, dann nochmal."); });
-  $("set-cancel").addEventListener("click", () => { if (!window.jSettingsBack()) $("settings").classList.remove("on"); });
+  $("set-cancel").addEventListener("click", () => { if (!window.jSettingsBack()) { $("settings").classList.remove("on"); newDots(); } });
   $("set-save").addEventListener("click", () => {
     A.setVoiceMode($("set-mode").value);
     A.setTtsVoice($("set-voice").value);
@@ -669,7 +677,7 @@
       bahn_hin: $("fw-bhin").value, bahn_zurueck: $("fw-bback").value }));
     applyPrefs(o);
     showPower(o.background);
-    $("settings").classList.remove("on");
+    $("settings").classList.remove("on"); newDots();
     toast("Gespeichert.");
   });
   // Gelernte Interessen anzeigen (× = Thema entfernen)
