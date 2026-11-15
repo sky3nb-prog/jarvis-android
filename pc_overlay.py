@@ -1473,6 +1473,9 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
     if result is None:
         result = pc_handy.plan_route(command)  # smarter Wegeplaner (Zwischenstopps, Bahn, "wann muss ich los") übers Handy
     if result is None:
+        import pc_sticker
+        result = pc_sticker.handle(command)  # „Schick 500 Sticker in die Gruppe …“
+    if result is None:
         result = pc_messages.handle(command)  # WhatsApp- und Discord-Nachrichten schreiben
     if result is None:
         result = pc_download.handle(command)  # Dateien und Programme herunterladen
@@ -2040,7 +2043,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-15 19:05"
+VERSION = "2026-11-15 21:15"
 
 
 def main():
@@ -2060,6 +2063,8 @@ def main():
     except Exception:
         pass
     settings = pc_settings.load()
+    import pc_konto
+    pc_konto.start_loop()   # Jarvis-Konto: alle 5 Minuten sichern (nur wenn einmal verbunden)
     if not settings.get("ntfy_topic") or not settings.get("loc_topic"):  # geheime Handy-Kanäle einmalig erzeugen
         settings["ntfy_topic"] = settings.get("ntfy_topic") or pc_phone.new_topic("nachricht")
         settings["loc_topic"] = settings.get("loc_topic") or pc_phone.new_topic("standort")
@@ -2128,6 +2133,10 @@ def main():
     pc_kommentar.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t})
     import pc_modi
     pc_modi.SETTINGS = lambda: ui.settings
+    import pc_sticker
+    pc_sticker.SETTINGS = lambda: ui.settings
+    pc_sticker.SAVE = ui.post_setting
+    pc_sticker.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})
     pc_modi.SAVE = ui.post_setting
     pc_modi.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})   # auch wenn du nicht am PC sitzt (lernst)
     pc_kommentar.start(stop)

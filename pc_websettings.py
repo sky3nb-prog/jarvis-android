@@ -41,7 +41,7 @@ def _same(names):
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
 # Dazu kommen automatisch alle Einstellungen, die ein Update neu mitbringt (pc_settings: auto_new).
-NEW = ["schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
+NEW = ["sticker_wahl", "schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
 _shown = None   # Kennungen, die es in den Einstellungen wirklich als Feld gibt
 
 
@@ -51,7 +51,7 @@ def _fields() -> set:
         import re
         try:
             src = open(os.path.abspath(__file__), encoding="utf-8").read()
-            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"stundenplan_pc", "schulkal_pc", "ideen_pc", "steam_api_key", "pause_lang"}
+            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"sticker_wahl", "stundenplan_pc", "schulkal_pc", "ideen_pc", "steam_api_key", "pause_lang"}
         except Exception:
             _shown = set()
     return _shown
@@ -213,6 +213,11 @@ def schema(s: dict) -> dict:
                  note("Schreiben sie dir, sagt Jarvis es hier an – auch mitten im Spiel. Sprachnachrichten: „vorlesen“ oder „abspielen“. "
                       "Danach: „antworte du“ (Vorschlag, du sagst ja oder nein) oder „ich antworte“ (du diktierst). "
                       "Gesendet wird über die Benachrichtigung am Handy, WhatsApp geht nicht auf.")),
+            card("Sticker",
+                 {"t": "sticker", "k": "sticker_wahl"},
+                 note("Sag „Schick 200 Sticker in die Gruppe TR9000“ oder „… an Max“ – am PC oder am Handy. Er fragt einmal nach und schickt dann "
+                      "den ausgewählten Sticker über WhatsApp am PC (höchstens 1000, mit kleinen Pausen). „Stopp“ hält ihn an. "
+                      "Solange er schickt, nicht wegklicken – sobald ein anderes Fenster vorne ist, hört er sofort auf.")),
             card("Anruf-Butler",
                  tx("absage_text", "Absage-Text", "Leer = „Kann gerade nicht, rufe später zurück.“ Gilt auch am Handy."),
                  note("Steht das Handy auf „Nicht stören“, drückt Jarvis Anrufe aus deinen Kontakten weg und schickt diesen Text – "
@@ -516,7 +521,7 @@ def _ordnen(tabs, card):
     return [
         T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),
         T("wege", A, "Zuhause & Orte", "🗺️", [card("Zuhause", *ort)] + pick("Meine Orte", "Meine Wege", "Routen schicken")),
-        T("leute", A, "Leute & Anrufe", "👥", pick("Wichtige Leute") + [card("Nachrichten", *nachr)] + pick("Anruf-Butler")),
+        T("leute", A, "Leute & Anrufe", "👥", pick("Wichtige Leute") + [card("Nachrichten", *nachr)] + pick("Sticker", "Anruf-Butler")),
         T("allg", J, "Allgemein", "⚙️", pick("Über dich") + [ki] + pick("Kalender", "Meine Ideen", "Start", "Zum Ausfüllen von Formularen")),
         T("hoer", J, "Zuhören & Stimme", "🎙️", pick("Aktivierung", "Sprechen", "ElevenLabs", "Ersatzstimmen", "Wecksound")),
         T("anz", J, "Anzeige", "◐", pick("HUD", "Beim Weckwort") + [infos] + pick("Schnellstart-Knöpfe")),

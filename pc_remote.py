@@ -183,6 +183,9 @@ def execute(cmd: dict) -> str:
         import pc_modi
         pc_modi.save_cfg(cmd.get("cfg") or [])
         return "Modi gespeichert."
+    if t == "sticker":   # vom Handy (dort schon bestätigt): „schick 500 Sticker an …“
+        import pc_sticker
+        return pc_sticker.start(str(cmd.get("to") or ""), int(cmd.get("n") or 1))
     if t == "text" and str(cmd.get("text") or "").strip():
         if ON_TEXT:
             ON_TEXT(str(cmd["text"]).strip()[:300])

@@ -126,6 +126,7 @@ DEFAULTS = {
     "ntfy_topic": "",  # geheimer Kanal für Nachrichten aufs Handy (wird beim ersten Start erzeugt)
     "loc_topic": "",  # geheimer Kanal, über den das Handy (OwnTracks) seinen Standort schickt
     "pause_lang": 1.8,   # Sekunden Pause, die beim Reden (nach dem Aktivierungswort) erlaubt sind, bevor er antwortet
+    "sticker_wahl": "",   # ausgewählter Sticker (Datei im Ordner „Sticker“), siehe pc_sticker
     "modi_cfg": [],   # eigene Einstellungen der Modi (leer = Standard), siehe pc_modi
     "steam_api_key_enc": "",  # freiwillig, für Steam-Erfolge im Gaming-Rückblick (mit Windows verschlüsselt)
     "discord_hoerbar": False,  # Jarvis zusätzlich auf ein zweites Gerät (Discord-Mikro) -> Freunde und Clips hören ihn

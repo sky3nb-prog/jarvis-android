@@ -326,6 +326,12 @@ class WebHud:
     # --- Fragen der Seite --------------------------------------------------------------------------------
     def api(self, name: str, qs: dict):
         s = self.ui.settings
+        if name == "konto":
+            import pc_konto
+            return pc_konto.info()
+        if name == "sticker":
+            import pc_sticker
+            return pc_sticker.listing()
         if name == "settings":
             keys = ("assistant_name", "hud_mode", "hud_layout", "hud_buttons", "home_city", "lage_places", "lage_spin", "lage_orbits", "map_labels",
                     "lage_sat_tour", "globe_auto_open", "address_as")
@@ -531,6 +537,19 @@ class WebHud:
             if add:
                 self.ui.post_setting("seen_new", seen + add)
             return {"ok": True}
+        if name in ("sticker_pick", "sticker_folder", "sticker_stop"):   # Sticker-Auswahl
+            import pc_sticker
+            if name == "sticker_pick":
+                return pc_sticker.pick(str(body.get("name") or ""))
+            if name == "sticker_stop":
+                pc_sticker.RUN["stop"] = True
+                return {"ok": True}
+            return pc_sticker.open_folder()
+        if name == "konto_login":   # Jarvis-Konto einmal verbinden (Haupt-PC: nur sichern)
+            import pc_konto
+            r = pc_konto.login(str(body.get("email") or ""), str(body.get("pw") or ""), bool(body.get("neu")))
+            r["info"] = pc_konto.info()
+            return r
         if name == "settings_run":
             import pc_websettings
             try:

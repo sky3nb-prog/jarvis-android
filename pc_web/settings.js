@@ -44,7 +44,7 @@
   }
 
   function card(c, col, n, op) {
-    return `<div class="ps-card coll${op ? " open" : ""}${c.items.some((i) => ["buttons", "plan", "schulkal", "ideen"].includes(i.t)) ? " wide" : ""}" data-n="${n}" style="--c:${col}"><h3>${esc(c.l.toUpperCase())}</h3>${c.items.map(item).join("")}</div>`;
+    return `<div class="ps-card coll${op ? " open" : ""}${c.items.some((i) => ["buttons", "plan", "schulkal", "ideen", "sticker"].includes(i.t)) ? " wide" : ""}" data-n="${n}" style="--c:${col}"><h3>${esc(c.l.toUpperCase())}</h3>${c.items.map(item).join("")}</div>`;
   }
   function hint(i) { return i.h ? `<small>${esc(i.h)}</small>` : ""; }
   function item(i) {
@@ -64,6 +64,8 @@
       case "btn": return `<div class="ps-btnrow"><button class="ps-btn" data-a="${i.a}">${esc(i.l)}</button><span class="ps-st" data-st="${i.a}"></span></div>`;
       case "plan": return `<div class="ps-f pp" data-k="${i.k}"><label>Wochenplan <span class="ps-st" id="pp-st"></span></label><div id="pp-grid" class="pp-load">Hole den Plan vom Handy …</div></div>`;
       case "schulkal": return `<div class="ps-f" data-k="${i.k}"><label>Kalender <span class="ps-st" id="sk-st"></span></label><div id="sk-pc" class="pp-load">Hole die Einträge vom Handy …</div></div>`;
+      case "sticker": return `<div class="ps-f" data-k="sticker_wahl"><label>Welcher Sticker?</label><div id="stk-pc" class="stk-grid">…</div>
+        <div class="ps-btnrow"><button class="ps-btn" id="stk-folder">Ordner öffnen (eigene Sticker reinlegen)</button><button class="ps-btn" id="stk-reload">Neu laden</button></div></div>`;
       case "ideen": return `<div class="ps-f" data-k="${i.k}"><label>Liste</label><div id="ideen-pc" class="pp-load">…</div></div>`;
       case "note": return i.l ? `<div class="ps-note">${esc(i.l)}</div>` : "";
       case "code": return `<div class="ps-f"><label>${esc(i.l)}</label><div class="ps-code" id="ps-code">${esc(i.v)}</div></div>`;
@@ -108,6 +110,7 @@
       });
     }
     if ($("ideen-pc")) Ideen.load();
+    if ($("stk-pc")) Sticker.load();
   }
 
   // --- Ideenliste -------------------------------------------------------------------------------------------
@@ -221,6 +224,27 @@
 .pp-btns .pp-del{margin-right:auto;color:#ff8a6a}
 .pp-btns .pp-ok{background:#ffaa28;color:#1a1006;font-weight:700}`;
     document.head.appendChild(css);
+    return { load };
+  })();
+
+  // Sticker-Auswahl: Bilder aus dem Ordner „Sticker“, antippen = auswählen
+  const Sticker = (function () {
+    const css = document.createElement("style");
+    css.textContent = `.stk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;margin:4px 0 10px}
+      .stk-it{aspect-ratio:1;border-radius:14px;border:1px solid #23343e;background:#0b1820;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden}
+      .stk-it img{max-width:82%;max-height:82%}.stk-it.on{border-color:#ffb43c;box-shadow:0 0 0 2px rgba(255,180,60,.45)}
+      .stk-it.on::after{content:"✓";position:absolute;top:4px;right:7px;color:#ffd678;font-weight:700}
+      .stk-empty{color:#8aa0ad;font-size:13px;line-height:1.45}`;
+    document.head.appendChild(css);
+    function show(d) {
+      const e = $("stk-pc"); if (!e) return;
+      const it = (d && d.items) || [];
+      e.innerHTML = it.length ? it.map((s) => `<div class="stk-it${s.name === d.chosen ? " on" : ""}" data-n="${esc(s.name)}" title="${esc(s.name)}">${s.img ? `<img src="${s.img}">` : esc(s.name)}</div>`).join("")
+        : '<div class="stk-empty">Noch keine Sticker. Tipp auf „Ordner öffnen“ und leg Bilder rein (.png, .webp oder .gif – am besten mit durchsichtigem Hintergrund). Dann „Neu laden“.</div>';
+      e.querySelectorAll(".stk-it").forEach((x) => x.addEventListener("click", () => window.PC.post("sticker_pick", { name: x.dataset.n }).then(() => load())));
+    }
+    function load() { show(window.PC.get("sticker")); const f = $("stk-folder"), r = $("stk-reload");
+      if (f) f.onclick = () => window.PC.post("sticker_folder", {}); if (r) r.onclick = () => load(); }
     return { load };
   })();
 
