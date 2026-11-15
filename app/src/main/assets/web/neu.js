@@ -1,5 +1,6 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-15 17:45", neu: [
+window.JNEU = { stand: "2026-11-15 18:25", neu: [
+  { title: "Lange reden", text: "Nach dem Aktivierungswort darfst du zwischendurch kurz nachdenken – ich antworte erst, wenn du fertig bist." },
   { title: "Modi einstellen", text: "Im Modi-Raster auf „Bearbeiten“: was jeder Modus macht – Handy, Musik, Discord, Programme, Pomodoro – und eigene Modi." },
   { title: "Gaming im Wochenrückblick", text: "Sonntags im Wochenrückblick: wie lange du gezockt hast, Top 3, Rekord, Erfolge." },
   { title: "Modi ◈", text: "Oben links: Fokus (25/5 Min.), Gaming, Chill, Kino, Schule, Gute Nacht – mit dem PC abgeglichen." },

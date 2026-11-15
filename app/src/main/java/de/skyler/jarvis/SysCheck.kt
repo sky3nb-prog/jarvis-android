@@ -45,6 +45,7 @@ object SysCheck {
         a.put(if (perm(ctx, Manifest.permission.RECORD_AUDIO)) item("mic", "Mikrofon", true, "erlaubt") else item("mic", "Mikrofon", false, "nicht erlaubt", "App öffnen und Mikrofon erlauben."))
         a.put(if (VoskModel.ready(ctx)) item("wake", "Weckwort „Friday“", true, "bereit") else item("wake", "Weckwort „Friday“", false, "Sprachmodell fehlt", "App einmal mit Internet öffnen – das Modell lädt dann."))
         if (!Link.paired(ctx)) a.put(item("pc", "PC-Kopplung", null, "nicht gekoppelt", "Einstellungen → Allgemein: Kopplungscode vom PC eintragen."))
+        else if (Link.limited()) a.put(item("pc", "PC-Kopplung", false, "Tageslimit erreicht", "Der Kopplungsdienst lässt heute keine Nachrichten mehr durch (250 pro Tag). Ab nachts geht es wieder."))
         else a.put(if (Link.pcOnline(ctx)) item("pc", "PC-Kopplung", true, "PC online") else item("pc", "PC-Kopplung", null, "PC aus oder schläft"))
         val listeners = Settings.Secure.getString(ctx.contentResolver, "enabled_notification_listeners") ?: ""
         a.put(if (listeners.contains(ctx.packageName)) item("notif", "Benachrichtigungen lesen", true, "an (WhatsApp, Musik)")

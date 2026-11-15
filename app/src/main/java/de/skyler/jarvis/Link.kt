@@ -157,10 +157,16 @@ object Link {
         post(c, topic(c), JSONObject().put("kind", "themen").put("from", "phone").put("ts", System.currentTimeMillis() / 1000).put("themen", themen))
     }
 
+    /** Tageslimit des Kopplungsdienstes (ntfy.sh: 250 Nachrichten pro Tag und Internet-Anschluss) erreicht? */
+    @Volatile var limitAt = 0L
+    fun limited() = limitAt > 0 && System.currentTimeMillis() - limitAt < 6 * 3_600_000L
+
     private fun post(c: String, t: String, msg: JSONObject) {
         Thread({
             try {
-                http.newCall(Request.Builder().url(SERVER + t).post(encrypt(msg, c).toRequestBody("text/plain".toMediaType())).build()).execute().close()
+                http.newCall(Request.Builder().url(SERVER + t).post(encrypt(msg, c).toRequestBody("text/plain".toMediaType())).build()).execute().use { r ->
+                    if (r.code == 429) limitAt = System.currentTimeMillis() else if (r.isSuccessful) limitAt = 0L
+                }
             } catch (e: Exception) { Log.w(TAG, "post: $e") }
         }, "jarvis-post").start()
     }
@@ -174,7 +180,9 @@ object Link {
         val id = java.util.UUID.randomUUID().toString().take(12)
         val sent = System.currentTimeMillis() / 1000
         val msg = JSONObject().put("kind", "cmd").put("from", "phone").put("id", id).put("ts", sent).put("cmd", cmd)
-        http.newCall(Request.Builder().url(SERVER + remoteTopic(c)).post(encrypt(msg, c).toRequestBody("text/plain".toMediaType())).build()).execute().close()
+        http.newCall(Request.Builder().url(SERVER + remoteTopic(c)).post(encrypt(msg, c).toRequestBody("text/plain".toMediaType())).build()).execute().use { r ->
+            if (r.code == 429) { limitAt = System.currentTimeMillis(); return null } else if (r.isSuccessful) limitAt = 0L
+        }
         val until = System.currentTimeMillis() + waitMs
         while (System.currentTimeMillis() < until) {
             Thread.sleep(1500)

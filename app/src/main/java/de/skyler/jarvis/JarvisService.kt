@@ -438,6 +438,7 @@ class JarvisService : Service() {
         var floor = 300.0
         var wakeSeen = false
         var micPaused = false
+        val longQuiet = (getSharedPreferences("jarvis", MODE_PRIVATE).getFloat("pause_lang", 1.8f) * 10).toInt().coerceIn(10, 40)
         while (alive) {
             if (paused) {
                 if (!micPaused) { try { ar.stop() } catch (_: Exception) {}; micPaused = true }
@@ -476,8 +477,10 @@ class JarvisService : Service() {
             utt.write(buf)
             if (mode != Mode.IDLE) Bus.emit("level", JSONObject().put("kind", "mic").put("value", (rms / 4000).coerceIn(0.0, 1.0)))
             quiet = if (rms > thr * 0.7) 0 else quiet + 1
-            val tooLong = utt.size() > 16000 * 2 * 14
-            if (quiet >= 8 || tooLong) {     // 0,8 s Pause -> Satz zu Ende
+            // Nach dem Aktivierungswort (oder im Gespräch) darfst du zwischendurch nachdenken: längere Pause, bis 55 s am Stück
+            val lang = wakeSeen || mode != Mode.IDLE
+            val tooLong = utt.size() > 16000 * 2 * (if (lang) 55 else 14)
+            if (quiet >= (if (lang) longQuiet else 8) || tooLong) {     // 0,8 s (bzw. Nachdenkpause) -> Satz zu Ende
                 val pcm = utt.toByteArray()
                 utt = null; loud = 0; pre.clear()
                 val seconds = pcm.size / 32000.0

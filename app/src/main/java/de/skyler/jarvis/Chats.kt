@@ -142,9 +142,13 @@ object Chats {
     }
 
     private val readSent = HashMap<String, Long>()
+    private val forwardedAt = HashMap<String, Long>()   // wann zuletzt eine Nachricht dieses Chats an den PC ging
     fun markRead(ctx: Context, ck: String) {
         prefs(ctx).edit().putLong("read_$ck", System.currentTimeMillis()).apply()
-        synchronized(readSent) { if (System.currentTimeMillis() - (readSent[ck] ?: 0L) < 20_000L) return; readSent[ck] = System.currentTimeMillis() }
+        // Nur melden, wenn der PC von diesem Chat überhaupt etwas weiß (sonst unnötige Nachrichten – der Dienst hat ein Tageslimit)
+        val fw = synchronized(forwardedAt) { forwardedAt[ck] ?: 0L }
+        if (fw == 0L || System.currentTimeMillis() - fw > 60 * 60_000L) return
+        synchronized(readSent) { if ((readSent[ck] ?: 0L) >= fw) return; readSent[ck] = System.currentTimeMillis() }
         if (Link.paired(ctx)) Thread { try { Link.toPc(ctx, JSONObject().put("kind", "wa_read").put("from", "phone").put("key", ck).put("ts", System.currentTimeMillis() / 1000)) } catch (_: Exception) {} }.start()
     }
 
@@ -166,6 +170,7 @@ object Chats {
         try { ownVoices(ctx, key, norm(chat), inFile) } catch (e: Exception) { Log.w(TAG, "eigene Sprachnachricht: $e") }
         hist(ctx, norm(chat), sender, if (voice) "(Sprachnachricht) " + m.optString("transcript", "Inhalt unbekannt") else text, time)
         m.put("verlauf", verlauf(ctx, norm(chat)))
+        synchronized(forwardedAt) { forwardedAt[norm(chat)] = System.currentTimeMillis() }
         try { Leute.promptFor(ctx, norm(chat)).takeIf { it.isNotBlank() }?.let { m.put("person", it) } } catch (_: Exception) {}
         Link.toPc(ctx, m)
     }
