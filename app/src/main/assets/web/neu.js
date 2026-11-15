@@ -1,5 +1,9 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-14 21:00", neu: [
+window.JNEU = { stand: "2026-11-15 02:00", neu: [
+  { title: "Wann ich rede", text: "Laut nur zuhause oder mit deinen Kopfhörern, sonst Nachricht – in der Schulstunde erst in der Pause." },
+  { title: "Stundenplan", text: "Einstellungen → Alltag → Schule: Zeiten stehen, trag die Fächer ein." },
+  { title: "Aufstehen!", text: "Liegst du an Schultagen noch im Bett, stupse ich dich an – spätestens 7:20." },
+  { title: "Humor", text: "Ich merke mir, worüber du lachst – und was nicht ankommt." },
   { title: "Ich lese, wie du drauf bist", text: "Aus Schlaf, Bewegung, Terminen und dem, was du sagst – an schweren Tagen bin ich ruhiger, an guten lockerer." },
   { title: "Persönlicher Tagesabschluss", text: "Ich kommentiere deinen Tag – z. B. „Elternsprechtag – hoffentlich lief es gut“." },
   { title: "SMS beim Heimkommen", text: "„Schick Mama eine SMS, wenn ich wieder heimkomme“ – einmalig, kurz bevor du da bist." },

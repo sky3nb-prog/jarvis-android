@@ -140,14 +140,17 @@ object Alltag {
     private fun checkIn(ctx: Context, s: JSONObject) {
         if (!on(ctx, "melden")) return
         val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY)
-        // zwei Gelegenheiten am Tag: mittags (12–15 Uhr) und abends (16–20 Uhr), jeweils zu einer anderen Stunde
-        val r = (today().hashCode() and 0x7fffffff)
-        val mid = 12 + r % 3; val eve = 16 + (r / 3) % 4
-        val slotKey = when { h in mid..14 && !done(s, "melden1|${today()}") -> "melden1|${today()}"; h in eve..19 && !done(s, "melden|${today()}") -> "melden|${today()}"; else -> return }
+        // so oft es etwas Neues gibt: zwischen 9 und 21 Uhr, mindestens 2 Stunden Abstand (nicht während der Schulstunde – das hebt Melden auf)
+        if (h < 9 || h >= 21 || System.currentTimeMillis() - s.optLong("melden_last") < 2 * 3_600_000L) return
+        val slotKey = "melden|${today()}|$h"
         if (!Vorschlag.allowed(ctx, "persoenlich")) return
         val now = System.currentTimeMillis()
         val dayStart = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
         val obs = mutableListOf<String>()
+        if (Melden.atSchool(ctx) && Melden.lessonNow(ctx) == null) {   // Pause in der Schule: kurz, wie es läuft
+            val st = try { Stimmung.read(ctx) } catch (_: Exception) { null }
+            obs.add("Er hat gerade Pause in der Schule (${Melden.schoolText(ctx)}). Stimmung: ${st?.optString("label") ?: "?"}. Sag ganz kurz etwas Aufmunterndes oder Lockeres zur Pause und was noch kommt")
+        }
         // an Sachen von gestern anknüpfen ("Gestern war Elternsprechtag – wie lief's?")
         try { Cal.events(ctx, dayStart - 86_400_000L, dayStart).firstOrNull { Regex("(?i)klassenarbeit|klausur|test|prüfung|arzt|elternsprechtag|referat|präsentation|geburtstag|party|treffen|training|spiel|turnier").containsMatchIn(it.title) }
             ?.let { obs.add("Gestern war „${it.title}“ – frag interessiert und persönlich, wie es gelaufen ist") } } catch (_: Exception) {}
@@ -169,11 +172,11 @@ object Alltag {
             obs.clear(); obs.add("Er scheint heute ${mood.optString("label")} zu sein (${(0 until (mood.optJSONArray("why")?.length() ?: 0)).joinToString(", ") { mood.getJSONArray("why").optString(it) }}). Frag behutsam, wie sein Tag war, KEIN Vorschlag, keine Aufgabe")
         }
         val usedToday = s.optString("melden_was|${today()}")
-        obs.removeAll { it.take(25) == usedToday }   // nicht zweimal am Tag dasselbe
+        obs.removeAll { usedToday.contains(it.take(25)) }   // nicht zweimal am Tag dasselbe
         if (obs.isEmpty()) return
-        mark(s, slotKey)
+        mark(s, slotKey); s.put("melden_last", System.currentTimeMillis())
         val what = obs.first()
-        s.put("melden_was|${today()}", what.take(25))
+        s.put("melden_was|${today()}", (usedToday + "|" + what.take(25)).takeLast(400))
         Thread({
             var text = when {
                 what.startsWith("Bald") -> "Kleine Erinnerung: ${what.substringAfter(": ").substringBefore(" (")} – soll ich dir helfen, was vorzubereiten?"
@@ -192,11 +195,37 @@ object Alltag {
                     .put(JSONObject().put("role", "user").put("content", "Dir ist aufgefallen: $what. Nur der Text.")), 160).trim().trim('"')
                 if (out.length in 10..300) text = out
             } catch (_: Exception) {}
-            if (pcSay(ctx, text)) return@Thread
+            if (Melden.lessonNow(ctx) == null && pcSay(ctx, text)) return@Thread
             val fid = Feed.add(ctx, "test", "Jarvis meldet sich", text, text)
-            notify(ctx, 347, "Jarvis", text, feed = fid)
+            Melden.deliver(ctx, "Jarvis", text, fid)   // laut nur zuhause/Kopfhörer, sonst Nachricht, in der Stunde erst in der Pause
             Vorschlag.shown(ctx, "persoenlich", fid)
         }, "jarvis-melden").start()
+    }
+
+    /**
+     * Schultag-Morgen: Liegt er noch im Bett (seit dem Aufstehen keine Schritte und Handy nicht entsperrt), stupst er ihn an –
+     * 10 Min. nach der Aufsteh-Zeit locker, 7:10 deutlicher, spätestens 7:20 "Jetzt aber wirklich!". Zuhause laut (außer "Nicht stören").
+     */
+    private fun stillInBed(ctx: Context, s: JSONObject) {
+        if (!on(ctx, "aufsteh_check") || !Melden.schoolDay(ctx)) return
+        val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY); val mi = c.get(Calendar.MINUTE); val nowM = h * 60 + mi
+        if (h < 5 || nowM > 7 * 60 + 40) return
+        val up = upTime(ctx) ?: todayAt(6, 50)
+        val upM = Calendar.getInstance().apply { timeInMillis = up }.let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
+        val stage = when { nowM >= 7 * 60 + 20 -> 3; nowM >= 7 * 60 + 10 -> 2; nowM >= upM + 10 -> 1; else -> 0 }
+        if (stage == 0 || s.optInt("bett_${today()}") >= stage) return
+        // wach? Handy seit dem Aufstehen entsperrt oder schon gelaufen -> nichts sagen
+        if (Melden.lastUnlock(ctx) > up - 5 * 60_000L) { s.put("bett_${today()}", 3); return }
+        val steps = try { if (Health.connected(ctx)) Health.stepsSince(ctx, up - 30 * 60_000L) else -1L } catch (_: Exception) { -1L }
+        if (steps > 60) { s.put("bett_${today()}", 3); return }
+        s.put("bett_${today()}", stage)
+        val first = Melden.lessons(ctx).firstOrNull()?.optString("von") ?: "8:00"
+        val t = when (stage) {
+            1 -> "Guten Morgen! Zeit aufzustehen – um $first geht die Schule los."
+            2 -> "Hey, du liegst noch, oder? Raus aus dem Bett, sonst wird's knapp bis $first."
+            else -> "So, jetzt aber wirklich: Es ist 7:20. Aufstehen, ab ins Bad!"
+        }
+        Melden.deliver(ctx, "Aufstehen!", t)
     }
 
     /** Wieder zuhause nach einem echten Ausflug (Briefing mit Anziehen): einmal am Tag "zu kalt / passt / zu warm". */
@@ -534,6 +563,8 @@ object Alltag {
         try { appUpdate(ctx, s) } catch (_: Exception) {}
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
         try { checkIn(ctx, s) } catch (e: Exception) { Log.w(TAG, "melden: $e") }
+        try { Melden.flush(ctx) } catch (_: Exception) {}
+        try { stillInBed(ctx, s) } catch (e: Exception) { Log.w(TAG, "aufstehen: $e") }
         try { wardrobeAsk(ctx, s) } catch (_: Exception) {}
         try {   // Akku unter 20 % unterwegs: einmal Bescheid (bis wieder geladen wurde)
             val b = ctx.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))

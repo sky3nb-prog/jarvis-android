@@ -404,6 +404,38 @@
   $("em-add").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify(emData()))); emList(); });
   $("em-aus").addEventListener("click", () => { toast(A.einmaligAdd(JSON.stringify({ datum: $("em-datum").value || isoDay(0), aus: true }))); emList(); });
   $("set-test").addEventListener("click", () => { A.testAlltag(); toast("Testnachricht kommt gleich als Benachrichtigung."); });
+  // Wann darf ich reden + Stundenplan
+  try { $("kopf-name").value = A.getKopf(); } catch (e) {}
+  $("kopf-name").addEventListener("change", () => { try { A.setKopf($("kopf-name").value); } catch (e) {} });
+  $("melden-btn").addEventListener("click", () => { try { $("melden-info").textContent = A.meldenInfo(); } catch (e) {} });
+  try { sw("set-bett", A.getFlag("aufsteh_check", true)); } catch (e) {}
+  $("set-bett").addEventListener("click", () => setTimeout(() => { try { A.setFlag("aufsteh_check", sw("set-bett")); } catch (e) {} }, 50));
+  (function () {
+    let plan = {}; try { plan = JSON.parse(A.getPlan() || "{}"); } catch (e) {}
+    const D = [["mo", "Mo"], ["di", "Di"], ["mi", "Mi"], ["do", "Do"], ["fr", "Fr"]];
+    const wd = ["mo", "mo", "di", "mi", "do", "fr", "mo"][new Date().getDay()];
+    let cur = wd;
+    const save = () => { try { A.setPlan(JSON.stringify(plan)); } catch (e) {} };
+    const esc2 = (s) => String(s || "").replace(/"/g, "&quot;");
+    function draw() {
+      $("sp-days").innerHTML = D.map(([k, n]) => `<span class="sp-day${k === cur ? " on" : ""}" data-d="${k}">${n}</span>`).join("");
+      $("sp-days").querySelectorAll("[data-d]").forEach((e) => e.onclick = () => { cur = e.dataset.d; draw(); });
+      const L = plan[cur] || [];
+      let html = "", prev = null;
+      L.forEach((l, i) => {
+        if (prev && prev !== l.von) html += `<div class="sp-pause">Pause ${prev}–${l.von}</div>`;
+        html += `<div class="sp-row"><input class="sp-t" data-i="${i}" data-k="von" value="${esc2(l.von)}"><span>–</span><input class="sp-t" data-i="${i}" data-k="bis" value="${esc2(l.bis)}">` +
+          `<input class="sp-f" data-i="${i}" data-k="fach" placeholder="${i + 1}. Stunde – Fach" value="${esc2(l.fach)}"><span class="sp-x" data-x="${i}">✕</span></div>`;
+        prev = l.bis;
+      });
+      html += `<div class="sbtn sp-add" id="sp-add">+ Stunde</div>`;
+      $("sp-rows").innerHTML = html;
+      $("sp-rows").querySelectorAll("input").forEach((e) => e.onchange = () => { (plan[cur] = plan[cur] || [])[+e.dataset.i][e.dataset.k] = e.value.trim(); save(); if (e.dataset.k !== "fach") draw(); });
+      $("sp-rows").querySelectorAll("[data-x]").forEach((e) => e.onclick = () => { plan[cur].splice(+e.dataset.x, 1); save(); draw(); });
+      $("sp-add").onclick = () => { const a = plan[cur] = plan[cur] || []; const last = a[a.length - 1]; a.push({ von: last ? last.bis : "08:00", bis: "", fach: "" }); save(); draw(); };
+    }
+    draw();
+  })();
   // Gassi + SMS-Tests (sofort gespeichert)
   try { const g = JSON.parse(A.getGassi() || "{}"); sw("gs-an", !!g.an); sw("gs-sms", !!g.sms); $("gs-wer").value = g.wer || "Mama"; $("gs-text").value = g.text || ""; } catch (e) {}
   const saveGassi = () => { try { A.setGassi($("gs-an").classList.contains("on"), $("gs-sms").classList.contains("on"), $("gs-wer").value, $("gs-text").value); } catch (e) {} };

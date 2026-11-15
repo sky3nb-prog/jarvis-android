@@ -143,7 +143,7 @@ class JarvisService : Service() {
     private val unlockReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             if (i.action == Intent.ACTION_SCREEN_OFF) { Thread { try { Sleep.screenOff(this@JarvisService) } catch (_: Exception) {} }.start(); return }
-            Thread { try { Sleep.unlock(this@JarvisService) } catch (_: Exception) {} }.start()
+            Thread { try { Sleep.unlock(this@JarvisService); Melden.unlocked(this@JarvisService) } catch (_: Exception) {} }.start()
             Alltag.onUnlock(this@JarvisService) { t -> announce(t) }
         }
     }
@@ -175,6 +175,11 @@ class JarvisService : Service() {
 
     /** Von sich aus etwas sagen (Losfahren, Briefing, Ortserinnerung): Karte + Stimme, danach kurz zuhören. */
     private fun announce(text: String) = main.post {
+        // Am Handy laut nur zuhause oder mit Kopfhörern; "Nicht stören" = nur Nachricht; in der Schulstunde: bis zur Pause aufheben
+        when (try { Melden.route(this) } catch (_: Exception) { "speak" }) {
+            "hold" -> { Thread { Melden.deliver(this, "Jarvis", text) }.start(); return@post }
+            "note" -> { Thread { Melden.note(this, "Jarvis", text) }.start(); overlay?.card(JSONObject().put("kind", "text").put("text", text)); return@post }
+        }
         if (!alive || speaking || busy) { overlay?.card(JSONObject().put("kind", "text").put("text", text)); return@post }
         overlay?.card(JSONObject().put("kind", "text").put("text", text))
         speak(text) {

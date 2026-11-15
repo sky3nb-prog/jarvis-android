@@ -65,6 +65,14 @@ object Health {
         runBlocking { c.aggregate(AggregateRequest(setOf(m), TimeRangeFilter.between(Instant.ofEpochMilli(from), Instant.ofEpochMilli(to))))[m] }
     } catch (e: Exception) { Log.w(TAG, "agg: $e"); null }
 
+    /** Schritte seit [from] (für "noch im Bett?"), -1 = keine Daten. */
+    fun stepsSince(ctx: Context, from: Long): Long {
+        if (!available(ctx)) return -1
+        val c = try { HealthConnectClient.getOrCreate(ctx) } catch (_: Exception) { return -1 }
+        if (HealthPermission.getReadPermission(StepsRecord::class) !in granted(ctx)) return -1
+        return agg(c, StepsRecord.COUNT_TOTAL, from, System.currentTimeMillis()) ?: 0L
+    }
+
     private fun dayStart(offset: Int) = Calendar.getInstance().apply {
         add(Calendar.DAY_OF_YEAR, -offset); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }.timeInMillis

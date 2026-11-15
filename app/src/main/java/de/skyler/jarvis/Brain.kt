@@ -48,6 +48,9 @@ $cal
 ${try { Halte.summary(ctx) } catch (_: Exception) { "" }}
 ${try { Gassi.summary(ctx) } catch (_: Exception) { "" }}
 ${Stimmung.prompt(ctx)}
+${Melden.schoolText(ctx)}
+${Humor.prompt(ctx)}
+Steht im Gedächtnis, dass er ADHS hat: Erinnerungen konkret und mit Uhrzeit, große Aufgaben in kleine erste Schritte zerlegen, kurz und klar antworten, nie belehren oder vorwerfen, kleine Erfolge feiern.
 ${Memory.block(ctx)}
 ${Interests.block(ctx)}
 ${snap.optJSONObject("pc_media")?.let { pm -> val m = pm.optJSONArray("music"); if (m == null || m.length() == 0) "" else "Am PC hört er vor allem: " + (0 until m.length()).joinToString(", ") { m.optString(it) } + "." } ?: ""}
@@ -138,6 +141,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         Themen.note(ctx, "frage", text)
         Thread({ Themen.refresh(ctx, key) }, "jarvis-themen").start()
         Thread({ Interests.refreshGenres(ctx, key) }, "jarvis-genres").start()   // höchstens einmal am Tag
+        Humor.react(ctx, text, history)   // hat er über den letzten Spruch gelacht – oder fand er ihn doof?
         history.put(JSONObject().put("role", "user").put("content", text))
         while (history.length() > 12) history.remove(0)
         val sys = system()

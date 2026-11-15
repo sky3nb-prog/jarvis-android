@@ -446,3 +446,15 @@ html, body, * { scrollbar-color: #a0702a #0a0703; }
 .cleanbtn.on { background: #3a2608; color: #ffd678; border-color: #ffaa28; box-shadow: 0 0 10px rgba(255,170,40,.4); }
 #v-fokus .talkbox, #v-fokus .callbtn, #v-fokus .typebar, #v-fokus .hint { transition: transform .55s cubic-bezier(.3,.9,.3,1), opacity .45s ease; }
 body.clean #v-fokus .talkbox, body.clean #v-fokus .callbtn, body.clean #v-fokus .typebar, body.clean #v-fokus .hint { transform: translateY(220px); opacity: 0; pointer-events: none; }
+
+/* Stundenplan */
+.sp-days { display: flex; gap: 6px; margin: 4px 0 8px; }
+.sp-day { flex: 1; text-align: center; padding: 7px 0; border: 1px solid #5a3e14; border-radius: 10px; color: #c8965a; font-size: 13px; }
+.sp-day.on { background: #3a2608; color: #ffd678; border-color: #ffaa28; }
+.sp-row { display: flex; align-items: center; gap: 5px; margin: 4px 0; }
+.sp-row span { color: #8a6a3a; font-size: 12px; }
+.sp-t { width: 52px; padding: 7px 4px; text-align: center; background: rgba(0,0,0,.35); border: 1px solid #4a3410; border-radius: 8px; color: #ffe1b4; font-size: 13px; }
+.sp-f { flex: 1; min-width: 0; padding: 7px 9px; background: rgba(0,0,0,.35); border: 1px solid #4a3410; border-radius: 8px; color: #ffe1b4; font-size: 13px; }
+.sp-x { padding: 4px 6px; cursor: pointer; }
+.sp-pause { font-size: 11px; color: #6effcd; letter-spacing: .08em; margin: 6px 2px; opacity: .8; }
+.sp-add { margin-top: 6px; text-align: center; }

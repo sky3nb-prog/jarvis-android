@@ -464,7 +464,24 @@ class MainActivity : ComponentActivity() {
         fun getFlag(k: String, def: Boolean): Boolean = prefs.getBoolean(k, def)
 
         @JavascriptInterface
-        fun setFlag(k: String, v: Boolean) { if (k in listOf("melden")) prefs.edit().putBoolean(k, v).apply() }
+        fun setFlag(k: String, v: Boolean) { if (k in listOf("melden", "aufsteh_check")) prefs.edit().putBoolean(k, v).apply() }
+
+        @JavascriptInterface
+        fun getPlan(): String = Melden.plan(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun setPlan(json: String) = Melden.setPlan(this@MainActivity, json)
+
+        @JavascriptInterface
+        fun getKopf(): String = prefs.getString("kopfhoerer", "JBL Tune Beam") ?: ""
+
+        @JavascriptInterface
+        fun setKopf(n: String) { prefs.edit().putString("kopfhoerer", n.trim()).apply() }
+
+        @JavascriptInterface
+        fun meldenInfo(): String = "Gerade: " + when (Melden.route(this@MainActivity)) { "speak" -> "ich darf laut reden"; "hold" -> "Schulstunde – ich hebe alles für die Pause auf"; else -> "nur Nachrichten" } +
+            " · zuhause: " + (if (Alltag.isHome(this@MainActivity)) "ja" else "nein") + " · Kopfhörer: " + (if (Melden.headphones(this@MainActivity)) "verbunden" else "nicht verbunden") +
+            " · Nicht stören: " + (if (Melden.dnd(this@MainActivity)) "an" else "aus") + Melden.schoolText(this@MainActivity).let { if (it.isNotBlank()) " · $it" else "" }
 
         @JavascriptInterface
         fun lernInfo(): String = Vorschlag.paused(this@MainActivity)
