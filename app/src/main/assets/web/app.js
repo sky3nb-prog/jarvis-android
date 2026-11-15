@@ -421,6 +421,8 @@
   $("kopf-name").addEventListener("change", () => { try { A.setKopf($("kopf-name").value); } catch (e) {} });
   $("melden-btn").addEventListener("click", () => { try { $("melden-info").textContent = A.meldenInfo(); } catch (e) {} });
   try { sw("set-bett", A.getFlag("aufsteh_check", true)); } catch (e) {}
+  try { sw("set-regen", A.getFlag("regen_warnung", true)); } catch (e) {}
+  $("set-regen").addEventListener("click", () => setTimeout(() => { try { A.setFlag("regen_warnung", sw("set-regen")); } catch (e) {} }, 50));
   $("set-bett").addEventListener("click", () => setTimeout(() => { try { A.setFlag("aufsteh_check", sw("set-bett")); } catch (e) {} }, 50));
   (function () {
     // Stundenplan als Wochenraster: Fach antippen -> großes Feld zum Eintragen (auch vom PC aus, dann kommt es hierher)

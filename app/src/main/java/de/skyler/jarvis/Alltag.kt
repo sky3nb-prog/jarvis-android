@@ -507,6 +507,97 @@ object Alltag {
         return seen > 0 && wet * 2 > seen   // Mehrheit der Modelle
     }
 
+    // --- Regen-Warnung unterwegs: schaffst du es trocken nach Hause? ------------------------------------------
+    // Quellen: DWD-Regenradar mit Vorhersage für 2 Std. (Bright Sky), DWD ICON-D2 und Open-Meteo im 15-Min.-Takt,
+    // drei Wettermodelle stündlich (ICON, ECMWF, GFS) und die DWD-Regenwahrscheinlichkeit (MOSMIX). Gewichtet zusammen.
+    private var rainSeries: Triple<Long, Pair<Double, Double>, DoubleArray>? = null
+
+    /** Regenwahrscheinlichkeit für die nächsten 120 Min. in 5-Min.-Schritten (Index 0 = jetzt). */
+    fun rainSeries(lat: Double, lon: Double): DoubleArray? {
+        rainSeries?.let { (t, p, a) -> if (System.currentTimeMillis() - t < 8 * 60_000L && Math.abs(p.first - lat) < .02 && Math.abs(p.second - lon) < .02) return a }
+        val n = 25; val now = System.currentTimeMillis()
+        val wet = DoubleArray(n); val wsum = DoubleArray(n)
+        fun add(i: Int, w: Double, isWet: Double) { if (i in 0 until n) { wsum[i] += w; wet[i] += w * isWet } }
+        val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", de)
+        fun idx(t: Long) = Math.round((t - now) / 300_000.0).toInt()
+        // 1) Radar (stärkste Quelle): Werte in 0,01 mm pro 5 Min., kleines Gebiet um dich (Regen, der gleich ankommt)
+        try {
+            val js = JSONObject(http.newCall(Request.Builder().url("https://api.brightsky.dev/radar?lat=$lat&lon=$lon&distance=1500&format=plain&tz=Europe/Berlin").build()).execute().use { it.body?.string() ?: "{}" })
+            val r = js.optJSONArray("radar")
+            if (r != null) for (k in 0 until r.length()) {
+                val o = r.getJSONObject(k)
+                val t = try { iso.parse(o.optString("timestamp").take(16))!!.time } catch (_: Exception) { continue }
+                val g = o.optJSONArray("precipitation_5") ?: continue
+                var mx = 0; for (a in 0 until g.length()) g.optJSONArray(a)?.let { row -> for (b in 0 until row.length()) mx = maxOf(mx, row.optInt(b)) }
+                add(idx(t), 0.5, if (mx >= 2) 1.0 else 0.0)
+            }
+        } catch (e: Exception) { Log.w(TAG, "radar: $e") }
+        // 2) 15-Min.-Vorhersage: DWD ICON-D2 und bestes Modell
+        try {
+            val js = JSONObject(http.newCall(Request.Builder().url("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&minutely_15=precipitation&models=icon_d2,best_match&forecast_minutely_15=10&timezone=auto").build()).execute().use { it.body?.string() ?: "{}" })
+            val m = js.optJSONObject("minutely_15"); val times = m?.optJSONArray("time")
+            if (m != null && times != null) for (k in 0 until times.length()) {
+                val t = try { iso.parse(times.optString(k))!!.time } catch (_: Exception) { continue }
+                for ((key, w) in listOf("precipitation_icon_d2" to 0.2, "precipitation_best_match" to 0.1, "precipitation" to 0.15)) {
+                    val v = m.optJSONArray(key)?.optDouble(k, Double.NaN) ?: continue
+                    if (v.isNaN()) continue
+                    for (d in 0..2) add(idx(t) + d, w, if (v >= 0.1) 1.0 else 0.0)   // gilt für die 15 Minuten
+                }
+            }
+        } catch (e: Exception) { Log.w(TAG, "15min: $e") }
+        // 3) DWD MOSMIX Regenwahrscheinlichkeit (stündlich)
+        try {
+            val day = SimpleDateFormat("yyyy-MM-dd", de).format(Date(now))
+            val js = JSONObject(http.newCall(Request.Builder().url("https://api.brightsky.dev/weather?lat=$lat&lon=$lon&date=$day&last_date=${SimpleDateFormat("yyyy-MM-dd", de).format(Date(now + 86_400_000L))}&tz=Europe/Berlin").build()).execute().use { it.body?.string() ?: "{}" })
+            val w = js.optJSONArray("weather")
+            if (w != null) for (k in 0 until w.length()) {
+                val o = w.getJSONObject(k); if (o.isNull("precipitation_probability")) continue
+                val t = try { iso.parse(o.optString("timestamp").take(16))!!.time } catch (_: Exception) { continue }
+                val p = o.optDouble("precipitation_probability", 0.0) / 100.0
+                for (d in -6..5) add(idx(t) + d, 0.1, p)
+            }
+        } catch (e: Exception) { Log.w(TAG, "mosmix: $e") }
+        // 4) Drei Modelle stündlich (Mehrheit)
+        for (k in 0 until n step 6) { val t = now + k * 300_000L; val r = try { rainAt(lat, lon, t) } catch (_: Exception) { false }; for (d in 0..5) add(k + d, 0.1, if (r) 1.0 else 0.0) }
+        val out = DoubleArray(n) { if (wsum[it] > 0) wet[it] / wsum[it] else 0.0 }
+        rainSeries = Triple(now, lat to lon, out)
+        return out
+    }
+
+    private fun rainWatch(ctx: Context, s: JSONObject, say: (String) -> Unit) {
+        if (s.optBoolean("is_home") || !prefs(ctx).getBoolean("regen_warnung", true)) return
+        val here = fixP() ?: return
+        val home = Route.home(ctx) ?: return
+        val d = Route.distKm(here, home)
+        if (d < 0.3 || d > 25) return
+        // Tempo: zuletzt unterwegs (km/Min.); steht er, rechnen wir mit dem Rad
+        var v = 0.22
+        s.optJSONObject("trip")?.optJSONArray("pts")?.let { pts ->
+            val now = System.currentTimeMillis()
+            val i0 = (0 until pts.length()).firstOrNull { now - pts.getJSONArray(it).getLong(0) < 5 * 60_000L }
+            if (i0 != null && pts.length() - i0 >= 3) {
+                val span = (now - pts.getJSONArray(i0).getLong(0)) / 60_000.0
+                if (span > 1.5) pathKm(pts, i0).div(span).takeIf { it >= 0.06 }?.let { v = it.coerceAtMost(0.6) }
+            }
+        }
+        val eta = Math.round(d * 1.3 / v + 2).toInt()   // + kurz Sachen packen
+        val p = rainSeries(here.lat, here.lon) ?: return
+        if (p[0] >= 0.45 || p[1] >= 0.45) return   // regnet schon – dann bringt die Warnung nichts mehr
+        val i = (2 until p.size).firstOrNull { p[it] >= 0.5 && (it + 1 >= p.size || p[it + 1] >= 0.45) } ?: return
+        val onset = i * 5
+        val pct = (p.slice(i until minOf(p.size, i + 3)).maxOrNull() ?: p[i]).times(100).toInt()
+        val key = "regen|${(System.currentTimeMillis() + onset * 60_000L) / 1_800_000L}"
+        val slack = onset - eta
+        val text = when {
+            slack in 0..10 && !done(s, "$key|los") -> { mark(s, "$key|los"); "Jetzt heim: In etwa $onset Minuten soll es regnen ($pct Prozent sicher), du brauchst ungefähr $eta Minuten. Wenn du jetzt losfährst, bleibst du trocken." }
+            slack < 0 && !done(s, "$key|los") && !done(s, "$key|nass") -> { mark(s, "$key|nass"); "Achtung, in etwa $onset Minuten kommt Regen ($pct Prozent sicher). Nach Hause brauchst du ungefähr $eta Minuten – trocken schaffst du es nicht mehr. Lieber kurz unterstellen?" }
+            else -> return
+        }
+        save(ctx, s)
+        notify(ctx, 371, "Regen kommt", text)
+        say(text)
+    }
+
     /** Wetter eines Tages als kurze Datenzeilen fürs Briefing. */
     private fun weatherDay(ctx: Context, dayOffset: Int): String = try {
         val home = Route.home(ctx) ?: return ""
@@ -536,6 +627,7 @@ object Alltag {
         try { syncBahn(ctx) } catch (_: Exception) {}
         try { homeAndAway(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "zuhause: $e") }
         try { arrival(ctx, s) } catch (e: Exception) { Log.w(TAG, "ankunft: $e") }
+        try { rainWatch(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "regen: $e") }
         try { Halte.tick(ctx, fix, s.optBoolean("is_home")) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
         try { Gassi.tick(ctx, fix, s.optBoolean("home_wifi")) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
         // Unterwegs mit Gassi/Einmal-SMS: genauer und öfter orten (GPS, alle 20 s), sonst sparsam
