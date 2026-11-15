@@ -41,7 +41,7 @@ def _same(names):
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
 # Dazu kommen automatisch alle Einstellungen, die ein Update neu mitbringt (pc_settings: auto_new).
-NEW = ["stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
+NEW = ["schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
 _shown = None   # Kennungen, die es in den Einstellungen wirklich als Feld gibt
 
 
@@ -51,7 +51,7 @@ def _fields() -> set:
         import re
         try:
             src = open(os.path.abspath(__file__), encoding="utf-8").read()
-            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"stundenplan_pc"}
+            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"stundenplan_pc", "schulkal_pc", "ideen_pc"}
         except Exception:
             _shown = set()
     return _shown
@@ -279,6 +279,13 @@ def schema(s: dict) -> dict:
             card("Stundenplan", {"t": "plan", "k": "stundenplan_pc"},
                  note("Tipp auf eine Stunde und trag das Fach ein – wird sofort gespeichert und landet auf dem Handy. "
                       "Dort nutzt Jarvis den Plan: in der Stunde still, Nachrichten erst in der Pause.")),
+            card("Arbeiten & Hausaufgaben", {"t": "schulkal", "k": "schulkal_pc"},
+                 note("Tag anklicken zum Eintragen. Was in schul.cloud am Handy reinkommt, trägt Jarvis selbst ein. "
+                      "Er erinnert dich rechtzeitig und fragt dich vor Arbeiten ab, wenn du willst („frag mich ab“).")),
+        ]},
+        {"id": "ideen", "n": "Ideen", "i": "✧", "items": [
+            card("Meine Ideen", {"t": "ideen", "k": "ideen_pc"},
+                 note("Sag „Jarvis, ich hab eine Idee: …“ – am PC oder am Handy. Hier stehen alle.")),
         ]},
         {"id": "hdy", "n": "Handy", "i": "✆", "items": [
             card("Handy-App koppeln",

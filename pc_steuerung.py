@@ -568,6 +568,12 @@ def handle_fixed(text: str):
     if intent:
         return request_power(intent)
 
+    # Ideen-Sammler
+    import pc_ideen
+    r = pc_ideen.handle(t)
+    if r:
+        return r
+
     # Routinen/Modi: Fokus, Gaming, Chill, Kino, Schule, Gute Nacht, Modus aus (pc_modi)
     import pc_modi
     r = pc_modi.from_text(low) if len(low.split()) <= 10 else None

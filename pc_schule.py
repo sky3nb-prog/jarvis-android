@@ -105,8 +105,50 @@ def set_plan(plan: dict) -> dict:
     return {"ok": True, "text": "Am PC gespeichert – das Handy antwortet gerade nicht, ich schicke es nach."}
 
 
+def _kal_file() -> str:
+    return os.path.join(os.path.dirname(_file()), "schule_eintraege.json")
+
+
+def kal_get() -> dict:
+    """Arbeiten, Tests, Hausaufgaben – Hauptquelle ist das Handy (dort kommen auch die schul.cloud-Einträge an)."""
+    import pc_handy
+    try:
+        with open(_kal_file(), encoding="utf-8") as fh:
+            local = json.load(fh)
+    except Exception:
+        local = {}
+    if pc_handy.paired() and not local.get("pending"):
+        r = pc_handy.ask("ctl", wait=12, what="schule_get")
+        if r and str(r.get("text", "")).startswith("["):
+            try:
+                items = json.loads(r["text"])
+                with open(_kal_file(), "w", encoding="utf-8") as fh:
+                    json.dump({"items": items, "t": time.time()}, fh, ensure_ascii=False)
+                return {"ok": True, "items": items, "text": "Stand vom Handy."}
+            except Exception:
+                pass
+    return {"ok": True, "items": local.get("items", []), "text": "Das Handy antwortet gerade nicht – zuletzt bekannter Stand." if local else ""}
+
+
+def kal_set(items: list) -> dict:
+    import pc_handy
+    items = [i for i in (items or []) if isinstance(i, dict)][:300]
+    ok = False
+    if pc_handy.paired():
+        r = pc_handy.ask("ctl", wait=15, what="schule_set", items=items)
+        ok = bool(r and r.get("ok"))
+    with open(_kal_file(), "w", encoding="utf-8") as fh:
+        json.dump({"items": items, "t": time.time(), "pending": not ok}, fh, ensure_ascii=False)
+    return {"ok": True, "text": "✓ Ist auf dem Handy." if ok else "Am PC gespeichert – das Handy antwortet gerade nicht."}
+
+
 def handle(body: dict) -> dict:
-    if body.get("op") == "set":
+    op = body.get("op")
+    if op == "set":
         return set_plan(body.get("plan") or {})
+    if op == "kal_get":
+        return kal_get()
+    if op == "kal_set":
+        return kal_set(body.get("items") or [])
     return get()
 

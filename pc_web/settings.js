@@ -2,7 +2,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const COL = { schule: "#ffd678", allg: "#ffd678", hoer: "#3cc8ff", stim: "#ffb43c", lage: "#6effcd", anz: "#d7a8ff", kn: "#ffd678", inf: "#3cc8ff", ki: "#ffa03c", dat: "#6effcd", hdy: "#d7a8ff", wege: "#6effcd" };
+  const COL = { ideen: "#d7a8ff", schule: "#ffd678", allg: "#ffd678", hoer: "#3cc8ff", stim: "#ffb43c", lage: "#6effcd", anz: "#d7a8ff", kn: "#ffd678", inf: "#3cc8ff", ki: "#ffa03c", dat: "#6effcd", hdy: "#d7a8ff", wege: "#6effcd" };
   let data = null, vals = {}, tab = "allg", dirty = false, voiceNames = {};
   const root = $("pset");
 
@@ -37,7 +37,7 @@
   }
 
   function card(c, col) {
-    return `<div class="ps-card${c.items.some((i) => i.t === "buttons" || i.t === "plan") ? " wide" : ""}" style="--c:${col}"><h3>${esc(c.l.toUpperCase())}</h3>${c.items.map(item).join("")}</div>`;
+    return `<div class="ps-card${c.items.some((i) => ["buttons", "plan", "schulkal", "ideen"].includes(i.t)) ? " wide" : ""}" style="--c:${col}"><h3>${esc(c.l.toUpperCase())}</h3>${c.items.map(item).join("")}</div>`;
   }
   function hint(i) { return i.h ? `<small>${esc(i.h)}</small>` : ""; }
   function item(i) {
@@ -56,6 +56,8 @@
         `<div class="pc-o${ov === v ? " on" : ""}" data-k="${i.k}" data-v="${esc(ov)}"><div class="mini ${esc(ov)}"><i></i><b></b></div><div class="n">${esc(n)}</div><small>${esc(sub || "")}</small></div>`).join("")}</div>${hint(i)}</div>`;
       case "btn": return `<div class="ps-btnrow"><button class="ps-btn" data-a="${i.a}">${esc(i.l)}</button><span class="ps-st" data-st="${i.a}"></span></div>`;
       case "plan": return `<div class="ps-f pp" data-k="${i.k}"><label>Wochenplan <span class="ps-st" id="pp-st"></span></label><div id="pp-grid" class="pp-load">Hole den Plan vom Handy …</div></div>`;
+      case "schulkal": return `<div class="ps-f" data-k="${i.k}"><label>Kalender <span class="ps-st" id="sk-st"></span></label><div id="sk-pc" class="pp-load">Hole die Einträge vom Handy …</div></div>`;
+      case "ideen": return `<div class="ps-f" data-k="${i.k}"><label>Liste</label><div id="ideen-pc" class="pp-load">…</div></div>`;
       case "note": return i.l ? `<div class="ps-note">${esc(i.l)}</div>` : "";
       case "code": return `<div class="ps-f"><label>${esc(i.l)}</label><div class="ps-code" id="ps-code">${esc(i.v)}</div></div>`;
       case "buttons": {
@@ -89,7 +91,27 @@
     }));
     b.querySelectorAll(".ps-btn").forEach((btn) => btn.addEventListener("click", () => run(btn.dataset.a, btn)));
     if ($("pp-grid")) Plan.load();
+    if ($("sk-pc") && window.JSchulKal) {
+      const st = (t) => { const e = $("sk-st"); if (e) { e.textContent = t || ""; e.className = "ps-st" + (t && t.startsWith("✓") ? " ok" : ""); } };
+      window.JSchulKal.mount($("sk-pc"), {
+        host: root,
+        load: () => window.PC.post("stundenplan", { op: "kal_get" }).then((r) => r && r.json()).then((r) => { $("sk-pc").className = ""; st(r && r.text); return (r && r.items) || []; }),
+        save: (items) => window.PC.post("stundenplan", { op: "kal_set", items }).then((r) => r && r.json()).then((r) => st(r && r.text)),
+        faecher: () => [],
+      });
+    }
+    if ($("ideen-pc")) Ideen.load();
   }
+
+  // --- Ideenliste -------------------------------------------------------------------------------------------
+  const Ideen = (function () {
+    function show(items) {
+      const e = $("ideen-pc"); if (!e) return; e.className = "";
+      e.innerHTML = items.length ? items.map((x, i) => ({ x, i })).reverse().map(({ x, i }) => `<div class="ps-row" style="cursor:default"><div>${esc(x.text)}<small>${new Date(x.t * 1000).toLocaleDateString("de-DE")} · ${x.von === "handy" ? "vom Handy" : "am PC"}</small></div><button class="ps-btn" data-idel="${i}">Löschen</button></div>`).join("") : '<div class="ps-note">Noch keine Ideen.</div>';
+      e.querySelectorAll("[data-idel]").forEach((b) => b.addEventListener("click", () => window.PC.post("ideen", { op: "del", i: +b.dataset.idel }).then((r) => r && r.json()).then((r) => show((r && r.items) || []))));
+    }
+    return { load: () => window.PC.post("ideen", {}).then((r) => r && r.json()).then((r) => show((r && r.items) || [])) };
+  })();
 
   // --- Stundenplan: gleiches Wochenraster wie am Handy, Änderungen gehen sofort aufs Handy -------------------
   const Plan = (function () {
