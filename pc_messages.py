@@ -87,8 +87,8 @@ def _rephrase(text: str, to: str, as_jarvis: bool) -> str:
         import pc_ai
         if not (pc_ai.gemini_key() or pc_ai.groq_key()):
             return text
-        who = ("Die Nachricht schreibt Jarvis, der Assistent des Nutzers Skyler, und spricht über Skyler in der dritten Person "
-               "(z. B. „Skyler bittet dich, …“). Beginne NICHT mit „Hier ist Jarvis“.") if as_jarvis else \
+        who = ("Die Nachricht schreibt Jarvis, der Assistent des Nutzers, und spricht über den Nutzer in der dritten Person "
+               "(z. B. „Er bittet dich, …“). Beginne NICHT mit „Hier ist Jarvis“.") if as_jarvis else \
               ("Die Nachricht ist in der Ich-Form des Nutzers, locker, wie man an Familie und Freunde schreibt, OHNE Punkt, Komma und Strich. "
                + _stil_hint())
         system = ("Der Nutzer hat in indirekter Rede gesagt, was in einer WhatsApp an " + to + " stehen soll. Mach daraus die fertige, "
@@ -296,7 +296,7 @@ def start(app: str, to: str, text: str) -> str:
     global PENDING
     label = "WhatsApp" if app == "whatsapp" else "Discord"
     text = polish(text)
-    if app == "whatsapp" and not text.lower().startswith(("hier ist jarvis", "skyler")):
+    if app == "whatsapp" and not text.lower().startswith(("hier ist jarvis",)):
         import pc_nachrichten
         text = pc_nachrichten.wa_style(text)   # wie er schreibt: ohne Punkt, Komma, Strich
     if CONFIRM:

@@ -673,8 +673,8 @@ class SettingsDialog:
         self._check("Beim Start kurz begrüßen", self.v_greet)
         self._check("Nachrichten (WhatsApp, Discord) vor dem Senden zurückfragen", self.v_confirm)
         self._entry("Discord-Sprachkanäle", self.v_dchan,
-                    "Genaue Namen mit Komma getrennt, auch mit Emoji, z. B. 🥒|Gurken, 🥑|Avocado. Sagen musst du nur "
-                    "das Wort („Gurken“, „geh in Avocado“). Namen kopierst du in Discord über Kanal bearbeiten.")
+                    "Genaue Namen mit Komma getrennt, auch mit Emoji, z. B. 🎮|Zocken, 💬|Quatschen. Sagen musst du nur "
+                    "das Wort („Zocken“, „geh in Quatschen“). Namen kopierst du in Discord über Kanal bearbeiten.")
         self._button("Eigene Befehle bearbeiten (Programme, Ordner, Webseiten) …", self._open_custom)
 
         self._tab("Handy-App")
@@ -699,7 +699,7 @@ class SettingsDialog:
                   "drei Wege (schnellster, flachster, kürzester) und schickt dir den gewünschten aufs Handy.\n\n"
                   "Am einfachsten mit Telegram (Nachrichten UND Standort, keine zweite SIM nötig):\n"
                   "1. Telegram aufs Handy, dort @BotFather suchen, /newbot schreiben, einen Namen (z. B. Jarvis) und einen "
-                  "Benutzernamen, der auf bot endet (z. B. skyler_jarvis_bot), eingeben.\n"
+                  "Benutzernamen, der auf bot endet (z. B. mein_jarvis_bot), eingeben.\n"
                   "2. BotFather schickt einen Schlüssel (lange Zeichenkette mit Doppelpunkt). Unten eintragen, „Telegram "
                   "testen“, Speichern.\n"
                   "3. Deinen neuen Bot in Telegram öffnen und auf START tippen. Er antwortet „Verbunden“.\n"

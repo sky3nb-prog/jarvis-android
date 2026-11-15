@@ -31,7 +31,7 @@ IDLE_TIMEOUT = 45  # Sekunden ohne dass jemand redet -> Gespräch endet
 
 def _prompt(memory: str, persona: str, name: str) -> str:
     now = time.strftime("%A, %d.%m.%Y, %H:%M Uhr")
-    return f"""Du bist {name}, der persönliche KI-Butler des Nutzers (Skyler aus Leonberg). Ihr führt gerade ein
+    return f"""Du bist {name}, der persönliche KI-Butler des Nutzers. Ihr führt gerade ein
 gesprochenes Gespräch. {persona}
 Antworte kurz und natürlich (meist 1 bis 3 Sätze), wie in einem echten Gespräch, auf Deutsch, ohne Listen.
 Es ist {now}.

@@ -2,7 +2,7 @@
 Jarvis meldet sich selbst bei Wichtigem – kurz und jeweils nur einmal:
   - Festplatte fast voll (unter 10 % oder unter 15 GB frei), höchstens einmal am Tag pro Laufwerk
   - PC beim Zocken zu heiß (Grafikkarte über 85 °C, über nvidia-smi), höchstens einmal pro Stunde
-  - Neues Video von deinen Lieblingskanälen (Einstellung "lieblingskanaele", Standard: Laser Luca) – über den YouTube-RSS-Feed
+  - Neues Video von deinen Lieblingskanälen (Einstellung "lieblingskanaele", Standard: keine) – über den YouTube-RSS-Feed
   - Spiel von deiner Steam-Wunschliste im Angebot (öffentliche Wunschliste, SteamID vom angemeldeten Steam)
 Gesagt wird es wie eine Nachricht (nur wenn du am PC sitzt); das Handy bekommt es als Benachrichtigung über pc_handy, wenn möglich.
 """
@@ -131,7 +131,7 @@ def _channel_id(name: str, st: dict):
 
 def check_youtube(st: dict):
     s = SETTINGS() if SETTINGS else {}
-    names = [n.strip() for n in str(s.get("lieblingskanaele") or "Laser Luca").split(",") if n.strip()]
+    names = [n.strip() for n in str(s.get("lieblingskanaele") or "").split(",") if n.strip()]
     seen = st.setdefault("yt_seen", {})
     for n in names:
         cid = _channel_id(n, st)

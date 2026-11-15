@@ -137,9 +137,9 @@ def schema(s: dict) -> dict:
                  sw("confirm_messages", "Nachrichten vor dem Senden zurückfragen", "WhatsApp, Discord"),
                  sw("msg_ask_first", "Nachrichten wichtiger Leute: erst fragen", "„Neue Nachricht von Mama – weiter oder egal?“ Bei „egal“ ignoriert er sie."),
                  sw("kommentare", "Von selbst melden", "Z. B. nach über 2 Stunden am Stück: „Kurz raus und bewegen?“ – persönlich, lernt mit."),
-                 tx("lieblingskanaele", "Lieblingskanäle (neue Videos melden)", "YouTube-Kanäle mit Komma. Außerdem meldet er sich bei voller Festplatte, heißer Grafikkarte und Steam-Angeboten von deiner Wunschliste.", "Laser Luca")),
+                 tx("lieblingskanaele", "Lieblingskanäle (neue Videos melden)", "YouTube-Kanäle mit Komma. Außerdem meldet er sich bei voller Festplatte, heißer Grafikkarte und Steam-Angeboten von deiner Wunschliste.", "Kanalname")),
             card("Discord",
-                 tx("discord_channels", "Sprachkanäle", "Genaue Namen mit Komma, auch mit Emoji, z. B. 🥒|Gurken, 🥑|Avocado."),
+                 tx("discord_channels", "Sprachkanäle", "Genaue Namen mit Komma, auch mit Emoji, z. B. 🎮|Zocken, 💬|Quatschen."),
                  btn("custom", "Eigene Befehle bearbeiten (Programme, Ordner, Webseiten)")),
         ]},
         {"id": "hoer", "n": "Zuhören", "i": "◉", "items": [
@@ -200,7 +200,7 @@ def schema(s: dict) -> dict:
         {"id": "wege", "n": "Wege", "i": "➜", "items": [
             card("Meine Orte",
                  note("Eine Zeile pro Ort: Name, Doppelpunkt, Adresse. Dann reicht „Ich will zu Opa“. Gilt auch am Handy."),
-                 {"k": "meine_orte", "t": "area", "l": "Orte", "ph": "Opa: Musterstraße 5, 71277 Rutesheim\nArbeit: …"}),
+                 {"k": "meine_orte", "t": "area", "l": "Orte", "ph": "Oma: Musterstraße 5, 12345 Musterstadt\nArbeit: …"}),
             card("Meine Wege",
                  note("Ein Punkt, über den der Weg führen soll: Name, Doppelpunkt, Ort oder Koordinaten (in Google Maps rechts klicken, Zahlen kopieren). "
                       "Dann geht „über den oberen Feldweg zu Opa“."),
@@ -224,7 +224,7 @@ def schema(s: dict) -> dict:
                  btn("test_sprach", "Test: Sprachnachricht an den Test-Chat schicken (über WhatsApp am PC)"),
                  note("Export: in WhatsApp Chat öffnen → ⋮ → Mehr → „Chat exportieren“. „Mit Medien“ = er hört auch die Sprachnachrichten an (bis 120 pro Chat). Mehrere ZIPs auf einmal gehen. Nur was innerhalb von 6 Stunden geantwortet wurde, zählt als Antwort. Am Handy lernt er außerdem mit jeder Nachricht und beim Durchscrollen.")),
             card("Wichtige Leute",
-                 tx("wichtige_leute", "Namen wie in WhatsApp", "Mit Komma, z. B. Mama, Saya, Opa. Gilt auch am Handy."),
+                 tx("wichtige_leute", "Namen wie in WhatsApp", "Mit Komma, z. B. Mama, Papa, bester Freund. Gilt auch am Handy."),
                  tx("wa_immer", "Immer vorlesen", "Diese Chats liest er IMMER vor – auch beim Zocken, wenn WhatsApp offen ist oder im Fokus-Modus. Gilt auch am Handy.", "z. B. Mama"),
                  sel("wa_beim_zocken", "Beim Zocken / Discord", [["Trotzdem ansagen", "ansagen"], ["Sammeln und danach sagen", "sammeln"], ["Gar nicht ansagen", "nie"]],
                      "„Immer vorlesen“-Chats und der Test-Chat kommen trotzdem durch."),

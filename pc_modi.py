@@ -25,7 +25,7 @@ DEFAULT = [
     {"id": "fokus", "n": "Fokus", "i": "◎", "h": 200, "d": "Lernen ohne Ablenkung", "handy": "dnd", "sammeln": True, "still": True,
      "musik": "lofi", "discord": "", "apps": "", "pomo": True, "lern": 25, "pause": 5, "aus": False},
     {"id": "gaming", "n": "Gaming", "i": "▶", "h": 280, "d": "Discord an, Anrufe weg", "handy": "dnd", "sammeln": False, "still": False,
-     "musik": "", "discord": "Gurken", "apps": "", "pomo": False, "lern": 25, "pause": 5, "aus": False},
+     "musik": "", "discord": "", "apps": "", "pomo": False, "lern": 25, "pause": 5, "aus": False},
     {"id": "chill", "n": "Chill", "i": "♪", "h": 160, "d": "Musik an, entspannt", "handy": "normal", "sammeln": False, "still": False,
      "musik": "deezer", "discord": "", "apps": "", "pomo": False, "lern": 25, "pause": 5, "aus": False},
     {"id": "kino", "n": "Kino", "i": "◐", "h": 320, "d": "Alles leise, nichts stört", "handy": "lautlos", "sammeln": True, "still": True,
