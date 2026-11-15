@@ -49,8 +49,25 @@ def _idle_seconds() -> float:
     return 0.0
 
 
+def _whatsapp_vorne() -> bool:
+    """Ist WhatsApp am PC gerade im Vordergrund (Desktop-App oder WhatsApp Web im Browser)? Dann siehst du's selbst."""
+    try:
+        import ctypes
+        u = ctypes.windll.user32
+        h = u.GetForegroundWindow()
+        n = u.GetWindowTextLengthW(h)
+        buf = ctypes.create_unicode_buffer(n + 1)
+        u.GetWindowTextW(h, buf, n + 1)
+        return "whatsapp" in buf.value.lower()
+    except Exception:
+        return False
+
+
 def incoming(msg: dict):
     """Vom Handy: {sender, chat, text, voice, transcript, audio(b64 ogg), key}."""
+    if msg.get("kind") not in ("say", "offer") and _whatsapp_vorne() and _idle_seconds() < 120:
+        print(f"Nachricht von {msg.get('sender')}: WhatsApp ist vorne – keine Ansage")
+        return
     for k in ("sender", "chat", "text", "transcript"):
         if isinstance(msg.get(k), str):
             msg[k] = re.sub(r"[\u200e\u200f\u202a-\u202e]", "", msg[k]).strip()
