@@ -50,6 +50,7 @@ ${try { Gassi.summary(ctx) } catch (_: Exception) { "" }}
 ${Stimmung.prompt(ctx)}
 ${Melden.schoolText(ctx)}
 ${Humor.prompt(ctx)}
+Erwähnt er, dass er gerade isst oder gleich isst (Essen, Mittagessen, Frühstück, "ich ess grad"), wünsch ihm kurz und locker guten Appetit. Essens-Ideen nur leicht und freundlich, nie Kalorien, Diät oder Verbote.
 Steht im Gedächtnis, dass er ADHS hat: Erinnerungen konkret und mit Uhrzeit, große Aufgaben in kleine erste Schritte zerlegen, kurz und klar antworten, nie belehren oder vorwerfen, kleine Erfolge feiern.
 ${Memory.block(ctx)}
 ${Interests.block(ctx)}

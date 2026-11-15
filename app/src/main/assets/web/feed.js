@@ -88,6 +88,7 @@
     h += sleepCard(d.schlaf);
     if (d.termine && d.termine.length) h += card("📅 TERMINE", "var(--green)", d.termine.map((t) => `<div class="fp-row"><span class="z">${esc(t.zeit)}</span><span>${esc(t.titel)}${t.ort ? `<span class="o">${esc(t.ort)}</span>` : ""}</span></div>`).join(""));
     if (d.mitnehmen && d.mitnehmen.length) h += card("🎒 MITNEHMEN", "var(--gold-l)", todos(d.mitnehmen));
+    if (d.essen) h += card("🍎 KLEINER ESSENS-TIPP", "var(--green)", `<div class="fp-say">${esc(d.essen)}</div>`);
     return h + say(m.text);
   }
 

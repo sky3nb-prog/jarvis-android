@@ -1376,15 +1376,24 @@ object Alltag {
         if (wecker != null) parts.add("Sein Wecker morgen: ${clock(wecker)}")
         val schlaf = if (day == 0) try { Sleep.night(ctx, 0) } catch (_: Exception) { null } else null
         if (schlaf != null) parts.add("Sein Schlaf letzte Nacht: ${Sleep.text(schlaf)}")
+        if (day == 0) {   // für den kleinen Essens-Tipp: wie war gestern, was steht heute an
+            try { if (Health.connected(ctx)) Health.day(ctx, 1)?.let { parts.add("Gestern: ${Health.text(it)}") } } catch (_: Exception) {}
+            Melden.schoolText(ctx).takeIf { it.isNotBlank() }?.let { parts.add(it) }
+            Gassi.summary(ctx).takeIf { it.isNotBlank() }?.let { parts.add(it) }
+            parts.add(Stimmung.prompt(ctx))
+        }
         val topics = listOf("bi_wetter" to "Wetter (vor allem für die Radfahrt)", "bi_anzieh" to "was er anziehen soll, genau nach seinen Regeln",
             "bi_termine" to "Termine", "bi_mitnehmen" to "was er mitnehmen oder vorbereiten sollte (nur wenn es aus den Terminen folgt)")
             .filter { want(it.first) }.joinToString(", ") { it.second }
         val sys = "Du bist Jarvis und gibst Skyler sein ${if (day == 0) "Tages-Update für heute" else "Update für morgen"}. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 4 bis 6 kurze Sätze. Inhalt: $topics" +
             (if (wecker != null) ", zum Schluss wann sein Wecker klingelt" else "") +
+            (if (day == 0) ", und ein kleiner, einfacher Essens-Tipp für heute in einem halben Satz" else "") +
             (if (schlaf != null) ", und ein halber Satz zum Schlaf nur wenn er unter 7 Stunden war (dann locker, nicht belehrend)" else "") + ". Beginne mit " + (if (day == 0) "'Guten Morgen'" else "'Kurz zu morgen'") + "\", " +
             "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"], \"achtung\": [\"kurze Hinweise fürs Rad: Glätte, Wind, Regen, früh dunkel – nur wenn zutreffend\"], " +
-            "\"mitnehmen\": [\"was mitnehmen/vorbereiten, nur wenn es aus den Terminen folgt\"]}. Keine Bahn-Verbindungen. Erfinde nichts."
+            "\"mitnehmen\": [\"was mitnehmen/vorbereiten, nur wenn es aus den Terminen folgt\"]" +
+            (if (day == 0) ", \"essen\": \"EIN kleiner Essens-Tipp, der zu seinem Tag passt (viel gesessen -> etwas Frisches oder Obst zwischendurch; viel Bewegung oder Sport -> etwas Sättigendes; langer Schultag -> Snack und Wasser einpacken; kalt -> was Warmes), mal was Neues zum Ausprobieren, locker und freundlich, OHNE Kalorien, Zahlen, Verbote, Abnehmen oder Diät-Sprache\"" else "") +
+            "}. Keine Bahn-Verbindungen. Erfinde nichts."
         val ai = aiJson(ctx, sys, parts.joinToString("\n\n"), 700) ?: return null
         val text = ai.optString("text").replace(Regex("[*#`]"), "").trim().ifBlank { return null }
         val termine = JSONArray()
@@ -1396,7 +1405,7 @@ object Alltag {
             .put("wx", wx ?: JSONObject.NULL).put("anziehen", pick?.optJSONArray("anziehen") ?: strs(ai.optJSONArray("anziehen"))).put("achtung", strs(ai.optJSONArray("achtung")))
             .put("outfit", pick?.let { outfitOf(it) } ?: ai.optJSONObject("outfit") ?: JSONObject.NULL).put("warum", pick?.optString("warum") ?: "")
             .put("mitnehmen", strs(ai.optJSONArray("mitnehmen"))).put("termine", termine).put("wecker", wecker ?: 0L)
-            .put("schlaf", schlaf ?: JSONObject.NULL)
+            .put("schlaf", schlaf ?: JSONObject.NULL).put("essen", ai.optString("essen"))
         val sub = listOfNotNull(wx?.let { "${it.optInt("min")}–${it.optInt("max")}°" + (if (it.optInt("rain_pct") >= 50) ", Regen" else ", trocken") },
             strs(ai.optJSONArray("anziehen")).optString(0).ifBlank { null }, "${termine.length()} Termin" + (if (termine.length() == 1) "" else "e")).joinToString(" · ")
         val id = Feed.add(ctx, if (day == 0) "morgen" else "abend", if (day == 0) "Guten Morgen" else "Kurz zu morgen", sub, text, d)
