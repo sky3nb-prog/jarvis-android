@@ -501,6 +501,9 @@ class WebHud:
             import pc_websettings
             self.ui.q.put(("apply", pc_websettings.save(self.ui.settings, body.get("values") or {})))
             return {"ok": True}
+        if name == "stundenplan":   # am PC eintragen -> aufs Handy
+            import pc_schule
+            return pc_schule.handle(body)
         if name == "settings_seen":   # Bereich angeschaut: Punkte weg
             keys = [str(k) for k in body.get("keys") or []]
             seen = list(self.ui.settings.get("seen_new") or [])
