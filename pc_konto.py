@@ -62,19 +62,28 @@ def _save(st: dict):
 
 
 def _prot(t: str) -> str:
+    """Mit Windows verschlüsseln (DPAPI); klappt das nicht, im Klartext (nur in konto.json auf diesem PC)."""
     try:
         import pc_secret
-        return pc_secret.protect(t)
+        r = pc_secret.protect(t)
+        if r and pc_secret.unprotect(r) == t:
+            return "P:" + r
     except Exception:
-        return t
+        pass
+    return "R:" + t
 
 
 def _unprot(t: str) -> str:
-    try:
-        import pc_secret
-        return pc_secret.unprotect(t) or ""
-    except Exception:
-        return t
+    t = t or ""
+    if t.startswith("R:"):
+        return t[2:]
+    if t.startswith("P:"):
+        try:
+            import pc_secret
+            return pc_secret.unprotect(t[2:]) or ""
+        except Exception:
+            return ""
+    return t
 
 
 def logged_in() -> bool:
