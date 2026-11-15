@@ -2,8 +2,8 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const COL = { schule: "#ffd678", wege: "#6effcd", leute: "#ffb43c", allg: "#ffd678", hoer: "#3cc8ff", anz: "#d7a8ff", fern: "#3cc8ff", gaming: "#ff7a9a", lage: "#6effcd" };
-  const BG = { schule: "#2a2205", wege: "#0b2a22", leute: "#2a1306", allg: "#3a2608", hoer: "#0b2a3c", anz: "#13202a", fern: "#05202e", gaming: "#2a0f18", lage: "#2a1a05" };
+  const COL = { konto: "#ffd678", schule: "#ffd678", wege: "#6effcd", leute: "#ffb43c", allg: "#ffd678", hoer: "#3cc8ff", anz: "#d7a8ff", fern: "#3cc8ff", gaming: "#ff7a9a", lage: "#6effcd" };
+  const BG = { konto: "#2a1c06", schule: "#2a2205", wege: "#0b2a22", leute: "#2a1306", allg: "#3a2608", hoer: "#0b2a3c", anz: "#13202a", fern: "#05202e", gaming: "#2a0f18", lage: "#2a1a05" };
   const OPEN = {};   // welche Karten aufgeklappt sind (pro Bereich)
   let data = null, vals = {}, tab = "", dirty = false, voiceNames = {};
   const root = $("pset");
@@ -225,6 +225,7 @@
   })();
 
   function run(a, btn) {
+    if (a === "konto_open" && window.JKonto) { close(false); window.JKonto.open(); return; }
     const st = $("ps-body").querySelector(`[data-st="${a}"]`);
     btn.classList.add("busy"); if (st) { st.className = "ps-st"; st.textContent = "…"; }
     window.PC.post("settings_run", { name: a, values: vals }).then((r) => r && r.json()).then((r) => {

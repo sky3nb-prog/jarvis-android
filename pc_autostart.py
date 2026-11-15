@@ -7,7 +7,7 @@ import os
 import sys
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-NAME = "Jarvis PC-Assistent"
+NAME = "Jarvis Konto"
 
 
 def command() -> str:

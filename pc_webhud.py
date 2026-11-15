@@ -326,6 +326,9 @@ class WebHud:
     # --- Fragen der Seite --------------------------------------------------------------------------------
     def api(self, name: str, qs: dict):
         s = self.ui.settings
+        if name == "konto":
+            import pc_konto
+            return pc_konto.info()
         if name == "settings":
             keys = ("assistant_name", "hud_mode", "hud_layout", "hud_buttons", "home_city", "lage_places", "lage_spin", "lage_orbits", "map_labels",
                     "lage_sat_tour", "globe_auto_open", "address_as")
@@ -531,6 +534,16 @@ class WebHud:
             if add:
                 self.ui.post_setting("seen_new", seen + add)
             return {"ok": True}
+        if name in ("konto_login", "konto_sync", "konto_logout"):   # Jarvis-Konto
+            import pc_konto
+            if name == "konto_logout":
+                pc_konto.logout()
+                return pc_konto.info()
+            r = pc_konto.login(str(body.get("email") or ""), str(body.get("pw") or ""), bool(body.get("neu"))) if name == "konto_login" else pc_konto.sync_now()
+            r["info"] = pc_konto.info()
+            if r.get("restart"):
+                threading.Timer(2.5, pc_konto.restart_self).start()
+            return r
         if name == "settings_run":
             import pc_websettings
             try:

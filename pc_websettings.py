@@ -513,7 +513,16 @@ def _ordnen(tabs, card):
         c["Kalender"]["l"] = "Kalender"
     T = lambda i, g, n, ic, items: {"id": i, "g": g, "n": n, "i": ic, "items": [x for x in items if x and x.get("items")]}  # noqa: E731
     A, J, W = "DEIN ALLTAG", "JARVIS", "PC & WELT"
-    return [
+    try:
+        import pc_konto
+        ki_ = pc_konto.info()
+        kst = (f"Angemeldet als {ki_['email']}." if ki_["loggedIn"] else ("Nicht angemeldet." if ki_["configured"] else "Noch nicht eingerichtet."))
+    except Exception:
+        kst = ""
+    konto = {"id": "konto", "g": "KONTO", "n": "Jarvis-Konto", "i": "👤", "items": [card("Dein Konto", {"t": "note", "l": kst},
+             {"t": "btn", "a": "konto_open", "l": "Anmelden / Konto verwalten"},
+             {"t": "note", "l": "Alles wird mit deinem Passwort verschlüsselt, bevor es ins Konto geht – auch der Server kann es nicht lesen. Passwort vergessen heißt: neu anfangen."})]}
+    return [konto,
         T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),
         T("wege", A, "Zuhause & Orte", "🗺️", [card("Zuhause", *ort)] + pick("Meine Orte", "Meine Wege", "Routen schicken")),
         T("leute", A, "Leute & Anrufe", "👥", pick("Wichtige Leute") + [card("Nachrichten", *nachr)] + pick("Anruf-Butler")),

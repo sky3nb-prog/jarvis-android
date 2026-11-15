@@ -17,7 +17,7 @@ import time
 import urllib.request
 
 REPO = "sky3nb-prog/jarvis-android"
-BRANCH = "pc"
+BRANCH = "konto-pc"
 CHECK_EVERY = 30 * 60
 NO_WINDOW = 0x08000000
 DETACHED = 0x00000008
@@ -62,6 +62,7 @@ def latest() -> str:
 
 
 def possible() -> bool:
+    return False   # Konto-Test: noch keine Selbst-Updates
     return getattr(sys, "frozen", False) and os.path.exists(os.path.join(_src(), "build.bat"))
 
 

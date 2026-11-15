@@ -1337,7 +1337,7 @@ def start_tray(ui: UI, stop: threading.Event):
     icon = pystray.Icon(
         "pc_assistent",
         img,
-        "PC-Assistent",
+        "Jarvis Konto",
         menu=pystray.Menu(
             pystray.MenuItem("HUD anzeigen", on_show, default=True),
             pystray.MenuItem("Einstellungen", on_settings),
@@ -1930,9 +1930,10 @@ def assistant_runner(ui: UI, stop: threading.Event, shutdown):
 
 # --- Start -----------------------------------------------------------------------------------
 _MUTEX = None
+_MUTEX2 = None
 
 
-SHOW_EVENT = "Jarvis.PCAssistent.ShowHud"
+SHOW_EVENT = "Jarvis.Konto.ShowHud"
 
 
 def signal_show():
@@ -1969,7 +1970,7 @@ def make_start_shortcut():
         return
     try:
         folder = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs")
-        lnk = os.path.join(folder, "Jarvis.lnk")
+        lnk = os.path.join(folder, "Jarvis Konto.lnk")
         if os.path.isdir(folder) and not os.path.exists(lnk):
             import subprocess
             ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');$s.TargetPath='{sys.executable}';"
@@ -1988,8 +1989,19 @@ def already_running() -> bool:
         k32 = ctypes.WinDLL("kernel32", use_last_error=True)
         k32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_wchar_p]
         k32.CreateMutexW.restype = ctypes.c_void_p
-        _MUTEX = k32.CreateMutexW(None, False, "Jarvis.PCAssistent.SingleInstance")
-        return ctypes.get_last_error() == 183  # ERROR_ALREADY_EXISTS
+        _MUTEX = k32.CreateMutexW(None, False, "Jarvis.Konto.SingleInstance")
+        if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS – Jarvis Konto läuft schon
+            return True
+        # Konto-Test: der normale Jarvis darf nicht gleichzeitig laufen (zwei Mikrofon-Hörer). Läuft er, sagen wir es und hören auf.
+        global _MUTEX2
+        _MUTEX2 = k32.CreateMutexW(None, False, "Jarvis.PCAssistent.SingleInstance")
+        if ctypes.get_last_error() == 183:
+            if "--autostart" not in sys.argv:
+                ctypes.windll.user32.MessageBoxW(None, "Der normale Jarvis läuft gerade.\n\nFür den Test mit Konto bitte erst den normalen Jarvis beenden "
+                                                 "(unten rechts beim Jarvis-Symbol: Rechtsklick → Beenden) und Jarvis Konto dann noch mal starten.",
+                                                 "Jarvis Konto", 0x40)
+            sys.exit(0)
+        return False
     except Exception:
         return False
 
@@ -2046,6 +2058,8 @@ VERSION = "2026-11-15 19:05"
 def main():
     setup_log()
     print(f"Jarvis-Version: {VERSION}")
+    if "--restart" in sys.argv:   # Neustart nach dem Laden aus dem Konto: kurz warten, bis der alte Jarvis zu ist
+        time.sleep(3)
     if already_running():
         if "--autostart" not in sys.argv:   # z. B. Klick auf das angeheftete Symbol: laufenden Jarvis nach vorne holen
             signal_show()
@@ -2056,10 +2070,13 @@ def main():
     except Exception:
         pass
     try:  # eigene Kennung, damit das Anheften an die Taskleiste sauber funktioniert
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Jarvis.PCAssistent")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Jarvis.Konto")
     except Exception:
         pass
+    import pc_konto
+    pc_konto.pull_at_start()   # Jarvis-Konto: neueren Stand holen, bevor die Einstellungen geladen werden
     settings = pc_settings.load()
+    pc_konto.start_loop()
     if not settings.get("ntfy_topic") or not settings.get("loc_topic"):  # geheime Handy-Kanäle einmalig erzeugen
         settings["ntfy_topic"] = settings.get("ntfy_topic") or pc_phone.new_topic("nachricht")
         settings["loc_topic"] = settings.get("loc_topic") or pc_phone.new_topic("standort")
