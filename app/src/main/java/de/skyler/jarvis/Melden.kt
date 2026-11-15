@@ -26,7 +26,7 @@ object Melden {
     private val DAYS = listOf("mo", "di", "mi", "do", "fr")
 
     // --- Stundenplan --------------------------------------------------------------------------------------------
-    /** Standard (wie Skyler ihn beschrieben hat): Mo–Do bis 15:40, Fr bis 12:25. Fächer trägt er selbst ein. */
+    /** Standard (wie der Nutzer ihn beschrieben hat): Mo–Do bis 15:40, Fr bis 12:25. Fächer trägt er selbst ein. */
     private fun defPlan(): JSONObject {
         fun l(v: String, b: String) = JSONObject().put("von", v).put("bis", b).put("fach", "")
         val voll = listOf(l("08:00", "08:45"), l("08:45", "09:30"), l("09:50", "10:35"), l("10:40", "11:25"), l("11:40", "12:25"), l("12:25", "13:10"), l("14:10", "14:55"), l("14:55", "15:40"))

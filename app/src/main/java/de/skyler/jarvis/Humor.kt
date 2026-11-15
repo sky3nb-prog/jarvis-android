@@ -5,7 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Lernt, welcher Humor bei Skyler ankommt: Reagiert er auf einen Spruch mit "haha", "lol", 😂 … merkt sich Jarvis den Spruch
+ * Lernt, welcher Humor bei der Nutzer ankommt: Reagiert er auf einen Spruch mit "haha", "lol", 😂 … merkt sich Jarvis den Spruch
  * als "kam gut an"; mit "nicht lustig", "lass das", "hör auf" … als "kam nicht an". Die letzten Beispiele stehen im Prompt.
  */
 object Humor {
