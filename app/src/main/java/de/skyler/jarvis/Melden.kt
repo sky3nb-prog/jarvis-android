@@ -111,17 +111,44 @@ object Melden {
         }
     } catch (_: Exception) { false }
 
+    /** Nur echtes "Nicht stören" zählt – Vibration oder lautlos heißt NICHT, dass er still sein soll. */
     fun dnd(ctx: Context): Boolean = try {
-        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val nm = ctx.getSystemService(NotificationManager::class.java)
-        am.ringerMode != AudioManager.RINGER_MODE_NORMAL || nm.currentInterruptionFilter > NotificationManager.INTERRUPTION_FILTER_ALL
+        nm.currentInterruptionFilter > NotificationManager.INTERRUPTION_FILTER_ALL
     } catch (_: Exception) { false }
 
-    /** "speak" = laut sagen (+ Nachricht), "note" = nur Nachricht, "hold" = in der Stunde: aufheben bis zur Pause */
+    // --- Schlafen: abends Bildschirm 15 Min. aus -> bis zur Aufstehzeit (Wecker) still, kein Weckwort ----------------
+    fun screenOff(ctx: Context) { prefs(ctx).edit().putLong("screen_off", System.currentTimeMillis()).apply() }
+    private fun upTimeToday(ctx: Context): Long {
+        val c = Calendar.getInstance(); val d0 = c.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        return try { Wecker.upToday(ctx) ?: Wecker.upFor(ctx, d0) } catch (_: Exception) { null } ?: (d0 + 7 * 3_600_000L)
+    }
+    fun sleeping(ctx: Context): Boolean = try {
+        val now = System.currentTimeMillis()
+        val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val up = upTimeToday(ctx)
+        val night = h >= 21 || now < up
+        val latched = prefs(ctx).getLong("sleep_until", 0L)
+        if (latched > now) true
+        else if (!night) false
+        else {
+            val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            val off = prefs(ctx).getLong("screen_off", 0L)
+            if (!pm.isInteractive && off > 0 && now - off >= 15 * 60_000L) {
+                val until = if (now < up) up else up + 86_400_000L   // bis zur nächsten Aufstehzeit
+                prefs(ctx).edit().putLong("sleep_until", until).apply(); true
+            } else false
+        }
+    } catch (_: Exception) { false }
+
+    /** Zuhause: immer laut (außer Nicht stören). Unterwegs: nur mit Kopfhörern laut, sonst Nachricht.
+     *  "hold" = Schulstunde oder er schläft -> aufheben (Pause bzw. ab der Aufstehzeit). */
     fun route(ctx: Context): String = when {
+        sleeping(ctx) -> "hold"
         lessonNow(ctx) != null -> "hold"
         dnd(ctx) -> "note"
-        Alltag.isHome(ctx) || headphones(ctx) -> "speak"
+        Alltag.isHome(ctx) -> "speak"
+        headphones(ctx) -> "speak"
         else -> "note"
     }
 
@@ -143,7 +170,7 @@ object Melden {
     /** In der Pause / nach der Schule: Aufgehobenes nachholen (jede Minute aus Alltag.tick). */
     fun flush(ctx: Context) {
         val q = try { JSONArray(prefs(ctx).getString("melden_queue", "[]")) } catch (_: Exception) { return }
-        if (q.length() == 0 || lessonNow(ctx) != null) return
+        if (q.length() == 0 || lessonNow(ctx) != null || sleeping(ctx)) return
         prefs(ctx).edit().putString("melden_queue", "[]").apply()
         val items = (0 until q.length()).mapNotNull { q.optJSONObject(it) }.filter { System.currentTimeMillis() - it.optLong("t") < 6 * 3_600_000L }
         if (items.isEmpty()) return

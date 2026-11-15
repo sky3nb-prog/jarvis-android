@@ -142,7 +142,7 @@ class JarvisService : Service() {
 
     private val unlockReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
-            if (i.action == Intent.ACTION_SCREEN_OFF) { Thread { try { Sleep.screenOff(this@JarvisService) } catch (_: Exception) {} }.start(); return }
+            if (i.action == Intent.ACTION_SCREEN_OFF) { Thread { try { Sleep.screenOff(this@JarvisService); Melden.screenOff(this@JarvisService) } catch (_: Exception) {} }.start(); return }
             Thread { try { Sleep.unlock(this@JarvisService); Melden.unlocked(this@JarvisService) } catch (_: Exception) {} }.start()
             Alltag.onUnlock(this@JarvisService) { t -> announce(t) }
         }
@@ -503,6 +503,7 @@ class JarvisService : Service() {
         val key = prefs.getString("groq_key", "") ?: ""
         if (key.isBlank()) { Bus.emit("needkey"); return }
         val now = System.currentTimeMillis()
+        if (mode == Mode.IDLE && Melden.sleeping(this)) return   // er schläft: nicht aufs Weckwort anspringen
         if (mode == Mode.IDLE) {
             // Ohne Vosk-Treffer nur im "genauen Modus" (oder solange das Modell noch lädt) kurze Sätze prüfen lassen
             val cloud = prefs.getBoolean("wake_cloud", false) || rec == null

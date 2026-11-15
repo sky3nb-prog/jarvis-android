@@ -50,7 +50,7 @@ object Butler {
             override fun onCallStateChanged(state: Int, number: String?) {
                 try {
                     if (state == TelephonyManager.CALL_STATE_RINGING) ringing(app, number ?: "")
-                    else { handled = ""; app.getSystemService(NotificationManager::class.java).cancel(NID) }
+                    else { handled = ""; app.getSystemService(NotificationManager::class.java).cancel(NID); hideFloat(app) }
                 } catch (e: Exception) { Log.w(TAG, "anruf: $e") }
             }
         }
@@ -73,9 +73,11 @@ object Butler {
     } catch (_: Exception) { null }
 
     private fun ringing(ctx: Context, number: String) {
-        if (!on(ctx) || number.isBlank() || handled == number) return
-        val name = contact(ctx, number) ?: return     // nicht in den Kontakten: vielleicht Spam -> nichts tun
+        if (!on(ctx) || handled == number) return
+        val name = if (number.isBlank()) null else contact(ctx, number)
+        if (name == null) { handled = number; showFloat(ctx, "", number); return }   // unbekannt: nur Auflegen-Knopf, keine Nachricht
         handled = number
+        showFloat(ctx, name, number)   // großer Knopf über dem Anruf-Bildschirm
         val nm = ctx.getSystemService(NotificationManager::class.java)
         val modus = Modes.current(ctx)
         val nn = Chats.norm(name); val important = Chats.important(ctx).any { it.isNotBlank() && (nn.contains(it) || it.contains(nn)) }
@@ -94,13 +96,64 @@ object Butler {
             .addAction(0, "Kann gerade nicht", pi).setContentIntent(pi).setAutoCancel(true).build())
     }
 
+    // --- Schwebender Knopf über dem Anruf-Bildschirm (die Benachrichtigung sieht man beim Klingeln oft nicht) -------
+    @Volatile private var floatView: android.view.View? = null
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private fun showFloat(ctx: Context, name: String, number: String) = main.post {
+        try {
+            if (!android.provider.Settings.canDrawOverlays(ctx) || floatView != null) return@post
+            val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
+            val d = ctx.resources.displayMetrics.density
+            val box = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding((18 * d).toInt(), (12 * d).toInt(), (18 * d).toInt(), (12 * d).toInt())
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 26 * d; setColor(0xF0140C04.toInt()); setStroke((2 * d).toInt(), 0xFFFFAA28.toInt()) }
+                elevation = 12 * d
+            }
+            val title = android.widget.TextView(ctx).apply {
+                text = if (name.isNotBlank()) "JARVIS · $name ruft an" else "JARVIS · unbekannte Nummer"
+                setTextColor(0xFFFFD678.toInt()); textSize = 12f; letterSpacing = .12f
+            }
+            val btn = android.widget.TextView(ctx).apply {
+                text = if (name.isNotBlank()) "Auflegen + „${text(ctx)}“ schicken" else "Auflegen"
+                setTextColor(0xFF1A1206.toInt()); textSize = 16f; typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = android.view.Gravity.CENTER
+                setPadding((14 * d).toInt(), (12 * d).toInt(), (14 * d).toInt(), (12 * d).toInt())
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 22 * d; setColor(0xFFFFC04A.toInt()) }
+                setOnClickListener {
+                    hideFloat(ctx)
+                    if (name.isNotBlank()) decline(ctx, name, number)
+                    else try { if (Build.VERSION.SDK_INT >= 28 && has(ctx, Manifest.permission.ANSWER_PHONE_CALLS))
+                        @Suppress("DEPRECATION") (ctx.getSystemService(Context.TELECOM_SERVICE) as TelecomManager).endCall() } catch (_: Exception) {}
+                }
+            }
+            box.addView(title); box.addView(btn, android.widget.LinearLayout.LayoutParams(-1, -2).apply { topMargin = (8 * d).toInt() })
+            val lp = android.view.WindowManager.LayoutParams(-1, -2,
+                if (Build.VERSION.SDK_INT >= 26) android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else @Suppress("DEPRECATION") android.view.WindowManager.LayoutParams.TYPE_PHONE,
+                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
+                android.graphics.PixelFormat.TRANSLUCENT).apply {
+                gravity = android.view.Gravity.TOP; y = (90 * d).toInt(); horizontalMargin = 0f
+            }
+            val wrap = android.widget.FrameLayout(ctx).apply { setPadding((16 * d).toInt(), 0, (16 * d).toInt(), 0); addView(box) }
+            wm.addView(wrap, lp); floatView = wrap
+            main.postDelayed({ hideFloat(ctx) }, 60_000)
+        } catch (e: Exception) { Log.w(TAG, "knopf: $e") }
+    }
+
+    fun hideFloat(ctx: Context) = main.post {
+        val v = floatView ?: return@post
+        try { (ctx.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager).removeView(v) } catch (_: Exception) {}
+        floatView = null
+    }
+
     /** Wegdrücken und Bescheid geben. */
     fun decline(ctx: Context, name: String, number: String) {
         try {
             if (Build.VERSION.SDK_INT >= 28 && has(ctx, Manifest.permission.ANSWER_PHONE_CALLS))
                 @Suppress("DEPRECATION") (ctx.getSystemService(Context.TELECOM_SERVICE) as TelecomManager).endCall()
         } catch (e: Exception) { Log.w(TAG, "wegdrücken: $e") }
-        ctx.getSystemService(NotificationManager::class.java).cancel(NID)
+        ctx.getSystemService(NotificationManager::class.java).cancel(NID); hideFloat(ctx)
         val msg = text(ctx)
         Thread({
             var done = false

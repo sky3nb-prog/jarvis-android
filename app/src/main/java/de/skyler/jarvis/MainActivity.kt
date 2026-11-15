@@ -479,7 +479,7 @@ class MainActivity : ComponentActivity() {
         fun setKopf(n: String) { prefs.edit().putString("kopfhoerer", n.trim()).apply() }
 
         @JavascriptInterface
-        fun meldenInfo(): String = "Gerade: " + when (Melden.route(this@MainActivity)) { "speak" -> "ich darf laut reden"; "hold" -> "Schulstunde – ich hebe alles für die Pause auf"; else -> "nur Nachrichten" } +
+        fun meldenInfo(): String = "Gerade: " + when (Melden.route(this@MainActivity)) { "speak" -> "ich darf laut reden"; "hold" -> if (Melden.sleeping(this@MainActivity)) "du schläfst – ich bin still bis zur Aufstehzeit" else "Schulstunde – ich hebe alles für die Pause auf"; else -> "nur Nachrichten" } +
             " · zuhause: " + (if (Alltag.isHome(this@MainActivity)) "ja" else "nein") + " · Kopfhörer: " + (if (Melden.headphones(this@MainActivity)) "verbunden" else "nicht verbunden") +
             " · Nicht stören: " + (if (Melden.dnd(this@MainActivity)) "an" else "aus") + Melden.schoolText(this@MainActivity).let { if (it.isNotBlank()) " · $it" else "" }
 
