@@ -341,6 +341,7 @@ def _draft(m: dict, wish: str = "") -> str:
             "antworte kurz und neutral (z. B. 'Ok 👍', 'Alles klar') statt etwas Falsches zu schreiben. "
             + ("Schreib GENAU in seinem Stil – Länge, Ton, Groß-/Kleinschreibung, Abkürzungen, Satzzeichen, Emojis wie in diesen echten "
                "Nachrichten von ihm: " + " | ".join(stil) + ". " if stil else "Wie ein Jugendlicher an Familie und Freunde, höchstens ein Emoji, meist 1 bis 2 Sätze. ")
+            + (f"Was du über diese Person weißt (nutze es für Ton und Inhalt): {m.get('person')}. " if m.get("person") else "")
             + "Wenn ein Wunsch angegeben ist, setze ihn genau um (Sprache, Stil, Länge, Inhalt). Gib nur den Antworttext zurück, sonst nichts.")
     prompt = ""
     if verlauf:
