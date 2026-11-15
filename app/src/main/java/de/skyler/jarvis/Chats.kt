@@ -231,7 +231,17 @@ object Chats {
         }
     }
 
-    fun reply(ctx: Context, key: String, chat: String, text: String): Boolean {
+    /** Wie Skyler schreibt: ohne Punkt, Komma, Doppelpunkt, Gedankenstrich (12:30, 2,5 und E-Mail bleiben). */
+    fun waStyle(t0: String): String {
+        var t = t0.trim().trim('"', '„', '“')
+        t = t.replace(Regex("\\s+[–—-]+\\s+"), " ").replace(Regex("[–—]"), " ")
+        t = t.replace(Regex("(?<!\\d)[.,;:](?!\\d)"), " ").replace(Regex("(?<=\\d)[.,;:](?=\\s|$)"), " ")
+        t = t.replace(Regex("\\.{2,}|…"), " ").replace(Regex("[ \\t]{2,}"), " ").replace(Regex(" +([?!])"), "$1")
+        return t.trim()
+    }
+
+    fun reply(ctx: Context, key: String, chat: String, text0: String): Boolean {
+        val text = waStyle(text0)
         val r = synchronized(repliers) { repliers[norm(key)] ?: repliers[norm(chat)] } ?: return false
         try { hist(ctx, norm(key).ifBlank { norm(chat) }, "ich", text, System.currentTimeMillis()) } catch (_: Exception) {}
         return try {
