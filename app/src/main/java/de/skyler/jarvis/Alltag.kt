@@ -1126,13 +1126,17 @@ object Alltag {
             (if (b.destStop.isNotBlank()) " bis ${b.destStop}" else "") + ", dann ${b.bike2} Min. mit dem Rad – ${if (dest.isNotBlank()) "bei $dest" else "da"} um ${clock(b.arr)}. ${Route.bikeRule(b.rideDep)}"
     else "Geh um ${clock(b.dep)} los, ${b.line} um ${clock(b.rideDep)} ab ${b.stop}, an um ${clock(b.arr)}."
 
+    private fun installed(ctx: Context, pkg: String) = try { ctx.packageManager.getPackageInfo(pkg, 0); true } catch (_: Exception) { false }
+
     private fun ticketInfo(ctx: Context, b: Route.Trip, o: JSONObject): String {
         val art = prefs(ctx).getString("ticket_art", "erwachsen") ?: "erwachsen"
         o.put("rad", b.rad).put("bike1", b.bike1).put("bike2", b.bike2).put("dest_stop", b.destStop)
         if (art == "abo") { o.put("ticket", "Dein Abo gilt"); return " Dein Abo gilt." }
         val price = if (b.price > 0) " für ${"%.2f".format(Locale.GERMANY, b.price)} €" else ""
         o.put("ticket", b.ticket.trim().ifBlank { "EinzelTicket (Preis siehst du in der App)" }).put("price", b.price)
-        val app = prefs(ctx).getString("ticket_app", "vvs") ?: "vvs"
+        if (!prefs(ctx).getBoolean("ticket_app_v2", false)) prefs(ctx).edit().putString("ticket_app", "auto").putBoolean("ticket_app_v2", true).apply()
+        var app = prefs(ctx).getString("ticket_app", "auto") ?: "auto"
+        if (app == "auto") app = if (installed(ctx, "de.hafas.android.db")) "db" else "vvs"   // DB Navigator öffnet die Verbindung mit Ticket direkt
         if (app == "db") o.put("buy_app", "DB Navigator").put("buy", "https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=" + Uri.encode(b.stop) + "&zo=" + Uri.encode(b.destStop.ifBlank { o.optString("ziel_name") }) +
             "&kl=2&hd=" + Uri.encode(SimpleDateFormat("yyyy-MM-dd'T'HH:mm:00", de).format(Date(b.rideDep))) + "&hza=D")
         else o.put("buy_app", "VVS Mobil").put("buy", "app:com.mentz.vvsmobile")

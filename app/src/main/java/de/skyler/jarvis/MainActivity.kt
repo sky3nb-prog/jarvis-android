@@ -627,11 +627,11 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
-        fun getBahn(): String = JSONObject().put("art", prefs.getString("bahn_art", "rad_bahn")).put("app", prefs.getString("ticket_app", "vvs")).toString()
+        fun getBahn(): String = JSONObject().put("art", prefs.getString("bahn_art", "rad_bahn")).put("app", (if (!prefs.getBoolean("ticket_app_v2", false)) { prefs.edit().putString("ticket_app", "auto").putBoolean("ticket_app_v2", true).apply(); "auto" } else prefs.getString("ticket_app", "auto"))).toString()
 
         @JavascriptInterface
         fun setBahn(art: String, app: String, ticket: String) {
-            prefs.edit().putString("bahn_art", art.ifBlank { "rad_bahn" }).putString("ticket_app", app.ifBlank { "vvs" })
+            prefs.edit().putString("bahn_art", art.ifBlank { "rad_bahn" }).putString("ticket_app", app.ifBlank { "auto" }).putBoolean("ticket_app_v2", true)
                 .putString("ticket_art", ticket.ifBlank { "erwachsen" }).apply()
             Alltag.syncBahn(this@MainActivity)
         }
@@ -743,6 +743,9 @@ class MainActivity : ComponentActivity() {
                 try { startActivity(i ?: Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg"))) }
                 catch (_: Exception) { try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))) } catch (_: Exception) {} }
                 return@runOnUiThread
+            }
+            if (url.startsWith("https://www.bahn.de/buchung")) {   // Verbindung mit Ticket direkt im DB Navigator öffnen
+                try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage("de.hafas.android.db")); return@runOnUiThread } catch (_: Exception) {}
             }
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) {}
         }

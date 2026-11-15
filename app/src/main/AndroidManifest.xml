@@ -52,6 +52,7 @@
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
         <package android:name="com.mentz.vvsmobile" />
+        <package android:name="de.hafas.android.db" />
         <package android:name="com.mdv.VVSMobil" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
