@@ -568,6 +568,12 @@ def handle_fixed(text: str):
     if intent:
         return request_power(intent)
 
+    # Gaming-Rückblick
+    import pc_gaming
+    r = pc_gaming.handle(t)
+    if r:
+        return r
+
     # Ideen-Sammler
     import pc_ideen
     r = pc_ideen.handle(t)

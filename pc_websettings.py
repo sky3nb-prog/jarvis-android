@@ -16,7 +16,7 @@ import time
 import pc_settings
 
 # Felder vom Typ "secret": Schlüssel in der Seite -> gespeichertes Feld
-SECRETS = {"eleven_key": "eleven_key_enc", "groq_key": "groq_key_enc", "telegram_token": "telegram_token_enc"}
+SECRETS = {"steam_api_key": "steam_api_key_enc", "eleven_key": "eleven_key_enc", "groq_key": "groq_key_enc", "telegram_token": "telegram_token_enc"}
 LISTS = {"lage_places": 8, "themen_selbst": 12, "flug_places": 6, "discord_channels": 30}
 
 
@@ -51,7 +51,7 @@ def _fields() -> set:
         import re
         try:
             src = open(os.path.abspath(__file__), encoding="utf-8").read()
-            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"stundenplan_pc", "schulkal_pc", "ideen_pc"}
+            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"stundenplan_pc", "schulkal_pc", "ideen_pc", "steam_api_key"}
         except Exception:
             _shown = set()
     return _shown
@@ -158,6 +158,9 @@ def schema(s: dict) -> dict:
                  rng("voice_pitch", "Tonhöhe", -10, 10),
                  rng("voice_rate", "Sprechtempo", -10, 10),
                  btn("test_voice", "▶ Stimme testen")),
+            card("Gaming-Rückblick",
+                 note("Jarvis merkt sich, was du wie lange zockst, und sagt dir sonntags um 19 Uhr deinen Wochenrückblick (oder auf Frage: „Gaming-Rückblick“)."),
+                 sec("steam_api_key", "Steam-Schlüssel (freiwillig, für Erfolge)", "Holst du dir selbst auf steamcommunity.com/dev/apikey – nur dann kann er deine neuen Erfolge nennen.")),
             card("Discord & Clips",
                  sw("discord_hoerbar", "Jarvis in Discord hörbar", "Spielt seine Stimme zusätzlich auf dein Discord-Mikro – Freunde hören ihn, und er ist in Discord-Clips mit drauf."),
                  sel("discord_device", "Zweites Gerät", [["– aus –", ""]] + outs[1:] if outs else [["– aus –", ""]],
