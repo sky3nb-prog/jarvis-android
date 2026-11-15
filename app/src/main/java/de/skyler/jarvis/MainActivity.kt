@@ -113,10 +113,12 @@ class MainActivity : ComponentActivity() {
             }
         }
         pendingFeed = intent?.getStringExtra("feed")
+        if (intent?.getBooleanExtra("talk", false) == true) pendingWidgetTalk = true
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
                 pageReady = true
                 pendingFeed?.let { id -> pendingFeed = null; send("feed_open", JSONObject().put("id", id)) }
+                if (pendingWidgetTalk) { pendingWidgetTalk = false; web.postDelayed({ send("widget_talk", JSONObject()) }, 900) }
             }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url
@@ -149,7 +151,9 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         showOverLock(intent)
         intent.getStringExtra("feed")?.let { id -> if (pageReady) send("feed_open", JSONObject().put("id", id)) else pendingFeed = id }
+        if (intent.getBooleanExtra("talk", false)) { if (pageReady) send("widget_talk", JSONObject()) else pendingWidgetTalk = true }
     }
+    @Volatile private var pendingWidgetTalk = false
 
     /** Vom Weckwort geöffnet: über dem Sperrbildschirm zeigen und Bildschirm anschalten (nur solange Jarvis offen ist). */
     private fun showOverLock(i: Intent?) {

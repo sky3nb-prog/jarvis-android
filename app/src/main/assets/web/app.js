@@ -216,6 +216,7 @@
   }));
   // Modi-Raster (Fokus, Gaming, Chill …) – gleicher Look wie am PC
   window.JModiToast = (t) => toast(t);
+  { const pe = window.jarvis && window.jarvis.onEvent; if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "widget_talk") { try { if (window.show) show("fokus"); } catch (e) {} setTimeout(() => { const b = $("callbtn"); if (b) b.click(); }, 250); return; } return pe && pe.call(window.jarvis, type, data); }; }
   ["mdbtn-f", "mdbtn-i"].forEach((id) => { const e = $(id); if (e) e.addEventListener("click", () => { try { window.JModi.update({ mode: A.getModus() }); } catch (x) {} window.JModi && window.JModi.open(); }); });
   try { window.JModi && window.JModi.update({ mode: A.getModus() }); } catch (e) {}
   // Neue Einstellungen: kleiner roter Punkt am Zahnrad, am Bereich und an der neuen Einstellung selbst,

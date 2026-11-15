@@ -40,6 +40,7 @@ class MediaWatch : NotificationListenerService() {
     override fun onNotificationPosted(sbn: android.service.notification.StatusBarNotification?) {
         if (sbn != null) try { Chats.onPosted(this, sbn) } catch (_: Exception) {}
         if (sbn != null) try { Schule.onPosted(this, sbn) } catch (_: Exception) {}
+        if (sbn != null) try { Pakete.onPosted(this, sbn) { t -> Thread { Melden.deliver(this, "Paket", t) }.start() } } catch (_: Exception) {}
     }
 
     override fun onNotificationRemoved(sbn: android.service.notification.StatusBarNotification?, rankingMap: RankingMap?, reason: Int) {

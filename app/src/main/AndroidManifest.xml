@@ -123,6 +123,12 @@
             </intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/screen_service" />
         </service>
+        <receiver android:name=".JarvisWidget" android:exported="true" android:label="Jarvis">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/jarvis_widget_info" />
+        </receiver>
         <receiver android:name=".ButlerReceiver" android:exported="false" />
         <receiver android:name=".AlltagReceiver" android:exported="false" />
         <receiver android:name=".RemindReceiver" android:exported="false" />
