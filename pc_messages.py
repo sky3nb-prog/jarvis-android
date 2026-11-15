@@ -72,6 +72,15 @@ def polish(text: str) -> str:
     return text
 
 
+def _stil_hint() -> str:
+    try:
+        import pc_nachrichten
+        ex = pc_nachrichten._stil_load()[-8:]
+        return ("So schreibt er wirklich (Länge, Ton, Groß/klein, Emojis übernehmen): " + " | ".join(ex)) if ex else ""
+    except Exception:
+        return ""
+
+
 def _rephrase(text: str, to: str, as_jarvis: bool) -> str:
     """Aus indirekter Rede („dass er heute anrufen soll“) eine richtige Nachricht machen."""
     try:
@@ -80,7 +89,8 @@ def _rephrase(text: str, to: str, as_jarvis: bool) -> str:
             return text
         who = ("Die Nachricht schreibt Jarvis, der Assistent des Nutzers Skyler, und spricht über Skyler in der dritten Person "
                "(z. B. „Skyler bittet dich, …“). Beginne NICHT mit „Hier ist Jarvis“.") if as_jarvis else \
-              "Die Nachricht ist in der Ich-Form des Nutzers, locker, wie man an Familie und Freunde schreibt."
+              ("Die Nachricht ist in der Ich-Form des Nutzers, locker, wie man an Familie und Freunde schreibt, OHNE Punkt, Komma und Strich. "
+               + _stil_hint())
         system = ("Der Nutzer hat in indirekter Rede gesagt, was in einer WhatsApp an " + to + " stehen soll. Mach daraus die fertige, "
                   "kurze Nachricht in direkter Rede (Empfänger mit du ansprechen). " + who +
                   " Nichts hinzuerfinden. Gib NUR den Nachrichtentext zurück, ohne Anführungszeichen.")
@@ -286,6 +296,9 @@ def start(app: str, to: str, text: str) -> str:
     global PENDING
     label = "WhatsApp" if app == "whatsapp" else "Discord"
     text = polish(text)
+    if app == "whatsapp" and not text.lower().startswith(("hier ist jarvis", "skyler")):
+        import pc_nachrichten
+        text = pc_nachrichten.wa_style(text)   # wie er schreibt: ohne Punkt, Komma, Strich
     if CONFIRM:
         PENDING = (app, to, text, time.time() + 25)
         return f"Ich schreibe {to} auf {label}: {text}. Soll ich das abschicken?"

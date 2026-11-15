@@ -232,9 +232,32 @@ def _trim_cache(folder: str, keep: int = 150):
 
 
 def _edge_file(text: str, voice: str, pitch: int, rate: int):
-    """Erzeugt eine mp3 – bis zu 3 Versuche ("No audio was received" kommt bei edge-tts ab und zu vor)."""
+    """Erzeugt eine mp3. Antwortet der Dienst nicht in 2,5 s, läuft parallel eine zweite Anfrage – die schnellere gewinnt.
+    Danach bis zu 2 weitere Versuche ("No audio was received" kommt bei edge-tts ab und zu vor)."""
+    from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+    ex = ThreadPoolExecutor(max_workers=2)
+    try:
+        f1 = ex.submit(_edge_file_once, text, voice, pitch, rate)
+        done, _ = wait([f1], timeout=2.5)
+        futs = [f1] if done else [f1, ex.submit(_edge_file_once, text, voice, pitch, rate)]
+        pending = set(futs)
+        while pending:
+            done, pending = wait(pending, timeout=12, return_when=FIRST_COMPLETED)
+            if not done:
+                break
+            for f in done:
+                try:
+                    p = f.result()
+                    if p:
+                        return p
+                except ImportError:
+                    raise
+                except Exception:
+                    pass
+    finally:
+        ex.shutdown(wait=False)
     last = None
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             p = _edge_file_once(text, voice, pitch, rate)
             if p:
@@ -261,15 +284,26 @@ def _edge_file_once(text: str, voice: str, pitch: int, rate: int):
     if os.path.exists(path) and os.path.getsize(path) > 500:
         return path
 
+    tmp = path + f".{threading.get_ident()}.part"
+
     async def generate():
         try:
             communicate = edge_tts.Communicate(text, voice, rate=f"{int(rate) * 5:+d}%", pitch=f"{int(pitch) * 3:+d}Hz",
-                                               connect_timeout=5, receive_timeout=20)
+                                               connect_timeout=3, receive_timeout=5)
         except TypeError:  # ältere edge-tts-Version
             communicate = edge_tts.Communicate(text, voice, rate=f"{int(rate) * 5:+d}%", pitch=f"{int(pitch) * 3:+d}Hz")
-        await communicate.save(path)
+        await asyncio.wait_for(communicate.save(tmp), timeout=6 + len(text) / 40)   # hängt der Dienst, schnell neu versuchen
 
-    asyncio.run(generate())
+    try:
+        asyncio.run(generate())
+        if os.path.exists(tmp) and os.path.getsize(tmp) > 500:
+            os.replace(tmp, path)
+    finally:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
     _trim_cache(folder)
     return path if os.path.exists(path) and os.path.getsize(path) > 500 else None
 
@@ -320,7 +354,7 @@ def _play_mp3_device(path: str, idx: int):
     _play_array(data, rate, idx, True)
 
 
-def _chunks(text: str, first_max: int = 70) -> list:
+def _chunks(text: str, first_max: int = 45) -> list:
     """Teilt den Text in Sätze. Der erste Teil ist kurz, damit das Sprechen schnell losgeht, der Rest wird währenddessen erzeugt."""
     parts = [p.strip() for p in re.split(r"(?<=[.!?:;])\s+|\n+", text.strip()) if p.strip()]
     out = []

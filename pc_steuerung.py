@@ -842,12 +842,16 @@ def _clean_history(history: list) -> list:
 
 def _call_ai(text: str) -> str:
     """Schickt Text + Verlauf an Gemini (bevorzugt) oder Claude und gibt die Rohantwort zurück."""
-    history = _clean_history(_HISTORY[-8:])
+    history = _clean_history(_HISTORY[-16:])
+    # Längeres Gespräch: was davor besprochen wurde, kurz mitgeben – damit er mitdenkt und den Faden behält
+    older = [h for h in _HISTORY[:-16] if h.get("role") == "user" and str(h.get("text") or "").strip()]
+    extra = ("\n\nWorüber ihr vorher in diesem Gespräch geredet habt (älteste zuerst): " + " | ".join(str(h["text"])[:140] for h in older[-12:]) +
+             ". Beziehe dich darauf, wenn es passt, und denk mit: Zusammenhänge erkennen, nachfragen, wenn etwas offen ist.") if older else ""
     if pc_ai.gemini_key() or pc_ai.groq_key():
         contents = [{"role": "model" if h["role"] == "assistant" else "user", "parts": [{"text": h["text"]}]}
                     for h in history]
         contents.append({"role": "user", "parts": [{"text": text}]})
-        return pc_ai.gemini_generate(contents, system_prompt(), json_mode=True, max_tokens=700, timeout=12, fast=True)
+        return pc_ai.gemini_generate(contents, system_prompt() + extra, json_mode=True, max_tokens=700, timeout=12, fast=True)
     import anthropic
 
     messages = [{"role": h["role"], "content": h["text"]} for h in history] + [{"role": "user", "content": text}]
@@ -879,7 +883,7 @@ def ask_ai(text: str) -> str:
             return "Dazu fällt mir keine passende Aktion ein."
         result = "\n".join(r for r in (run_action(a) for a in actions if isinstance(a, dict)) if r)
         _HISTORY.extend([{"role": "user", "text": text}, {"role": "assistant", "text": cleaned}])
-        del _HISTORY[:-12]
+        del _HISTORY[:-40]
         pc_memory.save_history(_HISTORY)  # bleibt auch nach einem Neustart erhalten
         return result or "Alles klar."
     except Exception as e:

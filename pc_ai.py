@@ -370,7 +370,36 @@ def gemini_generate(contents: list, system: str, key: str = None, json_mode: boo
     """Fragt Gemini. Ist Gemini aufgebraucht, überlastet oder nicht erreichbar, springt Groq ein (falls eingetragen).
     fast=True (Gespräche): zuerst Groq – antwortet meist in unter einer Sekunde –, Gemini nur als Ersatz."""
     global _gemini_pause_until
-    if fast and groq_key():
+    if fast and groq_key() and (key or gemini_key()) and time.time() >= _gemini_pause_until:
+        # Gespräch: Groq zuerst; ist es nach 1,5 s nicht da, fragt er Gemini parallel – die schnellere Antwort gewinnt
+        from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+        ex = ThreadPoolExecutor(max_workers=2)
+        try:
+            fg = ex.submit(_groq_generate, contents, system, json_mode, max_tokens, min(timeout, 10))
+            done, _ = wait([fg], timeout=1.5)
+            futs = {fg} if done else {fg, ex.submit(_gemini_generate, contents, system, key, json_mode, max_tokens, min(timeout, 12), prefer)}
+            last = None
+            while futs:
+                done, futs = wait(futs, timeout=14, return_when=FIRST_COMPLETED)
+                if not done:
+                    break
+                for f in done:
+                    try:
+                        out = f.result()
+                        if out and out.strip():
+                            return out
+                    except AIError as e:
+                        last = e
+                        if f is not fg and e.code in (0, 429, 500, 502, 503, 504):
+                            _gemini_pause_until = time.time() + 15 * 60
+            if fg.done() and not fg.cancelled() and fg.exception() is None and fg.result():
+                return fg.result()
+            if last and last.code == 401:
+                raise last
+            print("Groq/Gemini gleichzeitig: keine schnelle Antwort, versuche normal.")
+        finally:
+            ex.shutdown(wait=False)
+    elif fast and groq_key():
         try:
             return _groq_generate(contents, system, json_mode, max_tokens, min(timeout, 12))
         except AIError as e:

@@ -294,6 +294,20 @@ def _transcribe(m: dict) -> str:
     return ""
 
 
+def wa_style(text: str) -> str:
+    """Wie er schreibt: keine Punkte, Kommas, Strichpunkte, Doppelpunkte oder Gedankenstriche – ? ! und Emojis bleiben.
+    Uhrzeiten (12:30), Zahlen (2,5) und Bindestriche in Wörtern (E-Mail) bleiben."""
+    t = str(text or "").strip().strip('"„“')
+    t = re.sub(r"\s+[–—-]+\s+", " ", t)              # Gedankenstriche
+    t = re.sub(r"[–—]", " ", t)
+    t = re.sub(r"(?<!\d)[.,;:](?!\d)", " ", t)       # Satzzeichen, aber nicht in 12:30 oder 2,5
+    t = re.sub(r"(?<=\d)[.,;:](?=\s|$)", " ", t)     # "um 5." am Ende
+    t = re.sub(r"\.{2,}|…", " ", t)
+    t = re.sub(r"[ \t]{2,}", " ", t)
+    t = re.sub(r" +([?!])", r"\1", t)
+    return t.strip()
+
+
 def _stil_file() -> str:
     import os, sys
     base = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
@@ -342,6 +356,7 @@ def _draft(m: dict, wish: str = "") -> str:
             + ("Schreib GENAU in seinem Stil – Länge, Ton, Groß-/Kleinschreibung, Abkürzungen, Satzzeichen, Emojis wie in diesen echten "
                "Nachrichten von ihm: " + " | ".join(stil) + ". " if stil else "Wie ein Jugendlicher an Familie und Freunde, höchstens ein Emoji, meist 1 bis 2 Sätze. ")
             + (f"Was du über diese Person weißt (nutze es für Ton und Inhalt): {m.get('person')}. " if m.get("person") else "")
+            + "WICHTIG: Er schreibt OHNE Punkt, Komma, Doppelpunkt und Bindestrich/Gedankenstrich – höchstens ? oder !. "
             + "Wenn ein Wunsch angegeben ist, setze ihn genau um (Sprache, Stil, Länge, Inhalt). Gib nur den Antworttext zurück, sonst nichts.")
     prompt = ""
     if verlauf:
@@ -355,7 +370,7 @@ def _draft(m: dict, wish: str = "") -> str:
     try:
         out = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": prompt}]}],
                                     sys_, json_mode=False, max_tokens=300, timeout=15, fast=True)
-        return re.sub(r'^["„“]|["“”]$', "", (out or "").strip())
+        return wa_style(re.sub(r'^["„“]|["“”]$', "", (out or "").strip()))
     except Exception as e:
         print(f"Antwortvorschlag ging nicht: {e}")
         return ""
@@ -392,12 +407,13 @@ def _literal(text: str, m: dict) -> str:
         except Exception:
             pass
     stil_lernen(text)   # selbst diktiert = sein Stil
-    return text
+    return wa_style(text)
 
 
 def send(m: dict, text: str) -> str:
     """Antwort senden: zuerst übers Handy (Benachrichtigung, nichts geht auf), sonst WhatsApp am PC."""
     import pc_handy
+    text = wa_style(text)
     if pc_handy.paired() and m.get("key"):
         r = pc_handy.ask("wa_reply", wait=20, key=m.get("key"), chat=m.get("chat"), text=text)
         if r and r.get("ok"):

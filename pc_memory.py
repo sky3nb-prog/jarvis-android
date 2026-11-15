@@ -205,7 +205,7 @@ def load_history() -> list:
 def save_history(history: list):
     with _LOCK:
         data = _load()
-        data["history"] = history[-12:]
+        data["history"] = history[-40:]
         _save(data)
 
 
