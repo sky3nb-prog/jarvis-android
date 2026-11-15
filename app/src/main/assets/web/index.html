@@ -142,83 +142,32 @@
   <div class="modal" id="settings">
     <div class="sheet">
       <div class="shd"><div class="sback" id="set-cancel">‹</div><div class="sttl">EINSTELLUNGEN</div></div>
-      <div class="stabs" id="stabs"><span class="on" data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="stimme">Stimme</span><span data-p="lage">Lage</span><span data-p="wege">Wege</span><span data-p="leute">Leute</span><span data-p="alltag">Alltag</span><span data-p="fern">Fern</span><span data-p="fit">Gesundheit</span><span data-p="sys">System</span><span data-p="schrank">Schrank</span><span data-p="anz">Anzeige</span></div>
+      <div class="stabs" id="stabs"><span class="on" data-p="morgen">Wecker</span><span data-p="schule">Schule</span><span data-p="wege">Orte</span><span data-p="unterwegs">Unterwegs</span><span data-p="schrank">Schrank</span><span data-p="leute">Leute</span><span data-p="fit">Gesundheit</span><span data-p="allg">Allgemein</span><span data-p="hoer">Zuhören</span><span data-p="anz">Anzeige</span><span data-p="sys">System</span><span data-p="fern">PC</span><span data-p="lage">Lage</span></div>
       <div class="spanes">
       <div class="spane on" id="sp-home">
-        <div class="sgrp">JARVIS</div>
-        <div class="slist">
-          <div class="sitem" data-go="allg"><i style="background:#3a2608">⚙️</i><div><b>Allgemein</b><small>Name, Kopplung mit dem PC, Schlüssel, Standort</small></div><span>›</span></div>
-          <div class="sitem" data-go="hoer"><i style="background:#0b2a3c">🎙️</i><div><b>Zuhören</b><small>Aktivierungswort, im Hintergrund</small></div><span>›</span></div>
-          <div class="sitem" data-go="stimme"><i style="background:#1f1430">🔊</i><div><b>Stimme</b><small>Stimme, Lautstärke, Online-Stimme</small></div><span>›</span></div>
-          <div class="sitem" data-go="sys"><i style="background:#0b2a22">●</i><div><b>Systemstatus</b><small id="sys-sub">Läuft alles? Grüne und rote Punkte</small></div><span>›</span></div>
-          <div class="sitem" data-go="anz"><i style="background:#13202a">◐</i><div><b>Anzeige</b><small>Strang, Leuchtrand, Berechtigungen</small></div><span>›</span></div>
-        </div>
         <div class="sgrp">DEIN ALLTAG</div>
         <div class="slist">
-          <div class="sitem" data-go="alltag"><i style="background:#2a1a05">⏰</i><div><b>Alltag & Wecker</b><small>Wecker, fester Weg, Termine, Briefings, Zuhause</small></div><span>›</span></div>
-          <div class="sitem" data-go="schrank"><i style="background:#1f1430">👔</i><div><b>Kleiderschrank</b><small>Deine Sachen, Temperaturen, drinnen/draußen, lernt dazu</small></div><span>›</span></div>
-          <div class="sitem" data-go="wege"><i style="background:#0b2a22">🗺️</i><div><b>Wege & Orte</b><small>Meine Orte, Feldwege, Routen schicken</small></div><span>›</span></div>
-          <div class="sitem" data-go="fit"><i style="background:#2a0f18">❤️</i><div><b>Gesundheit & Schlaf</b><small>Samsung Health, Kalorien, Aktivität, Schlaf, Tagesbilanz</small></div><span>›</span></div>
-          <div class="sitem" data-go="leute"><i style="background:#2a1306">👥</i><div><b>Leute & Anrufe</b><small>Wichtige Leute, Sprachnachrichten, Anruf-Butler</small></div><span>›</span></div>
+          <div class="sitem" data-go="morgen"><i style="background:#2a1a05">⏰</i><div><b>Wecker & Erinnerungen</b><small>Wecker, Briefings, Erinnerungen, Wochenrückblick</small></div><span>›</span></div>
+          <div class="sitem" data-go="schule"><i style="background:#2a2205">🏫</i><div><b>Schule</b><small>Stundenplan, Arbeiten, Hausaufgaben, Noten</small></div><span>›</span></div>
+          <div class="sitem" data-go="wege"><i style="background:#0b2a22">🗺️</i><div><b>Zuhause & Orte</b><small>Standort, Heim-WLAN, meine Orte und Wege</small></div><span>›</span></div>
+          <div class="sitem" data-go="unterwegs"><i style="background:#05202e">🚆</i><div><b>Unterwegs & Bahn</b><small>Rechtzeitig los, fester Weg, Termine, Ticket, Regen, Gassi</small></div><span>›</span></div>
+          <div class="sitem" data-go="schrank"><i style="background:#1f1430">👔</i><div><b>Kleiderschrank</b><small>Heute anziehen, deine Sachen, Temperaturen</small></div><span>›</span></div>
+          <div class="sitem" data-go="leute"><i style="background:#2a1306">👥</i><div><b>Leute & Anrufe</b><small>Wichtige Leute, wer ist wie, Anruf-Butler</small></div><span>›</span></div>
+          <div class="sitem" data-go="fit"><i style="background:#2a0f18">❤️</i><div><b>Gesundheit & Schlaf</b><small>Samsung Health, Aktivität, Schlaf, Tagesbilanz</small></div><span>›</span></div>
         </div>
-        <div class="sgrp">WELT & GERÄTE</div>
+        <div class="sgrp">JARVIS</div>
         <div class="slist">
+          <div class="sitem" data-go="allg"><i style="background:#3a2608">⚙️</i><div><b>Allgemein</b><small>Persönlichkeit, KI-Schlüssel, Kalender, Ideen</small></div><span>›</span></div>
+          <div class="sitem" data-go="hoer"><i style="background:#0b2a3c">🎙️</i><div><b>Zuhören & Stimme</b><small>Aktivierungswort, Stimme, wann er redet, Rechte</small></div><span>›</span></div>
+          <div class="sitem" data-go="anz"><i style="background:#13202a">◐</i><div><b>Anzeige</b><small>Strang, Startanimation, Leuchtrand</small></div><span>›</span></div>
+          <div class="sitem" data-go="sys"><i style="background:#0b2a22">●</i><div><b>Systemstatus</b><small id="sys-sub">Läuft alles? Grüne und rote Punkte</small></div><span>›</span></div>
+        </div>
+        <div class="sgrp">PC & WELT</div>
+        <div class="slist">
+          <div class="sitem" data-go="fern"><i style="background:#05202e">📡</i><div><b>PC & Fernzugriff</b><small>Kopplung, direkte Verbindung, PC-HUD von unterwegs</small></div><span>›</span></div>
           <div class="sitem" data-go="lage"><i style="background:#2a1a05">🌍</i><div><b>Lage</b><small>Orte für den Lagebericht, Globus</small></div><span>›</span></div>
-          <div class="sitem" data-go="fern"><i style="background:#05202e">📡</i><div><b>Fernzugriff</b><small>PC-HUD, Webcam, Handy-Kamera über Tailscale</small></div><span>›</span></div>
         </div>
         <div class="note" id="set-version2" style="text-align:center;margin:18px 0 0"></div>
-      </div>
-      <div class="spane" id="sp-allg">
-        <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
-          <div class="f"><label>Name des Assistenten</label><input id="set-name" type="text" placeholder="Jarvis"></div>
-          <div class="f"><label>Anrede</label><input id="set-anrede" type="text" placeholder="z. B. Sir oder dein Name (leer = keine)"></div>
-        </div>
-        <div class="sec" style="--c:#d7a8ff"><h3>KALENDER</h3>
-          <div class="f"><label>Neue Termine eintragen in</label><select id="set-cal"></select></div>
-          <div class="note">Google-Kalender erscheinen auch am PC und im Browser, Samsung-Kalender nur auf diesem Handy.</div>
-        </div>
-        <div class="sec" style="--c:#6effcd"><h3>STANDORT</h3>
-          <div class="f"><label>Wohnort</label><input id="set-city" type="text" placeholder="Leonberg"></div>
-          <div class="f"><label>Meine Adresse (für Routen, optional)</label><input id="set-addr" type="text" placeholder="Straße, Hausnummer"></div>
-          <div class="srow"><div>Aktuellen Standort des Handys nutzen<small>Dann weiß Jarvis, wo du gerade bist – „Was ist hier los?“</small></div><div class="sw" id="set-loc"></div></div>
-          <div class="note" id="set-locstate"></div>
-        </div>
-        <div class="sec"><h3>KI & SCHLÜSSEL</h3>
-          <div class="f"><label>Groq-Schlüssel (kostenlos, console.groq.com)</label><input id="set-key" type="password" placeholder="gsk_…  (leer lassen = nicht ändern)"></div>
-          <div class="f"><label>Gemini-Schlüssel für „Schau mal hier“ (kostenlos, aistudio.google.com)</label><input id="set-gkey" type="password" placeholder="leer lassen = nicht ändern"><div class="note" id="set-gstate"></div></div>
-          <div class="srow"><div>Bildschirm-Zugriff für „Schau mal hier“<small>Einmal in den Bedienungshilfen „Jarvis – Schau mal hier“ einschalten. Er schaut nur hin, wenn du es sagst.</small></div><div class="sbtn" id="set-screen">Einrichten</div></div>
-          <div class="note" id="set-version"></div>
-        </div>
-      </div>
-      <div class="spane" id="sp-hoer">
-        <div class="sec"><h3>AKTIVIERUNG</h3>
-          <div class="srow"><div>Im Hintergrund zuhören<small>Gleich wie der Schalter oben rechts</small></div><div class="sw" id="set-bg"></div></div>
-          <div class="f"><label>Aktivierungswort(e) – mehrere mit Komma trennen</label><input id="set-wake" type="text" placeholder="jarvis"></div>
-          <div class="f"><label>Wie genau muss ich das Wort sagen?</label>
-            <select id="set-level"><option value="0">Streng – nur ziemlich genau</option><option value="1">Normal – kleine Abweichungen okay</option><option value="2">Locker – auch nuschelig (öfter Fehlalarm)</option></select></div>
-          <div class="f"><label>Erkennung</label>
-            <select id="set-cloud"><option value="0">Sparsam – Handy hört vor, Groq prüft nur Treffer</option><option value="1">Genau – Groq prüft jeden kurzen Satz (mehr Daten)</option></select></div>
-        </div>
-        <div class="sec" style="--c:#6effcd"><h3>VERBINDUNGEN</h3>
-          <div class="f"><label>Kopplungscode vom PC (PC: Einstellungen → Handy-App)</label><input id="set-link" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off"></div>
-          <div class="note" id="set-linkstate"></div>
-        </div>
-        <div class="sec" style="--c:#ffd678"><h3>BERECHTIGUNGEN</h3>
-          <div class="srow"><div>Leuchtrand über anderen Apps</div><div class="sbtn" id="set-overlay">–</div></div>
-          <div class="srow"><div>Leuchtrand-Farben wie die offene App</div><div class="sbtn" id="set-usage">–</div></div>
-          <div class="srow"><div>Was ich schaue und höre<small id="set-mediastate"></small></div><div class="sbtn" id="set-media">–</div></div>
-          <div class="srow"><div>Akku nicht einschränken</div><div class="sbtn" id="set-battery">Erlauben</div></div>
-          <div class="note" id="set-status"></div>
-        </div>
-      </div>
-      <div class="spane" id="sp-stimme">
-        <div class="sec"><h3>STIMME</h3>
-          <div class="f"><label>Stimme beim Reden</label><select id="set-mode"><option value="free">Kostenlos (Handy-Stimme + Groq)</option><option value="auto">George (ElevenLabs) beim Gespräch-Knopf, sonst kostenlos</option></select></div>
-          <div class="f"><label>Handy-Stimme (kostenlose Variante)</label><select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select></div>
-          <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache → Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
-          <div class="f"><label>Lautstärke von Jarvis (eigene, unabhängig von der Musik)</label><input id="set-jvol" type="range" min="10" max="100" step="5"></div>
-          <div class="note">Tipp: Drück die Lautstärketasten, während er spricht – das merkt er sich als seine Lautstärke.</div>
-        </div>
       </div>
       <div class="spane" id="sp-lage">
         <div class="sec" style="--c:#ffa03c"><h3>WELTLAGE</h3>
@@ -233,18 +182,62 @@
           <div class="srow"><div>Ortsnamen auf der Karte</div><div class="sw" id="set-llabels"></div></div>
         </div>
       </div>
+      <div class="spane" id="sp-morgen">
+        <div class="sec" style="--c:#d7a8ff"><h3>WECKER</h3>
+          <div class="srow"><div>Wecker automatisch stellen<small>Jeden Abend ab 19 Uhr stellt Jarvis die Wecker für morgen in der Samsung Uhr. Steht morgen „Ferien“ oder „Feiertag“ im Kalender, lässt er es.</small></div><div class="sw" id="wk-an"></div></div>
+          <div class="note" style="margin:0 0 6px">Aufstehen um … – pro Tag. Leer = an dem Tag kein Wecker.</div>
+          <div class="wk-days" id="wk-days"></div>
+          <input id="wk-schule" type="hidden"><input id="wk-we" type="hidden">
+          <div class="f"><label>Wecker so viele Minuten vorher</label><input id="wk-vorher" type="text" placeholder="25, 20, 5"></div>
+          <div class="note" id="wk-info">–</div>
+        </div>
+        <div class="sec" style="--c:#d7a8ff"><h3>BRIEFINGS</h3>
+          <div class="srow"><div>Morgen-Briefing<small>10 Minuten vor deiner Aufsteh-Zeit als Benachrichtigung (ohne Aufsteh-Zeit: beim ersten Entsperren nach dem Wecker)</small></div><div class="sw" id="set-bmorgen"></div></div>
+          <div class="srow"><div>Tagesabschluss am Abend<small>Rückblick auf heute (mit Kalorien und Schlaf) + für morgen nur Aufstehen und Anziehen. Als Benachrichtigung am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-babend"></div></div>
+          <div class="f"><label>Tagesabschluss um</label><input id="set-babendzeit" type="time"></div>
+          <div class="srow"><div>Wetter</div><div class="sw" id="set-biwetter"></div></div>
+          <div class="srow"><div>Was anziehen</div><div class="sw" id="set-bianzieh"></div></div>
+          <div class="srow"><div>Termine</div><div class="sw" id="set-bitermine"></div></div>
+          <div class="srow"><div>Was mitnehmen</div><div class="sw" id="set-bimit"></div></div>
+          <div class="srow"><div>Was anziehen – Kleiderschrank<small>Deine Sachen mit Temperaturen, drinnen/draußen pro Ort, lernt dazu</small></div><div class="sbtn" id="go-schrank">Öffnen</div></div>
+          <textarea id="set-anzieh" rows="5" style="display:none"></textarea>
+        </div>
+        <div class="sec" style="--c:#ff9a8a"><h3>ERINNERUNGEN – NUR JARVIS</h3>
+          <div class="note" style="margin:0 0 6px">„Erinnere mich um 12:30 an Brot“ merkt sich Jarvis selbst (nicht im Kalender): auffällige Benachrichtigung mit Ton, „Erledigt“ und „In 15 Min. nochmal“, zuhause sagt er es laut, ohne Reaktion nach 5 Min. nochmal. „Morgen Brot holen“ ohne Uhrzeit: im Briefing, wenn du unterwegs bist, sonst wenn du heimkommst.</div>
+          <div class="srow"><div>Auch Kalender-Termine erinnern<small>Auch Termine von anderen (z. B. TimeTree) – genauso auffällig</small></div><div class="sw" id="set-termerin"></div></div>
+          <div class="f"><label>So viele Minuten vor Terminen</label><input id="set-termvor" type="number" min="0" max="180" placeholder="15"></div>
+          <div class="note" style="margin:0 0 4px">Damit nur Jarvis erinnert: Benachrichtigungen der Kalender-App und von TimeTree ausschalten.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div class="sbtn" data-calnotif="com.samsung.android.calendar">Samsung Kalender</div><div class="sbtn" data-calnotif="com.google.android.calendar">Google Kalender</div><div class="sbtn" data-calnotif="com.timetree.android">TimeTree</div></div>
+          <div id="rm-list"></div>
+        </div>
+        <div class="sec" style="--c:#ff9a8a"><h3>WOCHENRÜCKBLICK</h3>
+          <div class="srow"><div>Sonntags Wochenrückblick<small>Besuche bei Opa, Rad-Kilometer, Musik-Zeit, Termine nächste Woche. Karte am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-rueck"></div></div>
+          <div class="f"><label>Um</label><input id="set-rueckzeit" type="time"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-schule">
+        <div class="sec" data-neu="n81" style="--c:#ffd678"><h3>SCHULE – STUNDENPLAN</h3>
+          <div class="note" style="margin:0 0 6px">Zeiten stehen schon – tipp auf eine Stunde und trag das Fach ein. Trag unter Wege &amp; Orte „Schule: Adresse“ ein, dann weiß ich, wann du dort bist.</div>
+          <div class="sp-days" id="sp-days"></div>
+          <div id="sp-rows"></div>
+          <div class="srow"><div>Morgens wecken, wenn du noch liegst<small>Schultage: 10 Min. nach dem Aufstehen, 7:10 und spätestens 7:20 „Jetzt aber wirklich!“</small></div><div class="sw" id="set-bett"></div></div>
+        </div>
+        <div class="sec" data-neu="n82" style="--c:#ff7a5a"><h3>SCHULE – ARBEITEN &amp; HAUSAUFGABEN</h3>
+          <div class="note" style="margin:0 0 6px">Tipp auf einen Tag zum Eintragen. Was in schul.cloud reinkommt (Arbeiten, Tests, Hausaufgaben mit Datum), trage ich selbst ein. Geht auch per Sprache und am PC.</div>
+          <div id="sk-host"></div>
+        </div>
+      </div>
       <div class="spane" id="sp-wege">
-        <div class="sec" data-neu="n82" style="--c:#3cc8ff"><h3>BAHN &amp; TICKET (VVS)</h3>
-          <div class="f"><label>Wenn du Bahn fährst</label><select id="bahn-art">
-            <option value="rad_bahn">Rad + Bahn – mit dem Rad zum Bahnhof, nur Züge, Rad mit, vom Bahnhof mit dem Rad weiter</option>
-            <option value="bus_bahn">Bus und Bahn – zu Fuß zur Haltestelle, Busse erlaubt</option>
-            <option value="beide">Beides zeigen – Rad + Bahn, dazu Bus und Bahn als zweite Möglichkeit</option></select></div>
-          <div class="f"><label>Ticket</label><select id="set-ticket"><option value="erwachsen">Kein Abo – immer EinzelTicket kaufen</option><option value="kind">EinzelTicket Kind (bis 14)</option><option value="abo">Ich hab ein Abo (Deutschlandticket/Schülerabo)</option></select></div>
-          <div class="f"><label>Ticket kaufen in</label><select id="ticket-app"><option value="auto">Automatisch (DB Navigator mit Verbindung, sonst VVS Mobil)</option><option value="db">DB Navigator – Verbindung + Ticket direkt</option><option value="vvs">VVS Mobil (nur App öffnen)</option></select></div>
-          <div class="note">Fahrplan und Ticketpreis kommen vom VVS. „Ticket kaufen“ öffnet die VVS-App, bezahlen tust du dort selbst. Rad in S-Bahn/Regio: kostenlos, nur Mo–Fr 6–9 Uhr braucht es ein Kinderticket. Wird sofort gespeichert.</div>
-          <div class="f"><label>Bahn-Test – wohin?</label><input id="bahn-ziel" type="text" placeholder="leer = Oma und Opa · z. B. Ditzingen"></div>
-          <div class="srow"><div>Bahn-Test<small>Echte Verbindung ab jetzt, mit Ticket und „Ticket kaufen“ – kommt als Mitteilung</small></div><div class="sbtn" id="set-testbahn">Suchen</div></div>
-          <div class="srow"><div>Gelernte Stopps<small id="set-halte">Wie lange du beim Rewe, Bäcker usw. hältst</small></div><div class="sbtn" id="set-haltebtn">Zeigen</div></div>
+        <div class="sec" style="--c:#6effcd"><h3>ZUHAUSE & WEG</h3>
+          <div class="srow"><div>Standort „Immer erlauben“<small>Damit Jarvis merkt, wann du losfährst und ankommst. Bleibt auf dem Handy.</small></div><div class="sbtn" id="set-locall">Erlauben</div></div>
+          <div class="f"><label>Heim-WLAN</label><div style="display:flex;gap:8px"><input id="set-wlan" type="text" placeholder="Name deines WLANs" style="flex:1"><div class="sbtn" id="set-wlanget">Aktuelles</div></div></div>
+          <div class="srow"><div>PC herunterfahren, wenn ich weg bin<small>5 Minuten aus dem Haus: Hinweis mit „Abbrechen“, 2 Minuten später Musik aus, ETS2 speichern, Programme schließen, PC aus. Sitzt jemand dran, fragt er. Wieder da: „Willkommen zurück“ am PC.</small></div><div class="sw" id="set-wegauto"></div></div>
+        </div>
+        <div class="sec" style="--c:#6effcd"><h3>STANDORT</h3>
+          <div class="f"><label>Wohnort</label><input id="set-city" type="text" placeholder="Leonberg"></div>
+          <div class="f"><label>Meine Adresse (für Routen, optional)</label><input id="set-addr" type="text" placeholder="Straße, Hausnummer"></div>
+          <div class="srow"><div>Aktuellen Standort des Handys nutzen<small>Dann weiß Jarvis, wo du gerade bist – „Was ist hier los?“</small></div><div class="sw" id="set-loc"></div></div>
+          <div class="note" id="set-locstate"></div>
         </div>
         <div class="sec" style="--c:#6effcd"><h3>MEINE ORTE</h3>
           <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Name, Doppelpunkt, Adresse. Dann reicht „Ich will zu Opa“. Gilt auch am PC.</div>
@@ -259,77 +252,9 @@
           <div class="note">Am Handy öffnet sich WhatsApp mit fertiger Nachricht – du tippst nur auf Senden. Fragst du am PC, schickt der PC sie über WhatsApp am PC.</div>
         </div>
       </div>
-      <div class="spane" id="sp-leute">
-        <div class="sec" data-neu="n82" style="--c:#ffb43c"><h3>LEUTE – WER IST WIE?</h3>
-          <div class="note" style="margin:0 0 6px">Ich lerne aus euren WhatsApp-Nachrichten, worüber ihr schreibt, wie die Leute drauf sind und wie du mit ihnen schreibst – für bessere Antwortvorschläge und Geschenkideen zum Geburtstag. Trag Discord-Namen und Geburtstage ein, wenn sie fehlen. Bleibt auf deinem Handy.</div>
-          <div id="leute-list"></div>
-          <div class="srow"><div>Jetzt lernen<small>Sonst jeden Abend um 20 Uhr, bis zu 6 Chats</small></div><div class="sbtn" id="leute-learn">Lernen</div></div>
-        </div>
-        <div class="sec" style="--c:#6effcd"><h3>WICHTIGE LEUTE</h3>
-          <div class="f"><label>Namen wie in WhatsApp, mit Komma getrennt</label><input id="set-wichtig" type="text" placeholder="Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis"></div>
-          <div class="note">Schreiben sie dir, sagt Jarvis es am PC an – auch mitten im Spiel – und fragt, ob du antworten willst. Die Antwort geht über die WhatsApp-Benachrichtigung, WhatsApp geht nicht auf. Gilt auch am PC.</div>
-          <div class="srow"><div>Benachrichtigungszugriff<small>Damit Jarvis die WhatsApp-Benachrichtigungen lesen kann</small></div><div class="sbtn" id="set-media2">Erlauben</div></div>
-          <div class="srow"><div>Sprachnachrichten<small>„Zugriff auf alle Dateien“, nur um die Sprachnachrichten aus dem WhatsApp-Ordner zu lesen</small></div><div class="sbtn" id="set-files">Erlauben</div></div>
-        </div>
-        <div class="sec" style="--c:#ffd678"><h3>ANRUF-BUTLER</h3>
-          <div class="srow"><div>Anruf-Butler<small>„Nicht stören“ an: Anrufe aus deinen Kontakten wegdrücken und Bescheid geben. Sonst ein Knopf beim Klingeln. Unbekannte Nummern bleiben unberührt.</small></div><div class="sw" id="set-butler"></div></div>
-          <div class="f"><label>Absage-Text</label><input id="set-absage" type="text" placeholder="Kann gerade nicht, rufe später zurück."></div>
-          <div class="note">Läuft der PC, geht sie per WhatsApp am PC, sonst per SMS.</div>
-          <div class="srow"><div>Rechte für Anrufe und SMS</div><div class="sbtn" id="set-butlerok">Erlauben</div></div>
-        </div>
-      </div>
-      <div class="spane" id="sp-alltag">
-        <div class="sec" style="--c:#6effcd"><h3>ZUHAUSE & WEG</h3>
-          <div class="srow"><div>Standort „Immer erlauben“<small>Damit Jarvis merkt, wann du losfährst und ankommst. Bleibt auf dem Handy.</small></div><div class="sbtn" id="set-locall">Erlauben</div></div>
-          <div class="f"><label>Heim-WLAN</label><div style="display:flex;gap:8px"><input id="set-wlan" type="text" placeholder="Name deines WLANs" style="flex:1"><div class="sbtn" id="set-wlanget">Aktuelles</div></div></div>
-          <div class="srow"><div>PC herunterfahren, wenn ich weg bin<small>5 Minuten aus dem Haus: Hinweis mit „Abbrechen“, 2 Minuten später Musik aus, ETS2 speichern, Programme schließen, PC aus. Sitzt jemand dran, fragt er. Wieder da: „Willkommen zurück“ am PC.</small></div><div class="sw" id="set-wegauto"></div></div>
-        </div>
-        <div class="sec" data-neu="n82" style="--c:#3cc8ff"><h3>UNTERWEGS – REGEN</h3>
-          <div class="srow"><div>Regen-Warnung<small>Bist du unterwegs und es soll gleich regnen, sag ich dir rechtzeitig: „Jetzt heim, sonst wirst du nass.“ Aus Regenradar, mehreren Wettermodellen und wie lange du nach Hause brauchst.</small></div><div class="sw" id="set-regen"></div></div>
-        </div>
-        <div class="sec" data-neu="n80" style="--c:#3cc8ff"><h3>WANN DARF ICH REDEN?</h3>
-          <div class="note" style="margin:0 0 6px">Laut nur zuhause oder mit deinen Kopfhörern. Sonst Nachricht. „Nicht stören“ = immer nur Nachricht. In der Schulstunde hebe ich alles für die Pause auf.</div>
-          <div class="f"><label>Name deiner Kopfhörer (Teil reicht)</label><input id="kopf-name" type="text" placeholder="JBL Tune Beam"></div>
-          <div class="srow"><div>Jetzt gerade<small id="melden-info">Tippe auf Prüfen</small></div><div class="sbtn" id="melden-btn">Prüfen</div></div>
-        </div>
-        <div class="sec" data-neu="n81" style="--c:#ffd678"><h3>SCHULE – STUNDENPLAN</h3>
-          <div class="note" style="margin:0 0 6px">Zeiten stehen schon – tipp auf eine Stunde und trag das Fach ein. Trag unter Wege &amp; Orte „Schule: Adresse“ ein, dann weiß ich, wann du dort bist.</div>
-          <div class="sp-days" id="sp-days"></div>
-          <div id="sp-rows"></div>
-          <div class="srow"><div>Morgens wecken, wenn du noch liegst<small>Schultage: 10 Min. nach dem Aufstehen, 7:10 und spätestens 7:20 „Jetzt aber wirklich!“</small></div><div class="sw" id="set-bett"></div></div>
-        </div>
-        <div class="sec" data-neu="n82" style="--c:#ff7a5a"><h3>SCHULE – ARBEITEN &amp; HAUSAUFGABEN</h3>
-          <div class="note" style="margin:0 0 6px">Tipp auf einen Tag zum Eintragen. Was in schul.cloud reinkommt (Arbeiten, Tests, Hausaufgaben mit Datum), trage ich selbst ein. Geht auch per Sprache und am PC.</div>
-          <div id="sk-host"></div>
-        </div>
-        <div class="sec" data-neu="n82" style="--c:#d7a8ff"><h3>MEINE IDEEN</h3>
-          <div class="note" style="margin:0 0 6px">Sag „Jarvis, ich hab eine Idee: …“ – landet hier und am PC.</div>
-          <div id="ideen-list"></div>
-        </div>
-        <div class="sec" data-neu="n80" style="--c:#6effcd"><h3>GASSI – HUNDERUNDE</h3>
-          <div class="srow"><div>Hunderunden erkennen<small>Von zuhause los, Gehtempo, Runde in der Nähe, wieder heim – wird gemerkt (Dauer, Strecke)</small></div><div class="sw" id="gs-an"></div></div>
-          <div class="srow"><div>SMS kurz bevor du zurück bist<small>Ca. 1 Minute vorher (wenn du wieder nah am Haus bist) – zum Ausprobieren ein-/ausschalten</small></div><div class="sw" id="gs-sms"></div></div>
-          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>SMS an</label><input id="gs-wer" type="text" placeholder="Mama"></div>
-            <div class="f" style="flex:1"><label>Text</label><input id="gs-text" type="text" placeholder="Bin gleich da."></div></div>
-          <div class="srow"><div>Test-SMS<small>Schickt jetzt „Test von Jarvis: Bin gleich da.“ an die Person oben</small></div><div class="sbtn" id="gs-test">Senden</div></div>
-          <div class="srow"><div>Hunderunden<small id="gs-info" style="white-space:pre-line">Was er gerade sieht und warum (noch) keine SMS</small></div><div class="sbtn" id="gs-infobtn">Zeigen</div></div>
-          <div class="srow"><div>Protokoll an den PC<small>Standorte der Runde – damit Claude nachsehen kann (geht auch automatisch nach jeder Runde)</small></div><div class="sbtn" id="gs-share">Schicken</div></div>
-        </div>
-        <div class="sec" style="--c:#ff9a8a"><h3>ERINNERUNGEN – NUR JARVIS</h3>
-          <div class="note" style="margin:0 0 6px">„Erinnere mich um 12:30 an Brot“ merkt sich Jarvis selbst (nicht im Kalender): auffällige Benachrichtigung mit Ton, „Erledigt“ und „In 15 Min. nochmal“, zuhause sagt er es laut, ohne Reaktion nach 5 Min. nochmal. „Morgen Brot holen“ ohne Uhrzeit: im Briefing, wenn du unterwegs bist, sonst wenn du heimkommst.</div>
-          <div class="srow"><div>Auch Kalender-Termine erinnern<small>Auch Termine von anderen (z. B. TimeTree) – genauso auffällig</small></div><div class="sw" id="set-termerin"></div></div>
-          <div class="f"><label>So viele Minuten vor Terminen</label><input id="set-termvor" type="number" min="0" max="180" placeholder="15"></div>
-          <div class="note" style="margin:0 0 4px">Damit nur Jarvis erinnert: Benachrichtigungen der Kalender-App und von TimeTree ausschalten.</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div class="sbtn" data-calnotif="com.samsung.android.calendar">Samsung Kalender</div><div class="sbtn" data-calnotif="com.google.android.calendar">Google Kalender</div><div class="sbtn" data-calnotif="com.timetree.android">TimeTree</div></div>
-          <div id="rm-list"></div>
-        </div>
-        <div class="sec" style="--c:#d7a8ff"><h3>WECKER</h3>
-          <div class="srow"><div>Wecker automatisch stellen<small>Jeden Abend ab 19 Uhr stellt Jarvis die Wecker für morgen in der Samsung Uhr. Steht morgen „Ferien“ oder „Feiertag“ im Kalender, lässt er es.</small></div><div class="sw" id="wk-an"></div></div>
-          <div class="note" style="margin:0 0 6px">Aufstehen um … – pro Tag. Leer = an dem Tag kein Wecker.</div>
-          <div class="wk-days" id="wk-days"></div>
-          <input id="wk-schule" type="hidden"><input id="wk-we" type="hidden">
-          <div class="f"><label>Wecker so viele Minuten vorher</label><input id="wk-vorher" type="text" placeholder="25, 20, 5"></div>
-          <div class="note" id="wk-info">–</div>
+      <div class="spane" id="sp-unterwegs">
+        <div class="sec" style="--c:#ffd678"><h3>RECHTZEITIG LOS</h3>
+          <div class="srow"><div>Erinnern, wann ich los muss<small>Termine mit Ort: „Fertig machen“ und „Jetzt los“. Regen (DWD, ECMWF, GFS) → Bahn, sonst Rad. Lernt deine echten Zeiten.</small></div><div class="sw" id="set-losfahren"></div></div>
         </div>
         <div class="sec" style="--c:#ffd678"><h3>FESTER WEG (JEDE WOCHE)</h3>
           <div class="srow"><div>An<small>Briefing 5 Minuten vor dem Losfahren, SMS kurz vor der Ankunft, Heimweg passend zur Zeit „zuhause sein“</small></div><div class="sw" id="fw-an"></div></div>
@@ -358,32 +283,126 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="sbtn" id="em-add">Eintragen</div><div class="sbtn" id="em-aus">An dem Tag fällt der feste Weg aus</div></div>
           <div id="em-list" style="margin-top:8px"></div>
         </div>
-        <div class="sec" style="--c:#ffd678"><h3>RECHTZEITIG LOS</h3>
-          <div class="srow"><div>Erinnern, wann ich los muss<small>Termine mit Ort: „Fertig machen“ und „Jetzt los“. Regen (DWD, ECMWF, GFS) → Bahn, sonst Rad. Lernt deine echten Zeiten.</small></div><div class="sw" id="set-losfahren"></div></div>
+        <div class="sec" data-neu="n82" style="--c:#3cc8ff"><h3>BAHN &amp; TICKET (VVS)</h3>
+          <div class="f"><label>Wenn du Bahn fährst</label><select id="bahn-art">
+            <option value="rad_bahn">Rad + Bahn – mit dem Rad zum Bahnhof, nur Züge, Rad mit, vom Bahnhof mit dem Rad weiter</option>
+            <option value="bus_bahn">Bus und Bahn – zu Fuß zur Haltestelle, Busse erlaubt</option>
+            <option value="beide">Beides zeigen – Rad + Bahn, dazu Bus und Bahn als zweite Möglichkeit</option></select></div>
+          <div class="f"><label>Ticket</label><select id="set-ticket"><option value="erwachsen">Kein Abo – immer EinzelTicket kaufen</option><option value="kind">EinzelTicket Kind (bis 14)</option><option value="abo">Ich hab ein Abo (Deutschlandticket/Schülerabo)</option></select></div>
+          <div class="f"><label>Ticket kaufen in</label><select id="ticket-app"><option value="auto">Automatisch (DB Navigator mit Verbindung, sonst VVS Mobil)</option><option value="db">DB Navigator – Verbindung + Ticket direkt</option><option value="vvs">VVS Mobil (nur App öffnen)</option></select></div>
+          <div class="note">Fahrplan und Ticketpreis kommen vom VVS. „Ticket kaufen“ öffnet die VVS-App, bezahlen tust du dort selbst. Rad in S-Bahn/Regio: kostenlos, nur Mo–Fr 6–9 Uhr braucht es ein Kinderticket. Wird sofort gespeichert.</div>
+          <div class="f"><label>Bahn-Test – wohin?</label><input id="bahn-ziel" type="text" placeholder="leer = Oma und Opa · z. B. Ditzingen"></div>
+          <div class="srow"><div>Bahn-Test<small>Echte Verbindung ab jetzt, mit Ticket und „Ticket kaufen“ – kommt als Mitteilung</small></div><div class="sbtn" id="set-testbahn">Suchen</div></div>
+          <div class="srow"><div>Gelernte Stopps<small id="set-halte">Wie lange du beim Rewe, Bäcker usw. hältst</small></div><div class="sbtn" id="set-haltebtn">Zeigen</div></div>
+        </div>
+        <div class="sec" data-neu="n82" style="--c:#3cc8ff"><h3>UNTERWEGS – REGEN</h3>
+          <div class="srow"><div>Regen-Warnung<small>Bist du unterwegs und es soll gleich regnen, sag ich dir rechtzeitig: „Jetzt heim, sonst wirst du nass.“ Aus Regenradar, mehreren Wettermodellen und wie lange du nach Hause brauchst.</small></div><div class="sw" id="set-regen"></div></div>
         </div>
         <div class="sec" style="--c:#3cc8ff"><h3>ANKUNFT ANKÜNDIGEN</h3>
           <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Ort aus „Meine Orte“, Doppelpunkt, wer Bescheid bekommt. Etwa 5 Minuten vorher geht eine SMS raus: „Hier ist Jarvis. Skyler ist um … da“.</div>
           <div class="f"><textarea id="set-ankunft" rows="2" placeholder="Opa: Thomas"></textarea></div>
         </div>
-        <div class="sec" style="--c:#d7a8ff"><h3>BRIEFINGS</h3>
-          <div class="srow"><div>Morgen-Briefing<small>10 Minuten vor deiner Aufsteh-Zeit als Benachrichtigung (ohne Aufsteh-Zeit: beim ersten Entsperren nach dem Wecker)</small></div><div class="sw" id="set-bmorgen"></div></div>
-          <div class="srow"><div>Tagesabschluss am Abend<small>Rückblick auf heute (mit Kalorien und Schlaf) + für morgen nur Aufstehen und Anziehen. Als Benachrichtigung am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-babend"></div></div>
-          <div class="f"><label>Tagesabschluss um</label><input id="set-babendzeit" type="time"></div>
-          <div class="srow"><div>Wetter</div><div class="sw" id="set-biwetter"></div></div>
-          <div class="srow"><div>Was anziehen</div><div class="sw" id="set-bianzieh"></div></div>
-          <div class="srow"><div>Termine</div><div class="sw" id="set-bitermine"></div></div>
-          <div class="srow"><div>Was mitnehmen</div><div class="sw" id="set-bimit"></div></div>
-          <div class="srow"><div>Was anziehen – Kleiderschrank<small>Deine Sachen mit Temperaturen, drinnen/draußen pro Ort, lernt dazu</small></div><div class="sbtn" id="go-schrank">Öffnen</div></div>
-          <textarea id="set-anzieh" rows="5" style="display:none"></textarea>
+        <div class="sec" data-neu="n80" style="--c:#6effcd"><h3>GASSI – HUNDERUNDE</h3>
+          <div class="srow"><div>Hunderunden erkennen<small>Von zuhause los, Gehtempo, Runde in der Nähe, wieder heim – wird gemerkt (Dauer, Strecke)</small></div><div class="sw" id="gs-an"></div></div>
+          <div class="srow"><div>SMS kurz bevor du zurück bist<small>Ca. 1 Minute vorher (wenn du wieder nah am Haus bist) – zum Ausprobieren ein-/ausschalten</small></div><div class="sw" id="gs-sms"></div></div>
+          <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>SMS an</label><input id="gs-wer" type="text" placeholder="Mama"></div>
+            <div class="f" style="flex:1"><label>Text</label><input id="gs-text" type="text" placeholder="Bin gleich da."></div></div>
+          <div class="srow"><div>Test-SMS<small>Schickt jetzt „Test von Jarvis: Bin gleich da.“ an die Person oben</small></div><div class="sbtn" id="gs-test">Senden</div></div>
+          <div class="srow"><div>Hunderunden<small id="gs-info" style="white-space:pre-line">Was er gerade sieht und warum (noch) keine SMS</small></div><div class="sbtn" id="gs-infobtn">Zeigen</div></div>
+          <div class="srow"><div>Protokoll an den PC<small>Standorte der Runde – damit Claude nachsehen kann (geht auch automatisch nach jeder Runde)</small></div><div class="sbtn" id="gs-share">Schicken</div></div>
         </div>
-        <div class="sec" style="--c:#ff9a8a"><h3>WOCHENRÜCKBLICK</h3>
-          <div class="srow"><div>Sonntags Wochenrückblick<small>Besuche bei Opa, Rad-Kilometer, Musik-Zeit, Termine nächste Woche. Karte am Handy, am PC fragt er „Soll ich ihn öffnen?“</small></div><div class="sw" id="set-rueck"></div></div>
-          <div class="f"><label>Um</label><input id="set-rueckzeit" type="time"></div>
+      </div>
+      <div class="spane" id="sp-leute">
+        <div class="sec" style="--c:#6effcd"><h3>WICHTIGE LEUTE</h3>
+          <div class="f"><label>Namen wie in WhatsApp, mit Komma getrennt</label><input id="set-wichtig" type="text" placeholder="Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis"></div>
+          <div class="note">Schreiben sie dir, sagt Jarvis es am PC an – auch mitten im Spiel – und fragt, ob du antworten willst. Die Antwort geht über die WhatsApp-Benachrichtigung, WhatsApp geht nicht auf. Gilt auch am PC.</div>
+          <div class="srow"><div>Benachrichtigungszugriff<small>Damit Jarvis die WhatsApp-Benachrichtigungen lesen kann</small></div><div class="sbtn" id="set-media2">Erlauben</div></div>
+          <div class="srow"><div>Sprachnachrichten<small>„Zugriff auf alle Dateien“, nur um die Sprachnachrichten aus dem WhatsApp-Ordner zu lesen</small></div><div class="sbtn" id="set-files">Erlauben</div></div>
+        </div>
+        <div class="sec" data-neu="n82" style="--c:#ffb43c"><h3>LEUTE – WER IST WIE?</h3>
+          <div class="note" style="margin:0 0 6px">Ich lerne aus euren WhatsApp-Nachrichten, worüber ihr schreibt, wie die Leute drauf sind und wie du mit ihnen schreibst – für bessere Antwortvorschläge und Geschenkideen zum Geburtstag. Trag Discord-Namen und Geburtstage ein, wenn sie fehlen. Bleibt auf deinem Handy.</div>
+          <div id="leute-list"></div>
+          <div class="srow"><div>Jetzt lernen<small>Sonst jeden Abend um 20 Uhr, bis zu 6 Chats</small></div><div class="sbtn" id="leute-learn">Lernen</div></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>ANRUF-BUTLER</h3>
+          <div class="srow"><div>Anruf-Butler<small>„Nicht stören“ an: Anrufe aus deinen Kontakten wegdrücken und Bescheid geben. Sonst ein Knopf beim Klingeln. Unbekannte Nummern bleiben unberührt.</small></div><div class="sw" id="set-butler"></div></div>
+          <div class="f"><label>Absage-Text</label><input id="set-absage" type="text" placeholder="Kann gerade nicht, rufe später zurück."></div>
+          <div class="note">Läuft der PC, geht sie per WhatsApp am PC, sonst per SMS.</div>
+          <div class="srow"><div>Rechte für Anrufe und SMS</div><div class="sbtn" id="set-butlerok">Erlauben</div></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-allg">
+        <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
+          <div class="f"><label>Name des Assistenten</label><input id="set-name" type="text" placeholder="Jarvis"></div>
+          <div class="f"><label>Anrede</label><input id="set-anrede" type="text" placeholder="z. B. Sir oder dein Name (leer = keine)"></div>
+        </div>
+        <div class="sec"><h3>KI & SCHLÜSSEL</h3>
+          <div class="f"><label>Groq-Schlüssel (kostenlos, console.groq.com)</label><input id="set-key" type="password" placeholder="gsk_…  (leer lassen = nicht ändern)"></div>
+          <div class="f"><label>Gemini-Schlüssel für „Schau mal hier“ (kostenlos, aistudio.google.com)</label><input id="set-gkey" type="password" placeholder="leer lassen = nicht ändern"><div class="note" id="set-gstate"></div></div>
+          <div class="srow"><div>Bildschirm-Zugriff für „Schau mal hier“<small>Einmal in den Bedienungshilfen „Jarvis – Schau mal hier“ einschalten. Er schaut nur hin, wenn du es sagst.</small></div><div class="sbtn" id="set-screen">Einrichten</div></div>
+          <div class="note" id="set-version"></div>
+        </div>
+        <div class="sec" style="--c:#d7a8ff"><h3>KALENDER</h3>
+          <div class="f"><label>Neue Termine eintragen in</label><select id="set-cal"></select></div>
+          <div class="note">Google-Kalender erscheinen auch am PC und im Browser, Samsung-Kalender nur auf diesem Handy.</div>
+        </div>
+        <div class="sec" data-neu="n82" style="--c:#d7a8ff"><h3>MEINE IDEEN</h3>
+          <div class="note" style="margin:0 0 6px">Sag „Jarvis, ich hab eine Idee: …“ – landet hier und am PC.</div>
+          <div id="ideen-list"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-hoer">
+        <div class="sec"><h3>AKTIVIERUNG</h3>
+          <div class="srow"><div>Im Hintergrund zuhören<small>Gleich wie der Schalter oben rechts</small></div><div class="sw" id="set-bg"></div></div>
+          <div class="f"><label>Aktivierungswort(e) – mehrere mit Komma trennen</label><input id="set-wake" type="text" placeholder="jarvis"></div>
+          <div class="f"><label>Wie genau muss ich das Wort sagen?</label>
+            <select id="set-level"><option value="0">Streng – nur ziemlich genau</option><option value="1">Normal – kleine Abweichungen okay</option><option value="2">Locker – auch nuschelig (öfter Fehlalarm)</option></select></div>
+          <div class="f"><label>Erkennung</label>
+            <select id="set-cloud"><option value="0">Sparsam – Handy hört vor, Groq prüft nur Treffer</option><option value="1">Genau – Groq prüft jeden kurzen Satz (mehr Daten)</option></select></div>
+        </div>
+        <div class="sec"><h3>STIMME</h3>
+          <div class="f"><label>Stimme beim Reden</label><select id="set-mode"><option value="free">Kostenlos (Handy-Stimme + Groq)</option><option value="auto">George (ElevenLabs) beim Gespräch-Knopf, sonst kostenlos</option></select></div>
+          <div class="f"><label>Handy-Stimme (kostenlose Variante)</label><select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select></div>
+          <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache → Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
+          <div class="f"><label>Lautstärke von Jarvis (eigene, unabhängig von der Musik)</label><input id="set-jvol" type="range" min="10" max="100" step="5"></div>
+          <div class="note">Tipp: Drück die Lautstärketasten, während er spricht – das merkt er sich als seine Lautstärke.</div>
+        </div>
+        <div class="sec" data-neu="n80" style="--c:#3cc8ff"><h3>WANN DARF ICH REDEN?</h3>
+          <div class="note" style="margin:0 0 6px">Laut nur zuhause oder mit deinen Kopfhörern. Sonst Nachricht. „Nicht stören“ = immer nur Nachricht. In der Schulstunde hebe ich alles für die Pause auf.</div>
+          <div class="f"><label>Name deiner Kopfhörer (Teil reicht)</label><input id="kopf-name" type="text" placeholder="JBL Tune Beam"></div>
+          <div class="srow"><div>Jetzt gerade<small id="melden-info">Tippe auf Prüfen</small></div><div class="sbtn" id="melden-btn">Prüfen</div></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>BERECHTIGUNGEN</h3>
+          <div class="srow"><div>Leuchtrand über anderen Apps</div><div class="sbtn" id="set-overlay">–</div></div>
+          <div class="srow"><div>Leuchtrand-Farben wie die offene App</div><div class="sbtn" id="set-usage">–</div></div>
+          <div class="srow"><div>Was ich schaue und höre<small id="set-mediastate"></small></div><div class="sbtn" id="set-media">–</div></div>
+          <div class="srow"><div>Akku nicht einschränken</div><div class="sbtn" id="set-battery">Erlauben</div></div>
+          <div class="note" id="set-status"></div>
+        </div>
+      </div>
+      <div class="spane" id="sp-fern">
+        <div class="sec" style="--c:#6effcd"><h3>KOPPLUNG MIT DEM PC</h3>
+          <div class="f"><label>Kopplungscode vom PC (PC: Einstellungen → PC &amp; Fernzugriff)</label><input id="set-link" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off"></div>
+          <div class="note" id="set-linkstate"></div>
+        </div>
+        <div class="sec" data-neu="n86" style="--c:#6effcd"><h3>DIREKTE VERBINDUNG ZUM PC</h3>
+          <div class="note" style="margin:0 0 6px">Ist Tailscale an PC und Handy an, reden die beiden direkt miteinander – schneller und ohne Tageslimit. Sonst geht es wie bisher über den Kopplungsdienst.</div>
+          <div class="srow"><div>Status<small id="direct-state">–</small></div><div class="sbtn" id="direct-check">Prüfen</div></div>
+          <div class="f"><label>Tailscale-Adresse des PCs (steht in der Tailscale-App, beginnt mit 100.)</label><input id="direct-ip" type="text" placeholder="100.x.y.z" inputmode="decimal"></div>
+        </div>
+        <div class="sec" style="--c:#3cc8ff"><h3>VON UNTERWEGS</h3>
+          <div class="note" id="fern-state">–</div>
+          <div class="srow"><div>PC-HUD öffnen<small>Dein PC-HUD im Browser, auch aus der Schule</small></div><div class="sbtn" id="fern-hud">Öffnen</div></div>
+          <div class="srow"><div>PC-Webcam ansehen<small>Nur wenn am PC unter Fernzugriff erlaubt. Am PC steht dann groß, dass zugeschaut wird.</small></div><div class="sbtn" id="fern-cam">Ansehen</div></div>
+          <div class="srow"><div>Handy-Kamera an den PC<small>Nur solange diese Seite offen ist</small></div><div class="sbtn" id="fern-phcam">Starten</div></div>
+        </div>
+        <div class="sec" style="--c:#ffd678"><h3>EINRICHTEN (EINMAL)</h3>
+          <div class="note" style="margin:0">1. Tailscale auf dem PC installieren (tailscale.com) und anmelden.<br>2. Tailscale-App auf dem Handy installieren und mit demselben Konto anmelden.<br>3. Am PC beim ersten Mal in der Windows-Firewall „Zulassen“ klicken.<br>Nur deine Geräte mit deinem Kopplungscode kommen rein. Sag deiner Familie, dass die Webcam an sein kann.</div>
         </div>
       </div>
       <div class="spane" id="sp-schrank">
         <div class="ws-hero" id="ws-hero"><small>HEUTE ANZIEHEN</small><div class="ws-chips" id="ws-today">…</div><div class="ws-why" id="ws-why"></div></div>
-        <div id="ws-layers"></div>
+        <div class="sec" style="--c:#3cc8ff"><h3>MEINE SACHEN &amp; TEMPERATUREN</h3><div id="ws-layers"></div></div>
         <div class="sec" style="--c:#ffd678"><h3>EIGENES TEIL</h3>
           <div style="display:flex;gap:8px"><div class="f" style="flex:1"><label>Name</label><input id="ws-nname" type="text" placeholder="z. B. Fleecejacke"></div>
             <div class="f" style="flex:0 0 76px"><label>Symbol</label><select id="ws-nicon"><option>🧥</option><option>👕</option><option>🧶</option><option>👖</option><option>🩳</option><option>🧢</option><option>🧤</option><option>🧣</option><option>☔</option><option>👟</option><option>🕶️</option></select></div></div>
@@ -449,22 +468,6 @@
           <div class="srow"><div>Kalorien & Aktivität am Abend<small>Steckt im Tagesabschluss (ist der aus, kommt die Bilanz allein). Kalorien verbraucht, Defizit (wenn du Essen einträgst), wie aktiv im Vergleich zu sonst, Schlaf, kleiner Tipp. Am PC, wenn du dran sitzt, sonst am Handy. Sonntags kommt die Woche in den Rückblick.</small></div><div class="sw" id="set-bilanz"></div></div>
           <div class="f"><label>Um</label><input id="set-bilanzzeit" type="time"></div>
           <div class="srow"><div>Jetzt zeigen</div><div class="sbtn" id="fit-now">Zeigen</div></div>
-        </div>
-      </div>
-      <div class="spane" id="sp-fern">
-        <div class="sec" data-neu="n86" style="--c:#6effcd"><h3>DIREKTE VERBINDUNG ZUM PC</h3>
-          <div class="note" style="margin:0 0 6px">Ist Tailscale an PC und Handy an, reden die beiden direkt miteinander – schneller und ohne Tageslimit. Sonst geht es wie bisher über den Kopplungsdienst.</div>
-          <div class="srow"><div>Status<small id="direct-state">–</small></div><div class="sbtn" id="direct-check">Prüfen</div></div>
-          <div class="f"><label>Tailscale-Adresse des PCs (steht in der Tailscale-App, beginnt mit 100.)</label><input id="direct-ip" type="text" placeholder="100.x.y.z" inputmode="decimal"></div>
-        </div>
-        <div class="sec" style="--c:#3cc8ff"><h3>VON UNTERWEGS</h3>
-          <div class="note" id="fern-state">–</div>
-          <div class="srow"><div>PC-HUD öffnen<small>Dein PC-HUD im Browser, auch aus der Schule</small></div><div class="sbtn" id="fern-hud">Öffnen</div></div>
-          <div class="srow"><div>PC-Webcam ansehen<small>Nur wenn am PC unter Fernzugriff erlaubt. Am PC steht dann groß, dass zugeschaut wird.</small></div><div class="sbtn" id="fern-cam">Ansehen</div></div>
-          <div class="srow"><div>Handy-Kamera an den PC<small>Nur solange diese Seite offen ist</small></div><div class="sbtn" id="fern-phcam">Starten</div></div>
-        </div>
-        <div class="sec" style="--c:#ffd678"><h3>EINRICHTEN (EINMAL)</h3>
-          <div class="note" style="margin:0">1. Tailscale auf dem PC installieren (tailscale.com) und anmelden.<br>2. Tailscale-App auf dem Handy installieren und mit demselben Konto anmelden.<br>3. Am PC beim ersten Mal in der Windows-Firewall „Zulassen“ klicken.<br>Nur deine Geräte mit deinem Kopplungscode kommen rein. Sag deiner Familie, dass die Webcam an sein kann.</div>
         </div>
       </div>
       <div class="spane" id="sp-anz">

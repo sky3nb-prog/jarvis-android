@@ -18,7 +18,7 @@ import java.util.Calendar
  *  - Laut sprechen nur, wenn du zuhause bist ODER deine Kopfhörer verbunden sind (Name in den Einstellungen, z. B. "JBL Tune Beam 2").
  *  - "Nicht stören" an (oder Handy lautlos): nie sprechen, nur Nachricht.
  *  - In der Schule während einer Stunde: gar nichts – er hebt es auf und sagt es in der nächsten Pause (bzw. nach der Schule).
- * Dazu der Stundenplan (Einstellungen → Alltag → Schule): Stunden mit Uhrzeit und Fach, Pausen sind die Lücken dazwischen.
+ * Dazu der Stundenplan (Einstellungen → Schule): Stunden mit Uhrzeit und Fach, Pausen sind die Lücken dazwischen.
  */
 object Melden {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)

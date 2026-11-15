@@ -848,7 +848,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun pcCmd(json: String) {
             val cmd = try { JSONObject(json) } catch (_: Exception) { return }
-            if (!Link.paired(this@MainActivity)) { send("pc_reply", JSONObject().put("ok", false).put("text", "Handy und PC sind noch nicht gekoppelt (Einstellungen → Zuhören → Kopplungscode).")); return }
+            if (!Link.paired(this@MainActivity)) { send("pc_reply", JSONObject().put("ok", false).put("text", "Handy und PC sind noch nicht gekoppelt (Einstellungen → PC & Fernzugriff → Kopplungscode).")); return }
             Thread({
                 val r = try { Link.command(this@MainActivity, cmd) } catch (e: Exception) { null }
                 if (r == null) send("pc_reply", JSONObject().put("ok", false).put("text", "Der PC antwortet nicht. Läuft Jarvis am PC?"))

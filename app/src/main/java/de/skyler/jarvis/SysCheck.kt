@@ -44,7 +44,7 @@ object SysCheck {
             a.put(if (c == 200) item("gemini", "Gemini (Sehen)", true, "Schlüssel gültig") else item("gemini", "Gemini (Sehen)", false, "Fehler $c", "Gemini-Schlüssel prüfen (Google AI Studio).")) }
         a.put(if (perm(ctx, Manifest.permission.RECORD_AUDIO)) item("mic", "Mikrofon", true, "erlaubt") else item("mic", "Mikrofon", false, "nicht erlaubt", "App öffnen und Mikrofon erlauben."))
         a.put(if (VoskModel.ready(ctx)) item("wake", "Weckwort „Friday“", true, "bereit") else item("wake", "Weckwort „Friday“", false, "Sprachmodell fehlt", "App einmal mit Internet öffnen – das Modell lädt dann."))
-        if (!Link.paired(ctx)) a.put(item("pc", "PC-Kopplung", null, "nicht gekoppelt", "Einstellungen → Allgemein: Kopplungscode vom PC eintragen."))
+        if (!Link.paired(ctx)) a.put(item("pc", "PC-Kopplung", null, "nicht gekoppelt", "Einstellungen → PC & Fernzugriff: Kopplungscode vom PC eintragen."))
         else if (Link.limited()) a.put(item("pc", "PC-Kopplung", false, "Tageslimit erreicht", "Der Kopplungsdienst lässt heute keine Nachrichten mehr durch (250 pro Tag). Ab nachts geht es wieder."))
         else a.put(if (Link.pcOnline(ctx)) item("pc", "PC-Kopplung", true, "PC online") else item("pc", "PC-Kopplung", null, "PC aus oder schläft"))
         val listeners = Settings.Secure.getString(ctx.contentResolver, "enabled_notification_listeners") ?: ""
@@ -54,7 +54,7 @@ object SysCheck {
         a.put(if (pm.isIgnoringBatteryOptimizations(ctx.packageName)) item("akku", "Läuft im Hintergrund", true, "Akku: nicht eingeschränkt")
             else item("akku", "Läuft im Hintergrund", false, "Akku spart Jarvis aus", "Android-Einstellungen → Apps → Jarvis → Akku: „Nicht eingeschränkt“."))
         val locAlways = perm(ctx, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        a.put(if (locAlways) item("loc", "Standort (immer)", true, "erlaubt") else item("loc", "Standort (immer)", false, "nur beim Öffnen", "Einstellungen → Alltag: Standort „Immer erlauben“ (für Wege und Ankunft)."))
+        a.put(if (locAlways) item("loc", "Standort (immer)", true, "erlaubt") else item("loc", "Standort (immer)", false, "nur beim Öffnen", "Einstellungen → Zuhause & Orte: Standort „Immer erlauben“ (für Wege und Ankunft)."))
         a.put(if (JarvisService.running) item("svc", "Jarvis-Dienst", true, "läuft") else item("svc", "Jarvis-Dienst", false, "läuft nicht", "App öffnen und „Im Hintergrund zuhören“ einschalten."))
         try {
             a.put(if (Health.connected(ctx)) item("health", "Samsung Health", true, "verbunden") else item("health", "Samsung Health", null, "nicht verbunden", "Einstellungen → Gesundheit: Verbinden."))

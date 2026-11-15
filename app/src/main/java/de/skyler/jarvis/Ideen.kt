@@ -4,7 +4,7 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Ideen-Sammler: "Jarvis, ich hab eine Idee: …" -> auf die Liste (hier und am PC, dort im HUD unter Einstellungen → Ideen). */
+/** Ideen-Sammler: "Jarvis, ich hab eine Idee: …" -> auf die Liste (hier und am PC, dort im HUD unter Einstellungen → Allgemein). */
 object Ideen {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
     fun all(ctx: Context): JSONArray = try { JSONArray(prefs(ctx).getString("ideen", "[]")) } catch (_: Exception) { JSONArray() }

@@ -1,5 +1,6 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-15 19:00", neu: [
+window.JNEU = { stand: "2026-11-15 19:05", neu: [
+  { title: "Neu sortiert", text: "Einstellungen nach Themen: Wecker, Schule, Zuhause & Orte, Unterwegs, Kleiderschrank … – am PC genauso." },
   { title: "Direkt über Tailscale", text: "PC und Handy reden direkt miteinander, wenn Tailscale an ist – schneller und ohne Tageslimit." },
   { title: "Noten", text: "Trag im Schul-Kalender deine Noten ein (oder sag „in Mathe hab ich eine 2“) – ich weiß dann, wo du stehst." },
   { title: "Aufgeräumt", text: "Einstellungen: Abschnitte sind zugeklappt – antippen öffnet sie." },
@@ -9,7 +10,7 @@ window.JNEU = { stand: "2026-11-15 19:00", neu: [
   { title: "Gaming im Wochenrückblick", text: "Sonntags im Wochenrückblick: wie lange du gezockt hast, Top 3, Rekord, Erfolge." },
   { title: "Modi ◈", text: "Oben links: Fokus (25/5 Min.), Gaming, Chill, Kino, Schule, Gute Nacht – mit dem PC abgeglichen." },
   { title: "Regen-Warnung", text: "Unterwegs sag ich rechtzeitig „Jetzt heim“, wenn Regen kommt – aus Radar, mehreren Modellen und deinem Heimweg." },
-  { title: "Schul-Kalender", text: "Arbeiten, Tests, Hausaufgaben – Einstellungen → Alltag. schul.cloud lese ich mit. „Frag mich ab“ vor Arbeiten." },
+  { title: "Schul-Kalender", text: "Arbeiten, Tests, Hausaufgaben – Einstellungen → Schule. schul.cloud lese ich mit. „Frag mich ab“ vor Arbeiten." },
   { title: "Ideen-Sammler", text: "„Jarvis, ich hab eine Idee: …“ – steht dann auf deiner Liste, hier und am PC." },
   { title: "Pakete", text: "Ich lese DHL, Hermes, DPD, GLS, UPS, Amazon, Gmail und SMS mit und sag, wenn ein Paket heute kommt." },
   { title: "Leute", text: "Ich lerne, wie deine Leute drauf sind und wie du mit ihnen schreibst – für Antworten und Geschenkideen." },
@@ -21,7 +22,7 @@ window.JNEU = { stand: "2026-11-15 19:00", neu: [
   { title: "Auflege-Knopf", text: "Ruft jemand an, erscheint über dem Anruf ein Knopf: auflegen und Nachricht schicken." },
   { title: "Nachtruhe", text: "Wenn du schläfst, bin ich still und springe nicht aufs Weckwort an – bis zu deiner Aufstehzeit." },
   { title: "Wann ich rede", text: "Laut nur zuhause oder mit deinen Kopfhörern, sonst Nachricht – in der Schulstunde erst in der Pause." },
-  { title: "Stundenplan", text: "Einstellungen → Alltag → Schule: Zeiten stehen, trag die Fächer ein." },
+  { title: "Stundenplan", text: "Einstellungen → Schule: Zeiten stehen, trag die Fächer ein." },
   { title: "Aufstehen!", text: "Liegst du an Schultagen noch im Bett, stupse ich dich an – spätestens 7:20." },
   { title: "Essens-Tipp", text: "Morgens eine kleine Idee, die zu deinem Tag passt – und „Guten Appetit“, wenn du isst." },
   { title: "Antworten mit Verlauf", text: "WhatsApp-Vorschläge kennen jetzt den Gesprächsverlauf und schreiben in deinem Stil." },
@@ -30,7 +31,7 @@ window.JNEU = { stand: "2026-11-15 19:00", neu: [
   { title: "Persönlicher Tagesabschluss", text: "Ich kommentiere deinen Tag – z. B. „Elternsprechtag – hoffentlich lief es gut“." },
   { title: "SMS beim Heimkommen", text: "„Schick Mama eine SMS, wenn ich wieder heimkomme“ – einmalig, kurz bevor du da bist." },
   { title: "SMS ist raus", text: "Jede SMS, die ich für dich schicke, bestätige ich kurz – an wen und was." },
-  { title: "Bahn & Ticket (VVS)", text: "Rad + Bahn oder Bus und Bahn – mit Ticket und „Ticket kaufen“ in VVS Mobil. Einstellungen → Wege & Orte." },
+  { title: "Bahn & Ticket (VVS)", text: "Rad + Bahn oder Bus und Bahn – mit Ticket und „Ticket kaufen“ in VVS Mobil. Einstellungen → Unterwegs & Bahn." },
   { title: "Zwischenstopps", text: "Ich lerne, wie lange du beim Rewe oder Bäcker brauchst – Brot kurz, Einkauf lang." },
   { title: "Hunderunden", text: "Ich erkenne Gassi-Runden und schicke auf Wunsch kurz vorher „Bin gleich da“." },
   { title: "Ich lerne mit", text: "Was du nie nutzt, schlage ich dir nicht mehr vor." },

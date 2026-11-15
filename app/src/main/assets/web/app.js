@@ -262,8 +262,9 @@
   }
   newDots();
   // Einstellungen wie am Handy: Übersicht -> Bereich antippen -> eigene Seite, "‹" zurück
-  const PAGE_NAMES = { home: "EINSTELLUNGEN", allg: "ALLGEMEIN", hoer: "ZUHÖREN", stimme: "STIMME", anz: "ANZEIGE", alltag: "ALLTAG & WECKER",
-    wege: "WEGE & ORTE", leute: "LEUTE & ANRUFE", lage: "LAGE", fern: "FERNZUGRIFF", fit: "GESUNDHEIT & SCHLAF", sys: "SYSTEMSTATUS", schrank: "KLEIDERSCHRANK" };
+  const PAGE_NAMES = { home: "EINSTELLUNGEN", morgen: "WECKER & ERINNERUNGEN", schule: "SCHULE", wege: "ZUHAUSE & ORTE", unterwegs: "UNTERWEGS & BAHN",
+    schrank: "KLEIDERSCHRANK", leute: "LEUTE & ANRUFE", fit: "GESUNDHEIT & SCHLAF", allg: "ALLGEMEIN", hoer: "ZUHÖREN & STIMME", anz: "ANZEIGE",
+    sys: "SYSTEMSTATUS", fern: "PC & FERNZUGRIFF", lage: "LAGE" };
   let setPage = "home";
   function showPage(p) {
     newDots(); setPage = p;
@@ -424,7 +425,7 @@
       : '<div class="note">Keine einmaligen Termine.</div>';
     $("em-list").querySelectorAll("[data-del]").forEach((e) => e.addEventListener("click", () => { A.einmaligRemove(+e.dataset.del); emList(); }));
   }
-  document.querySelector('[data-p="alltag"]').addEventListener("click", fwShow);
+  document.querySelector('[data-p="unterwegs"]').addEventListener("click", fwShow);
   $("em-datum").value = isoDay(0);
   document.querySelectorAll("[data-em]").forEach((e) => e.addEventListener("click", () => { $("em-datum").value = isoDay(+e.dataset.em); }));
   const emData = () => ({ datum: $("em-datum").value || isoDay(0), ziel: $("em-ziel").value.trim(), name: $("em-name").value.trim(),
@@ -472,7 +473,7 @@
           else h += `<div></div>`;
         });
       }
-      h += `</div><div class="note" style="margin:6px 0 0">Tipp auf eine Stunde zum Eintragen. Geht auch am PC (Einstellungen → Alltag → Stundenplan) – das kommt dann hierher.</div>`;
+      h += `</div><div class="note" style="margin:6px 0 0">Tipp auf eine Stunde zum Eintragen. Geht auch am PC (Einstellungen → Schule) – das kommt dann hierher.</div>`;
       $("sp-rows").innerHTML = h;
       $("sp-rows").querySelectorAll(".tt-c").forEach((e) => e.onclick = () => edit(e.dataset.d, +e.dataset.i));
     }
@@ -505,7 +506,7 @@
     // Vom PC geändert -> neu zeichnen
     const prevEv = window.jarvis && window.jarvis.onEvent;
     if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "plan") { load(); draw(); toast("Stundenplan vom PC übernommen."); return; } return prevEv && prevEv.call(window.jarvis, type, data); };
-    setInterval(() => { if (document.querySelector("#sp-alltag.on")) draw(); }, 60000);   // „jetzt“-Markierung mitziehen
+    setInterval(() => { if (document.querySelector("#sp-schule.on")) draw(); }, 60000);   // „jetzt“-Markierung mitziehen
   })();
   // Schul-Kalender (Arbeiten, Tests, Hausaufgaben) + Ideen
   (function () {
@@ -603,7 +604,7 @@
     $("ws-why").textContent = p.warum || "";
   }
   function wsRender() {
-    $("ws-layers").innerHTML = LAYERS.map(([l, title, col]) => `<div class="sec" style="--c:${col}"><h3>${title}</h3>` +
+    $("ws-layers").innerHTML = LAYERS.map(([l, title, col]) => `<div class="ws-lay" style="--c:${col}"><h4>${title}</h4>` +
       (WS.items || []).map((it, i) => it.layer !== l ? "" : `<div class="ws-card ${it.on === false ? "off" : ""}" data-i="${i}">
         <div class="ws-top"><span class="ws-ic">${it.icon}</span><b>${it.name}</b>${it.rain ? '<span class="ws-tag">bei Regen</span>' : ""}<div class="sw ${it.on !== false ? "on" : ""}" data-on="${i}"></div></div>
         ${it.rain && l === "extra" ? '<div class="ws-rng-l">kommt nur bei Regen mit</div>' : `<div class="ws-rng" style="--a:${(Math.max(LO, it.min) - LO) / (HI - LO) * 100}%;--b:${(Math.min(HI, it.max) - LO) / (HI - LO) * 100}%">
