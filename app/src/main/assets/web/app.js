@@ -419,30 +419,71 @@
   try { sw("set-bett", A.getFlag("aufsteh_check", true)); } catch (e) {}
   $("set-bett").addEventListener("click", () => setTimeout(() => { try { A.setFlag("aufsteh_check", sw("set-bett")); } catch (e) {} }, 50));
   (function () {
-    let plan = {}; try { plan = JSON.parse(A.getPlan() || "{}"); } catch (e) {}
+    // Stundenplan als Wochenraster: Fach antippen -> großes Feld zum Eintragen (auch vom PC aus, dann kommt es hierher)
+    let plan = {};
+    const load = () => { try { plan = JSON.parse(A.getPlan() || "{}"); } catch (e) { plan = {}; } };
+    load();
     const D = [["mo", "Mo"], ["di", "Di"], ["mi", "Mi"], ["do", "Do"], ["fr", "Fr"]];
-    const wd = ["mo", "mo", "di", "mi", "do", "fr", "mo"][new Date().getDay()];
-    let cur = wd;
-    const save = () => { try { A.setPlan(JSON.stringify(plan)); } catch (e) {} };
-    const esc2 = (s) => String(s || "").replace(/"/g, "&quot;");
+    const today = ["", "mo", "di", "mi", "do", "fr", ""][new Date().getDay()];
+    const save = () => { try { plan.v = 2; A.setPlan(JSON.stringify(plan)); } catch (e) {} };
+    const esc2 = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const FAECHER = ["Mathe", "Deutsch", "Englisch", "Französisch", "Latein", "Spanisch", "Bio", "Chemie", "Physik", "Geschichte", "Erdkunde", "Gemeinschaftskunde", "WBS", "Religion", "Ethik", "Sport", "Kunst", "Musik", "Informatik", "NwT", "Technik", "AES", "Klassenrat", "Frei"];
+    const hue = (f) => { let h = 0; for (const c of f.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+    const mins = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(t || ""); return m ? +m[1] * 60 + +m[2] : -1; };
+    function nowCell() {
+      if (!today) return -1; const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
+      return (plan[today] || []).findIndex((l) => mins(l.von) <= m && m < mins(l.bis));
+    }
     function draw() {
-      $("sp-days").innerHTML = D.map(([k, n]) => `<span class="sp-day${k === cur ? " on" : ""}" data-d="${k}">${n}</span>`).join("");
-      $("sp-days").querySelectorAll("[data-d]").forEach((e) => e.onclick = () => { cur = e.dataset.d; draw(); });
-      const L = plan[cur] || [];
-      let html = "", prev = null;
-      L.forEach((l, i) => {
-        if (prev && prev !== l.von) html += `<div class="sp-pause">Pause ${prev}–${l.von}</div>`;
-        html += `<div class="sp-row"><input class="sp-t" data-i="${i}" data-k="von" value="${esc2(l.von)}"><span>–</span><input class="sp-t" data-i="${i}" data-k="bis" value="${esc2(l.bis)}">` +
-          `<input class="sp-f" data-i="${i}" data-k="fach" placeholder="${i + 1}. Stunde – Fach" value="${esc2(l.fach)}"><span class="sp-x" data-x="${i}">✕</span></div>`;
-        prev = l.bis;
-      });
-      html += `<div class="sbtn sp-add" id="sp-add">+ Stunde</div>`;
-      $("sp-rows").innerHTML = html;
-      $("sp-rows").querySelectorAll("input").forEach((e) => e.onchange = () => { (plan[cur] = plan[cur] || [])[+e.dataset.i][e.dataset.k] = e.value.trim(); save(); if (e.dataset.k !== "fach") draw(); });
-      $("sp-rows").querySelectorAll("[data-x]").forEach((e) => e.onclick = () => { plan[cur].splice(+e.dataset.x, 1); save(); draw(); });
-      $("sp-add").onclick = () => { const a = plan[cur] = plan[cur] || []; const last = a[a.length - 1]; a.push({ von: last ? last.bis : "08:00", bis: "", fach: "" }); save(); draw(); };
+      $("sp-days").innerHTML = "";
+      const rows = Math.max(...D.map(([k]) => (plan[k] || []).length), 0), ref = plan.mo || [], cur = nowCell();
+      let h = `<div class="tt"><div class="tt-h"></div>` + D.map(([k, n]) => `<div class="tt-h${k === today ? " today" : ""}">${n}</div>`).join("");
+      for (let i = 0; i <= rows; i++) {
+        if (i > 0 && i < rows && ref[i] && ref[i - 1] && ref[i].von !== ref[i - 1].bis) h += `<div class="tt-p">${mins(ref[i].von) - mins(ref[i - 1].bis) >= 45 ? "Mittagspause" : "Pause"} · ${ref[i - 1].bis}–${ref[i].von}</div>`;
+        h += `<div class="tt-n">${i < rows ? i + 1 : ""}</div>`;
+        D.forEach(([k]) => {
+          const l = (plan[k] || [])[i];
+          if (l) {
+            const f = (l.fach || "").trim(), st = f ? ` style="--h:${hue(f)}"` : "";
+            h += `<button class="tt-c${f ? " f" : ""}${k === today && i === cur ? " now" : ""}"${st} data-d="${k}" data-i="${i}"><b>${f ? esc2(f) : "+"}</b><small>${esc2(l.von)}</small></button>`;
+          } else if (i === (plan[k] || []).length) h += `<button class="tt-c add" data-d="${k}" data-i="${i}" aria-label="Stunde dazu"><b>＋</b></button>`;
+          else h += `<div></div>`;
+        });
+      }
+      h += `</div><div class="note" style="margin:6px 0 0">Tipp auf eine Stunde zum Eintragen. Geht auch am PC (Einstellungen → Alltag → Stundenplan) – das kommt dann hierher.</div>`;
+      $("sp-rows").innerHTML = h;
+      $("sp-rows").querySelectorAll(".tt-c").forEach((e) => e.onclick = () => edit(e.dataset.d, +e.dataset.i));
+    }
+    function edit(d, i) {
+      const L = plan[d] = plan[d] || [];
+      const isNew = i >= L.length, prev = L[L.length - 1];
+      const l = isNew ? { von: prev ? prev.bis : "08:00", bis: "", fach: "" } : L[i];
+      if (isNew && prev && /^\d{1,2}:\d{2}$/.test(prev.bis)) { const m = mins(prev.bis) + 45; l.bis = String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
+      const used = [...new Set(Object.keys(plan).filter((k) => Array.isArray(plan[k])).flatMap((k) => plan[k].map((x) => (x.fach || "").trim())).filter(Boolean))];
+      const chips = [...used, ...FAECHER.filter((f) => !used.includes(f))];
+      let ed = $("tt-ed"); if (!ed) { ed = document.createElement("div"); ed.id = "tt-ed"; ed.className = "tt-ed"; document.body.appendChild(ed); }
+      const dn = D.find((x) => x[0] === d)[1];
+      ed.innerHTML = `<div class="tt-box"><div class="tt-t">${dn} · ${i + 1}. Stunde</div>
+        <input id="tt-f" class="tt-in" type="text" placeholder="Fach, z. B. Mathe" value="${esc2(l.fach)}" autocomplete="off">
+        <div class="tt-chips">${chips.map((f) => `<span class="tt-chip" style="--h:${hue(f)}">${esc2(f)}</span>`).join("")}</div>
+        <div class="tt-times"><label>von<input id="tt-v" type="time" value="${esc2(l.von)}"></label><label>bis<input id="tt-b" type="time" value="${esc2(l.bis)}"></label></div>
+        <div class="tt-btns">${isNew ? "" : '<span class="sbtn tt-del" id="tt-del">Stunde löschen</span>'}<span class="sbtn" id="tt-no">Abbrechen</span><span class="sbtn tt-ok" id="tt-ok">Speichern</span></div></div>`;
+      ed.classList.add("on");
+      const f = $("tt-f"); setTimeout(() => { try { f.focus(); } catch (e) {} }, 60);
+      ed.querySelectorAll(".tt-chip").forEach((c) => c.onclick = () => { f.value = c.textContent; });
+      const close = () => { ed.classList.remove("on"); };
+      ed.onclick = (e) => { if (e.target === ed) close(); };
+      $("tt-no").onclick = close;
+      if ($("tt-del")) $("tt-del").onclick = () => { L.splice(i, 1); save(); close(); draw(); };
+      const ok = () => { l.fach = f.value.trim(); l.von = $("tt-v").value || l.von; l.bis = $("tt-b").value || l.bis; if (isNew) L.push(l); save(); close(); draw(); toast(l.fach ? `${dn}, ${i + 1}. Stunde: ${l.fach}` : "Gespeichert."); };
+      $("tt-ok").onclick = ok;
+      f.onkeydown = (e) => { if (e.key === "Enter") ok(); };
     }
     draw();
+    // Vom PC geändert -> neu zeichnen
+    const prevEv = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "plan") { load(); draw(); toast("Stundenplan vom PC übernommen."); return; } return prevEv && prevEv.call(window.jarvis, type, data); };
+    setInterval(() => { if (document.querySelector("#sp-alltag.on")) draw(); }, 60000);   // „jetzt“-Markierung mitziehen
   })();
   // Gassi + SMS-Tests (sofort gespeichert)
   try { const g = JSON.parse(A.getGassi() || "{}"); sw("gs-an", !!g.an); sw("gs-sms", !!g.sms); $("gs-wer").value = g.wer || "Mama"; $("gs-text").value = g.text || ""; } catch (e) {}

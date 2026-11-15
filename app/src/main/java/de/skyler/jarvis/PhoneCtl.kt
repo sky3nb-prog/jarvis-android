@@ -129,6 +129,12 @@ object PhoneCtl {
                 torchOn = !torchOn; cm.setTorchMode(id, torchOn)
                 if (torchOn) "Lampe am Handy an." else "Lampe am Handy aus."
             } catch (_: Exception) { "Die Lampe lässt sich gerade nicht schalten." }
+            "plan_get" -> Melden.plan(ctx).toString()   // Stundenplan für den PC
+            "plan_set" -> {   // Stundenplan vom PC: speichern und die Einstellungen neu zeichnen
+                val p = c.optJSONObject("plan") ?: try { JSONObject(c.optString("plan")) } catch (_: Exception) { null } ?: return "Der Stundenplan kam leer an."
+                Melden.setPlan(ctx, p.put("v", 2).toString()); Bus.emit("plan", p)
+                "Stundenplan ist auf dem Handy."
+            }
             "finden" -> { find(ctx); "Dein Handy klingelt jetzt 20 Sekunden lang." }
             "finden_stop" -> { stopFind(); "Klingeln gestoppt." }
             "modus" -> { Modes.fromPc = true; try { Modes.set(ctx, c.optString("name")) } finally { Modes.fromPc = false } }
