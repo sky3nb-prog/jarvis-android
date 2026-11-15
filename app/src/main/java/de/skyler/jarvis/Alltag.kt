@@ -628,6 +628,7 @@ object Alltag {
         try { homeAndAway(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "zuhause: $e") }
         try { arrival(ctx, s) } catch (e: Exception) { Log.w(TAG, "ankunft: $e") }
         try { rainWatch(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "regen: $e") }
+        try { Schule.tick(ctx, say) } catch (e: Exception) { Log.w(TAG, "schule: $e") }
         try { Halte.tick(ctx, fix, s.optBoolean("is_home")) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
         try { Gassi.tick(ctx, fix, s.optBoolean("home_wifi")) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
         // Unterwegs mit Gassi/Einmal-SMS: genauer und öfter orten (GPS, alle 20 s), sonst sparsam

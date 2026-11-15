@@ -467,6 +467,18 @@ class MainActivity : ComponentActivity() {
         fun setFlag(k: String, v: Boolean) { if (k in listOf("melden", "aufsteh_check", "regen_warnung")) prefs.edit().putBoolean(k, v).apply() }
 
         @JavascriptInterface
+        fun getSchule(): String = Schule.all(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun setSchule(json: String) { try { Schule.setAll(this@MainActivity, org.json.JSONArray(json)) } catch (_: Exception) {} }
+
+        @JavascriptInterface
+        fun getIdeen(): String = Ideen.all(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun setIdeen(json: String) { try { Ideen.setAll(this@MainActivity, org.json.JSONArray(json)) } catch (_: Exception) {} }
+
+        @JavascriptInterface
         fun modusCmd(t: String): String = try { Modes.fromCmd(this@MainActivity, t) } catch (e: Exception) { "Ging nicht: ${e.message ?: ""}" }
 
         @JavascriptInterface

@@ -135,6 +135,12 @@ object PhoneCtl {
                 Melden.setPlan(ctx, p.put("v", 2).toString()); Bus.emit("plan", p)
                 "Stundenplan ist auf dem Handy."
             }
+            "schule_get" -> Schule.all(ctx).toString()
+            "schule_set" -> {
+                val a = c.optJSONArray("items") ?: try { JSONArray(c.optString("items")) } catch (_: Exception) { null } ?: return "Die Einträge kamen leer an."
+                Schule.setAll(ctx, a); Bus.emit("schule", JSONObject()); "Arbeiten und Hausaufgaben sind auf dem Handy."
+            }
+            "ideen_get" -> Ideen.all(ctx).toString()
             "finden" -> { find(ctx); "Dein Handy klingelt jetzt 20 Sekunden lang." }
             "finden_stop" -> { stopFind(); "Klingeln gestoppt." }
             "modus" -> { Modes.fromPc = true; try { Modes.set(ctx, c.optString("name")) } finally { Modes.fromPc = false } }

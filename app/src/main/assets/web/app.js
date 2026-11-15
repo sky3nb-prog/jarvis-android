@@ -491,6 +491,21 @@
     if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "plan") { load(); draw(); toast("Stundenplan vom PC übernommen."); return; } return prevEv && prevEv.call(window.jarvis, type, data); };
     setInterval(() => { if (document.querySelector("#sp-alltag.on")) draw(); }, 60000);   // „jetzt“-Markierung mitziehen
   })();
+  // Schul-Kalender (Arbeiten, Tests, Hausaufgaben) + Ideen
+  (function () {
+    const host = $("sk-host"); if (!host || !window.JSchulKal) return;
+    const faecher = () => { try { const p = JSON.parse(A.getPlan() || "{}"); return [...new Set(["mo", "di", "mi", "do", "fr"].flatMap((k) => (p[k] || []).map((x) => (x.fach || "").trim())).filter(Boolean))]; } catch (e) { return []; } };
+    const kal = window.JSchulKal.mount(host, { load: async () => { try { return JSON.parse(A.getSchule() || "[]"); } catch (e) { return []; } }, save: async (it) => { try { A.setSchule(JSON.stringify(it)); } catch (e) {} }, faecher });
+    function ideen() {
+      let a = []; try { a = JSON.parse(A.getIdeen() || "[]"); } catch (e) {}
+      $("ideen-list").innerHTML = a.length ? a.slice().reverse().map((x, i) => `<div class="srow"><div>${String(x.text).replace(/[<>&]/g, "")}<small>${new Date(x.t).toLocaleDateString("de-DE")}</small></div><div class="sbtn" data-idel="${a.length - 1 - i}">✕</div></div>`).join("") : '<div class="note">Noch keine Ideen.</div>';
+      $("ideen-list").querySelectorAll("[data-idel]").forEach((b) => b.onclick = () => { a.splice(+b.dataset.idel, 1); try { A.setIdeen(JSON.stringify(a)); } catch (e) {} ideen(); });
+    }
+    ideen();
+    const prevEv = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "schule") { kal.reload(); return; } return prevEv && prevEv.call(window.jarvis, type, data); };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) { kal.reload(); ideen(); } });
+  })();
   // Gassi + SMS-Tests (sofort gespeichert)
   try { const g = JSON.parse(A.getGassi() || "{}"); sw("gs-an", !!g.an); sw("gs-sms", !!g.sms); $("gs-wer").value = g.wer || "Mama"; $("gs-text").value = g.text || ""; } catch (e) {}
   const saveGassi = () => { try { A.setGassi($("gs-an").classList.contains("on"), $("gs-sms").classList.contains("on"), $("gs-wer").value, $("gs-text").value); } catch (e) {} };
