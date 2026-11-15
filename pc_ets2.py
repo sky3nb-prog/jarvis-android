@@ -8,8 +8,9 @@ Dezent: Er sagt nur etwas, wenn es wichtig ist –
   - etwa 60 und 20 Minuten vor der Ruhezeit
   - Auftrag abgeliefert (Lohn, Kilometer), Strafzettel
 Fragen gehen jederzeit: "wie weit noch?", "wie viel Sprit?", "wann muss ich schlafen?", "was verdiene ich?".
-Tankstellen und Schlafplätze lernt er selbst: Jedes Mal, wenn du tankst oder schläfst, merkt er sich die Stelle
-(ets2_orte.json). Wird der Tank knapp oder die Ruhezeit kommt, sagt er dir die nächste bekannte voraus –
+Tankstellen und Schlafplätze: Er kennt alle aus der Spielkarte (pc_web/ets2_karte.geo – rund 1.950 Tankstellen und
+3.400 Rast-/Parkplätze, ausgelesen aus den ETS2-Spieldateien über das Projekt "TruckSim Maps"). Dazu merkt er sich jede
+Stelle, an der du tankst oder schläfst (ets2_orte.json). Wird der Tank knapp oder die Ruhezeit kommt, sagt er dir die nächste voraus –
 "wo ist die nächste Tankstelle?" / "wo kann ich schlafen?" geht auch, "merk dir die Tankstelle hier" ebenso.
 Die Fahrtenseite im HUD zeigt alles live (STATE).
 """
@@ -194,6 +195,28 @@ def _orte_save():
         print("ETS2-Orte speichern ging nicht:", e)
 
 
+_karte = None
+_staedte = []
+
+
+def karte() -> list:
+    """Alle Tankstellen ("tank") und Schlafplätze ("schlaf") der ETS2-Karte als Liste von Dicts (wie ORTE)."""
+    global _karte
+    if _karte is None:
+        _karte = []
+        root = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        try:
+            with open(os.path.join(root, "pc_web", "ets2_karte.geo"), encoding="utf-8") as fh:
+                for a, x, z in json.load(fh)["orte"]:
+                    _karte.append({"art": "tank" if a == "t" else "schlaf", "x": x, "z": z, "spiel": "ETS2", "karte": True})
+                fh.seek(0)
+                _staedte[:] = json.load(fh).get("staedte", [])
+            print(f"ETS2-Karte: {len(_karte)} Tankstellen und Schlafplätze geladen")
+        except Exception as e:
+            print("ETS2-Karte fehlt:", e)
+    return _karte
+
+
 def _faktor() -> float:
     """Spiel-Kilometer pro Welt-Kilometer (lernt er beim Fahren aus dem Tacho; bis dahin 1)."""
     return ORTE.get("faktor") or 1.0
@@ -232,7 +255,7 @@ def nearest(art: str, t, max_km: float = 0, ahead_only: bool = True):
     game = "ATS" if t.game == 2 else "ETS2"
     h = _heading()
     best = None
-    for o in ORTE["orte"]:
+    for o in ORTE["orte"] + karte():
         if o["art"] != art or o.get("spiel", "ETS2") != game:
             continue
         dx, dz = o["x"] - x, o["z"] - z
@@ -266,8 +289,12 @@ def _place_text(art: str, t, max_km: float = 0) -> str:
         return (f"Eine {what} in der Nähe kenne ich noch nicht" if art == "tank" else f"Einen {what} in der Nähe kenne ich noch nicht") + \
             (f" – ich habe erst {cnt} gelernt." if cnt else " – ich lerne sie, sobald du tankst oder schläfst.")
     km, way, o = n
+    if not o.get("bei") and _staedte:   # Ort aus der Karte: nächste Stadt dazusagen
+        name, cx, cz = min(_staedte, key=lambda c: math.hypot(c[1] - o["x"], c[2] - o["z"]))
+        if math.hypot(cx - o["x"], cz - o["z"]) < 5000:
+            o = dict(o, bei=name)
     bei = f" bei {o['bei']}" if o.get("bei") else ""
-    pre = "Die nächste Tankstelle, die ich kenne" if art == "tank" else "Der nächste Schlafplatz, den ich kenne"
+    pre = "Die nächste Tankstelle" if art == "tank" else "Der nächste Schlafplatz"
     return f"{pre}{bei}: etwa {km} Kilometer Luftlinie{', ' + way if way else ''}."
 
 
