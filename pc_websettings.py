@@ -40,12 +40,28 @@ def _same(names):
 
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
-NEW = ["meine_orte", "meine_wege", "route_an", "hud_layout", "wichtige_leute", "absage_text", "webcam_fern", "ets2_quicksave"]
+# Dazu kommen automatisch alle Einstellungen, die ein Update neu mitbringt (pc_settings: auto_new).
+NEW = ["voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
+_shown = None   # Kennungen, die es in den Einstellungen wirklich als Feld gibt
+
+
+def _fields() -> set:
+    global _shown
+    if _shown is None:
+        import re
+        try:
+            src = open(os.path.abspath(__file__), encoding="utf-8").read()
+            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src))
+        except Exception:
+            _shown = set()
+    return _shown
 
 
 def unseen(s: dict) -> list:
     seen = set(s.get("seen_new") or [])
-    return [k for k in NEW if k not in seen]
+    keys = list(dict.fromkeys(NEW + list(s.get("auto_new") or [])))
+    f = _fields()
+    return [k for k in keys if k not in seen and (not f or k in f)]
 
 
 def schema(s: dict) -> dict:

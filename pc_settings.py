@@ -125,6 +125,7 @@ DEFAULTS = {
     "telegram_chat": "",  # dein Chat mit dem Bot (wird beim ersten "Start" gemerkt)
     "ntfy_topic": "",  # geheimer Kanal für Nachrichten aufs Handy (wird beim ersten Start erzeugt)
     "loc_topic": "",  # geheimer Kanal, über den das Handy (OwnTracks) seinen Standort schickt
+    "auto_new": [],  # Einstellungen, die mit einem Update neu dazukamen (automatisch erkannt)
     "seen_new": [],  # neue Einstellungen, die schon angeschaut wurden (für den "Neu"-Punkt)
 }
 
@@ -141,6 +142,10 @@ def load() -> dict:
         for key, value in stored.items():
             if key in DEFAULTS:
                 data[key] = value
+        # Neu durch ein Update: steht in den Standardwerten, aber noch nicht in deiner Einstellungsdatei -> roter Punkt
+        fresh = [k for k in DEFAULTS if k not in stored and k not in ("auto_new", "seen_new", "overlay_v2")]
+        if fresh:
+            data["auto_new"] = list(dict.fromkeys(list(data.get("auto_new") or []) + fresh))
     except Exception:
         pass
     if not data.get("overlay_v2"):   # Update: einmal auf das neue Overlay umstellen (zurück geht in den Einstellungen)
