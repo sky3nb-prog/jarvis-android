@@ -550,7 +550,7 @@ class WebHud:
         try:
             if op == "refresh":
                 if not pc_handy.refresh_status(bool(b.get("force"))):
-                    self.push("phone_reply", {"ok": False, "text": "Dein Handy hat nicht geantwortet. Ist die Jarvis-App dort an (Schalter oben rechts)?"})
+                    self.push("phone_reply", {"ok": False, "text": "Dein Handy hat nicht geantwortet. Ist die Jarvis-App dort an (Schalter oben rechts)? Wenn ja: Der Kopplungsdienst lässt nur 250 Nachrichten am Tag durch – dann geht es nachts wieder."})
                 return
             if op == "ctl":
                 r = pc_handy.control(str(b.get("what")), **{k: v for k, v in b.items() if k not in ("op", "what")})

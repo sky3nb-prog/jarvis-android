@@ -156,6 +156,7 @@ def apply_settings(s: dict):
     words = [w.strip().lower() for w in s.get("wake_words", []) if str(w).strip()]
     WAKE_WORDS[:] = words or ["jarvis"]  # dieselbe Liste, die auch die Erkennung benutzt
     pc_assistent.LANGUAGE = s.get("language", "de-DE")
+    pc_assistent.LONG_SILENCE_BLOCKS = int(round(float(s.get("pause_lang", 1.8) or 1.8) * 10))
     new_in = pc_audio.resolve_device(s.get("input_device"), "input")
     if new_in != pc_assistent.INPUT_DEVICE:  # anderes Mikrofon: Hör-Schleife startet sofort neu
         pc_assistent.INPUT_DEVICE = new_in
@@ -1567,10 +1568,11 @@ class LiveTranscriber:
             self.busy = False
 
 
-def listen_live(q, threshold, handler, live_rec, max_wait=None):
+def listen_live(q, threshold, handler, live_rec, max_wait=None, always_long=False):
     sess = Session()
     live = LiveTranscriber(live_rec, lambda text: handler(sess, text))
-    raw = listen_utterance(q, threshold, max_wait=max_wait, on_progress=live.submit)
+    # Sobald das Aktivierungswort live erkannt ist (oder du schon dran bist), darf zwischendurch eine längere Pause sein
+    raw = listen_utterance(q, threshold, max_wait=max_wait, on_progress=live.submit, long_pause=lambda: always_long or sess.woke)
     with sess.lock:
         sess.active = False
     return raw, sess
@@ -1818,7 +1820,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
                         ui.post("Ich höre …", "Sag deinen Befehl", glow=True)
                         time.sleep(0.7)  # Sound ausklingen lassen, damit das Mikrofon ihn nicht hört
                         drain(q)
-                        raw, _ = listen_live(q, threshold, follow_handler, live_rec, max_wait=6)
+                        raw, _ = listen_live(q, threshold, follow_handler, live_rec, max_wait=6, always_long=True)
                         if pc_cancel.changed(gen):
                             drain(q)
                             continue
@@ -1861,7 +1863,7 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
                 deadline = time.time() + _fs() if _fs() > 0 else 0
                 while time.time() < deadline and not stop.is_set() and not pc_steuerung.QUIT_REQUESTED:
                     ui.post("Ich höre …", "", int((deadline - time.time()) * 1000) + 300, glow=True)
-                    raw, _ = listen_live(q, threshold, follow_handler, live_rec, max_wait=max(0.5, deadline - time.time()))
+                    raw, _ = listen_live(q, threshold, follow_handler, live_rec, max_wait=max(0.5, deadline - time.time()), always_long=True)
                     if raw is None or pc_cancel.changed(gen):
                         break
                     heard = transcribe(recognizer, raw).strip()
@@ -2038,7 +2040,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-15 18:05"
+VERSION = "2026-11-15 18:20"
 
 
 def main():

@@ -51,7 +51,7 @@ def _fields() -> set:
         import re
         try:
             src = open(os.path.abspath(__file__), encoding="utf-8").read()
-            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"stundenplan_pc", "schulkal_pc", "ideen_pc", "steam_api_key"}
+            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"stundenplan_pc", "schulkal_pc", "ideen_pc", "steam_api_key", "pause_lang"}
         except Exception:
             _shown = set()
     return _shown
@@ -147,7 +147,8 @@ def schema(s: dict) -> dict:
                  tx("wake_words", "Aktivierungswort", "Mehrere Schreibweisen mit Komma, z. B. jarvis, dscharvis"),
                  sel("language", "Sprache", _opts(su.LANGUAGES)),
                  sel("input_device", "Mikrofon", mics, "Wirkt sofort nach dem Speichern."),
-                 rng("followup_seconds", "Weiterhören nach einem Befehl", 0, 15, " s", "0 = aus")),
+                 rng("followup_seconds", "Weiterhören nach einem Befehl", 0, 15, " s", "0 = aus"),
+                 rng("pause_lang", "Nachdenkpause beim Reden", 1, 4, " s", "So lange darfst du nach dem Aktivierungswort zwischendurch Pause machen, bevor ich antworte. Für lange Sachen höher stellen.")),
         ]},
         {"id": "stim", "n": "Stimme", "i": "♪", "items": [
             card("Sprechen",
@@ -308,7 +309,7 @@ def schema(s: dict) -> dict:
     values = {
         "assistant_name": g("assistant_name"), "address_as": g("address_as"), "persona": g("persona"),
         "autostart": bool(g("autostart")), "greet_on_start": bool(g("greet_on_start")),
-        "show_hud_on_start": bool(g("show_hud_on_start")), "boot_animation": bool(g("boot_animation")), "msg_ask_first": bool(g("msg_ask_first")), "kommentare": bool(g("kommentare")), "lieblingskanaele": g("lieblingskanaele"), "confirm_messages": bool(g("confirm_messages")),
+        "show_hud_on_start": bool(g("show_hud_on_start")), "pause_lang": g("pause_lang"), "boot_animation": bool(g("boot_animation")), "msg_ask_first": bool(g("msg_ask_first")), "kommentare": bool(g("kommentare")), "lieblingskanaele": g("lieblingskanaele"), "confirm_messages": bool(g("confirm_messages")),
         "wake_words": ", ".join(g("wake_words") or []), "language": g("language"),
         "input_device": g("input_device") if not isinstance(g("input_device"), int) else pc_audio.device_name(g("input_device")),
         "output_device": g("output_device") if not isinstance(g("output_device"), int) else pc_audio.device_name(g("output_device")),
@@ -361,7 +362,7 @@ def save(s: dict, v: dict) -> dict:
               "hud_animation", "show_weather", "announce_events", "show_performance", "show_pc_temps", "show_notifications", "webcam_fern"):
         if k in v:
             new[k] = bool(v[k])
-    for k in ("followup_seconds", "voice_volume", "voice_pitch", "voice_rate", "chime_volume", "orb_size"):
+    for k in ("followup_seconds", "pause_lang", "voice_volume", "voice_pitch", "voice_rate", "chime_volume", "orb_size"):
         if k in v:
             new[k] = num(k)
     for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",

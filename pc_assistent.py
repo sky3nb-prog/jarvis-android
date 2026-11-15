@@ -37,6 +37,8 @@ RATE = 16000
 BLOCK = 1600  # 0,1 Sekunden pro Block
 SILENCE_BLOCKS = 7  # 0,7 s Stille beendet einen Satz
 MAX_BLOCKS = 150  # maximal 15 s pro Satz
+LONG_SILENCE_BLOCKS = 18  # nach dem Aktivierungswort: 1,8 s Pause erlaubt (Einstellung "Nachdenkpause"), damit lange Sätze nicht abreißen
+LONG_MAX_BLOCKS = 600     # und bis zu 60 s am Stück
 MIN_THRESHOLD = 300  # Mindestlautstärke, ab der Sprache erkannt wird
 INPUT_DEVICE = None  # None = Standardmikrofon; sonst Nummer aus "py pc_assistent.py --geraete"
 
@@ -85,6 +87,7 @@ def listen_utterance(
     max_wait: float | None = None,
     on_progress=None,
     progress_every: int = 8,
+    long_pause=None,
 ):
     """Wartet auf Sprache und gibt die Rohdaten eines Satzes zurück.
 
@@ -122,7 +125,8 @@ def listen_utterance(
                 since_progress = 0
                 on_progress(b"".join(frames))
             silence = 0 if loud else silence + 1
-            if silence >= SILENCE_BLOCKS or len(frames) >= MAX_BLOCKS:
+            lng = bool(long_pause and long_pause())   # Aktivierungswort erkannt: ausreden lassen
+            if silence >= (LONG_SILENCE_BLOCKS if lng else SILENCE_BLOCKS) or len(frames) >= (LONG_MAX_BLOCKS if lng else MAX_BLOCKS):
                 return b"".join(frames)
 
 

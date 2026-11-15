@@ -15,6 +15,7 @@ import hashlib
 import re
 import threading
 import time
+import urllib.error
 import urllib.request
 import uuid
 
@@ -35,11 +36,25 @@ def paired() -> bool:
         return False
 
 
+LIMIT = {"t": 0.0}   # Tageslimit von ntfy.sh (250 Nachrichten pro Tag und Anschluss) erreicht
+
+
+def limited() -> bool:
+    return time.time() - LIMIT["t"] < 6 * 3600
+
+
 def _send(obj: dict):
     c = pc_link.code()
     r = urllib.request.Request(pc_link.SERVER + topic(), data=pc_link.encrypt(obj, c).encode(), method="POST")
     r.add_header("User-Agent", "Jarvis-PC")
-    urllib.request.urlopen(r, timeout=20).read()
+    try:
+        urllib.request.urlopen(r, timeout=20).read()
+        LIMIT["t"] = 0.0
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            LIMIT["t"] = time.time()
+            print("Kopplungsdienst: Tageslimit erreicht (429) – heute gehen keine Nachrichten mehr durch.")
+        raise
 
 
 def ask(kind: str, wait: float = 25, **data):
@@ -53,7 +68,7 @@ def ask(kind: str, wait: float = 25, **data):
         _send(dict(kind=kind, id=mid, ts=int(time.time()), **{"from": "pc"}, **data))
         ev.wait(wait)
         r = _waiting[mid][1]
-        print(f"Handy-Antwort {kind} nach {time.time() - t0:.1f} s: " + (str(r.get("text", ""))[:150] if r else "keine (Jarvis-App an? Schalter oben rechts an?)"))
+        print(f"Handy-Antwort {kind} nach {time.time() - t0:.1f} s: " + (str(r.get("text", ""))[:150] if r else "keine (Jarvis-App an? Schalter oben rechts an? Oder Tageslimit des Kopplungsdienstes erreicht)"))
         return r
     except Exception as e:
         print(f"Handy-Auftrag ging nicht: {e}")
@@ -191,11 +206,14 @@ def refresh_status(force: bool = False):
         return False
     if not force and time.time() - _asked["t"] < 120:
         return True
+    if not force and time.time() - _asked.get("fail", 0) < 600:   # hat eben nicht geantwortet: 10 Min. Ruhe (Tageslimit des Dienstes schonen)
+        return False
     _asked["t"] = time.time()
     r = ask("status", wait=20)
     if r is None:
-        _asked["t"] = 0   # gleich nochmal erlauben
+        _asked["fail"] = time.time()
         return False
+    _asked["fail"] = 0
     return True
 
 
