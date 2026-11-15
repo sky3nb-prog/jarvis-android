@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
     /** Hintergrund-Jarvis (Aktivierungswort) starten, wenn eingeschaltet. */
     private fun startBackground() {
         if (!hasMic()) return
-        if (prefs.getBoolean("background", true)) JarvisService.start(this)
+        if (prefs.getBoolean("background", !Konto.parallel(this))) JarvisService.start(this)   // Konto-Test-App neben der normalen: standardmäßig nicht im Hintergrund
     }
 
     private val textBrain by lazy { Brain(this) }   // für getippte Fragen
@@ -168,6 +168,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         JarvisService.appVisible = true
+        try { Konto.tick(this) } catch (_: Exception) {}
         Bus.emit("app_visible", JSONObject().put("on", true))
     }
 
@@ -496,6 +497,24 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun getModus(): String = Modes.current(this@MainActivity)
+
+        // --- Jarvis-Konto (Test-App) ---
+        @JavascriptInterface
+        fun kontoInfo(): String = Konto.info(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun kontoLogin(email: String, pw: String, neu: Boolean) {
+            Thread({ val r = Konto.signIn(this@MainActivity, email, pw, neu); send("konto", r.put("info", Konto.info(this@MainActivity))) }, "konto-login").start()
+        }
+
+        @JavascriptInterface
+        fun kontoSync() { Thread({ send("konto", Konto.syncNow(this@MainActivity).put("info", Konto.info(this@MainActivity))) }, "konto-sync").start() }
+
+        @JavascriptInterface
+        fun kontoLogout() { Konto.signOut(this@MainActivity) }
+
+        @JavascriptInterface
+        fun kontoRestart() { runOnUiThread { recreate() } }
 
         @JavascriptInterface
         fun getDirect(): String = Link.directInfo(this@MainActivity).toString()

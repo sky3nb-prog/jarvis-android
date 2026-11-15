@@ -8,11 +8,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "de.skyler.jarvis"
+        applicationId = "de.skyler.jarvis.konto"
         minSdk = 26
         targetSdk = 35
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "0.3." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "K0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
 
     signingConfigs {

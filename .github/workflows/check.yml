@@ -2,7 +2,7 @@ name: Nur prüfen (ohne Download)
 
 on:
   push:
-    branches-ignore: [main]
+    branches-ignore: [main, konto]
 
 jobs:
   check:

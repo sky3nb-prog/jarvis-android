@@ -655,7 +655,8 @@ object Alltag {
         try { evening(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "abend: $e") }
         try { weekly(ctx, s) } catch (e: Exception) { Log.w(TAG, "rückblick: $e") }
         try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
-        try { appUpdate(ctx, s) } catch (_: Exception) {}
+        // Konto-Test-App: kein Update-Hinweis (sonst würde sie die normale App anbieten), stattdessen Konto abgleichen
+        try { Konto.tick(ctx) } catch (_: Exception) {}
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
         try { checkIn(ctx, s) } catch (e: Exception) { Log.w(TAG, "melden: $e") }
         try { Melden.flush(ctx) } catch (_: Exception) {}
