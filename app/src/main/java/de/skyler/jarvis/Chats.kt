@@ -25,7 +25,7 @@ import java.io.File
  */
 object Chats {
     private const val TAG = "JarvisChats"
-    const val DEFAULT = "Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis"
+    const val DEFAULT = ""
     private val PKGS = setOf("com.whatsapp", "com.whatsapp.w4b")
 
     private class Reply(val action: Notification.Action, val at: Long)
@@ -287,7 +287,7 @@ object Chats {
         }
     }
 
-    /** Wie Skyler schreibt: ohne Punkt, Komma, Doppelpunkt, Gedankenstrich (12:30, 2,5 und E-Mail bleiben). */
+    /** Wie der Nutzer schreibt: ohne Punkt, Komma, Doppelpunkt, Gedankenstrich (12:30, 2,5 und E-Mail bleiben). */
     fun waStyle(t0: String): String {
         var t = t0.trim().trim('"', '„', '“')
         t = t.replace(Regex("\\s+[–—-]+\\s+"), " ").replace(Regex("[–—]"), " ")

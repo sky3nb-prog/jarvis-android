@@ -76,7 +76,7 @@ object Leute {
     fun promptFor(ctx: Context, ck: String): String {
         val p = all(ctx).optJSONObject(ck) ?: return ""
         return listOf(p.optString("art").takeIf { it.isNotBlank() }?.let { "Die Person: $it" },
-            p.optString("stil").takeIf { it.isNotBlank() }?.let { "So schreibt Skyler mit ihr: $it" },
+            p.optString("stil").takeIf { it.isNotBlank() }?.let { "So schreibt der Nutzer mit ihr: $it" },
             p.optString("interessen").takeIf { it.isNotBlank() }?.let { "Ihr schreibt oft über: $it" }).filterNotNull().joinToString(" ")
     }
 
@@ -102,10 +102,10 @@ object Leute {
             val newest = maxOf(msgs.maxOf { it.optLong("t") }, own.length().toLong())
             if (!force && newest <= p.optLong("gelernt_bis")) continue
             val name = p.optString("name").ifBlank { msgs.firstOrNull { it.optString("von") != "ich" }?.optString("von") ?: ck }
-            val chat = msgs.joinToString("\n") { (if (it.optString("von") == "ich") "SKYLER" else it.optString("von")) + ": " + it.optString("text").take(200) }
-            val sys = "Du hilfst einem persönlichen Assistenten, Skylers Freunde und Familie zu verstehen. Lies den WhatsApp-Ausschnitt und das bisherige Profil. " +
+            val chat = msgs.joinToString("\n") { (if (it.optString("von") == "ich") "ICH" else it.optString("von")) + ": " + it.optString("text").take(200) }
+            val sys = "Du hilfst einem persönlichen Assistenten, die Freunde und Familie des Nutzers zu verstehen. Lies den WhatsApp-Ausschnitt und das bisherige Profil. " +
                 "Antworte NUR als JSON: {\"interessen\":\"<Themen/Hobbys der Person, kurz, mit Komma>\",\"art\":\"<wie die Person drauf ist: Ton, typische Stimmung, 1 kurzer Satz>\"," +
-                "\"stil\":\"<wie SKYLER mit dieser Person schreibt: Länge, Emojis, Spitznamen, Anrede, Groß/klein – 1 kurzer Satz>\",\"geschenk\":\"<2-3 passende Geschenkideen, mit Komma>\"}. " +
+                "\"stil\":\"<wie ICH (der Nutzer) mit dieser Person schreibt: Länge, Emojis, Spitznamen, Anrede, Groß/klein – 1 kurzer Satz>\",\"geschenk\":\"<2-3 passende Geschenkideen, mit Komma>\"}. " +
                 "Ergänze das alte Profil, statt es wegzuwerfen. Nichts erfinden; wenn unklar, Feld leer lassen. Keine Gesundheits- oder sehr privaten Details."
             val user = "Person: $name\nBisheriges Profil: ${p.optString("interessen")} | ${p.optString("art")} | ${p.optString("stil")} | ${p.optString("geschenk")}\n\nChat:\n$chat"
             try {

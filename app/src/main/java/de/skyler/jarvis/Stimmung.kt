@@ -6,12 +6,12 @@ import org.json.JSONObject
 import java.util.Calendar
 
 /**
- * Wie ist Skyler heute drauf? Eine vorsichtige Einschätzung aus verschiedenen Daten:
+ * Wie ist der Nutzer heute drauf? Eine vorsichtige Einschätzung aus verschiedenen Daten:
  *  Schlaf letzte Nacht, Bewegung (Schritte/Sport), Termine heute (Klassenarbeit, Arzt … = Stress; Geburtstag, Treffen = schön),
  *  ob er draußen war, und was er selbst über seine Laune gesagt hat (das zählt am meisten).
  * Daraus: Wert -2 … +2, kurzes Etikett und Gründe. Jarvis nutzt das, um sich anzupassen (ruhiger, kein Sarkasmus, keine
  * zusätzlichen Vorschläge, behutsam nachfragen – oder locker und mit Humor).
- * Lernt dazu: Sagt Skyler später selbst, wie er drauf ist, vergleicht Jarvis das mit seiner Einschätzung und verschiebt sie.
+ * Lernt dazu: Sagt der Nutzer später selbst, wie er drauf ist, vergleicht Jarvis das mit seiner Einschätzung und verschiebt sie.
  */
 object Stimmung {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)

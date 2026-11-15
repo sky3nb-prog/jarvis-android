@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit
  *    herunter (Musik aus, ETS2 speichern, Programme zu). Wieder da -> "Willkommen zurück" am PC. Ortserinnerungen.
  *  - Rechtzeitig losfahren: Termin mit Ort -> "Fertig machen" und "Jetzt los"; Regen (DWD, ECMWF, GFS) -> Bahn, sonst Rad.
  *    Fahr- und Fertigmach-Zeit lernt er aus echten Fahrten.
- *  - Ankunft ankündigen: ca. 5 Minuten vorher SMS "Hier ist Jarvis. Skyler ist um … da".
+ *  - Ankunft ankündigen: ca. 5 Minuten vorher SMS "Hier ist Jarvis. der Nutzer ist um … da".
  *  - Morgen-Briefing (erstes Entsperren nach dem Wecker), Abend-Briefing, Wochenrückblick am Sonntag.
  */
 object Alltag {
@@ -807,7 +807,7 @@ object Alltag {
         if (trip.optLong("start") <= 0) trip.put("start", now)
     }
 
-    /** Ankunft ankündigen: "Opa: Thomas" in den Einstellungen -> SMS ca. 5 Minuten vorher. */
+    /** Ankunft ankündigen: "Oma: Mama" in den Einstellungen -> SMS ca. 5 Minuten vorher. */
     /** Wer bekommt bei diesem Ort die Ankunfts-SMS? ("Opa: Opa", "Oma und Opa: Opa" …) */
     private fun whoFor(ctx: Context, place: String): Pair<String, String>? {
         val p = place.lowercase().trim()
@@ -890,12 +890,12 @@ object Alltag {
     private fun sendArrival(ctx: Context, place: String, who: String, at: Long, start: Long) {
         val nr = Actions(ctx).number(who) ?: run { notify(ctx, 320, "Ankunft", "$who finde ich nicht in deinen Kontakten."); return }
         val atS = SimpleDateFormat("H:mm", de).format(Date(at)); val startS = SimpleDateFormat("H:mm", de).format(Date(start))
-        var text = "Hier ist Jarvis. Skyler ist um $atS Uhr da, er ist um $startS Uhr losgefahren. Ihr könnt schon mal runterkommen."
+        var text = "Hier ist Jarvis. Ankunft ist um $atS Uhr, losgefahren um $startS Uhr. Ihr könnt schon mal runterkommen."
         val key = prefs(ctx).getString("groq_key", "") ?: ""
         if (key.isNotBlank()) try {
             val out = Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content",
                 "Schreib eine kurze SMS (1 bis 2 Sätze). Sie beginnt genau mit \"Hier ist Jarvis.\" und sagt in der dritten Person: " +
-                    "Skyler ist um $atS Uhr da, er ist um $startS Uhr losgefahren, man kann schon runterkommen. " +
+                    "Ankunft um $atS Uhr, losgefahren um $startS Uhr, man kann schon runterkommen. " +
                     "Formuliere es jedes Mal etwas anders, freundlich und locker, ohne Emojis. Nur der SMS-Text."))
                 .put(JSONObject().put("role", "user").put("content", "Empfänger: $who")), 150).trim().trim('"')
             if (out.startsWith("Hier ist Jarvis") && out.length < 300) text = out
@@ -977,7 +977,7 @@ object Alltag {
     }
 
     // --- Feste Wege (jede Woche) und einmalige Termine (an einem Datum) ---------------------------------------
-    const val FESTE_DEFAULT = "Donnerstag 15:50 zu Opa, zuhause 18:20"
+    const val FESTE_DEFAULT = ""
     private val DAYS = mapOf("mo" to Calendar.MONDAY, "di" to Calendar.TUESDAY, "mi" to Calendar.WEDNESDAY, "do" to Calendar.THURSDAY,
         "fr" to Calendar.FRIDAY, "sa" to Calendar.SATURDAY, "so" to Calendar.SUNDAY)
 
@@ -1002,8 +1002,8 @@ object Alltag {
     /** Der feste Weg aus der App (Tag, Ziel, Zeiten, Fahrzeug, SMS an). */
     fun festerWeg(ctx: Context): JSONObject {
         prefs(ctx).getString("fester_weg", null)?.let { try { return JSONObject(it) } catch (_: Exception) {} }
-        return JSONObject().put("tag", "do").put("ziel", "Opa").put("name", "Oma und Opa").put("los", "15:50").put("zuhause", "18:20")
-            .put("mode", "ebike").put("wer", "").put("an", true)
+        return JSONObject().put("tag", "do").put("ziel", "").put("name", "").put("los", "").put("zuhause", "")
+            .put("mode", "ebike").put("wer", "").put("an", false)
     }
 
     fun festeWege(ctx: Context): List<Fest> {
@@ -1390,7 +1390,7 @@ object Alltag {
             (if (w2 != null) "\nWetter auf dem Rückweg (${clock(back)}): ${wxText(w2)}" else "") +
             "\n" + (pick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + ((prefs(ctx).getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))) +
             (if (remind.isNotEmpty()) "\nEr wollte daran erinnert werden: ${remind.joinToString("; ")}" else "")
-        val sys = "Du bist Jarvis und gibst Skyler ein Briefing für seine Fahrt. Antworte NUR mit JSON: " +
+        val sys = "Du bist Jarvis und gibst deinem Nutzer ein Briefing für seine Fahrt. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochenes Briefing, " + (if (short) "höchstens 2 kurze Sätze" else "3 bis 5 kurze Sätze") +
             ", ohne Listen und Sonderzeichen: Ansage, Verkehrsmittel (Bahn wegen Regen oder Rad), wie kalt, was anziehen, worauf achten, ggf. 'Denk an …', am Ende 'Gute Fahrt'\", " +
             "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"], " +
@@ -1583,7 +1583,7 @@ object Alltag {
         val topics = listOf("bi_wetter" to "Wetter (vor allem für die Radfahrt)", "bi_anzieh" to "was er anziehen soll, genau nach seinen Regeln",
             "bi_termine" to "Termine", "bi_mitnehmen" to "was er mitnehmen oder vorbereiten sollte (nur wenn es aus den Terminen folgt)")
             .filter { want(it.first) }.joinToString(", ") { it.second }
-        val sys = "Du bist Jarvis und gibst Skyler sein ${if (label == 0) "Tages-Update für heute" else "Update für morgen"}. Antworte NUR mit JSON: " +
+        val sys = "Du bist Jarvis und gibst deinem Nutzer sein ${if (label == 0) "Tages-Update für heute" else "Update für morgen"}. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 4 bis 6 kurze Sätze. Inhalt: $topics" +
             (if (wecker != null) ", zum Schluss wann sein Wecker klingelt" else "") +
             (if (label == 0) ", und ein kleiner, einfacher Essens-Tipp für heute in einem halben Satz" else "") +
@@ -1652,7 +1652,7 @@ object Alltag {
             parts.add("HEUTE – angehabt: ${(0 until w.getJSONArray("names").length()).joinToString(", ") { w.getJSONArray("names").getString(it).substringAfter(" ") }} – " +
                 when (w.optInt("v")) { -1 -> "war ihm zu kalt"; 1 -> "war ihm zu warm"; else -> "hat gepasst" } + ". Erwähne das kurz im Rückblick.") } } catch (_: Exception) {}
         parts.add(epick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))
-        val sys = "Du bist Jarvis und gibst Skyler seinen Tagesabschluss am Abend. Antworte NUR mit JSON: " +
+        val sys = "Du bist Jarvis und gibst deinem Nutzer seinen Tagesabschluss am Abend. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, persönlich wie ein guter Freund, ohne Listen und Sonderzeichen, 3 bis 6 kurze Sätze: kurzer Rückblick auf heute (was los war – kommentiere 1 bis 2 Termine oder Dinge von heute kurz und persönlich, z. B. Elternsprechtag -> 'hoffentlich lief's gut', Klassenarbeit -> 'ich drück dir die Daumen fürs Ergebnis', Treffen mit Freunden -> 'klingt nach einem guten Tag'; passend zu seiner Stimmung: war der Tag eher schwer, warm und aufmunternd, ohne Ratschläge; war er gut, freu dich mit" +
             (if (fit != null) ", wie viele Kalorien er verbraucht hat und ob er aktiv war, Defizit nur wenn gegessene Kalorien in den Daten stehen" else "") +
             "), dann für morgen NUR: wann er aufsteht (mit dem Tipp, wann er für 8 Stunden Schlaf ins Bett sollte) und was er anziehen soll. KEINE Termine von morgen. Beginne mit 'Dein Tagesabschluss'\", " +
@@ -1718,7 +1718,7 @@ object Alltag {
         val data = (if (gaming.isNotBlank()) "$gaming\n" else "") + "Besuche (Fahrten zu gespeicherten Orten): ${visits.entries.joinToString { "${it.key}: ${it.value}x" }.ifBlank { "keine erfasst" }}\n" +
             "Rad-Kilometer: ${"%.1f".format(radKm)}\nFahrten: ${week.size}\nMusik gehört (Handy): etwa ${music / 60} Stunden ${music % 60} Minuten\n" +
             "Termine der letzten 7 Tage:\n${Cal.describe(past).ifBlank { "keine" }}" + fitText + sleepText
-        val sys = "Du bist Jarvis und machst Skylers Wochenrückblick über die letzten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
+        val sys = "Du bist Jarvis und machst den Wochenrückblick deines Nutzers über die letzten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
             "ohne Listen: wie oft er bei Oma und Opa war, wie viele Kilometer er Rad gefahren ist, wie lange er Musik gehört hat (keine Liedliste), was sonst los war" +
             (if (gaming.isNotBlank()) ", sein Gaming-Rückblick (wie lange gezockt, Lieblingsspiel, Top 3, längste Session, neue Erfolge – locker, ohne Vorwürfe)" else "") +
             (if (fitText.isNotEmpty()) ", wie aktiv er war (Kalorien am Tag, Schritte, aktivster Tag)" else "") + (if (sleepText.isNotEmpty()) ", wie er geschlafen hat (Schnitt, späteste Nacht)" else "") +
@@ -1760,7 +1760,7 @@ object Alltag {
         val avgK = prev.filter { it.has("kcal") }.map { it.optLong("kcal") }.average().let { if (it.isNaN()) 0L else Math.round(it) }
         val avgS = prev.filter { it.has("schritte") }.map { it.optLong("schritte") }.average().let { if (it.isNaN()) 0L else Math.round(it) }
         val data = "Heute: ${Health.text(h)}\nSchnitt der letzten Tage: $avgK kcal, $avgS Schritte\nSchlaf letzte Nacht: ${Sleep.text(sl)}"
-        val sys = "Du bist Jarvis und gibst Skyler am Abend seine Tagesbilanz. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 2 bis 4 kurze Sätze, ohne Listen: " +
+        val sys = "Du bist Jarvis und gibst deinem Nutzer am Abend seine Tagesbilanz. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 2 bis 4 kurze Sätze, ohne Listen: " +
             "wie viele Kalorien er heute verbraucht hat, ob er im Defizit war (NUR wenn gegessene Kalorien in den Daten stehen), wie aktiv er war im Vergleich zu seinem Schnitt, " +
             "kurz der Schlaf letzte Nacht; zum Schluss ein kleiner Tipp für morgen (z. B. früher schlafen, kurz raus) – freundlich, nicht belehrend, keine Diät-Vorgaben\"}. Erfinde nichts."
         val ai = aiJson(ctx, sys, data, 300)
@@ -1840,7 +1840,7 @@ object Alltag {
             "${d.optString("tag")} ${d.optString("datum")}: " + (if (w != null) "${w.optInt("min")}–${w.optInt("max")} Grad, Regen ${w.optInt("rain_pct")} %. " else "") +
                 (0 until d.getJSONArray("termine").length()).joinToString("; ") { j -> d.getJSONArray("termine").getJSONObject(j).let { "${it.optString("zeit")} ${it.optString("titel")}" } }
         } + "\nWas du über ihn weißt:\n" + Memory.facts(ctx).takeLast(30).joinToString("\n") { "- $it" }
-        val sys = "Du bist Jarvis und gibst Skyler die Vorschau auf die nächsten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
+        val sys = "Du bist Jarvis und gibst deinem Nutzer die Vorschau auf die nächsten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
             "ohne Listen: die wichtigsten Termine und wie das Wetter wird (wann Regen, wann kalt)\", \"mitnehmen\": [\"was er für die Termine mitnehmen oder vorbereiten sollte, " +
             "mit Tag, z. B. 'Di: Sportsachen' – nur wenn es daraus folgt\"]}. Erfinde nichts."
         val ai = aiJson(ctx, sys, data, 600) ?: return null

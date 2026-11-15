@@ -24,7 +24,7 @@ import kotlin.math.sqrt
 /**
  * Wegeplaner – ganz entspannt gesagt:
  *  "Ich will mit dem Rad los, noch ein belegtes Brötchen beim Trölsch holen und dann auf dem schnellsten Weg
- *   über den oberen Feldweg zu meinen Großeltern nach Rutesheim."
+ *   über den oberen Feldweg zu meinen Großeltern."
  *  "Noch an einem Supermarkt vorbei, am liebsten Rewe, sonst Aldi – was am besten auf dem Weg liegt."
  *  "Wann muss ich los, wenn ich noch zum Rewe will und dann die Bahn nehme?"
  *
@@ -51,7 +51,7 @@ object Route {
     private val SPEED = mapOf("bicycling" to 16.0, "walking" to 4.8, "driving" to 38.0, "transit" to 4.8)
     private fun minutes(km: Double, mode: String) = km * 1.3 / (SPEED[mode] ?: 16.0) * 60.0   // 1,3 = Wege sind nicht schnurgerade
 
-    /** "Opa: Musterstraße 5, Rutesheim" je Zeile (Einstellungen → Wege, gleich wie am PC) */
+    /** "Oma: Musterstraße 5, Musterstadt" je Zeile (Einstellungen → Wege, gleich wie am PC) */
     fun lines(ctx: Context, key: String): Map<String, String> =
         (ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString(key, "") ?: "").lines().mapNotNull { l ->
             // "Name: Adresse", "Name = …" oder ohne Doppelpunkt "Oberer Feldweg 48,79, 8,97" (Name bis zur ersten Zahl)

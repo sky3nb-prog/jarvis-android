@@ -15,7 +15,7 @@ import java.util.Locale
 
 /**
  * Routinen per Sprache (Handy-Teil):
- *  - Gaming-Modus: Nicht stören an (Anruf-Butler drückt Anrufe aus den Kontakten weg und schreibt "Kann gerade nicht"), PC: Discord "Gurken".
+ *  - Gaming-Modus: Nicht stören an (Anruf-Butler drückt Anrufe aus den Kontakten weg und schreibt "Kann gerade nicht"), PC: Discord-Sprachkanal.
  *  - Schulmodus: Handy leise (Vibration aus), Anrufe wegdrücken – nur wichtige Leute kommen durch.
  *  - Gute Nacht: Nicht stören (Nachtmodus für Anrufe), Wecker prüfen, Termine von morgen, PC speichert und fährt herunter.
  *  - "Modus aus" / "Guten Morgen": alles wieder normal.
@@ -46,7 +46,7 @@ object Modes {
     // --- Einstellbare Modi (Kopie vom PC bzw. hier bearbeitet; leer = Standard) -------------------------------
     private val DEF = """[
       {"id":"fokus","n":"Fokus","i":"◎","h":200,"d":"Lernen ohne Ablenkung","handy":"dnd","sammeln":true,"still":true,"musik":"lofi","discord":"","apps":"","pomo":true,"lern":25,"pause":5,"aus":false},
-      {"id":"gaming","n":"Gaming","i":"▶","h":280,"d":"Discord an, Anrufe weg","handy":"dnd","sammeln":false,"still":false,"musik":"","discord":"Gurken","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
+      {"id":"gaming","n":"Gaming","i":"▶","h":280,"d":"Discord an, Anrufe weg","handy":"dnd","sammeln":false,"still":false,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
       {"id":"chill","n":"Chill","i":"♪","h":160,"d":"Musik an, entspannt","handy":"normal","sammeln":false,"still":false,"musik":"deezer","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
       {"id":"kino","n":"Kino","i":"◐","h":320,"d":"Alles leise, nichts stört","handy":"lautlos","sammeln":true,"still":true,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
       {"id":"schule","n":"Schule","i":"▦","h":45,"d":"Alles stumm, nur Uhr","handy":"stumm","sammeln":false,"still":true,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
