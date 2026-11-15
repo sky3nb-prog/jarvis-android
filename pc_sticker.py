@@ -37,7 +37,17 @@ def folder() -> str:
 
 
 def files() -> list:
-    return sorted(f for f in os.listdir(folder()) if f.lower().endswith(EXT))
+    """Bilder im Sticker-Ordner – auch gespeicherte WhatsApp-Sticker ohne Endung (das sind .webp)."""
+    d = folder()
+    out = []
+    for f in os.listdir(d):
+        p = os.path.join(d, f)
+        if f.startswith(".") or not os.path.isfile(p):
+            continue
+        if f.lower().endswith(EXT) or "." not in f:
+            out.append(f)
+    # zuletzt hinzugefügte zuerst
+    return sorted(out, key=lambda f: -os.path.getmtime(os.path.join(d, f)))
 
 
 def chosen() -> str:
@@ -246,23 +256,27 @@ def handle(command: str):
     if PENDING:
         to, n, until = PENDING
         PENDING = None
-        if time.time() < until and "sticker" not in low and len(low.split()) <= 4:
+        if time.time() < until and "sticker" not in low and len(low.split()) <= 7:
             if re.match(r"^(ja|jo|klar|mach|los|schick|sende|okay|ok|genau|bitte)\b", low):
                 return start(to, n)
             if re.match(r"^(nein|nee|lass|abbrechen|stopp|doch nicht|lieber nicht)\b", low):
                 return "Okay, keine Sticker."
-    m = re.search(r"(?:schick|send|sende|spamm?)\w*\s+(?:mal\s+)?(\d[\d.]*|\w+)\s+sticker\s+(?:in\s+die\s+gruppe\s+|in\s+den\s+chat\s+|an\s+die\s+gruppe\s+|in\s+|an\s+|zu\s+)?(.+)$", low)
+    m = re.search(r"(?:schick|send|sende|spamm?)\w*\s+(?:(?:mal|bitte|doch|noch|jetzt|einfach|mir)\s+)*(\d[\d.]*|\w+)\s+sticker\s+"
+                  r"(?:(?:in|an|zu)\s+(?:die|den|der)?\s*)?(?:whats\s?app[\s-]?)?(?:gruppe|chat)?\s*(.+)$", low)
     if not m:
+        if "sticker" in low and re.search(r"\b(schick|send|spam)", low):
+            return "Sag es so: „Schick 200 Sticker an TR9000“ – Zahl, dann „Sticker“, dann die Gruppe oder Person."
         return None
     n = _num(m.group(1))
-    to = re.sub(r"^(die|den|der)\s+", "", m.group(2)).strip(" .")
-    to = re.sub(r"\s+(?:auf|über|per)\s+whatsapp$", "", to)
+    raw = command.strip(" .!?,")
+    to = raw[m.start(2):m.end(2)] if len(raw) == len(low) else m.group(2)   # Groß-/Kleinschreibung wie gesagt
+    to = re.sub(r"^(die|den|der)\s+", "", to, flags=re.I).strip(" .")
+    to = re.sub(r"\s+(?:auf|über|per|bei)\s+whats\s?app$", "", to, flags=re.I)
+    to = re.sub(r"\b([A-Za-zÄÖÜäöü]{1,4})\s+(\d{2,6})\b", r"\1\2", to)   # „TR 9000“ (so hört es die Spracherkennung) -> „TR9000“
     if not n or not to:
         return None
     from_phone = "vom handy" in low
-    i = command.lower().rfind(to)
-    if i >= 0:
-        to = command[i:i + len(to)]   # Groß-/Kleinschreibung wie gesagt
+    to = re.sub(r"^vom handy:?\s*", "", to, flags=re.I)
     if n > MAX:
         extra = f" Mehr als {MAX} auf einmal mache ich nicht – sonst sperrt WhatsApp deine Nummer."
         n = MAX
@@ -272,5 +286,5 @@ def handle(command: str):
         return "Du hast noch keinen Sticker ausgewählt. Einstellungen → Leute & Anrufe → Sticker."
     if from_phone:
         return start(to, n)
-    PENDING = (to, n, time.time() + 30)
+    PENDING = (to, n, time.time() + 120)
     return f"{n} Sticker „{os.path.splitext(chosen())[0]}“ an {to}?{extra} Soll ich?"
