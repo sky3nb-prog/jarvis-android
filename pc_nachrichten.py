@@ -83,6 +83,23 @@ def _mode_hold() -> bool:
         return False
 
 
+def read(key: str):
+    """Vom Handy: Chat wurde gelesen oder beantwortet (Benachrichtigung weg / eigene Antwort) -> nicht mehr ansagen."""
+    if not key:
+        return
+    with _lock:
+        _held[:] = [m for m in _held if _ck(m) != key]
+        for a in list(_announce):
+            if a.get("kind") == "held":
+                a["msgs"] = [m for m in a.get("msgs", []) if _ck(m) != key]
+                a["names"] = list(dict.fromkeys(_who(m) for m in a["msgs"]))
+                if not a["msgs"]:
+                    _announce.remove(a)
+            elif a.get("kind") not in ("say", "offer") and _ck(a) == key:
+                _announce.remove(a)
+    print(f"Chat {key}: schon gelesen/beantwortet – keine Ansage")
+
+
 def release_held():
     """Fokus-Pause oder Modus vorbei: Gesammeltes gleich sagen (die Wache prüft alle 3 Sekunden)."""
     _front["t"] = min(_front["t"], time.time() - QUIET_AFTER_WA)
@@ -94,7 +111,14 @@ def _watch_front():
         try:
             now = time.time()
             if _whatsapp_vorne():
+                if not _front.get("since"):
+                    _front["since"] = now
                 _front["t"] = now
+                if now - _front["since"] >= 4:   # du schaust gerade in WhatsApp: was davor kam, hast du gesehen
+                    with _lock:
+                        _held[:] = [m for m in _held if m.get("t", 0) > _front["since"]]
+            else:
+                _front["since"] = 0
             with _lock:
                 ready = [] if _mode_hold() else [m for m in _held if now - _front["t"] >= QUIET_AFTER_WA and _mute.get(_ck(m), 0) <= now]
                 for m in ready:

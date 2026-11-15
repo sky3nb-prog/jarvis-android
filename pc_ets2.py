@@ -183,6 +183,7 @@ def _orte_load() -> dict:
 
 
 ORTE = _orte_load()
+_started = {}   # Spielstart: Zeit und ob die Kurzinfo schon gesagt wurde
 _trail = []          # letzte Positionen (x, z) für die Fahrtrichtung
 _cal = {"odo": None, "x": None, "z": None, "wkm": 0.0, "okm": 0.0}
 
@@ -219,7 +220,7 @@ def karte() -> list:
 
 def _faktor() -> float:
     """Spiel-Kilometer pro Welt-Kilometer (lernt er beim Fahren aus dem Tacho; bis dahin 1)."""
-    return ORTE.get("faktor") or 1.0
+    return ORTE.get("faktor") or (20.0 if STATE.get("spiel") == "ATS" else 19.0)   # Kartenmaßstab ETS2 ~1:19, ATS ~1:20
 
 
 def remember_place(art: str, t, city: str = "") -> bool:
@@ -281,6 +282,120 @@ def nearest(art: str, t, max_km: float = 0, ahead_only: bool = True):
     return (best[1], best[2], best[3]) if best else None
 
 
+def _city_near(x: float, z: float, maxd: float = 1500):
+    karte()
+    if not _staedte:
+        return None
+    c = min(_staedte, key=lambda c: math.hypot(c[1] - x, c[2] - z))
+    return _de(c[0]) if math.hypot(c[1] - x, c[2] - z) < maxd else None
+
+
+_DE = {"Munich": "München", "Nuremberg": "Nürnberg", "Cologne": "Köln", "Vienna": "Wien", "Prague": "Prag", "Warsaw": "Warschau",
+       "Milan": "Mailand", "Venice": "Venedig", "Rome": "Rom", "Brussels": "Brüssel", "Geneva": "Genf", "Zurich": "Zürich",
+       "Copenhagen": "Kopenhagen", "Lisbon": "Lissabon", "Naples": "Neapel", "Florence": "Florenz", "Hanover": "Hannover",
+       "Dusseldorf": "Düsseldorf", "Gothenburg": "Göteborg", "Moscow": "Moskau", "Kyiv": "Kiew", "Athens": "Athen",
+       "Bucharest": "Bukarest", "Belgrade": "Belgrad", "Luxembourg": "Luxemburg", "The Hague": "Den Haag", "Antwerp": "Antwerpen"}
+
+
+def _de(name: str) -> str:
+    return _DE.get(name, name)
+
+
+def _city_pos(name: str):
+    """Zielstadt aus dem Auftrag auf der Karte finden (Namen können deutsch/englisch sein)."""
+    karte()
+    if not name:
+        return None
+    n = name.lower().replace("ü", "u").replace("ö", "o").replace("ä", "a").replace("ß", "ss")
+    alias = {"hannover": "hanover", "dusseldorf": "dusseldorf", "goteborg": "gothenburg", "athen": "athens", "den haag": "the hague", "antwerpen": "antwerp", "munchen": "munich", "nurnberg": "nuremberg", "koln": "cologne", "wien": "vienna", "prag": "prague", "warschau": "warsaw",
+             "mailand": "milan", "venedig": "venice", "rom": "rome", "brussel": "brussels", "genf": "geneva", "zurich": "zurich",
+             "kopenhagen": "copenhagen", "lissabon": "lisbon", "neapel": "naples", "turin": "turin", "florenz": "florence", "lyon": "lyon"}
+    n = alias.get(n, n)
+    for c in _staedte:
+        cn = c[0].lower().replace("ü", "u").replace("ö", "o").replace("ä", "a").replace("ß", "ss")
+        if cn == n or cn.startswith(n) or n.startswith(cn):
+            return c
+    return None
+
+
+def tankplan(t) -> dict:
+    """Wo tanke ich am besten? Reichweite gegen Restweg; sonst die Tankstelle, die dich dem Ziel am nächsten bringt."""
+    s = STATE
+    rng, rest = s.get("reichweite_km") or 0, s.get("rest_km") or 0
+    if not s.get("aktiv"):
+        return {"text": ""}
+    if rest and rng > rest * 1.15:
+        return {"text": f"Du kommst ohne Tanken ans Ziel – Reichweite {rng} km, noch {rest} km.", "ok": True}
+    x, z = float(t.coordX), float(t.coordZ)
+    dest = _city_pos(s.get("nach", "")) if s.get("auftrag") else None
+    f = _faktor()
+    best = None
+    for o in karte() + ORTE["orte"]:
+        if o["art"] != "tank" or o.get("spiel", "ETS2") != ("ATS" if t.game == 2 else "ETS2"):
+            continue
+        d = math.hypot(o["x"] - x, o["z"] - z) / 1000 * f * 1.25   # Luftlinie -> grob Straßen-km
+        if d < 1 or d > max(30, rng * 0.8):
+            continue
+        if dest:
+            left = math.hypot(dest[1] - o["x"], dest[2] - o["z"]) / 1000 * f * 1.25
+            score = left + d * 0.15         # möglichst weit Richtung Ziel, aber nicht absurd weit weg
+        else:
+            h = _heading()
+            if h:
+                wd = math.hypot(o["x"] - x, o["z"] - z)
+                cos = ((o["x"] - x) * h[0] + (o["z"] - z) * h[1]) / wd if wd else 1
+                if cos < 0.3:
+                    continue
+            score = abs(d - rng * 0.6)      # ohne Ziel: etwa bei 60 % der Reichweite
+        if best is None or score < best[0]:
+            best = (score, round(d), o)
+    if not best:
+        return {"text": "In Reichweite kenne ich gerade keine passende Tankstelle – frag mich gleich nochmal."}
+    _, km, o = best
+    bei = _city_near(o["x"], o["z"]) or ""
+    txt = f"Tankstopp-Vorschlag: {'bei ' + bei + ', ' if bei else ''}etwa {km} km von hier"
+    if dest:
+        left = round(math.hypot(dest[1] - o["x"], dest[2] - o["z"]) / 1000 * f * 1.25)
+        txt += f", danach noch rund {left} km bis {s.get('nach')}."
+    else:
+        txt += "."
+    if rest and rng < rest:
+        txt += f" Ohne Tanken reicht es nicht: Reichweite {rng} km, Ziel {rest} km."
+    return {"text": txt, "x": o["x"], "z": o["z"], "km": km, "bei": bei}
+
+
+def map_data() -> dict:
+    """Für die Karte im HUD: Truck, Spur, Tankstellen/Rastplätze/Städte in der Nähe, Tankstopp."""
+    t = LAST_T
+    if t is None or not STATE.get("aktiv"):
+        return {"aktiv": False}
+    x, z = float(t.coordX), float(t.coordZ)
+    R = 9000      # Weltmeter (≈ 170 km im Spiel)
+    pois = [[("t" if o["art"] == "tank" else "s"), round(o["x"] - x), round(o["z"] - z)] for o in karte() + ORTE["orte"]
+            if abs(o["x"] - x) < R and abs(o["z"] - z) < R]
+    cities = [[_de(c[0]), round(c[1] - x), round(c[2] - z)] for c in _staedte if abs(c[1] - x) < R * 2 and abs(c[2] - z) < R * 2]
+    h = _heading()
+    plan = tankplan(t)
+    dest = _city_pos(STATE.get("nach", "")) if STATE.get("auftrag") else None
+    nt = nearest("tank", t) or nearest("tank", t, ahead_only=False)
+    ns = nearest("schlaf", t) or nearest("schlaf", t, ahead_only=False)
+    near = lambda n, w: ({"km": n[0], "way": n[1], "bei": _city_near(n[2]["x"], n[2]["z"]) or ""} if n else None)  # noqa: E731
+    return {"aktiv": True, "me": [round(x), round(z)], "h": list(h) if h else None, "trail": [[round(a - x), round(b - z)] for a, b in _trail],
+            "pois": pois[:900], "cities": cities, "plan": plan, "hier": _city_near(x, z, 2500) or "", "faktor": _faktor(),
+            "dest": [_de(dest[0]), round(dest[1] - x), round(dest[2] - z)] if dest else None,
+            "tank": near(nt, "tank"), "schlaf": near(ns, "schlaf")}
+
+
+def _start_brief(s: dict) -> str:
+    """Kurz, wenn das Spiel startet (nicht erst im Fahrmodus)."""
+    p = [f"{s['spiel']} läuft. Tank {s['tank_pct']} Prozent, Reichweite etwa {s['reichweite_km']} Kilometer."]
+    if s.get("ladung"):
+        p.append(f"Auftrag: {s['ladung']} nach {s['nach']}" + (f", noch {s['rest_km']} Kilometer." if s.get("rest_km") else "."))
+    if s.get("ruhe_min", 0) > 0:
+        p.append(f"Schlafen musst du in {_hm(s['ruhe_min'])}.")
+    return " ".join(p)
+
+
 def _place_text(art: str, t, max_km: float = 0) -> str:
     n = nearest(art, t, max_km) or nearest(art, t, max_km, ahead_only=False)
     what = "Tankstelle" if art == "tank" else "Schlafplatz"
@@ -317,6 +432,7 @@ def _loop(stop: threading.Event):
             m = _open()
             if m is None:
                 STATE = {"aktiv": False}
+                _started.clear()
                 stop.wait(10)
                 continue
         try:
@@ -329,8 +445,20 @@ def _loop(stop: threading.Event):
             stop.wait(5)
             continue
         s = snapshot(t)
+        was = STATE.get("aktiv")
         with _lock:
             STATE = s
+        if not was:
+            STATE["start"] = time.time()
+            _started["t"] = time.time()
+        elif _started.get("t"):
+            STATE["start"] = _started["t"]
+        if _started.get("t") and not _started.get("said") and time.time() - _started["t"] > 8 and not t.paused:
+            _started["said"] = True
+            try:
+                _say(_start_brief(s))
+            except Exception:
+                pass
         global LAST_T
         LAST_T = t
         x, z = float(t.coordX), float(t.coordZ)
@@ -398,7 +526,7 @@ def start(stop: threading.Event):
 ASK = re.compile(r"\b(wie weit (?:ist es |muss ich )?noch|wie lange (?:fahr ich |dauert es )?noch|wann bin ich da|wie viel sprit|wie viel diesel|wie voll|tank\b|reichweite|"
                  r"wann muss ich schlafen|muss ich (?:bald )?schlafen|ruhezeit|was verdien|mein lohn|den auftrag|mein auftrag|"
                  r"welche ladung|was hab ich geladen|wohin fahr|wo muss ich hin|wie schnell darf|tempolimit|wie viel darf ich|"
-                 r"tankstelle|tanken|schlafplatz|rastplatz|raststätte|parkplatz|wo kann ich schlafen|wo schlaf ich|merk dir)", re.I)
+                 r"tankstopp|ans ziel|tankstelle|tanken|schlafplatz|rastplatz|raststätte|parkplatz|wo kann ich schlafen|wo schlaf ich|merk dir)", re.I)
 
 
 def handle(command: str):
@@ -416,6 +544,8 @@ def handle(command: str):
         new = remember_place(art, t)
         return ("Gemerkt." if new else "Die kenne ich schon.") + f" Ich kenne jetzt {sum(1 for o in ORTE['orte'] if o['art'] == art)} " + \
             ("Tankstellen." if art == "tank" else "Schlafplätze.")
+    if t is not None and re.search(r"tankstopp|wo (soll|sollte) ich tanken|wo tanke ich am besten|wann (soll|muss) ich tanken|komm ich (ohne tanken )?(bis )?ans ziel", low):
+        return tankplan(t).get("text") or None
     if t is not None and re.search(r"tankstelle|wo (kann ich )?tanken", low):
         return _place_text("tank", t)
     if t is not None and re.search(r"schlafplatz|rastplatz|raststätte|parkplatz|wo kann ich schlafen|wo schlaf ich", low):

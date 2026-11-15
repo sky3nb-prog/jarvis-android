@@ -257,6 +257,13 @@ def _listen(stop: threading.Event):
                             except Exception as e:
                                 print(f"Nachricht vom Handy: {e}")
                         continue
+                    if msg and msg.get("from") == "phone" and msg.get("kind") == "wa_read":
+                        try:
+                            import pc_nachrichten
+                            pc_nachrichten.read(str(msg.get("key") or ""))
+                        except Exception as e:
+                            print(f"Gelesen-Meldung: {e}")
+                        continue
                     if msg and msg.get("from") == "phone" and msg.get("kind") == "phone_reply":
                         try:
                             import pc_handy

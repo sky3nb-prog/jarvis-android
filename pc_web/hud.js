@@ -34,6 +34,8 @@
   addEventListener("resize", layout); layout();
 
   // Seiten umschalten
+  window.JHudMode = (m, save) => setMode(m, save);   // für ets2map.js (Fahrt-Seite)
+  window.JHudCur = () => mode;
   function setMode(m, save) {
     if (m === "flug") { window.PC.post("mode", { mode: "flug" }); return; }
     const from = PORDER.indexOf(mode), to = PORDER.indexOf(m);

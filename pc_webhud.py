@@ -363,6 +363,9 @@ class WebHud:
             if qs.get("neu") or time.time() - pc_systemcheck.LAST["t"] > 120:
                 pc_systemcheck.run()
             return {"t": pc_systemcheck.LAST["t"], "items": pc_systemcheck.LAST["items"], "text": pc_systemcheck.summary()}
+        if name == "ets2_map":   # Karte auf der Fahrt-Seite
+            import pc_ets2
+            return pc_ets2.map_data()
         if name == "ets2":   # Fahrtenseite (ETS2-Beifahrer)
             import pc_ets2
             return pc_ets2.STATE
