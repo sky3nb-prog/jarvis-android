@@ -507,6 +507,30 @@
     if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "schule") { kal.reload(); return; } return prevEv && prevEv.call(window.jarvis, type, data); };
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { kal.reload(); ideen(); } });
   })();
+  // Leute: wer ist wie (gelernt), andere Namen, Geburtstage
+  (function () {
+    const box = $("leute-list"); if (!box) return;
+    const e2 = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    function draw() {
+      let l = []; try { l = JSON.parse(A.getLeute() || "[]"); } catch (e) {}
+      box.innerHTML = l.length ? l.map((p) => `<details class="lp"><summary><b>${e2(p.name)}</b>${p.geburtstag ? ` <small>🎂 ${e2(p.geburtstag.slice(-2))}.${e2(p.geburtstag.slice(-5, -3))}.</small>` : ""}${p.discord ? ` <small>· Discord: ${e2(p.discord)}</small>` : ""}</summary>
+        ${p.interessen ? `<div class="lp-r"><span>Themen</span>${e2(p.interessen)}</div>` : ""}${p.art ? `<div class="lp-r"><span>So ist ${e2(p.name)}</span>${e2(p.art)}</div>` : ""}${p.stil ? `<div class="lp-r"><span>So schreibst du</span>${e2(p.stil)}</div>` : ""}${p.geschenk ? `<div class="lp-r"><span>Geschenkideen</span>${e2(p.geschenk)}</div>` : ""}
+        <div class="f"><label>Discord-Name</label><input type="text" data-lk="${e2(p.key)}" data-f="discord" value="${e2(p.discord)}"></div>
+        <div class="f"><label>Andere Namen / Spitznamen (mit Komma)</label><input type="text" data-lk="${e2(p.key)}" data-f="aliases" value="${e2(p.aliases)}"></div>
+        <div class="f"><label>Geburtstag (TT.MM.)</label><input type="text" data-lk="${e2(p.key)}" data-f="geburtstag" value="${p.geburtstag ? e2(p.geburtstag.slice(-2) + "." + p.geburtstag.slice(-5, -3) + ".") : ""}" placeholder="z. B. 24.03."></div>
+        <div class="sbtn" data-ldel="${e2(p.key)}" style="margin-top:6px">Vergessen</div></details>`).join("") : '<div class="note">Noch niemand – ich lerne aus WhatsApp-Nachrichten, die reinkommen.</div>';
+      box.querySelectorAll("input[data-lk]").forEach((i) => i.addEventListener("change", () => {
+        let v = i.value.trim();
+        if (i.dataset.f === "geburtstag") { const m = /^(\d{1,2})\.(\d{1,2})/.exec(v); v = m ? String(m[2]).padStart(2, "0") + "-" + String(m[1]).padStart(2, "0") : ""; }
+        try { A.editLeute(i.dataset.lk, JSON.stringify({ [i.dataset.f]: v })); toast("Gespeichert."); } catch (e) {}
+      }));
+      box.querySelectorAll("[data-ldel]").forEach((b) => b.onclick = () => { try { A.editLeute(b.dataset.ldel, ""); } catch (e) {} draw(); });
+    }
+    draw();
+    $("leute-learn").onclick = () => { try { A.learnLeute(); toast("Ich lerne – dauert ein paar Sekunden."); } catch (e) {} };
+    const pe = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "leute") { draw(); toast("Fertig gelernt."); return; } return pe && pe.call(window.jarvis, type, data); };
+  })();
   // Gassi + SMS-Tests (sofort gespeichert)
   try { const g = JSON.parse(A.getGassi() || "{}"); sw("gs-an", !!g.an); sw("gs-sms", !!g.sms); $("gs-wer").value = g.wer || "Mama"; $("gs-text").value = g.text || ""; } catch (e) {}
   const saveGassi = () => { try { A.setGassi($("gs-an").classList.contains("on"), $("gs-sms").classList.contains("on"), $("gs-wer").value, $("gs-text").value); } catch (e) {} };

@@ -76,6 +76,7 @@ class Actions(private val ctx: Context) {
             "schule" -> Schule.spoken(ctx, a.optString("art"), a.optString("fach").let { if (it == "null") "" else it }, a.optString("text").let { if (it == "null") "" else it }, a.optString("datum").let { if (it == "null") "" else it })
             "idee" -> Ideen.add(ctx, a.optString("text"))
             "pakete" -> Pakete.summary(ctx)
+            "person" -> Leute.about(ctx, a.optString("wer"), a.optBoolean("geschenk"))
             "statuscheck" -> SysCheck.run(ctx).let { a -> try { Bus.emit("checkfx", org.json.JSONObject().put("items", a)) } catch (_: Exception) {}; SysCheck.summary(a) }
             "modus" -> Modes.set(ctx, a.optString("name"))
             "wochenvorschau" -> Alltag.weekAhead(ctx)?.first ?: "Für die Vorschau brauche ich den Groq-Schlüssel."

@@ -166,6 +166,7 @@ object Chats {
         try { ownVoices(ctx, key, norm(chat), inFile) } catch (e: Exception) { Log.w(TAG, "eigene Sprachnachricht: $e") }
         hist(ctx, norm(chat), sender, if (voice) "(Sprachnachricht) " + m.optString("transcript", "Inhalt unbekannt") else text, time)
         m.put("verlauf", verlauf(ctx, norm(chat)))
+        try { Leute.promptFor(ctx, norm(chat)).takeIf { it.isNotBlank() }?.let { m.put("person", it) } } catch (_: Exception) {}
         Link.toPc(ctx, m)
     }
 

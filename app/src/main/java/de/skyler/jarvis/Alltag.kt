@@ -630,6 +630,7 @@ object Alltag {
         try { rainWatch(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "regen: $e") }
         try { Schule.tick(ctx, say) } catch (e: Exception) { Log.w(TAG, "schule: $e") }
         try { JarvisWidget.refresh(ctx) } catch (_: Exception) {}
+        try { Leute.tick(ctx, say) } catch (e: Exception) { Log.w(TAG, "leute: $e") }
         try { Halte.tick(ctx, fix, s.optBoolean("is_home")) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
         try { Gassi.tick(ctx, fix, s.optBoolean("home_wifi")) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
         // Unterwegs mit Gassi/Einmal-SMS: genauer und öfter orten (GPS, alle 20 s), sonst sparsam

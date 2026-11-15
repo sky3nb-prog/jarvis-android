@@ -477,6 +477,15 @@ class MainActivity : ComponentActivity() {
         fun setSchule(json: String) { try { Schule.setAll(this@MainActivity, org.json.JSONArray(json)) } catch (_: Exception) {} }
 
         @JavascriptInterface
+        fun getLeute(): String = Leute.list(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun editLeute(key: String, json: String) { try { Leute.edit(this@MainActivity, key, if (json.isBlank()) null else JSONObject(json)) } catch (_: Exception) {} }
+
+        @JavascriptInterface
+        fun learnLeute() { Thread { try { Leute.learn(this@MainActivity, true); runOnUiThread { send("leute", JSONObject()) } } catch (_: Exception) {} }.start() }
+
+        @JavascriptInterface
         fun getIdeen(): String = Ideen.all(this@MainActivity).toString()
 
         @JavascriptInterface
