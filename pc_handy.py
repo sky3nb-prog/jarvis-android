@@ -45,7 +45,11 @@ def limited() -> bool:
 
 def _send(obj: dict):
     c = pc_link.code()
-    r = urllib.request.Request(pc_link.SERVER + topic(), data=pc_link.encrypt(obj, c).encode(), method="POST")
+    body = pc_link.encrypt(obj, c)
+    pc_link.outbox_put("handy", body)   # direkter Weg (Tailscale/WLAN)
+    if time.time() - pc_link.DIRECT["t"] < 90:   # Handy holt gerade direkt ab: ntfy sparen
+        return
+    r = urllib.request.Request(pc_link.SERVER + topic(), data=body.encode(), method="POST")
     r.add_header("User-Agent", "Jarvis-PC")
     try:
         urllib.request.urlopen(r, timeout=20).read()

@@ -120,6 +120,13 @@ class H(BaseHTTPRequestHandler):
             return self._cam()
         if u.path == "/phonecam.jpg":
             return self._send(200, PHONE_FRAME["jpg"], "image/jpeg")
+        if u.path == "/link/out":   # Handy holt Nachrichten des PCs direkt über Tailscale ab (statt über ntfy)
+            import json as _j
+            import pc_link
+            q = dict(urllib.parse.parse_qsl(u.query))
+            msgs = pc_link.outbox_get(int(q.get("after") or 0), min(25.0, float(q.get("wait") or 20)))
+            out = {"seq": max([m[0] for m in msgs], default=int(q.get("after") or 0)), "msgs": [{"seq": m[0], "t": m[1], "body": m[2]} for m in msgs]}
+            return self._send(200, _j.dumps(out).encode(), "application/json")
         return self._proxy("GET")
 
     def do_POST(self):
@@ -128,6 +135,13 @@ class H(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path)
         n = int(self.headers.get("Content-Length") or 0)
         body = self.rfile.read(n) if n else b""
+        if u.path == "/link/in":   # Nachricht vom Handy direkt über Tailscale (statt über ntfy)
+            import pc_remote
+            try:
+                pc_remote.process(body.decode("utf-8", "replace").strip())
+            except Exception as e:
+                print("Direkte Nachricht vom Handy:", e)
+            return self._send(200, b"ok")
         if u.path == "/phonecam":
             PHONE_FRAME.update(jpg=body, t=time.time())
             self.send_response(204)

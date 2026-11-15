@@ -4,6 +4,8 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const ART = { arbeit: ["Arbeit", 8], test: ["Test", 30], ha: ["Hausaufgabe", 200], info: ["Termin", 140] };
   const MON = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  const gnum = (n) => { const m = /^\s*([1-6])\s*([+-])?/.exec(String(n || "")); return m ? +m[1] + (m[2] === "+" ? -0.25 : m[2] === "-" ? 0.25 : 0) : null; };
+  const gcol = (v) => v == null ? 40 : v <= 2 ? 140 : v <= 3 ? 90 : v <= 4 ? 40 : 0;
   const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   const css = document.createElement("style");
   css.textContent = `
@@ -42,6 +44,10 @@
 .sk-box input[type=date]{font-size:15px;border-color:#4a3410;margin-top:8px}
 .sk-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 .sk-btn{all:unset;cursor:pointer;padding:9px 14px;border-radius:999px;border:1px solid #5a3e14;color:#d9c3a0;font-size:14px}
+.sk-g1{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:12px;font-weight:700;color:#0b0805;background:hsl(var(--g),70%,60%)}
+.sk-noten{margin-top:10px}.sk-noten h4{margin:0 0 6px;font-size:12px;color:#8a6a3a;letter-spacing:.14em;font-weight:700}
+.sk-nr{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:#e8d6b8;border-bottom:1px solid rgba(255,190,90,.1)}
+.sk-nr b{flex:1}.sk-nr small{color:#b9a78a}.sk-nr i{font-style:normal;font-weight:700;min-width:38px;text-align:center;padding:2px 6px;border-radius:8px;color:#0b0805;background:hsl(var(--g),70%,60%)}
 .sk-btn.ok{background:#ffaa28;color:#1a1006;font-weight:700;border-color:#ffaa28}`;
   document.head.appendChild(css);
 
@@ -70,6 +76,12 @@
         `<div class="sk-adds">${["arbeit", "test", "ha"].map((a) => `<button class="sk-add" style="--h:${ART[a][1]}" data-add="${a}">＋ ${ART[a][0]}</button>`).join("")}</div></div>`;
       const up = items.filter((x) => !x.done && x.datum >= today && x.datum !== sel).sort((a, b) => (a.datum > b.datum ? 1 : -1)).slice(0, 6);
       if (up.length) h += `<div class="sk-up"><h4>DEMNÄCHST</h4>${up.map(row).join("")}</div>`;
+      const ng = items.filter((x) => gnum(x.note) != null);
+      if (ng.length) {
+        const by = {}; ng.forEach((x) => { const f = x.fach || "Ohne Fach"; (by[f] = by[f] || []).push(x); });
+        h += `<div class="sk-noten"><h4>NOTEN</h4>` + Object.keys(by).sort().map((f) => { const l = by[f].sort((a, b) => (a.datum > b.datum ? 1 : -1)); const avg = l.reduce((s, x) => s + gnum(x.note), 0) / l.length;
+          return `<div class="sk-nr"><b>${esc(f)}</b><small>${l.map((x) => esc(x.note)).join(" · ")}</small><i style="--g:${gcol(avg)}">Ø ${avg.toFixed(1).replace(".", ",")}</i></div>`; }).join("") + `</div>`;
+      }
       el.innerHTML = h + "</div>";
       el.querySelectorAll("[data-nav]").forEach((b) => b.onclick = () => { view.setMonth(view.getMonth() + +b.dataset.nav); draw(); });
       el.querySelectorAll(".sk-d").forEach((b) => b.onclick = () => { sel = b.dataset.d; draw(); });
@@ -81,7 +93,7 @@
     function row(x) {
       const a = ART[x.art] || ART.info, d = new Date(x.datum + "T12:00");
       return `<div class="sk-it" style="--h:${a[1]}"><button class="sk-chk${x.done ? " on" : ""}" data-chk="${x.id}" aria-label="erledigt">${x.done ? "✓" : ""}</button>` +
-        `<div class="t" data-edit="${x.id}" style="cursor:pointer"><b>${esc(a[0])}${x.fach ? " · " + esc(x.fach) : ""}</b>${x.quelle === "schul.cloud" ? "<i>schul.cloud</i>" : ""}<small>${d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" })}${x.text ? " – " + esc(x.text) : ""}</small></div>` +
+        `<div class="t" data-edit="${x.id}" style="cursor:pointer"><b>${esc(a[0])}${x.fach ? " · " + esc(x.fach) : ""}</b>${x.note ? `<span class="sk-g1" style="--g:${gcol(gnum(x.note))}">${esc(x.note)}</span>` : ""}${x.quelle === "schul.cloud" ? "<i>schul.cloud</i>" : ""}<small>${d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" })}${x.text ? " – " + esc(x.text) : ""}</small></div>` +
         `<button class="sk-x" data-del="${x.id}" aria-label="löschen">✕</button></div>`;
     }
     function edit(x, isNew) {
@@ -93,6 +105,7 @@
         <div class="sk-row">${fa.map((f) => `<button class="sk-chip f${f === fach ? " on" : ""}" data-f="${esc(f)}">${esc(f)}</button>`).join("")}</div>
         <input id="sk-t" placeholder="Was genau? z. B. Seite 42 Nr. 3 · Thema der Arbeit" value="${esc(x.text)}" autocomplete="off">
         <input id="sk-dt" type="date" value="${esc(x.datum)}">
+        <input id="sk-note" placeholder="Note (wenn zurück), z. B. 2+ oder 3-" value="${esc(x.note || "")}" autocomplete="off" style="margin-top:8px">
         <div class="sk-btns"><button class="sk-btn" id="sk-no">Abbrechen</button><button class="sk-btn ok" id="sk-ok">Speichern</button></div></div>`;
       ed.classList.add("on");
       ed.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => { art = b.dataset.a; ed.querySelectorAll("[data-a]").forEach((c) => c.classList.toggle("on", c === b)); });
@@ -102,7 +115,7 @@
       document.getElementById("sk-no").onclick = close;
       document.getElementById("sk-ok").onclick = () => {
         const o = isNew ? { id: "s" + Date.now().toString(36), done: false, quelle: "ich", ts: Date.now() } : x;
-        Object.assign(o, { art, fach, text: document.getElementById("sk-t").value.trim(), datum: document.getElementById("sk-dt").value || x.datum });
+        Object.assign(o, { art, fach, text: document.getElementById("sk-t").value.trim(), datum: document.getElementById("sk-dt").value || x.datum, note: document.getElementById("sk-note").value.trim().replace(/\s+/g, "") });
         if (isNew) items.push(o);
         sel = o.datum; const d = new Date(o.datum + "T12:00"); view = new Date(d.getFullYear(), d.getMonth(), 1);
         save(); close(); draw();

@@ -194,10 +194,14 @@ def execute(cmd: dict) -> str:
 # --- Senden und Empfangen -------------------------------------------------------------------------------
 def send(obj: dict):
     c = pc_link.code()
-    r = urllib.request.Request(SERVER + topic(), data=pc_link.encrypt(obj, c).encode(), method="POST")
+    body = pc_link.encrypt(obj, c)
+    pc_link.outbox_put("remote", body)   # direkter Weg (Tailscale/WLAN) – das Handy holt es dort ab
+    _last_sent["t"] = time.time()
+    if time.time() - pc_link.DIRECT["t"] < 90:   # Handy holt gerade direkt ab: ntfy sparen
+        return
+    r = urllib.request.Request(SERVER + topic(), data=body.encode(), method="POST")
     r.add_header("User-Agent", "Jarvis-PC")
     urllib.request.urlopen(r, timeout=20).read()
-    _last_sent["t"] = time.time()
 
 
 def reply(re_id: str = "", ok: bool = True, text: str = ""):
@@ -222,6 +226,48 @@ def _handle(msg: dict):
         reply(msg.get("id", ""), ok, text)
     except Exception as e:
         print(f"Handy-Fernbedienung: Antwort nicht gesendet ({e})")
+
+
+def process(body: str, c: str = None):
+    """Eine verschlüsselte Nachricht vom Handy verarbeiten (kommt über ntfy oder direkt über Tailscale/WLAN)."""
+    c = c or pc_link.code()
+    if body in _seen_bodies:   # schon über den anderen Weg bekommen
+        return
+    _seen_bodies.append(body)
+    try:
+        msg = pc_link.decrypt(body, c)
+    except Exception:
+        msg = None
+    if msg and msg.get("from") == "phone" and msg.get("kind") == "wa_msg":
+        if abs(time.time() - float(msg.get("ts", 0))) < 600:
+            try:
+                import pc_nachrichten
+                pc_nachrichten.incoming(msg)
+            except Exception as e:
+                print(f"Nachricht vom Handy: {e}")
+        return
+    if msg and msg.get("from") == "phone" and msg.get("kind") == "wa_read":
+        try:
+            import pc_nachrichten
+            pc_nachrichten.read(str(msg.get("key") or ""))
+        except Exception as e:
+            print(f"Gelesen-Meldung: {e}")
+        return
+    if msg and msg.get("from") == "phone" and msg.get("kind") == "phone_reply":
+        try:
+            import pc_handy
+            pc_handy.on_reply(msg)   # Antwort auf einen Auftrag vom PC ans Handy
+        except Exception:
+            pass
+        return
+    if not msg or msg.get("from") != "phone" or msg.get("kind") != "cmd":
+        return
+    if abs(time.time() - float(msg.get("ts", 0))) > 120:
+        return   # alter Befehl (z. B. nach einem Neustart) – nicht mehr ausführen
+    threading.Thread(target=_handle, args=(msg,), daemon=True).start()
+
+
+_seen_bodies = __import__('collections').deque(maxlen=200)
 
 
 def _listen(stop: threading.Event):
@@ -252,37 +298,7 @@ def _listen(stop: threading.Event):
                                                           timeout=30).read().decode("utf-8", "replace")
                         except Exception:
                             body = ""
-                    try:
-                        msg = pc_link.decrypt(body, c)
-                    except Exception:
-                        msg = None
-                    if msg and msg.get("from") == "phone" and msg.get("kind") == "wa_msg":
-                        if abs(time.time() - float(msg.get("ts", 0))) < 600:
-                            try:
-                                import pc_nachrichten
-                                pc_nachrichten.incoming(msg)
-                            except Exception as e:
-                                print(f"Nachricht vom Handy: {e}")
-                        continue
-                    if msg and msg.get("from") == "phone" and msg.get("kind") == "wa_read":
-                        try:
-                            import pc_nachrichten
-                            pc_nachrichten.read(str(msg.get("key") or ""))
-                        except Exception as e:
-                            print(f"Gelesen-Meldung: {e}")
-                        continue
-                    if msg and msg.get("from") == "phone" and msg.get("kind") == "phone_reply":
-                        try:
-                            import pc_handy
-                            pc_handy.on_reply(msg)   # Antwort auf einen Auftrag vom PC ans Handy
-                        except Exception:
-                            pass
-                        continue
-                    if not msg or msg.get("from") != "phone" or msg.get("kind") != "cmd":
-                        continue
-                    if abs(time.time() - float(msg.get("ts", 0))) > 120:
-                        continue   # alter Befehl (z. B. nach einem Neustart) – nicht mehr ausführen
-                    threading.Thread(target=_handle, args=(msg,), daemon=True).start()
+                    process(body, c)
         except Exception as e:
             STATUS = f"Fernbedienung: Verbindung weg ({type(e).__name__}), versuche es gleich wieder."
             stop.wait(wait)

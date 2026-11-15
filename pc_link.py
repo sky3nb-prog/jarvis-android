@@ -24,6 +24,36 @@ import pc_memory
 from pc_apps import base_dir
 
 SERVER = "https://ntfy.sh/"
+
+# --- Direkte Verbindung (Tailscale / WLAN): alles, was der PC ans Handy schickt, liegt zusätzlich hier bereit ---------
+import collections as _collections
+import threading as _threading
+OUTBOX = _collections.deque(maxlen=200)   # (seq, art, verschlüsselter Text, Zeit) – art: "remote" (Status/Antworten) | "handy" (Aufträge)
+_OUT_COND = _threading.Condition()
+_OUT_SEQ = [0]
+DIRECT = {"t": 0.0}   # zuletzt holte das Handy direkt ab (dann ist der direkte Weg aktiv)
+
+
+def outbox_put(art: str, body: str):
+    with _OUT_COND:
+        _OUT_SEQ[0] += 1
+        OUTBOX.append((_OUT_SEQ[0], art, body, __import__("time").time()))
+        _OUT_COND.notify_all()
+
+
+def outbox_get(after: int, wait: float = 25.0) -> list:
+    """Neue Nachrichten fürs Handy nach Nummer after (wartet bis zu wait Sekunden)."""
+    import time as _t
+    DIRECT["t"] = _t.time()
+    end = _t.time() + wait
+    with _OUT_COND:
+        if after > _OUT_SEQ[0]:   # PC neu gestartet: von vorn
+            after = 0
+        while True:
+            new = [m for m in OUTBOX if m[0] > after and _t.time() - m[3] < 600]
+            if new or _t.time() >= end:
+                return new
+            _OUT_COND.wait(max(0.1, end - _t.time()))
 FILE = "handy_app.json"
 POLL = 30            # Sekunden zwischen zwei Blicken nach Nachrichten vom Handy
 RESEND = 2 * 3600    # spätestens so oft neu senden (ntfy hält große Nachrichten nur ca. 3 Stunden)

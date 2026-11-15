@@ -98,6 +98,9 @@
   // Antippen in der Kugel abfangen (vor dem "Gespräch starten"), nur wenn ein Symbol getroffen ist
   function onTap(e) {
     if (open || !window.JarvisBrain) return;
+    // nur, wenn wirklich die Kugel angetippt wurde – nicht durch Einstellungen, Raster oder Fenster darüber hindurch
+    const tgt = e.target && e.target.closest ? e.target : null;
+    if (!tgt || !tgt.closest(".sph, .sphere-wrap") || tgt.closest("#pset, #settings, .md-ov, .sk-ed, #pp-ed, .tt-ed, #lb")) return;
     const p = e.touches ? e.touches[0] : e;
     const i = JarvisBrain.hit(p.clientX, p.clientY, document.body.classList.contains("clean") ? 34 : 26);
     if (i < 0) return;
