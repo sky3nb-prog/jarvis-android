@@ -168,6 +168,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         JarvisService.appVisible = true
+        try { Konto.tick(this) } catch (_: Exception) {}
         Bus.emit("app_visible", JSONObject().put("on", true))
     }
 
@@ -496,6 +497,15 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun getModus(): String = Modes.current(this@MainActivity)
+
+        // --- Jarvis-Konto: einmal verbinden, danach sichert er still (kein Abmelden) ---
+        @JavascriptInterface
+        fun kontoInfo(): String = Konto.info(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun kontoLogin(email: String, pw: String, neu: Boolean) {
+            Thread({ val r = Konto.signIn(this@MainActivity, email, pw, neu); send("konto", r.put("info", Konto.info(this@MainActivity))) }, "konto-login").start()
+        }
 
         @JavascriptInterface
         fun getDirect(): String = Link.directInfo(this@MainActivity).toString()

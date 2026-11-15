@@ -39,6 +39,7 @@ class Actions(private val ctx: Context) {
             "navigate" -> navigate(a.optString("to"), a.optString("mode", "d"))
             "call" -> call(a.optString("who"))
             "pc" -> pc(a.optString("text"))
+            "sticker" -> sticker(a.optString("to"), a.optInt("anzahl", 0))
             "whatsapp" -> whatsapp(a.optString("to"), a.optString("text"), a.optBoolean("jarvis"))
             "youtube" -> start(Intent(Intent.ACTION_SEARCH).setPackage("com.google.android.youtube")
                 .putExtra("query", a.optString("query")), "YouTube sucht nach ${a.optString("query")}.")
@@ -276,6 +277,14 @@ class Actions(private val ctx: Context) {
     }
 
     /** Auftrag an den PC-Jarvis ("schick mir das Lied vom PC aufs Handy", "mach am PC Musik an"). */
+    /** Sticker-Regen über WhatsApp am PC (hier schon bestätigt). Den Sticker wählst du am PC aus. */
+    private fun sticker(to: String, n: Int): String {
+        if (to.isBlank() || n <= 0) return "An wen und wie viele Sticker?"
+        if (!Link.paired(ctx)) return "Dafür brauche ich den PC – der ist noch nicht gekoppelt."
+        val r = try { Link.command(ctx, JSONObject().put("type", "sticker").put("to", to).put("n", minOf(n, 1000))) } catch (_: Exception) { null }
+        return r?.optString("text")?.takeIf { it.isNotBlank() } ?: "Der PC antwortet gerade nicht – die Sticker gehen nur über WhatsApp am PC."
+    }
+
     private fun pc(text: String): String {
         if (text.isBlank()) return "Was soll der PC machen?"
         if (!Link.paired(ctx)) return "Dein PC ist noch nicht gekoppelt."

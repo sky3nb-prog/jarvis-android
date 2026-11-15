@@ -656,6 +656,7 @@ object Alltag {
         try { weekly(ctx, s) } catch (e: Exception) { Log.w(TAG, "rückblick: $e") }
         try { bilanz(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "bilanz: $e") }
         try { appUpdate(ctx, s) } catch (_: Exception) {}
+        try { Konto.tick(ctx) } catch (_: Exception) {}   // Jarvis-Konto: alle 5 Minuten sichern (wenn verbunden)
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
         try { checkIn(ctx, s) } catch (e: Exception) { Log.w(TAG, "melden: $e") }
         try { Melden.flush(ctx) } catch (_: Exception) {}

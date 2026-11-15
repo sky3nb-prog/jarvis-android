@@ -1,5 +1,7 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-15 19:05", neu: [
+window.JNEU = { stand: "2026-11-15 21:15", neu: [
+  { title: "Sticker-Regen", text: "„Schick 200 Sticker in die Gruppe …“ – ich frag einmal nach, der PC schickt sie über WhatsApp. Den Sticker wählst du am PC aus." },
+  { title: "Jarvis-Konto", text: "Einmal verbinden – dann ist dein Jarvis in deinem Konto gesichert und auf jedem anderen Gerät ladbar." },
   { title: "Neu sortiert", text: "Einstellungen nach Themen: Wecker, Schule, Zuhause & Orte, Unterwegs, Kleiderschrank … – am PC genauso." },
   { title: "Direkt über Tailscale", text: "PC und Handy reden direkt miteinander, wenn Tailscale an ist – schneller und ohne Tageslimit." },
   { title: "Noten", text: "Trag im Schul-Kalender deine Noten ein (oder sag „in Mathe hab ich eine 2“) – ich weiß dann, wo du stehst." },
