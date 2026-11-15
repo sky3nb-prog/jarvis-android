@@ -550,10 +550,10 @@
   (function () {
     if (!$("direct-state")) return;
     const show = () => { try { const d = JSON.parse(A.getDirect() || "{}"); $("direct-ip").value = d.ip || "";
-      $("direct-state").textContent = d.active ? "✓ Direkt verbunden (Tailscale)" : (d.ip ? "Nicht direkt erreichbar – läuft Tailscale am Handy und PC?" : "Noch keine PC-Adresse – trag sie unten ein") + (d.limit ? " · Kopplungsdienst: Tageslimit erreicht" : ""); } catch (e) {} };
+      $("direct-state").textContent = d.active ? "✓ Direkt verbunden (Tailscale)" : (d.ip ? (d.err ? "✕ " + d.err : "Noch nicht verbunden – tipp auf Prüfen") : "Noch keine PC-Adresse – trag sie unten ein") + (d.limit ? " · Kopplungsdienst: Tageslimit erreicht" : ""); } catch (e) {} };
     show(); setInterval(() => { if (document.querySelector("#sp-fern.on")) show(); }, 4000);
     $("direct-ip").addEventListener("change", () => { try { A.setPcIp($("direct-ip").value.trim()); toast("Gespeichert – ich verbinde mich gleich."); } catch (e) {} show(); });
-    $("direct-check").addEventListener("click", () => { show(); toast("Prüfe …"); setTimeout(show, 5000); });
+    $("direct-check").addEventListener("click", () => { try { A.directTest(); } catch (e) {} toast("Prüfe …"); setTimeout(show, 4500); setTimeout(show, 9000); });
   })();
   // Gassi + SMS-Tests (sofort gespeichert)
   try { const g = JSON.parse(A.getGassi() || "{}"); sw("gs-an", !!g.an); sw("gs-sms", !!g.sms); $("gs-wer").value = g.wer || "Mama"; $("gs-text").value = g.text || ""; } catch (e) {}

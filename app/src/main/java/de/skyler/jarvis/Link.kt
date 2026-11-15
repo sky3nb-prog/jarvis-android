@@ -200,6 +200,16 @@ object Link {
     private val quick = http.newBuilder().connectTimeout(3, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS).build()
     private val longPoll = http.newBuilder().connectTimeout(4, TimeUnit.SECONDS).readTimeout(35, TimeUnit.SECONDS).build()
     @Volatile private var directAt = 0L
+    @Volatile private var directErr = ""
+    private fun errText(e: Exception, code: Int = 0): String = when {
+        code == 403 -> "PC lehnt ab (Schlüssel passt nicht – Kopplungscode gleich?)"
+        code == 404 -> "PC kennt die direkte Verbindung noch nicht (PC-Update?)"
+        code > 0 -> "PC antwortet mit Fehler $code"
+        e is java.net.SocketTimeoutException -> "Keine Antwort vom PC – meist blockiert die Windows-Firewall Jarvis (Port 8765)"
+        e is java.net.ConnectException -> "PC lehnt die Verbindung ab – läuft Jarvis am PC?"
+        e is java.net.UnknownHostException || e is java.net.NoRouteToHostException -> "PC nicht erreichbar – Tailscale am Handy an?"
+        else -> e.javaClass.simpleName + ": " + (e.message ?: "")
+    }
     fun directActive() = System.currentTimeMillis() - directAt < 60_000L
     private val statusCache = java.util.ArrayDeque<JSONObject>()
     private val seenBodies = java.util.LinkedHashSet<String>()
@@ -208,8 +218,11 @@ object Link {
     /** Für die Einstellungen: läuft die direkte Verbindung, welche Adresse? Adresse auch selbst eintragbar (100.x.y.z). */
     fun directInfo(ctx: Context): JSONObject {
         val f = try { JSONObject(prefs(ctx).getString("pc_fern", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
-        return JSONObject().put("active", directActive()).put("ip", f.optString("ip")).put("limit", limited())
+        return JSONObject().put("active", directActive()).put("ip", f.optString("ip")).put("limit", limited()).put("err", directErr)
     }
+    /** "Prüfen": sofort eine Probe an den PC (Ergebnis in directInfo). */
+    fun directTest(ctx: Context) { code(ctx); Thread { directPost(encrypt(JSONObject().put("kind", "ping").put("from", "phone").put("ts", System.currentTimeMillis() / 1000), code(ctx))) }.start() }
+
     fun setPcIp(ctx: Context, ip: String) {
         val f = try { JSONObject(prefs(ctx).getString("pc_fern", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
         if (Regex("^100\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$").matches(ip.trim())) prefs(ctx).edit().putString("pc_fern", f.put("ip", ip.trim()).put("port", f.optInt("port", 8765)).toString()).apply()
@@ -225,9 +238,9 @@ object Link {
         val base = directBase() ?: return false; val ctx = app ?: return false
         return try {
             quick.newCall(Request.Builder().url("$base/link/in?k=${fernToken(ctx)}").post(body.toRequestBody("text/plain".toMediaType())).build()).execute().use { r ->
-                if (r.isSuccessful) { directAt = System.currentTimeMillis(); true } else false
+                if (r.isSuccessful) { directAt = System.currentTimeMillis(); directErr = ""; true } else { directErr = errText(Exception(), r.code); false }
             }
-        } catch (_: Exception) { false }
+        } catch (e: Exception) { directErr = errText(e); false }
     }
     private fun remember(m: JSONObject) {
         synchronized(statusCache) { statusCache.addLast(m); while (statusCache.size > 60) statusCache.removeFirst() }
@@ -242,10 +255,10 @@ object Link {
             if (base == null || !paired(ctx)) { Thread.sleep(30_000); continue }
             try {
                 val js = longPoll.newCall(Request.Builder().url("$base/link/out?k=${fernToken(ctx)}&after=$after&wait=20").build()).execute().use { r ->
-                    if (!r.isSuccessful) throw RuntimeException("HTTP ${r.code}")
+                    if (!r.isSuccessful) { directErr = errText(Exception(), r.code); throw RuntimeException("HTTP ${r.code}") }
                     JSONObject(r.body?.string() ?: "{}")
                 }
-                directAt = System.currentTimeMillis()
+                directAt = System.currentTimeMillis(); directErr = ""
                 after = js.optLong("seq", after)
                 val a = js.optJSONArray("msgs") ?: JSONArray()
                 val c = code(ctx)
@@ -259,7 +272,8 @@ object Link {
                 }
             } catch (e: Exception) {
                 directAt = 0L
-                Thread.sleep(30_000)   // Tailscale aus oder PC aus: später nochmal, ntfy übernimmt solange
+                if (e !is RuntimeException || e.message?.startsWith("HTTP") != true) directErr = errText(e)
+                Thread.sleep(15_000)   // Tailscale aus oder PC aus: später nochmal, ntfy übernimmt solange
             }
         }
     }

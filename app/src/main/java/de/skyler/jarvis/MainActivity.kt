@@ -504,6 +504,9 @@ class MainActivity : ComponentActivity() {
         fun setPcIp(ip: String) = Link.setPcIp(this@MainActivity, ip)
 
         @JavascriptInterface
+        fun directTest() = Link.directTest(this@MainActivity)
+
+        @JavascriptInterface
         fun getModiCfg(): String = Modes.cfg(this@MainActivity).toString()
 
         @JavascriptInterface
