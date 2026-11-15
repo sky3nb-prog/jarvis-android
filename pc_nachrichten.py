@@ -63,11 +63,57 @@ def _whatsapp_vorne() -> bool:
         return False
 
 
+# --- WhatsApp gerade benutzt / Chat ignoriert: erst später (gesammelt) Bescheid sagen -----------------------------
+QUIET_AFTER_WA = 5 * 60   # so lange nach WhatsApp im Vordergrund keine Einzelansagen
+MUTE_CHAT = 5 * 60        # "ignorieren" -> dieser Chat so lange still
+_front = {"t": 0.0}       # zuletzt WhatsApp vorne gesehen
+_held = []                # zurückgehaltene Nachrichten
+_mute = {}                # Chat-Schlüssel -> stumm bis
+
+
+def _ck(m: dict) -> str:
+    return str(m.get("key") or m.get("chat") or m.get("sender") or "").lower()
+
+
+def _watch_front():
+    """Merkt sich, wann WhatsApp zuletzt vorne war, und sagt danach gesammelt Bescheid."""
+    while True:
+        try:
+            now = time.time()
+            if _whatsapp_vorne():
+                _front["t"] = now
+            with _lock:
+                ready = [m for m in _held if now - _front["t"] >= QUIET_AFTER_WA and _mute.get(_ck(m), 0) <= now]
+                for m in ready:
+                    _held.remove(m)
+            if ready and _idle_seconds() < 20 * 60:
+                names = []
+                for m in ready:
+                    w = _who(m)
+                    if w not in names:
+                        names.append(w)
+                with _lock:
+                    _announce.append({"kind": "held", "msgs": ready, "names": names, "t": now})
+        except Exception as e:
+            print("WhatsApp-Wache:", e)
+        time.sleep(3)
+
+
+threading.Thread(target=_watch_front, daemon=True, name="wa-vorne").start()
+
+
 def incoming(msg: dict):
     """Vom Handy: {sender, chat, text, voice, transcript, audio(b64 ogg), key}."""
-    if msg.get("kind") not in ("say", "offer") and _whatsapp_vorne() and _idle_seconds() < 120:
-        print(f"Nachricht von {msg.get('sender')}: WhatsApp ist vorne – keine Ansage")
-        return
+    if msg.get("kind") not in ("say", "offer", "held"):
+        now = time.time()
+        if _whatsapp_vorne() and _idle_seconds() < 120:   # du bist gerade in WhatsApp: siehst du selbst
+            print(f"Nachricht von {msg.get('sender')}: WhatsApp ist vorne – keine Ansage")
+            return
+        if _mute.get(_ck(msg), 0) > now or now - _front["t"] < QUIET_AFTER_WA:   # Chat ignoriert / WhatsApp gerade erst zu
+            with _lock:
+                _held.append(dict(msg, t=now)); del _held[:-15]
+            print(f"Nachricht von {msg.get('sender')}: zurückgehalten (später gesammelt)")
+            return
     for k in ("sender", "chat", "text", "transcript"):
         if isinstance(msg.get(k), str):
             msg[k] = re.sub(r"[\u200e\u200f\u202a-\u202e]", "", msg[k]).strip()
@@ -119,6 +165,12 @@ def announce_text() -> str:
         PENDING = None
         return m.get("text") or "…"
     PENDING = m
+    if m.get("kind") == "held":   # gesammelt: "Du hast Nachrichten von Janis und Mama bekommen."
+        m["stage"] = "held"
+        n = m.get("names") or []
+        wer = n[0] if len(n) == 1 else ", ".join(n[:-1]) + " und " + n[-1]
+        anz = len(m.get("msgs") or [])
+        return f"Übrigens, du hast {'eine Nachricht' if anz == 1 else f'{anz} Nachrichten'} von {wer} bekommen. Soll ich sie vorlesen, oder ignorieren?"
     if m.get("kind") == "offer":   # "Dein Wochenrückblick ist da. Soll ich ihn vorlesen?"
         import pc_lernen
         lk = "angebot:" + str(m.get("action") or m.get("title") or "offer")
@@ -329,9 +381,23 @@ def handle(text: str):
     m, low = PENDING, (text or "").lower().strip(" .!?")
     m["t"] = time.time()
     print(f"Nachrichten-Dialog ({m.get('stage')}): {text}")
+    if m.get("stage") == "held":
+        if re.search(r"\begal\b|ignorier|vergiss|unwichtig|nicht wichtig|nein|nö|nee|lass", low):
+            PENDING = None
+            for x in m.get("msgs") or []:
+                _mute[_ck(x)] = time.time() + MUTE_CHAT
+            return "Okay, ignoriert."
+        if YES.match(low) or re.search(r"weiter|lies|vorlesen|zeig|sag|erzähl", low):
+            PENDING = None
+            with _lock:   # einzeln ansagen (ohne Zurückhalten)
+                for x in (m.get("msgs") or [])[::-1]:
+                    _announce.insert(0, dict(x, t=time.time()))
+            return "Okay."
+        return None
     if m.get("stage") == "ask":
         if re.search(r"\begal\b|ignorier|vergiss|unwichtig|nicht wichtig|später|nein|nö|nee|lass", low):
             PENDING = None
+            _mute[_ck(m)] = time.time() + MUTE_CHAT   # weitere Nachrichten aus diesem Chat 5 Min. still, danach gesammelt
             return "Okay, ignoriert."
         if YES.match(low) or re.search(r"weiter|lies|vorlesen|was schreibt|zeig|sag|abspiel|anhör|erzähl", low):
             if re.search(r"abspiel|anhör|spiel", low) and m.get("voice"):
