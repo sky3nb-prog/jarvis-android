@@ -198,6 +198,7 @@ def _orte_save():
 
 _karte = None
 _staedte = []
+_faehren = []   # [Name, x, z, "f" Fähre | "z" Zug (Tunnel)]
 
 
 def karte() -> list:
@@ -211,7 +212,9 @@ def karte() -> list:
                 for a, x, z in json.load(fh)["orte"]:
                     _karte.append({"art": "tank" if a == "t" else "schlaf", "x": x, "z": z, "spiel": "ETS2", "karte": True})
                 fh.seek(0)
-                _staedte[:] = json.load(fh).get("staedte", [])
+                _all = json.load(fh)
+                _staedte[:] = _all.get("staedte", [])
+                _faehren[:] = _all.get("faehren", [])
             print(f"ETS2-Karte: {len(_karte)} Tankstellen und Schlafplätze geladen")
         except Exception as e:
             print("ETS2-Karte fehlt:", e)
@@ -386,6 +389,104 @@ def map_data() -> dict:
             "tank": near(nt, "tank"), "schlaf": near(ns, "schlaf")}
 
 
+def _speed_kmh() -> float:
+    """Schnitt laut Navi (Restweg / Restzeit), sonst 70 km/h."""
+    s = STATE
+    if s.get("rest_km") and s.get("rest_min"):
+        v = s["rest_km"] / max(1, s["rest_min"]) * 60
+        if 20 < v < 120:
+            return v
+    return 70.0
+
+
+def _real(game_min: float) -> str:
+    """Spielzeit -> echte Zeit (Zeitraffer des Spiels, meist 1:19)."""
+    sc = float(getattr(LAST_T, "scale", 0) or 0) if LAST_T is not None else 0
+    if sc <= 1.5:
+        return ""
+    m = game_min / sc
+    return f"in echt etwa {max(1, round(m))} Minute{'n' if round(m) != 1 else ''}" if m < 90 else f"in echt etwa {_hm(int(m))}"
+
+
+_ISL = {"sardinien": {"Cagliari", "Olbia", "Sassari", "Oristano", "Nuoro"}, "korsika": {"Ajaccio", "Bastia", "Porto-Vecchio", "Calvi"},
+        "sizilien": {"Palermo", "Catania", "Messina", "Siracusa", "Trapani", "Ragusa"}, "kreta": {"Chania", "Heraklion", "Rethymno"}}
+
+
+def _region(x: float, z: float) -> str:
+    """Landmasse: UK, Island, Inseln im Mittelmeer – sonst Festland (Skandinavien hängt über Brücken dran)."""
+    karte()
+    if not _staedte:
+        return "?"
+    c = min(_staedte, key=lambda c: math.hypot(c[1] - x, c[2] - z))
+    for k, names in _ISL.items():
+        if c[0] in names:
+            return k
+    cc = c[3] if len(c) > 3 else ""
+    return {"GB": "uk", "IE": "uk", "IS": "island"}.get(cc, "festland")
+
+
+def ferry_text(t) -> str:
+    """Wann erreiche ich die Fähre? Ist das Ziel auf einer anderen Landmasse (UK, Island, Sardinien …), die Fähre/den Zug
+    auf deiner Seite Richtung Ziel; sonst der Hinweis, dass keine nötig ist – plus der Hafen, falls dein Navi trotzdem eine nimmt."""
+    karte()
+    if not _faehren:
+        return "Die Fähren kenne ich noch nicht – die Kartendaten fehlen."
+    x, z = float(t.coordX), float(t.coordZ)
+    f = _faktor()
+    dest = _city_pos(STATE.get("nach", "")) if STATE.get("auftrag") else None
+    if not dest:
+        return "Dafür brauche ich ein Ziel: Mit einem Auftrag weiß ich, wohin es geht. Dein Navi-Ziel ohne Auftrag sehe ich leider nicht."
+    gx, gd = _region(x, z), _region(dest[1], dest[2])
+    dd = math.hypot(dest[1] - x, dest[2] - z)
+    best = None
+    for name, fx, fz, art in _faehren:
+        d1 = math.hypot(fx - x, fz - z); d2 = math.hypot(dest[1] - fx, dest[2] - fz)
+        if d1 < 300 or d1 > dd or d1 + d2 > dd * 1.35:
+            continue
+        if gx != gd and _region(fx, fz) != gx:   # Abfahrthafen muss auf deiner Seite liegen
+            continue
+        if gx == gd and d2 / 1000 * f < 80:     # Hafen direkt am Ziel zählt nicht
+            continue
+        sc = d1 + d2 if gx != gd else d1 + d2 * 0.3   # übers Wasser: kürzester Gesamtweg
+        if best is None or sc < best[0]:
+            best = (sc, d1, name, art)
+    nach = STATE.get("nach")
+    if not best:
+        return f"Nach {nach} brauchst du keine Fähre – geht über Land." if gx == gd else f"Nach {nach} geht es übers Wasser, aber einen passenden Hafen finde ich gerade nicht."
+    _, d1, name, art = best
+    km = round(d1 / 1000 * f * 1.25)
+    mins = km / _speed_kmh() * 60
+    real = _real(mins)
+    wo = ("Die Fähre in " if art == "f" else "Der Zug durch den Tunnel in ") + _de(name)
+    eta = f"noch etwa {km} Kilometer, ungefähr {_hm(int(mins))} Spielzeit" + (f", {real}" if real else "")
+    if gx != gd:
+        return f"{wo}: {eta}. Grob geschätzt – den genauen Weg kennt nur dein Navi."
+    return f"Zwingend brauchst du nach {nach} keine Fähre (geht über Land). Falls dein Navi trotzdem übers Wasser fährt: {wo}, {eta}."
+
+
+def _ai_answer(question: str, t) -> str:
+    """Alles andere zur Fahrt: die KI bekommt die Live-Daten und antwortet."""
+    try:
+        import pc_ai
+        if not pc_ai.available():
+            return ""
+        s = dict(STATE)
+        x, z = float(t.coordX), float(t.coordZ)
+        hier = _city_near(x, z, 4000) or ""
+        ctx = (f"Live-Daten aus {s.get('spiel')}: {s.get('kmh')} km/h (erlaubt {s.get('limit') or '?'}), in der Nähe von {hier or 'unbekannt'}. "
+               f"Tank {s.get('tank_pct')} % = {s.get('tank_l')} l, Reichweite {s.get('reichweite_km')} km. "
+               f"Auftrag: {s.get('ladung') or 'keiner'} von {s.get('von')} nach {s.get('nach')} ({s.get('nach_firma')}), Lohn {s.get('lohn')} €. "
+               f"Navi: noch {s.get('rest_km')} km, {s.get('rest_min')} Min. Spielzeit ({_real(s.get('rest_min') or 0)}). "
+               f"Ruhezeit in {s.get('ruhe_min')} Min. Spielzeit. Abgabe in {s.get('abgabe_min')} Min. Spielzeit. " + ferry_text(t) + " " + tankplan(t).get("text", ""))
+        sys_ = ("Du bist Jarvis, Beifahrer im Euro Truck Simulator 2. Antworte kurz (1–2 Sätze, Deutsch, du), nur mit den Live-Daten. "
+                "Erfinde keine Orte oder Zahlen; wenn etwas nicht in den Daten steht, sag das ehrlich.")
+        out = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": ctx + "\n\nFrage: " + question}]}], sys_, json_mode=False, max_tokens=160, fast=True)
+        return (out or "").strip()
+    except Exception as e:
+        print("ETS2-KI:", e)
+        return ""
+
+
 def _start_brief(s: dict) -> str:
     """Kurz, wenn das Spiel startet (nicht erst im Fahrmodus)."""
     p = [f"{s['spiel']} läuft. Tank {s['tank_pct']} Prozent, Reichweite etwa {s['reichweite_km']} Kilometer."]
@@ -405,7 +506,7 @@ def _place_text(art: str, t, max_km: float = 0) -> str:
             (f" – ich habe erst {cnt} gelernt." if cnt else " – ich lerne sie, sobald du tankst oder schläfst.")
     km, way, o = n
     if not o.get("bei") and _staedte:   # Ort aus der Karte: nächste Stadt dazusagen
-        name, cx, cz = min(_staedte, key=lambda c: math.hypot(c[1] - o["x"], c[2] - o["z"]))
+        name, cx, cz = min(_staedte, key=lambda c: math.hypot(c[1] - o["x"], c[2] - o["z"]))[:3]
         if math.hypot(cx - o["x"], cz - o["z"]) < 5000:
             o = dict(o, bei=name)
     bei = f" bei {o['bei']}" if o.get("bei") else ""
@@ -523,7 +624,9 @@ def start(stop: threading.Event):
     threading.Thread(target=lambda: (install_plugin(), _loop(stop)), daemon=True, name="ets2").start()
 
 
-ASK = re.compile(r"\b(wie weit (?:ist es |muss ich )?noch|wie lange (?:fahr ich |dauert es )?noch|wann bin ich da|wie viel sprit|wie viel diesel|wie voll|tank\b|reichweite|"
+ASK = re.compile(r"\b(fähre|faehre|hafen|zug\b|tunnel|wann (?:komm|bin|erreich|schaff)|wie lange (?:brauch|noch)|ankunft|ankomm|wo bin ich|welche stadt|nächste stadt|"
+                 r"wie viele kilometer|wie weit (?:ist|bis)|route|abgabe|pünktlich|zu spät|"
+                 r"wie weit (?:ist es |muss ich )?noch|wie lange (?:fahr ich |dauert es )?noch|wann bin ich da|wie viel sprit|wie viel diesel|wie voll|tank\b|reichweite|"
                  r"wann muss ich schlafen|muss ich (?:bald )?schlafen|ruhezeit|was verdien|mein lohn|den auftrag|mein auftrag|"
                  r"welche ladung|was hab ich geladen|wohin fahr|wo muss ich hin|wie schnell darf|tempolimit|wie viel darf ich|"
                  r"tankstopp|ans ziel|tankstelle|tanken|schlafplatz|rastplatz|raststätte|parkplatz|wo kann ich schlafen|wo schlaf ich|merk dir)", re.I)
@@ -532,13 +635,18 @@ ASK = re.compile(r"\b(wie weit (?:ist es |muss ich )?noch|wie lange (?:fahr ich 
 def handle(command: str):
     """Fragen zur Fahrt in ETS2. None = gehört nicht hierher (oder das Spiel läuft nicht)."""
     s = STATE
-    if not s.get("aktiv"):
-        return None
     low = command.lower()
+    if not s.get("aktiv"):
+        if ASK.search(low) and re.search(r"ets|truck|lkw|fähre|tank|auftrag|ziel|navi|route|rastplatz|tankstelle", low) and _game_front():
+            return ("Ich bekomme gerade keine Daten aus dem Spiel. " + (f"Plugin: {PLUGIN_STATUS}. " if PLUGIN_STATUS else "") +
+                    "Ist ETS2 schon im Fahrmodus (nicht im Menü)? Sonst einmal das Spiel neu starten – beim Start muss es nach dem Telemetrie-Plugin fragen, dann „OK“.")
+        return None
     if not ASK.search(low):
         return None
     parts = []
     t = LAST_T
+    if t is not None and re.search(r"fähre|faehre|hafen|\bzug\b|tunnel", low):
+        return ferry_text(t)
     if t is not None and re.search(r"merk dir", low) and re.search(r"tank|schlaf|rast|park", low):
         art = "tank" if "tank" in low else "schlaf"
         new = remember_place(art, t)
@@ -550,11 +658,17 @@ def handle(command: str):
         return _place_text("tank", t)
     if t is not None and re.search(r"schlafplatz|rastplatz|raststätte|parkplatz|wo kann ich schlafen|wo schlaf ich", low):
         return _place_text("schlaf", t)
-    if re.search(r"wie weit|wie lange noch|wann bin ich da|wo muss ich hin|wohin", low):
+    if t is not None and re.search(r"wo bin ich|welche stadt|nächste stadt", low):
+        c = _city_near(float(t.coordX), float(t.coordZ), 6000)
+        parts.append(f"Du bist in der Nähe von {c}." if c else "Gerade zwischen den Städten.")
+    if re.search(r"wie weit|wie lange|wann (?:bin|komm|erreich|schaff)|ankunft|ankomm|wo muss ich hin|wohin|wie viele kilometer", low):
         if s["rest_km"]:
-            parts.append(f"Noch {s['rest_km']} Kilometer bis {s['nach'] or 'zum Ziel'}, etwa {_hm(s['rest_min'])} Fahrzeit.")
+            real = _real(s["rest_min"])
+            parts.append(f"Noch {s['rest_km']} Kilometer bis {s['nach'] or 'zum Ziel'}, laut Navi {_hm(s['rest_min'])} Spielzeit" + (f", {real}" if real else "") + ".")
+            if s.get("abgabe_min") and s["abgabe_min"] > 0:
+                parts.append("Das schaffst du pünktlich." if s["abgabe_min"] > s["rest_min"] else f"Knapp: Abgabe ist in {_hm(s['abgabe_min'])} Spielzeit.")
         else:
-            parts.append("Gerade ist kein Ziel im Navi.")
+            parts.append("Im Navi ist gerade kein Ziel eingestellt" + (f" – dein Auftrag geht nach {s['nach']}." if s.get("nach") else "."))
     if re.search(r"sprit|diesel|tank|reichweite", low):
         parts.append(f"Der Tank ist bei {s['tank_pct']} Prozent, {s['tank_l']} Liter, das reicht etwa {s['reichweite_km']} Kilometer.")
     if re.search(r"schlafen|ruhezeit", low):
@@ -570,7 +684,20 @@ def handle(command: str):
             parts.append("Du hast gerade keinen Auftrag.")
     if re.search(r"wie schnell|tempolimit|wie viel darf", low):
         parts.append(f"Du fährst {s['kmh']}" + (f", erlaubt sind {s['limit']}." if s["limit"] else ", ein Tempolimit sehe ich gerade nicht."))
+    if not parts and t is not None:   # Frage zur Fahrt, die ich nicht fest kenne -> KI mit Live-Daten
+        a = _ai_answer(command, t)
+        if a:
+            return a
     return " ".join(parts) or None
+
+
+def _game_front() -> bool:
+    try:
+        import pc_gaming
+        g = pc_gaming.current_game()
+        return bool(g and "Truck" in g["name"])
+    except Exception:
+        return False
 
 
 # --- Plugin einmalig installieren ------------------------------------------------------------------------
