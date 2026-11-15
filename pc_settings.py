@@ -125,6 +125,8 @@ DEFAULTS = {
     "telegram_chat": "",  # dein Chat mit dem Bot (wird beim ersten "Start" gemerkt)
     "ntfy_topic": "",  # geheimer Kanal für Nachrichten aufs Handy (wird beim ersten Start erzeugt)
     "loc_topic": "",  # geheimer Kanal, über den das Handy (OwnTracks) seinen Standort schickt
+    "discord_hoerbar": False,  # Jarvis zusätzlich auf ein zweites Gerät (Discord-Mikro) -> Freunde und Clips hören ihn
+    "discord_device": "",
     "auto_new": [],  # Einstellungen, die mit einem Update neu dazukamen (automatisch erkannt)
     "seen_new": [],  # neue Einstellungen, die schon angeschaut wurden (für den "Neu"-Punkt)
 }

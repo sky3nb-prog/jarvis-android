@@ -158,6 +158,11 @@ def schema(s: dict) -> dict:
                  rng("voice_pitch", "Tonhöhe", -10, 10),
                  rng("voice_rate", "Sprechtempo", -10, 10),
                  btn("test_voice", "▶ Stimme testen")),
+            card("Discord & Clips",
+                 sw("discord_hoerbar", "Jarvis in Discord hörbar", "Spielt seine Stimme zusätzlich auf dein Discord-Mikro – Freunde hören ihn, und er ist in Discord-Clips mit drauf."),
+                 sel("discord_device", "Zweites Gerät", [["– aus –", ""]] + outs[1:] if outs else [["– aus –", ""]],
+                     "Ein Ausgang, der in dein Discord-Mikro geht: bei Wave Link z. B. der Kanal, der im Stream-/Chat-Mix landet, sonst ein virtuelles Kabel (VB-CABLE: hier „CABLE Input“, in Discord als Mikro „CABLE Output“)."),
+                 note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent.")),
             card("ElevenLabs",
                  sec("eleven_key", "Schlüssel", "elevenlabs.io → Entwickler → API-Schlüssel. Wird verschlüsselt gespeichert."),
                  sel("eleven_voice", "Stimme", _opts(voices)),
@@ -304,6 +309,7 @@ def schema(s: dict) -> dict:
         "wake_words": ", ".join(g("wake_words") or []), "language": g("language"),
         "input_device": g("input_device") if not isinstance(g("input_device"), int) else pc_audio.device_name(g("input_device")),
         "output_device": g("output_device") if not isinstance(g("output_device"), int) else pc_audio.device_name(g("output_device")),
+        "discord_hoerbar": bool(g("discord_hoerbar")), "discord_device": g("discord_device") or "",
         "followup_seconds": g("followup_seconds"), "speak": bool(g("speak")), "voice_engine": g("voice_engine"),
         "voice_volume": s.get("voice_volume", 100), "voice_pitch": g("voice_pitch"), "voice_rate": g("voice_rate"),
         "eleven_voice": g("eleven_voice"), "eleven_model": g("eleven_model"), "edge_voice": g("edge_voice"),
@@ -347,7 +353,7 @@ def save(s: dict, v: dict) -> dict:
     new = dict(s)
     text = lambda k, dflt="": str(v.get(k) if v.get(k) is not None else dflt).strip()  # noqa: E731
     num = lambda k: int(float(v.get(k) if v.get(k) not in (None, "") else d.get(k, 0)))  # noqa: E731
-    for k in ("autostart", "greet_on_start", "show_hud_on_start", "boot_animation", "msg_ask_first", "kommentare", "confirm_messages", "speak", "early_chime", "lage_spin",
+    for k in ("autostart", "greet_on_start", "show_hud_on_start", "boot_animation", "msg_ask_first", "kommentare", "discord_hoerbar", "confirm_messages", "speak", "early_chime", "lage_spin",
               "lage_orbits", "map_labels", "lage_sat_tour", "globe_auto_open", "briefing_on_start", "hud_topmost",
               "hud_animation", "show_weather", "announce_events", "show_performance", "show_pc_temps", "show_notifications", "webcam_fern"):
         if k in v:
@@ -360,7 +366,7 @@ def save(s: dict, v: dict) -> dict:
               "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele"):
         if k in v:
             new[k] = text(k)
-    for k in ("input_device", "output_device"):
+    for k in ("input_device", "output_device", "discord_device"):
         if k in v:
             new[k] = v[k] or None
     if "assistant_name" in v:

@@ -36,6 +36,7 @@ VOICE_RATE = 0  # -10 (langsam) bis 10 (schnell)
 ON_CHUNK = None  # vom Programm gesetzt: bekommt jeden Satz, kurz bevor er gesprochen wird (Globus fliegt passend)
 VOICE_VOLUME = 100  # eigene Lautstärke von Jarvis' Stimme in Prozent (unabhängig von der Windows-Lautstärke)
 OUTPUT_DEVICE = None  # None = Windows-Standard, sonst der Name des Ausgabegeräts
+MIRROR_DEVICE = None  # zusätzlich hierhin (z. B. virtuelles Kabel / Wave Link Chat-Kanal -> Discord hört Jarvis, auch im Clip)
 
 # Auswahl für die Einstellungen: (Anzeigename, Stimmen-Kennung)
 EDGE_VOICES = [
@@ -292,6 +293,26 @@ def _play_mp3(path: str) -> bool:
         winmm.mciSendStringW(f"close {alias}", None, 0, None)
 
 
+def _mirror(path: str):
+    """Jarvis gleichzeitig auf einem zweiten Gerät abspielen (eigener Datenstrom, stört die normale Ausgabe nicht)."""
+    if not MIRROR_DEVICE:
+        return
+    def run():
+        try:
+            import sounddevice as sd
+            import soundfile as sf
+            midx = resolve_device(MIRROR_DEVICE, "output")
+            if midx is None:
+                return
+            data, rate = sf.read(path, dtype="float32")
+            ch = 1 if data.ndim == 1 else data.shape[1]
+            with sd.OutputStream(device=midx, samplerate=rate, channels=ch, dtype="float32") as st:
+                st.write(data.reshape(-1, ch) * (max(5, min(100, VOICE_VOLUME)) / 100.0))
+        except Exception as e:
+            print("Zweite Ausgabe (Discord) ging nicht:", e)
+    threading.Thread(target=run, daemon=True, name="mirror").start()
+
+
 def _play_mp3_device(path: str, idx: int):
     import soundfile as sf
 
@@ -368,6 +389,7 @@ def _speak_edge(text: str, voice: str, pitch: int, rate: int, idx=None) -> bool:
             if not played:
                 print(f"Zeit: Stimme für den ersten Satz nach {time.time() - t0:.1f} s bereit")
             played = True
+            _mirror(val)
             if idx is not None:
                 try:
                     _play_mp3_device(val, idx)

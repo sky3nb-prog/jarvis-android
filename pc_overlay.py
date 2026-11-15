@@ -161,6 +161,7 @@ def apply_settings(s: dict):
         pc_assistent.INPUT_DEVICE = new_in
         RESTART_AUDIO.set()
     pc_audio.OUTPUT_DEVICE = s.get("output_device") or None
+    pc_audio.MIRROR_DEVICE = (s.get("discord_device") or None) if s.get("discord_hoerbar") else None
     pc_audio.VOICE_RATE = int(s.get("voice_rate", 0))
     pc_audio.VOICE_ENGINE = s.get("voice_engine", "auto")
     pc_audio.EDGE_VOICE = s.get("edge_voice") or "de-DE-KillianNeural"
@@ -2037,7 +2038,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-15 16:20"
+VERSION = "2026-11-15 16:35"
 
 
 def main():
