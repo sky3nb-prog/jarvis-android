@@ -490,3 +490,6 @@ body.clean #v-fokus .talkbox, body.clean #v-fokus .callbtn, body.clean #v-fokus 
 .tt-btns { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
 .tt-btns .tt-ok { background: #ffaa28; color: #1a1006; font-weight: 700; }
 .tt-btns .tt-del { margin-right: auto; color: #ff8a6a; }
+.mdround { position: absolute; top: 12px; left: 116px; z-index: 5; width: 40px; height: 40px; font-size: 17px; border-color: #5a3e14; color: #c8965a; }
+.mdround.on, .mdround2.on { color: hsl(var(--h), 90%, 80%); border-color: hsl(var(--h), 80%, 60%); box-shadow: 0 0 12px hsla(var(--h), 90%, 60%, .5); background: hsla(var(--h), 60%, 18%, .6); }
+.mdround2 { border-color: #5a3e14; color: #c8965a; font-size: 17px; }

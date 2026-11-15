@@ -16,6 +16,7 @@
     <div class="switch on" id="powerbtn" role="switch" aria-label="Jarvis an oder aus"><span class="knob"></span></div>
     <div class="roundbtn feedbtn" id="feedbtn-f" title="Mitteilungen">🔔<i class="fdot"></i></div>
     <div class="roundbtn cleanbtn" id="cleanbtn" title="Nur die Kugel">◉</div>
+    <div class="roundbtn mdround" id="mdbtn-f" title="Modi">◈</div>
     <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Jarvis zu reden</div>
     <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
     <div class="name">J.A.R.V.I.S.</div>
@@ -33,7 +34,8 @@
     <div class="topbar">
       <div class="roundbtn" id="btn-settings">⚙</div>
       <div class="title">J.A.R.V.I.S.</div>
-      <div class="roundbtn feedbtn2" id="feedbtn-i" title="Mitteilungen">🔔<i class="fdot"></i></div>
+      <div style="display:flex;gap:8px"><div class="roundbtn mdround2" id="mdbtn-i" title="Modi">◈</div>
+      <div class="roundbtn feedbtn2" id="feedbtn-i" title="Mitteilungen">🔔<i class="fdot"></i></div></div>
     </div>
     <div class="sphere-wrap small" id="sphere-info"><canvas class="sphere"></canvas><canvas class="brain"></canvas><canvas class="rings"></canvas></div>
     <div class="sub">bereit · tipp auf die Kugel zum Reden</div>
@@ -471,6 +473,8 @@
 <script src="satellite.min.js"></script>
 <script src="lage.js"></script>
 <script src="galaxy.js"></script>
+<script>window.JModiSend = (t) => { try { const r = window.Android.modusCmd(t); if (window.JModiToast) window.JModiToast(r); } catch (e) {} };</script>
+<script src="modi.js"></script>
 <script src="app.js"></script>
 <script src="steuern.js"></script>
 <script src="feed.js"></script>

@@ -214,6 +214,10 @@
     e.classList.toggle("on");
     if (e.id === "set-loc" && e.classList.contains("on") && A && A.askLocation) A.askLocation();
   }));
+  // Modi-Raster (Fokus, Gaming, Chill …) – gleicher Look wie am PC
+  window.JModiToast = (t) => toast(t);
+  ["mdbtn-f", "mdbtn-i"].forEach((id) => { const e = $(id); if (e) e.addEventListener("click", () => { try { window.JModi.update({ mode: A.getModus() }); } catch (x) {} window.JModi && window.JModi.open(); }); });
+  try { window.JModi && window.JModi.update({ mode: A.getModus() }); } catch (e) {}
   // Neue Einstellungen: kleiner roter Punkt am Zahnrad, am Bereich und an der neuen Einstellung selbst,
   // bis du den Bereich einmal geöffnet hast. Bei jedem Update: neue Abschnitte in index.html mit data-neu="<Kennung>" markieren.
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };

@@ -467,6 +467,12 @@ class MainActivity : ComponentActivity() {
         fun setFlag(k: String, v: Boolean) { if (k in listOf("melden", "aufsteh_check")) prefs.edit().putBoolean(k, v).apply() }
 
         @JavascriptInterface
+        fun modusCmd(t: String): String = try { Modes.fromCmd(this@MainActivity, t) } catch (e: Exception) { "Ging nicht: ${e.message ?: ""}" }
+
+        @JavascriptInterface
+        fun getModus(): String = Modes.current(this@MainActivity)
+
+        @JavascriptInterface
         fun getPlan(): String = Melden.plan(this@MainActivity).toString()
 
         @JavascriptInterface
