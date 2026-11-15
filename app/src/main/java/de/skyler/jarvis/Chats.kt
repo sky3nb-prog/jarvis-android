@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Base64
 import android.util.Log
@@ -86,6 +87,10 @@ object Chats {
             if (t.isNotBlank()) hist(ctx, norm(chat), if (s.isNullOrBlank()) "ich" else s, t, b.getLong("time", 0L))
         }
         if (msgs != null && msgs.isNotEmpty()) {
+            (msgs.lastOrNull() as? Bundle)?.let { b ->   // letzte Nachricht ohne Absender = du hast geantwortet
+                val s = b.getCharSequence("sender")?.toString() ?: (if (Build.VERSION.SDK_INT >= 28) (b.getParcelable<android.app.Person>("sender_person"))?.name?.toString() else null)
+                if (s.isNullOrBlank()) { markRead(ctx, norm(chat)); return }
+            }
             val last = msgs.mapNotNull { it as? Bundle }.lastOrNull { b ->
                 val s = b.getCharSequence("sender")?.toString()
                     ?: (if (Build.VERSION.SDK_INT >= 28) (b.getParcelable<android.app.Person>("sender_person"))?.name?.toString() else null)
@@ -119,6 +124,28 @@ object Chats {
         if (System.currentTimeMillis() - time > 10 * 60_000L) return   // alte Nachricht, die nur neu angezeigt wird
         val voice = isVoice(text)
         Thread({ forward(ctx, chat, sender.ifBlank { chat }, text, voice, time) }, "jarvis-chat").start()
+    }
+
+    /** WhatsApp nimmt die Benachrichtigung weg, wenn du den Chat liest (Handy oder PC) – dann nicht mehr ansagen. */
+    fun onRemoved(ctx: Context, sbn: StatusBarNotification, reason: Int) {
+        if (sbn.packageName !in PKGS) return
+        val n = sbn.notification ?: return
+        if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
+        if (reason != NotificationListenerService.REASON_APP_CANCEL && reason != NotificationListenerService.REASON_APP_CANCEL_ALL &&
+            reason != NotificationListenerService.REASON_CLICK) return
+        val ex = n.extras ?: return
+        val chat = (ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE) ?: ex.getCharSequence(Notification.EXTRA_TITLE))?.toString()
+            ?.replace(Regex("\\s*\\(\\d+ (?:Nachrichten|messages)\\)\\s*$"), "")?.replace(Regex(":\\s*$"), "")
+            ?.replace(Regex("[\u200e\u200f\u202a-\u202e]"), "")?.trim() ?: return
+        if (chat.isBlank() || chat.equals("WhatsApp", true)) return
+        markRead(ctx, norm(chat))
+    }
+
+    private val readSent = HashMap<String, Long>()
+    fun markRead(ctx: Context, ck: String) {
+        prefs(ctx).edit().putLong("read_$ck", System.currentTimeMillis()).apply()
+        synchronized(readSent) { if (System.currentTimeMillis() - (readSent[ck] ?: 0L) < 20_000L) return; readSent[ck] = System.currentTimeMillis() }
+        if (Link.paired(ctx)) Thread { try { Link.toPc(ctx, JSONObject().put("kind", "wa_read").put("from", "phone").put("key", ck).put("ts", System.currentTimeMillis() / 1000)) } catch (_: Exception) {} }.start()
     }
 
     private fun forward(ctx: Context, chat: String, sender: String, text: String, voice: Boolean, time: Long) {
