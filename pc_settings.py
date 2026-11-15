@@ -36,7 +36,7 @@ DEFAULTS = {
     "output_device": None,  # None = Windows-Standard, sonst Name des Ausgabegeräts (z. B. Elgato Wave Link)
     "followup_seconds": 5,  # so lange hört er nach einem Befehl weiter zu, ohne Aktivierungswort (0 = aus)
     "speak": True,  # Antworten laut sprechen
-    "voice_engine": "auto",  # "auto" = Online-Stimme, sonst Windows; "edge" nur online; "windows" nur offline
+    "voice_engine": "auto",  # "auto" = Online-Stimme (nie Windows); "edge" nur online; "windows" nur offline
     "edge_voice": "de-DE-KillianNeural",  # Online-Stimme (siehe Einstellungen)
     "windows_voice": "",  # leer = automatisch eine deutsche Männerstimme
     "voice_pitch": -3,  # Tonhöhe -10 (tiefer) bis 10 (höher)

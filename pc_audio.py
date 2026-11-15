@@ -231,6 +231,24 @@ def _trim_cache(folder: str, keep: int = 150):
 
 
 def _edge_file(text: str, voice: str, pitch: int, rate: int):
+    """Erzeugt eine mp3 – bis zu 3 Versuche ("No audio was received" kommt bei edge-tts ab und zu vor)."""
+    last = None
+    for attempt in range(3):
+        try:
+            p = _edge_file_once(text, voice, pitch, rate)
+            if p:
+                return p
+        except ImportError:
+            raise
+        except Exception as e:
+            last = e
+        time.sleep(0.4 * (attempt + 1))
+    if last:
+        raise last
+    return None
+
+
+def _edge_file_once(text: str, voice: str, pitch: int, rate: int):
     """Erzeugt (oder holt aus dem Zwischenspeicher) eine mp3-Datei mit dem gesprochenen Text."""
     import asyncio
 
@@ -364,11 +382,11 @@ def _speak_edge(text: str, voice: str, pitch: int, rate: int, idx=None) -> bool:
             _play_mp3(val)
     except ImportError:
         if not _warned:
-            print("Online-Stimme nicht installiert (pip install edge-tts), nehme die Windows-Stimme.")
+            print("Online-Stimme nicht installiert (pip install edge-tts).")
             _warned = True
     except Exception as e:
         if not _warned:
-            print(f"Online-Stimme nicht erreichbar ({e}), nehme die Windows-Stimme.")
+            print(f"Online-Stimme nicht erreichbar ({e}).")
             _warned = True
     return played  # schon etwas gesprochen: nicht noch einmal mit der Windows-Stimme von vorn
 
@@ -511,11 +529,17 @@ def _speak_impl(text: str, engine=None, edge_voice=None, windows_voice=None, pit
         if pc_cancel.changed(gen):
             return
         engine = "auto"  # Ersatz: Online-Stimme, sonst Windows
-    if engine in ("auto", "edge") and _speak_edge(text, edge_voice, pitch, rate, idx):
+    if engine == "windows":   # nur wenn ausdrücklich so eingestellt
+        _speak_windows(text, windows_voice, pitch, rate, idx)
         return
-    if pc_cancel.changed(gen):  # abgebrochen: nicht mit der anderen Stimme von vorn anfangen
-        return
-    _speak_windows(text, windows_voice, pitch, rate, idx)
+    # Online-Stimme – NIE auf die Windows-Stimme ausweichen. Klappt es nicht, noch einmal versuchen, sonst still (Text steht ja da).
+    global _warned
+    for attempt in range(2):
+        if _speak_edge(text, edge_voice, pitch, rate, idx) or pc_cancel.changed(gen):
+            return
+        _warned = False
+        time.sleep(1.0)
+    print("Online-Stimme ging gerade nicht – Antwort nur als Text (Windows-Stimme ist aus).")
 
 
 def stop_playback():
