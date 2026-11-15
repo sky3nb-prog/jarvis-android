@@ -1729,7 +1729,14 @@ def assistant_loop(ui: UI, stop: threading.Event, shutdown):
             print("Bereit.", wake_hint)
             ui.post("Bereit", wake_hint, 3000)
             global _GREETED
-            if (GREET_ON_START or pc_assistent_announce[0] or ui.settings.get("briefing_on_start", True)) and not _GREETED:
+            want_greet = (GREET_ON_START or pc_assistent_announce[0] or ui.settings.get("briefing_on_start", True)) and not _GREETED
+            if want_greet and "--nach-update" in sys.argv:
+                # nach einem Selbst-Update: kein Lagebericht/Briefing, nur kurz Bescheid (beim normalen Öffnen gibt's das Briefing wie immer)
+                _GREETED = True
+                ui.post("Assistent", "Update ist drin – bin wieder da.", 4000, glow=True, log=True)
+                if SPEAK:
+                    speak("Update ist drin, bin wieder da.")
+            elif want_greet:
                 _GREETED = True
                 if ui.settings.get("boot_animation", True) and "--nach-update" not in sys.argv:
                     time.sleep(6)   # erst die Start-Animation (ca. 4 s) ausspielen lassen
@@ -2030,7 +2037,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-15 02:30"
+VERSION = "2026-11-15 02:40"
 
 
 def main():
