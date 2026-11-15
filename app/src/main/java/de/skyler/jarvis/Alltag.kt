@@ -1606,21 +1606,24 @@ object Alltag {
             "\nDurchschnitt verbraucht: $kcalAvg kcal am Tag, Schritte gesamt: $steps"
         val sleepText = if (nl.isEmpty()) "" else "\nSchlaf pro Nacht: " + nl.joinToString("; ") { "${it.optString("tag")} ${Sleep.dur(it.optLong("min"))} (${SimpleDateFormat("H:mm", de).format(Date(it.optLong("start")))}–${SimpleDateFormat("H:mm", de).format(Date(it.optLong("end")))})" } +
             "\nDurchschnitt Schlaf: ${Sleep.dur(sleepAvg)}"
-        val data = "Besuche (Fahrten zu gespeicherten Orten): ${visits.entries.joinToString { "${it.key}: ${it.value}x" }.ifBlank { "keine erfasst" }}\n" +
+        // Gaming vom PC (Spielzeit, Top 3, Rekord, Steam-Erfolge) – nur wenn der PC an ist
+        val gaming = try { if (Link.paired(ctx) && Link.pcOnline(ctx)) Link.command(ctx, JSONObject().put("type", "gaming"), 25_000)?.optString("text")?.takeIf { it.startsWith("Gaming") } ?: "" else "" } catch (_: Exception) { "" }
+        val data = (if (gaming.isNotBlank()) "$gaming\n" else "") + "Besuche (Fahrten zu gespeicherten Orten): ${visits.entries.joinToString { "${it.key}: ${it.value}x" }.ifBlank { "keine erfasst" }}\n" +
             "Rad-Kilometer: ${"%.1f".format(radKm)}\nFahrten: ${week.size}\nMusik gehört (Handy): etwa ${music / 60} Stunden ${music % 60} Minuten\n" +
             "Termine der letzten 7 Tage:\n${Cal.describe(past).ifBlank { "keine" }}" + fitText + sleepText
         val sys = "Du bist Jarvis und machst Skylers Wochenrückblick über die letzten 7 Tage. Antworte NUR mit JSON: {\"text\": \"gesprochen, locker, 4 bis 6 Sätze, " +
             "ohne Listen: wie oft er bei Oma und Opa war, wie viele Kilometer er Rad gefahren ist, wie lange er Musik gehört hat (keine Liedliste), was sonst los war" +
+            (if (gaming.isNotBlank()) ", sein Gaming-Rückblick (wie lange gezockt, Lieblingsspiel, Top 3, längste Session, neue Erfolge – locker, ohne Vorwürfe)" else "") +
             (if (fitText.isNotEmpty()) ", wie aktiv er war (Kalorien am Tag, Schritte, aktivster Tag)" else "") + (if (sleepText.isNotEmpty()) ", wie er geschlafen hat (Schnitt, späteste Nacht)" else "") +
             (if (fitText.isNotEmpty() || sleepText.isNotEmpty()) ", dazu ein kurzer motivierender Tipp, nicht belehrend" else "") + "\"}. Erfinde nichts."
-        val ai = aiJson(ctx, sys, data, 500) ?: return null
+        val ai = aiJson(ctx, sys, data, 650) ?: return null
         val text = ai.optString("text").replace(Regex("[*#`]"), "").trim().ifBlank { return null }
         val termine = JSONArray()
         for (e in past.take(14)) termine.put(JSONObject().put("zeit", Cal.whenText(e, "EE d.M.")).put("titel", e.title).put("ort", e.place))
         val besuche = JSONArray(); for ((k, v) in visits) besuche.put(JSONObject().put("ort", k).put("n", v))
         val d = JSONObject().put("richtung", "zurueck").put("besuche", besuche).put("rad_km", Math.round(radKm * 10) / 10.0).put("fahrten", week.size)
             .put("musik_min", music).put("termine", termine).put("fit", fit).put("schlaf", nights).put("kcal_avg", kcalAvg).put("schritte", steps).put("schlaf_avg", sleepAvg)
-            .put("von", SimpleDateFormat("EE d.M.", de).format(Date(since))).put("bis", SimpleDateFormat("EE d.M.", de).format(Date(now)))
+            .put("gaming", gaming).put("von", SimpleDateFormat("EE d.M.", de).format(Date(since))).put("bis", SimpleDateFormat("EE d.M.", de).format(Date(now)))
         val sub = "${visits.values.sum()} Besuche · ${"%.0f".format(radKm)} km Rad · ${music / 60} h Musik"
         return text to Feed.add(ctx, "woche", "Dein Wochenrückblick", sub, text, d)
     }

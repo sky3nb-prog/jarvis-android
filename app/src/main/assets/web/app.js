@@ -217,8 +217,9 @@
   // Modi-Raster (Fokus, Gaming, Chill …) – gleicher Look wie am PC
   window.JModiToast = (t) => toast(t);
   { const pe = window.jarvis && window.jarvis.onEvent; if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "widget_talk") { try { if (window.show) show("fokus"); } catch (e) {} setTimeout(() => { const b = $("callbtn"); if (b) b.click(); }, 250); return; } return pe && pe.call(window.jarvis, type, data); }; }
-  ["mdbtn-f", "mdbtn-i"].forEach((id) => { const e = $(id); if (e) e.addEventListener("click", () => { try { window.JModi.update({ mode: A.getModus() }); } catch (x) {} window.JModi && window.JModi.open(); }); });
-  try { window.JModi && window.JModi.update({ mode: A.getModus() }); } catch (e) {}
+  const modiState = () => { try { const c = JSON.parse(A.getModiCfg() || "[]"); return { mode: A.getModus(), alle: c, modi: c.filter((m) => !m.weg).concat([{ id: "aus", n: "Normal", i: "○", h: 30, d: "Alles wieder normal" }]) }; } catch (x) { return { mode: "" }; } };
+  ["mdbtn-f", "mdbtn-i"].forEach((id) => { const e = $(id); if (e) e.addEventListener("click", () => { try { window.JModi.update(modiState()); } catch (x) {} window.JModi && window.JModi.open(); }); });
+  try { window.JModi && window.JModi.update(modiState()); } catch (e) {}
   // Neue Einstellungen: kleiner roter Punkt am Zahnrad, am Bereich und an der neuen Einstellung selbst,
   // bis du den Bereich einmal geöffnet hast. Bei jedem Update: neue Abschnitte in index.html mit data-neu="<Kennung>" markieren.
   const seenGet = () => { try { return JSON.parse(localStorage.getItem("seen_new") || "[]"); } catch (e) { return []; } };

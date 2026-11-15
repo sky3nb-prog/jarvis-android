@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.provider.Settings
+import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -42,76 +43,86 @@ object Modes {
         prefs(ctx).edit().remove("fokus_ids").apply()
     }
 
-    /** Befehlstext aus dem Modi-Raster ("fokus modus", "gute nacht" …) -> Modus setzen. */
+    // --- Einstellbare Modi (Kopie vom PC bzw. hier bearbeitet; leer = Standard) -------------------------------
+    private val DEF = """[
+      {"id":"fokus","n":"Fokus","i":"◎","h":200,"d":"Lernen ohne Ablenkung","handy":"dnd","sammeln":true,"still":true,"musik":"lofi","discord":"","apps":"","pomo":true,"lern":25,"pause":5,"aus":false},
+      {"id":"gaming","n":"Gaming","i":"▶","h":280,"d":"Discord an, Anrufe weg","handy":"dnd","sammeln":false,"still":false,"musik":"","discord":"Gurken","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
+      {"id":"chill","n":"Chill","i":"♪","h":160,"d":"Musik an, entspannt","handy":"normal","sammeln":false,"still":false,"musik":"deezer","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
+      {"id":"kino","n":"Kino","i":"◐","h":320,"d":"Alles leise, nichts stört","handy":"lautlos","sammeln":true,"still":true,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
+      {"id":"schule","n":"Schule","i":"▦","h":45,"d":"Handy leise","handy":"lautlos","sammeln":false,"still":false,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
+      {"id":"nacht","n":"Gute Nacht","i":"☾","h":230,"d":"Handy still, PC aus","handy":"dnd","sammeln":true,"still":true,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":true}]"""
+    fun cfg(ctx: Context): JSONArray = try { JSONArray(prefs(ctx).getString("modi_cfg", "") ?: "").takeIf { it.length() > 0 } } catch (_: Exception) { null } ?: JSONArray(DEF)
+    fun setCfg(ctx: Context, a: JSONArray, toPc: Boolean) {
+        prefs(ctx).edit().putString("modi_cfg", if (a.length() == 0) "" else a.toString()).apply()
+        if (toPc && Link.paired(ctx)) Thread { try { Link.command(ctx, JSONObject().put("type", "modi_cfg").put("cfg", a), 15_000) } catch (_: Exception) {} }.start()
+    }
+    private fun find(ctx: Context, id: String): JSONObject? { val a = cfg(ctx); return (0 until a.length()).mapNotNull { a.optJSONObject(it) }.firstOrNull { it.optString("id") == id } }
+
+    /** Befehlstext aus dem Modi-Raster ("fokus modus", "gute nacht", "Zeichnen modus" …) -> Modus setzen. */
     fun fromCmd(ctx: Context, t: String): String {
         val l = t.lowercase()
+        val a = cfg(ctx)
+        val custom = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.firstOrNull { l.startsWith(it.optString("n").lowercase() + " modus") }
         return set(ctx, when {
-            l.startsWith("fokus") -> if (l.contains("ohne")) "fokus ohne" else "fokus"
-            l.startsWith("gaming") -> "gaming"; l.startsWith("chill") -> "chill"; l.startsWith("kino") -> "kino"
-            l.startsWith("schul") -> "schule"; l.startsWith("gute nacht") -> "nacht"; else -> "aus" })
+            l.startsWith("fokus") -> "fokus"; l.startsWith("gaming") -> "gaming"; l.startsWith("chill") -> "chill"; l.startsWith("kino") -> "kino"
+            l.startsWith("schul") -> "schule"; l.startsWith("gute nacht") -> "nacht"; custom != null -> custom.optString("id"); else -> "aus" })
     }
 
-    fun set(ctx: Context, name: String): String {
-        val n = name.lowercase()
+    private fun handy(ctx: Context, how: String): Boolean {
         val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        if (!n.startsWith("fok")) clearFokus(ctx)
-        return when {
-            n.startsWith("fok") || n.startsWith("lern") -> {
-                val ok = dnd(ctx, true); prefs(ctx).edit().putString("modus", "fokus").apply()
-                clearFokus(ctx)
-                if (Link.paired(ctx) && !fromPc && Link.pcOnline(ctx)) toPc(ctx, if (n.contains("ohne")) "fokus modus ohne musik vom handy" else "fokus modus vom handy")
-                else if (!fromPc) {   // PC aus: Pausen selbst ansagen (4 Runden 25/5)
-                    val ids = mutableListOf<String>(); val t0 = System.currentTimeMillis()
-                    for (r in 1..4) {
-                        ids.add(Remind.add(ctx, "Fokus: ${r * 25} Minuten geschafft – 5 Minuten Pause.", t0 + (r * 30 - 5) * 60_000L, kind = "fokus").optString("id"))
-                        if (r < 4) ids.add(Remind.add(ctx, "Pause vorbei – weiter geht's.", t0 + r * 30 * 60_000L, kind = "fokus").optString("id"))
-                    }
-                    prefs(ctx).edit().putString("fokus_ids", ids.joinToString(",")).apply()
-                }
-                "Fokus-Modus an: 25 Minuten lernen, dann 5 Minuten Pause." + if (ok) " Nicht stören ist an." else " Erlaub mir bitte einmal „Nicht stören“."
-            }
-            n.startsWith("chill") -> {
-                prefs(ctx).edit().putString("modus", "chill").apply(); dnd(ctx, false)
-                toPc(ctx, "chill modus vom handy")
-                "Chill-Modus. Lehn dich zurück."
-            }
-            n.startsWith("kino") || n.startsWith("film") -> {
-                prefs(ctx).edit().putString("modus", "kino").apply()
-                try { am.ringerMode = AudioManager.RINGER_MODE_SILENT } catch (_: Exception) { try { am.ringerMode = AudioManager.RINGER_MODE_VIBRATE } catch (_: Exception) {} }
-                toPc(ctx, "kino modus vom handy")
-                "Kino-Modus: Handy ist lautlos, ich sammle alles für später."
-            }
-            n.startsWith("gam") || n.startsWith("zock") -> {
-                val ok = dnd(ctx, true); prefs(ctx).edit().putString("modus", "gaming").apply()
-                if (Link.paired(ctx) && !fromPc) Thread { try { Link.command(ctx, JSONObject().put("type", "text").put("text", "gaming modus vom handy"), 15_000) } catch (_: Exception) {} }.start()
-                "Gaming-Modus an." + if (ok) " Nicht stören ist an – Anrufe drücke ich weg und sag Bescheid, dass du zockst." else " Erlaub mir bitte einmal „Nicht stören“ – ich hab die Einstellung geöffnet."
-            }
-            n.startsWith("schul") -> {
-                prefs(ctx).edit().putString("modus", "schule").apply()
-                toPc(ctx, "schulmodus vom handy")
-                try { am.ringerMode = AudioManager.RINGER_MODE_SILENT } catch (_: Exception) { try { am.ringerMode = AudioManager.RINGER_MODE_VIBRATE } catch (_: Exception) {} }
-                "Schulmodus an: Handy ist leise, Anrufe drücke ich weg – nur deine wichtigen Leute kommen durch."
-            }
-            n.startsWith("nacht") || n.startsWith("gute") -> {
-                val ok = dnd(ctx, true); prefs(ctx).edit().putString("modus", "nacht").apply()
-                val alarm = (ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager).nextAlarmClock?.triggerTime
-                val c = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }
-                val evs = try { Cal.events(ctx, c.timeInMillis, c.timeInMillis + 86_400_000L).distinctBy { it.id to it.begin }.take(3) } catch (_: Exception) { emptyList() }
-                val wake = if (alarm != null && alarm - System.currentTimeMillis() < 20 * 3_600_000L)
-                    "Dein Wecker klingelt um ${SimpleDateFormat("H:mm", de).format(Date(alarm))}" + Sleep.dur((alarm - System.currentTimeMillis()) / 60_000L).let { " – noch $it." }
-                    else "Für morgen ist kein Wecker gestellt."
-                val ter = if (evs.isEmpty()) "Morgen hast du keine Termine." else "Morgen: " + evs.joinToString(", ") { (if (it.allDay) "" else SimpleDateFormat("H:mm", de).format(Date(it.begin)) + " ") + it.title } + "."
-                if (Link.paired(ctx) && !fromPc) Thread { try { if (Link.pcOnline(ctx)) Link.command(ctx, JSONObject().put("type", "weg"), 20_000) } catch (_: Exception) {} }.start()
-                "Gute Nacht. $wake $ter" + (if (ok) " Nicht stören ist an." else "")
-            }
-            else -> {   // aus / guten Morgen
-                val was = current(ctx)
-                dnd(ctx, false); prefs(ctx).edit().putString("modus", "").apply()
-                if (was.isNotBlank() && was != "nacht") toPc(ctx, "modus aus vom handy")
-                try { am.ringerMode = AudioManager.RINGER_MODE_NORMAL } catch (_: Exception) {}
-                "Alles wieder normal: Klingelton an, Nicht stören aus."
-            }
+        return when (how) {
+            "dnd" -> dnd(ctx, true)
+            "lautlos" -> { try { am.ringerMode = AudioManager.RINGER_MODE_SILENT } catch (_: Exception) { try { am.ringerMode = AudioManager.RINGER_MODE_VIBRATE } catch (_: Exception) {} }; true }
+            "normal" -> { dnd(ctx, false); try { am.ringerMode = AudioManager.RINGER_MODE_NORMAL } catch (_: Exception) {}; true }
+            else -> true
         }
+    }
+
+    /** name = Modus-Kennung (auch alte Wörter wie "zocken", "gute nacht"); handyOverride kommt vom PC mit. */
+    fun set(ctx: Context, name: String, handyOverride: String? = null): String {
+        val n = name.lowercase()
+        val id = when {
+            n.startsWith("fok") || n.startsWith("lern") -> "fokus"; n.startsWith("gam") || n.startsWith("zock") -> "gaming"
+            n.startsWith("chill") -> "chill"; n.startsWith("kino") || n.startsWith("film") -> "kino"; n.startsWith("schul") -> "schule"
+            n.startsWith("nacht") || n.startsWith("gute") -> "nacht"; n == "aus" || n.startsWith("normal") || n.startsWith("morgen") -> "aus"
+            else -> n
+        }
+        val m = if (id == "aus") null else find(ctx, id)
+        clearFokus(ctx)
+        if (m == null) {   // aus / guten Morgen
+            val was = current(ctx)
+            handy(ctx, "normal"); prefs(ctx).edit().putString("modus", "").apply()
+            if (was.isNotBlank() && was != "nacht") toPc(ctx, "modus aus vom handy")
+            return "Alles wieder normal: Klingelton an, Nicht stören aus."
+        }
+        prefs(ctx).edit().putString("modus", id).apply()
+        val how = handyOverride ?: m.optString("handy", "normal")
+        val ok = handy(ctx, how)
+        val label = m.optString("n", id)
+        if (id == "nacht") {
+            val alarm = (ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager).nextAlarmClock?.triggerTime
+            val c = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }
+            val evs = try { Cal.events(ctx, c.timeInMillis, c.timeInMillis + 86_400_000L).distinctBy { it.id to it.begin }.take(3) } catch (_: Exception) { emptyList() }
+            val wake = if (alarm != null && alarm - System.currentTimeMillis() < 20 * 3_600_000L)
+                "Dein Wecker klingelt um ${SimpleDateFormat("H:mm", de).format(Date(alarm))}" + Sleep.dur((alarm - System.currentTimeMillis()) / 60_000L).let { " – noch $it." }
+                else "Für morgen ist kein Wecker gestellt."
+            val ter = if (evs.isEmpty()) "Morgen hast du keine Termine." else "Morgen: " + evs.joinToString(", ") { (if (it.allDay) "" else SimpleDateFormat("H:mm", de).format(Date(it.begin)) + " ") + it.title } + "."
+            if (Link.paired(ctx) && !fromPc) Thread { try { if (Link.pcOnline(ctx)) Link.command(ctx, JSONObject().put("type", "text").put("text", "gute nacht vom handy"), 20_000) } catch (_: Exception) {} }.start()
+            return "Gute Nacht. $wake $ter" + (if (how == "dnd" && ok) " Nicht stören ist an." else "")
+        }
+        val pcOn = Link.paired(ctx) && Link.pcOnline(ctx)
+        if (!fromPc) toPc(ctx, when (id) { "fokus" -> "fokus modus vom handy"; "gaming" -> "gaming modus vom handy"; "schule" -> "schulmodus vom handy"; else -> "${label.lowercase()} modus vom handy" })
+        if (!fromPc && !pcOn && m.optBoolean("pomo")) {   // PC aus: Pausen selbst ansagen (4 Runden)
+            val lern = m.optInt("lern", 25); val pause = m.optInt("pause", 5)
+            val ids = mutableListOf<String>(); val t0 = System.currentTimeMillis()
+            for (r in 1..4) {
+                ids.add(Remind.add(ctx, "$label: ${r * lern} Minuten geschafft – $pause Minuten Pause.", t0 + (r * (lern + pause) - pause) * 60_000L, kind = "fokus").optString("id"))
+                if (r < 4) ids.add(Remind.add(ctx, "Pause vorbei – weiter geht's.", t0 + r * (lern + pause) * 60_000L, kind = "fokus").optString("id"))
+            }
+            prefs(ctx).edit().putString("fokus_ids", ids.joinToString(",")).apply()
+        }
+        return "$label-Modus an." + (if (m.optBoolean("pomo")) " ${m.optInt("lern", 25)} Minuten konzentriert, dann ${m.optInt("pause", 5)} Minuten Pause." else "") +
+            when (how) { "dnd" -> if (ok) " Nicht stören ist an." else " Erlaub mir bitte einmal „Nicht stören“ – ich hab die Einstellung geöffnet."; "lautlos" -> " Handy ist lautlos."; else -> "" }
     }
 
     @Volatile var fromPc = false

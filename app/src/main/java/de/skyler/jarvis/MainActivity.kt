@@ -498,6 +498,12 @@ class MainActivity : ComponentActivity() {
         fun getModus(): String = Modes.current(this@MainActivity)
 
         @JavascriptInterface
+        fun getModiCfg(): String = Modes.cfg(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun setModiCfg(json: String) { try { Modes.setCfg(this@MainActivity, org.json.JSONArray(json), true) } catch (_: Exception) {} }
+
+        @JavascriptInterface
         fun getPlan(): String = Melden.plan(this@MainActivity).toString()
 
         @JavascriptInterface

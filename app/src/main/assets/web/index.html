@@ -489,7 +489,8 @@
 <script src="satellite.min.js"></script>
 <script src="lage.js"></script>
 <script src="galaxy.js"></script>
-<script>window.JModiSend = (t) => { try { const r = window.Android.modusCmd(t); if (window.JModiToast) window.JModiToast(r); } catch (e) {} };</script>
+<script>window.JModiSend = (t) => { try { const r = window.Android.modusCmd(t); if (window.JModiToast) window.JModiToast(r); } catch (e) {} };
+window.JModiSaveCfg = (c) => { try { window.Android.setModiCfg(JSON.stringify(c)); } catch (e) {} };</script>
 <script src="modi.js"></script>
 <script src="schulkal.js"></script>
 <script src="app.js"></script>

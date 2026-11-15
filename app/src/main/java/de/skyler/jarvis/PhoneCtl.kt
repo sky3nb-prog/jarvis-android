@@ -143,7 +143,8 @@ object PhoneCtl {
             "ideen_get" -> Ideen.all(ctx).toString()
             "finden" -> { find(ctx); "Dein Handy klingelt jetzt 20 Sekunden lang." }
             "finden_stop" -> { stopFind(); "Klingeln gestoppt." }
-            "modus" -> { Modes.fromPc = true; try { Modes.set(ctx, c.optString("name")) } finally { Modes.fromPc = false } }
+            "modus" -> { Modes.fromPc = true; try { Modes.set(ctx, c.optString("name"), c.optString("handy").takeIf { c.has("handy") }) } finally { Modes.fromPc = false } }
+            "modi_cfg" -> { (c.optJSONArray("cfg") ?: JSONArray()).let { Modes.setCfg(ctx, it, false) }; Bus.emit("modi_cfg", JSONObject()); "Modi auf dem Handy aktualisiert." }
             else -> "Diesen Befehl kenne ich nicht."
         }
     }
