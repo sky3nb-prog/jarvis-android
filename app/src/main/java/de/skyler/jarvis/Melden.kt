@@ -26,16 +26,27 @@ object Melden {
     private val DAYS = listOf("mo", "di", "mi", "do", "fr")
 
     // --- Stundenplan --------------------------------------------------------------------------------------------
-    /** Standard (wie Skyler ihn beschrieben hat): Mo/Di/Do bis 15:40, Mi bis 12:25, Fr bis 13:25. Fächer trägt er selbst ein. */
+    /** Standard (wie Skyler ihn beschrieben hat): Mo–Do bis 15:40, Fr bis 12:25. Fächer trägt er selbst ein. */
     private fun defPlan(): JSONObject {
         fun l(v: String, b: String) = JSONObject().put("von", v).put("bis", b).put("fach", "")
         val voll = listOf(l("08:00", "08:45"), l("08:45", "09:30"), l("09:50", "10:35"), l("10:40", "11:25"), l("11:40", "12:25"), l("12:25", "13:10"), l("14:10", "14:55"), l("14:55", "15:40"))
         val mi = listOf(l("08:00", "08:45"), l("08:45", "09:30"), l("09:50", "10:35"), l("10:40", "11:25"), l("11:40", "12:25"))
-        val fr = listOf(l("08:00", "08:45"), l("08:45", "09:30"), l("09:50", "10:35"), l("10:40", "11:25"), l("11:40", "12:25"), l("12:40", "13:25"))
         fun arr(x: List<JSONObject>) = JSONArray().apply { x.forEach { put(JSONObject(it.toString())) } }
-        return JSONObject().put("mo", arr(voll)).put("di", arr(voll)).put("mi", arr(mi)).put("do", arr(voll)).put("fr", arr(fr))
+        return JSONObject().put("v", 2).put("mo", arr(voll)).put("di", arr(voll)).put("mi", arr(voll)).put("do", arr(voll)).put("fr", arr(mi))
     }
-    fun plan(ctx: Context): JSONObject = try { JSONObject(prefs(ctx).getString("stundenplan", "") ?: "").takeIf { it.length() > 0 } } catch (_: Exception) { null } ?: defPlan()
+    fun plan(ctx: Context): JSONObject {
+        val st = try { JSONObject(prefs(ctx).getString("stundenplan", "") ?: "").takeIf { it.length() > 0 } } catch (_: Exception) { null } ?: return defPlan()
+        if (st.optInt("v") < 2) {   // alter Standard (Mi kurz, Fr bis 13:25): Mi und Fr neu, eingetragene Fächer behalten
+            val d = defPlan()
+            for (k in listOf("mi", "fr")) {
+                val old = st.optJSONArray(k); val neu = d.getJSONArray(k)
+                for (i in 0 until neu.length()) old?.optJSONObject(i)?.optString("fach")?.takeIf { it.isNotBlank() }?.let { neu.getJSONObject(i).put("fach", it) }
+                st.put(k, neu)
+            }
+            st.put("v", 2); prefs(ctx).edit().putString("stundenplan", st.toString()).apply()
+        }
+        return st
+    }
     fun setPlan(ctx: Context, json: String) { try { JSONObject(json); prefs(ctx).edit().putString("stundenplan", json).apply() } catch (_: Exception) {} }
 
     private fun mins(hm: String): Int = try { hm.substringBefore(":").trim().toInt() * 60 + hm.substringAfter(":").trim().toInt() } catch (_: Exception) { -1 }
