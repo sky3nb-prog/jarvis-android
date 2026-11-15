@@ -162,8 +162,8 @@ footer{margin-top:40px;text-align:center;color:#5d666b;font-size:12px}
       const d = await j(`https://identitytoolkit.googleapis.com/v1/accounts:${neu ? "signUp" : "signInWithPassword"}?key=${C.apiKey}`, { email, password: pw, returnSecureToken: true });
       S.set({ email, uid: d.localId, id: d.idToken, refresh: d.refreshToken, exp: Date.now() + (+d.expiresIn - 60) * 1000 });
       $("pw").value = ""; msg("msg", "");
+      await show();
       if (neu) msg("msg2", "Konto angelegt. Jetzt App bzw. PC-Programm herunterladen und dort mit derselben E-Mail anmelden.", true);
-      show();
     } catch (e) { msg("msg", e.message); }
   }
   $("b-in").onclick = () => login(false);
