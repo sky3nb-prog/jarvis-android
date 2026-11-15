@@ -176,6 +176,13 @@ def execute(cmd: dict) -> str:
         import pc_handy
         pc_handy.remind_here(str(cmd.get("text") or ""), float(cmd.get("at") or 0))
         return ""
+    if t == "gaming":   # Handy-Wochenrückblick fragt nach dem Gaming-Teil
+        import pc_gaming
+        return pc_gaming.review_data()
+    if t == "modi_cfg":   # Modi am Handy umgestellt
+        import pc_modi
+        pc_modi.save_cfg(cmd.get("cfg") or [])
+        return "Modi gespeichert."
     if t == "text" and str(cmd.get("text") or "").strip():
         if ON_TEXT:
             ON_TEXT(str(cmd["text"]).strip()[:300])

@@ -2038,7 +2038,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-15 17:05"
+VERSION = "2026-11-15 17:45"
 
 
 def main():
@@ -2125,6 +2125,8 @@ def main():
     pc_kommentar.SETTINGS = lambda: ui.settings
     pc_kommentar.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t})
     import pc_modi
+    pc_modi.SETTINGS = lambda: ui.settings
+    pc_modi.SAVE = ui.post_setting
     pc_modi.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})   # auch wenn du nicht am PC sitzt (lernst)
     pc_kommentar.start(stop)
     import pc_systemcheck

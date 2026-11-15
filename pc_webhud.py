@@ -509,6 +509,9 @@ class WebHud:
             import pc_websettings
             self.ui.q.put(("apply", pc_websettings.save(self.ui.settings, body.get("values") or {})))
             return {"ok": True}
+        if name == "modi_cfg":   # Modi selbst einstellen
+            import pc_modi
+            return pc_modi.save_cfg(body.get("cfg") or [])
         if name == "ideen":   # Ideenliste ansehen/löschen
             import pc_ideen
             if body.get("op") == "del":

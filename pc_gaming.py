@@ -1,7 +1,7 @@
 """
 Gaming-Wochenrückblick: Jarvis merkt sich, welches Spiel vorne läuft und wie lange (jede Minute, nur wenn du wirklich dran bist).
 Erkennt Steam-Spiele (Ordner steamapps\\common + Name aus dem Steam-Manifest), Epic-Spiele und ein paar bekannte Spiele.
-Sonntags um 19 Uhr (oder auf Frage: "wie viel hab ich diese Woche gezockt?", "Gaming-Rückblick") sagt er:
+Steckt im Wochenrückblick vom Handy (ohne gekoppeltes Handy: sonntags 19 Uhr am PC; oder auf Frage: "wie viel hab ich diese Woche gezockt?", "Gaming-Rückblick") sagt er:
 Stunden gesamt (und im Vergleich zur Vorwoche), Lieblingsspiel, Top 3, längste Session – ohne Vorwürfe.
 Mit Steam-Schlüssel (Einstellungen → Gaming, freiwillig) auch deine neuen Steam-Erfolge der Woche.
 Daten: gaming.json neben den Einstellungen.
@@ -151,13 +151,21 @@ def _loop(stop: threading.Event):
                 _save(d)
                 lt = time.localtime()
                 key = time.strftime("%Y-%W")
-                if lt.tm_wday == 6 and lt.tm_hour == 19 and d.get("said") != key and _week_minutes(d, 0) >= 30:
+                if lt.tm_wday == 6 and lt.tm_hour == 19 and d.get("said") != key and _week_minutes(d, 0) >= 30 and not _phone_paired():
                     d["said"] = key
                     _save(d)
                     if SAY:
                         threading.Thread(target=lambda: SAY(review()), daemon=True).start()
         except Exception as e:
             print("Gaming-Statistik:", e)
+
+
+def _phone_paired() -> bool:
+    try:
+        import pc_handy
+        return pc_handy.paired()
+    except Exception:
+        return False
 
 
 def _close(d: dict, cur: dict):
@@ -247,6 +255,34 @@ def review(back: int = 0) -> str:
     if ach:
         p.append("Neue Erfolge: " + ", ".join(ach) + ". Stark.")
     return " ".join(p)
+
+
+def review_data() -> str:
+    """Für den Wochenrückblick am Handy: die letzten 7 Tage (nicht Mo–So, weil er sonntagabends kommt)."""
+    with _lock:
+        d = _load()
+    now = time.time()
+    days = [time.strftime("%Y-%m-%d", time.localtime(now - i * 86400)) for i in range(7)]
+    prevd = [time.strftime("%Y-%m-%d", time.localtime(now - i * 86400)) for i in range(7, 14)]
+    games = {}
+    for dd in days:
+        for g, m in (d["days"].get(dd) or {}).items():
+            games[g] = games.get(g, 0) + m
+    tot = sum(games.values())
+    prev = sum(sum((d["days"].get(dd) or {}).values()) for dd in prevd)
+    if tot < 10:
+        return "Gaming (PC): diese Woche kaum gezockt."
+    top = sorted(games.items(), key=lambda x: -x[1])
+    ses = [s for s in d.get("sessions", []) if s["start"] >= now - 7 * 86400]
+    lng = max(ses, key=lambda s: s["end"] - s["start"]) if ses else None
+    out = f"Gaming (PC, letzte 7 Tage): {_hm(tot)} gesamt" + (f", Woche davor {_hm(prev)}" if prev >= 10 else "") + ". "
+    out += "Top: " + ", ".join(f"{g} {_hm(m)}" for g, m in top[:3]) + ". "
+    if lng:
+        out += f"Längste Session: {_hm((lng['end'] - lng['start']) / 60)} {lng['game']}. "
+    ach = _achievements(d, games)
+    if ach:
+        out += "Neue Steam-Erfolge: " + ", ".join(ach) + "."
+    return out.strip()
 
 
 def handle(text: str):
