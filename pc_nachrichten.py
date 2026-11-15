@@ -188,18 +188,59 @@ def _transcribe(m: dict) -> str:
     return ""
 
 
+def _stil_file() -> str:
+    import os, sys
+    base = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, "schreibstil.json")
+
+
+def _stil_load() -> list:
+    try:
+        import json
+        with open(_stil_file(), encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def stil_lernen(text: str):
+    """Echte Nachrichten von ihm (selbst geschrieben/diktiert) als Stil-Beispiele merken."""
+    t = (text or "").strip()
+    if len(t) < 2 or t.startswith("(") or len(t) > 300:
+        return
+    try:
+        import json
+        a = [x for x in _stil_load() if x != t] + [t]
+        with open(_stil_file(), "w", encoding="utf-8") as f:
+            json.dump(a[-40:], f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
 def _draft(m: dict, wish: str = "") -> str:
     """Antwortvorschlag in seinem Namen. wish = Wunsch dazu ("auf Altdeutsch", "kürzer", "sag dass ich gleich komme")."""
     import pc_ai
     content = (_transcribe(m) if m.get("voice") else "") or m.get("text") or ""
     if m.get("voice") and not m.get("transcript"):
         content = "(eine Sprachnachricht, deren Inhalt ich nicht kenne)"
-    sys_ = ("Du schreibst für den Nutzer (Skyler) eine kurze WhatsApp-Antwort in seinem Namen: Ich-Form, locker, wie ein "
-            "Jugendlicher an Familie und Freunde schreibt, höchstens ein Emoji, meist 1 bis 2 Sätze. Geh NUR auf die Nachricht "
-            "ein. Erfinde nichts über ihn (keine Pläne, Orte, Gefühle oder Erlebnisse), was nicht in der Nachricht oder im "
-            "Wunsch steht. Wenn ein Wunsch angegeben ist, setze ihn genau um (Sprache, Stil, Länge, Inhalt). "
-            "Gib nur den Antworttext zurück, sonst nichts.")
-    prompt = f"Nachricht von {_who(m)}: {content}"
+    verlauf = m.get("verlauf") or []
+    for v in verlauf:   # was er selbst geschrieben hat, ist sein echter Stil
+        if v.get("von") == "ich" and not str(v.get("text", "")).startswith("("):
+            stil_lernen(str(v.get("text", "")))
+    stil = _stil_load()[-12:]
+    sys_ = ("Du schreibst für den Nutzer (Skyler) eine kurze WhatsApp-Antwort in seinem Namen, so dass niemand merkt, dass "
+            "sie nicht von ihm ist. Ich-Form, locker. Lies den bisherigen Verlauf: die Antwort muss zum Gespräch passen "
+            "(worauf bezieht sich die neue Nachricht? auf seine letzte Nachricht oder Sprachnachricht?). "
+            "Erfinde nichts über ihn (keine Pläne, Orte, Gefühle oder Erlebnisse). Ist unklar, worauf sich die Nachricht bezieht, "
+            "antworte kurz und neutral (z. B. 'Ok 👍', 'Alles klar') statt etwas Falsches zu schreiben. "
+            + ("Schreib GENAU in seinem Stil – Länge, Ton, Groß-/Kleinschreibung, Abkürzungen, Satzzeichen, Emojis wie in diesen echten "
+               "Nachrichten von ihm: " + " | ".join(stil) + ". " if stil else "Wie ein Jugendlicher an Familie und Freunde, höchstens ein Emoji, meist 1 bis 2 Sätze. ")
+            + "Wenn ein Wunsch angegeben ist, setze ihn genau um (Sprache, Stil, Länge, Inhalt). Gib nur den Antworttext zurück, sonst nichts.")
+    prompt = ""
+    if verlauf:
+        prompt += "Bisheriger Verlauf (älteste zuerst):\n" + "\n".join(
+            f"{'ER (Skyler)' if v.get('von') == 'ich' else v.get('von')}: {v.get('text')}" for v in verlauf[:-1]) + "\n\n"
+    prompt += f"Neue Nachricht von {_who(m)}: {content}"
     if m.get("draft"):
         prompt += f"\nBisheriger Vorschlag: {m['draft']}"
     if wish:
@@ -243,6 +284,7 @@ def _literal(text: str, m: dict) -> str:
             return pc_messages._rephrase(re.sub(r"^dass\s+", "", text, flags=re.I), str(m.get("sender") or ""), False)
         except Exception:
             pass
+    stil_lernen(text)   # selbst diktiert = sein Stil
     return text
 
 
