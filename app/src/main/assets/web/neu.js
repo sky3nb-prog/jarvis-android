@@ -1,5 +1,14 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-15 15:30", neu: [
+window.JNEU = { stand: "2026-11-15 17:10", neu: [
+  { title: "Modi ◈", text: "Oben links: Fokus (25/5 Min.), Gaming, Chill, Kino, Schule, Gute Nacht – mit dem PC abgeglichen." },
+  { title: "Regen-Warnung", text: "Unterwegs sag ich rechtzeitig „Jetzt heim“, wenn Regen kommt – aus Radar, mehreren Modellen und deinem Heimweg." },
+  { title: "Schul-Kalender", text: "Arbeiten, Tests, Hausaufgaben – Einstellungen → Alltag. schul.cloud lese ich mit. „Frag mich ab“ vor Arbeiten." },
+  { title: "Ideen-Sammler", text: "„Jarvis, ich hab eine Idee: …“ – steht dann auf deiner Liste, hier und am PC." },
+  { title: "Pakete", text: "Ich lese DHL, Hermes, DPD, GLS, UPS, Amazon, Gmail und SMS mit und sag, wenn ein Paket heute kommt." },
+  { title: "Leute", text: "Ich lerne, wie deine Leute drauf sind und wie du mit ihnen schreibst – für Antworten und Geschenkideen." },
+  { title: "Widget", text: "Jarvis auf den Startbildschirm: lange auf den Startbildschirm drücken → Widgets → Jarvis. Größe frei." },
+  { title: "Ticket direkt", text: "„Ticket kaufen“ öffnet die Verbindung im DB Navigator – richtige Bahn, VVS-Ticket, fertig." },
+  { title: "Schon gelesen", text: "WhatsApp-Chats, die du gelesen oder beantwortet hast, sage ich nicht mehr an." },
   { title: "Stundenplan neu", text: "Wochenraster mit Farben – Stunde antippen, Fach eintragen. Geht auch am PC und kommt dann hierher." },
   { title: "Rote Punkte", text: "Neue Einstellungen haben wieder einen roten Punkt – am Zahnrad, am Bereich und an der Einstellung selbst." },
   { title: "Auflege-Knopf", text: "Ruft jemand an, erscheint über dem Anruf ein Knopf: auflegen und Nachricht schicken." },
