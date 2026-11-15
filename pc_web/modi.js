@@ -7,7 +7,7 @@
   const B = { handy: "normal", sammeln: false, still: false, musik: "", discord: "", apps: "", pomo: false, lern: 25, pause: 5, aus: false };
   const DEF = [
     Object.assign({}, B, { id: "fokus", n: "Fokus", i: "◎", h: 200, d: "Lernen ohne Ablenkung", handy: "dnd", sammeln: true, still: true, musik: "lofi", pomo: true }),
-    Object.assign({}, B, { id: "gaming", n: "Gaming", i: "▶", h: 280, d: "Discord an, Anrufe weg", handy: "dnd", discord: "Gurken" }),
+    Object.assign({}, B, { id: "gaming", n: "Gaming", i: "▶", h: 280, d: "Discord an, Anrufe weg", handy: "dnd", discord: "" }),
     Object.assign({}, B, { id: "chill", n: "Chill", i: "♪", h: 160, d: "Musik an, entspannt", musik: "deezer" }),
     Object.assign({}, B, { id: "kino", n: "Kino", i: "◐", h: 320, d: "Alles leise, nichts stört", handy: "lautlos", sammeln: true, still: true }),
     Object.assign({}, B, { id: "schule", n: "Schule", i: "▦", h: 45, d: "Handy leise", handy: "lautlos" }),

@@ -98,19 +98,19 @@ def shutdown_sequence() -> str:
 
 
 def away(settings: dict = None) -> str:
-    """Vom Handy: Skyler ist aus dem Haus."""
+    """Vom Handy: du bist aus dem Haus."""
     global QUICKSAVE_KEY
     if settings and settings.get("ets2_quicksave"):
         QUICKSAVE_KEY = str(settings["ets2_quicksave"]).strip().lower() or QUICKSAVE_KEY
     import pc_nachrichten
     if _idle() < 120:   # da sitzt jemand
         pc_nachrichten.incoming({"kind": "offer", "force": True, "action": "shutdown",
-                                 "question": "Skyler ist gerade unterwegs. Soll ich den PC herunterfahren?"})
+                                 "question": "Das Handy ist gerade unterwegs. Soll ich den PC herunterfahren?"})
         return "Am PC ist gerade jemand, ich frage nach."
     return shutdown_sequence()
 
 
 def home() -> str:
     import pc_nachrichten
-    pc_nachrichten.incoming({"kind": "say", "force": True, "text": "Willkommen zurück, Skyler."})
+    pc_nachrichten.incoming({"kind": "say", "force": True, "text": "Willkommen zurück."})
     return "Begrüßt."

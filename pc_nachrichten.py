@@ -348,7 +348,7 @@ def _draft(m: dict, wish: str = "") -> str:
         if v.get("von") == "ich" and not str(v.get("text", "")).startswith("("):
             stil_lernen(str(v.get("text", "")))
     stil = _stil_load()[-12:]
-    sys_ = ("Du schreibst für den Nutzer (Skyler) eine kurze WhatsApp-Antwort in seinem Namen, so dass niemand merkt, dass "
+    sys_ = ("Du schreibst für den Nutzer eine kurze WhatsApp-Antwort in seinem Namen, so dass niemand merkt, dass "
             "sie nicht von ihm ist. Ich-Form, locker. Lies den bisherigen Verlauf: die Antwort muss zum Gespräch passen "
             "(worauf bezieht sich die neue Nachricht? auf seine letzte Nachricht oder Sprachnachricht?). "
             "Erfinde nichts über ihn (keine Pläne, Orte, Gefühle oder Erlebnisse). Ist unklar, worauf sich die Nachricht bezieht, "
@@ -361,7 +361,7 @@ def _draft(m: dict, wish: str = "") -> str:
     prompt = ""
     if verlauf:
         prompt += "Bisheriger Verlauf (älteste zuerst):\n" + "\n".join(
-            f"{'ER (Skyler)' if v.get('von') == 'ich' else v.get('von')}: {v.get('text')}" for v in verlauf[:-1]) + "\n\n"
+            f"{'ER (der Nutzer)' if v.get('von') == 'ich' else v.get('von')}: {v.get('text')}" for v in verlauf[:-1]) + "\n\n"
     prompt += f"Neue Nachricht von {_who(m)}: {content}"
     if m.get("draft"):
         prompt += f"\nBisheriger Vorschlag: {m['draft']}"

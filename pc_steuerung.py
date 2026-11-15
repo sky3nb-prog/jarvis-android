@@ -15,7 +15,7 @@ Feste Befehle (funktionieren ohne API-Key):
                            -> in Discord Mikrofon UND Ton aus / wieder an
     komplettes stummschalten umschalten -> einfach umschalten, falls der Zustand nicht stimmt
     mikrofon aus / mikrofon an          -> in Discord nur das Mikrofon
-    gurken                 -> in Discord in den Sprachkanal "Gurken" gehen
+    <kanal>                -> in Discord in einen Sprachkanal aus den Einstellungen gehen
     zeig die oberfläche / hud  -> großes HUD-Fenster öffnen (schließen: hud schließen)
     öffne deine einstellungen  -> Einstellungen von Jarvis (Weckwort, Stimme, Anzeige ...)
     wie wird das wetter (morgen) / wie geht's dir / wie spät ist es / erzähl einen witz  -> Unterhaltung
@@ -97,14 +97,12 @@ WEB_FALLBACK = {"deezer": "https://www.deezer.com"}
 # Discord-Sprachkanäle: Sprachbefehl -> (Kanalname, Servername oder "")
 # Den Servernamen nur eintragen, wenn es denselben Kanalnamen auf mehreren Servern gibt.
 DISCORD_VOICE = {  # gesprochenes Wort -> (genauer Kanalname, Server). Wird aus den Einstellungen gefüllt.
-    "gurken": ("🥒|Gurken", ""),
-    "gurke": ("🥒|Gurken", ""),
 }
 
 
 def set_voice_channels(names):
-    """Sprachkanäle aus den Einstellungen: genaue Namen, gern mit Emoji davor ("🥒|Gurken").
-    Gesagt wird nur das Wort ("Gurken"); Einzahl und Mehrzahl gehen beide."""
+    """Sprachkanäle aus den Einstellungen: genaue Namen, gern mit Emoji davor ("🎮|Zocken").
+    Gesagt wird nur das Wort ("Zocken"); Einzahl und Mehrzahl gehen beide."""
     DISCORD_VOICE.clear()
     for full in names or []:
         full = str(full).strip()
@@ -718,7 +716,7 @@ def handle_fixed(text: str):
     words = low.split()
     if len(words) <= 3 or re.search(r"\b(geh|gehe|join|rein|wechsel|wechsle|kanal|channel|sprachkanal)\b", low):
         for key, (channel, server) in DISCORD_VOICE.items():
-            if key in words:  # nur kurze Befehle ("Gurken", "geh in Avocado"), nicht "kauf Gurken beim Edeka ein"
+            if key in words:  # nur kurze Befehle ("Zocken", "geh in Quatschen"), nicht "kauf Brot beim Edeka ein"
                 return discord_join_voice(channel, server)
     if any(k in low for k in ("eins weiter", "einen weiter", "nächster", "nächstes", "nächste")):
         return media("nexttrack")

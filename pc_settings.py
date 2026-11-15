@@ -43,14 +43,14 @@ DEFAULTS = {
     "voice_rate": 0,  # Sprechtempo -10 bis 10
     "chime_volume": 45,  # Lautstärke des Wecksounds 0 bis 100
     "voice_volume": 100,
-    "discord_channels": ["🥒|Gurken", "🥑|Avocado", "🥔|Kartoffeln", "🥕|Möhren"],  # Sprachkanäle, genauer Name  # eigene Lautstärke von Jarvis' Stimme 10 bis 100
+    "discord_channels": [],  # Sprachkanäle, genauer Name  # eigene Lautstärke von Jarvis' Stimme 10 bis 100
     "early_chime": True,  # Wecksound schon beim Weckwort mitten im Satz
     "overlay_style": "neu",  # "neu" = 3D-Kugel mit Nervenstrang, "klein" = alter Kreis, "gross" = Leuchtrahmen + Textfeld
     "overlay_v2": False,
     "boot_animation": True,
     "msg_ask_first": True,
     "kommentare": True,
-    "lieblingskanaele": "Laser Luca",   # neue Videos melden (YouTube-Kanäle, mit Komma)
+    "lieblingskanaele": "",   # neue Videos melden (YouTube-Kanäle, mit Komma)
     "steam_id": "",   # leer = vom angemeldeten Steam   # Nachricht wichtiger Leute: erst "Neue Nachricht von … – weiter oder egal?"  # Iron-Man-Start nach dem Anmelden (Vollbild-Hologramm, Klick/Esc überspringt)     # einmalig auf das neue Overlay umgestellt
     "orb_size": 68,  # Größe des kleinen Kreises in Pixeln
     "orb_corner": "oben links",  # Ecke des kleinen Kreises
@@ -100,10 +100,10 @@ DEFAULTS = {
     "home_city": "Leonberg",  # dein Standort: Mitte der Karte und lokale Nachrichten
     "hud_mode": "info",  # HUD: "info" (Kugel mit allen Infos) oder "fokus" (nur die Kugel)
     "hud_style": "neu",  # "neu" = wie am Handy (eigenes Fenster, 3D, Satelliten-Globus), "klassisch" = bisheriges HUD
-    "meine_orte": "",   # "Opa: Musterstraße 5, Rutesheim" je Zeile (gleich wie am Handy)
+    "meine_orte": "",   # "Oma: Musterstraße 5, Musterstadt" je Zeile (gleich wie am Handy)
     "meine_wege": "",   # "oberer Feldweg: 48.80, 8.96" je Zeile
     "route_an": "",     # Google-Maps-Link per WhatsApp an diesen Kontakt
-    "wichtige_leute": "Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis",   # Namen wie in WhatsApp, mit Komma: deren Nachrichten sagt Jarvis an
+    "wichtige_leute": "",   # Namen wie in WhatsApp, mit Komma: deren Nachrichten sagt Jarvis an
     "ets2_quicksave": "f5",
     "webcam_fern": False,    # Webcam von unterwegs (Tailscale) ansehen erlauben  # Taste fürs Schnellspeichern in ETS2 (wenn du weggehst)
     "absage_text": "",      # Anruf-Butler: leer = "Kann gerade nicht, rufe später zurück."
