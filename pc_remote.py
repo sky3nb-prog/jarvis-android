@@ -186,6 +186,18 @@ def execute(cmd: dict) -> str:
     if t == "sticker":   # vom Handy (dort schon bestätigt): „schick 500 Sticker an …“
         import pc_sticker
         return pc_sticker.start(str(cmd.get("to") or ""), int(cmd.get("n") or 1))
+    if t in ("sticker_list", "sticker_pick", "sticker_add", "sticker_stop"):   # Sticker-Bereich in der Handy-App
+        import json as _json
+        import pc_sticker
+        if t == "sticker_pick":
+            pc_sticker.pick(str(cmd.get("name") or ""))
+        elif t == "sticker_add":
+            r = pc_sticker.add_image(str(cmd.get("data") or ""))
+            if not r.get("ok"):
+                raise RuntimeError(r.get("text"))
+        elif t == "sticker_stop":
+            pc_sticker.RUN["stop"] = True
+        return _json.dumps(pc_sticker.listing(64, 40), ensure_ascii=False)
     if t == "text" and str(cmd.get("text") or "").strip():
         if ON_TEXT:
             ON_TEXT(str(cmd["text"]).strip()[:300])
@@ -220,7 +232,7 @@ def _handle(msg: dict):
     except Exception as e:
         text, ok = f"Das ging nicht: {e}", False
     STATUS = time.strftime("Handy-Befehl um %H:%M: ") + (cmd.get("type") or "?")
-    print(f"Handy-Fernbedienung: {cmd} -> {text}")
+    print(f"Handy-Fernbedienung: {str(cmd)[:200]} -> {str(text)[:200]}")
     if cmd.get("type") in ("wl", "media", "discord"):
         time.sleep(0.4)   # Wave Link / Discord kurz nachziehen lassen, damit der Status stimmt
     if cmd.get("type") == "remind":

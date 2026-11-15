@@ -47,22 +47,37 @@ def chosen() -> str:
     return c if c in fs else (fs[0] if fs else "")
 
 
-def listing() -> dict:
-    """Für die Auswahl im HUD: Name + kleines Vorschaubild."""
+def listing(size: int = 96, limit: int = 60) -> dict:
+    """Für die Auswahl im HUD (und kleiner fürs Handy): Name + Vorschaubild."""
     out = []
-    for f in files()[:60]:
+    for f in files()[:limit]:
         try:
             from PIL import Image
             im = Image.open(os.path.join(folder(), f))
             im.seek(0)
             im = im.convert("RGBA")
-            im.thumbnail((96, 96))
+            im.thumbnail((size, size))
             b = io.BytesIO()
             im.save(b, "PNG")
             out.append({"name": f, "img": "data:image/png;base64," + base64.b64encode(b.getvalue()).decode()})
         except Exception:
             out.append({"name": f, "img": ""})
     return {"items": out, "chosen": chosen(), "folder": folder(), "running": RUN.copy()}
+
+
+def add_image(b64: str) -> dict:
+    """Bild vom Handy (PNG, Base64) als neuen Sticker speichern und gleich auswählen."""
+    raw = base64.b64decode(b64)
+    if len(raw) > 3_000_000:
+        return {"ok": False, "text": "Das Bild ist zu groß."}
+    n = 1
+    while os.path.exists(os.path.join(folder(), f"handy-{n}.png")):
+        n += 1
+    name = f"handy-{n}.png"
+    with open(os.path.join(folder(), name), "wb") as f:
+        f.write(raw)
+    pick(name)
+    return {"ok": True, "text": "Sticker ist am PC und ausgewählt."}
 
 
 def pick(name: str) -> dict:
