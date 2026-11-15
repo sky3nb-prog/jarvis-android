@@ -1,5 +1,8 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-15 18:40", neu: [
+window.JNEU = { stand: "2026-11-15 19:00", neu: [
+  { title: "Direkt über Tailscale", text: "PC und Handy reden direkt miteinander, wenn Tailscale an ist – schneller und ohne Tageslimit." },
+  { title: "Noten", text: "Trag im Schul-Kalender deine Noten ein (oder sag „in Mathe hab ich eine 2“) – ich weiß dann, wo du stehst." },
+  { title: "Aufgeräumt", text: "Einstellungen: Abschnitte sind zugeklappt – antippen öffnet sie." },
   { title: "Dein Schreibstil", text: "WhatsApp-Antworten ohne Punkt, Komma und Strich – so wie du schreibst." },
   { title: "Lange reden", text: "Nach dem Aktivierungswort darfst du zwischendurch kurz nachdenken – ich antworte erst, wenn du fertig bist." },
   { title: "Modi einstellen", text: "Im Modi-Raster auf „Bearbeiten“: was jeder Modus macht – Handy, Musik, Discord, Programme, Pomodoro – und eigene Modi." },

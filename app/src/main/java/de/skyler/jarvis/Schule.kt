@@ -27,7 +27,8 @@ object Schule {
     fun all(ctx: Context): JSONArray = try { JSONArray(prefs(ctx).getString("schule_eintraege", "[]")) } catch (_: Exception) { JSONArray() }
     fun setAll(ctx: Context, a: JSONArray) {
         val keep = JSONArray(); val cut = day(System.currentTimeMillis() - 30 * 86_400_000L)
-        for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("datum") >= cut) keep.put(it) }
+        val cutNote = day(System.currentTimeMillis() - 365 * 86_400_000L)   // Noten bleiben ein Jahr
+        for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("datum") >= cut || (it.optString("note").isNotBlank() && it.optString("datum") >= cutNote)) keep.put(it) }
         prefs(ctx).edit().putString("schule_eintraege", keep.toString()).apply()
     }
 
@@ -147,12 +148,36 @@ object Schule {
         }
     }
 
+    private fun gnum(n: String): Double? = Regex("^\\s*([1-6])\\s*([+-])?").find(n)?.let { it.groupValues[1].toDouble() + when (it.groupValues[2]) { "+" -> -0.25; "-" -> 0.25; else -> 0.0 } }
+
+    /** "In Mathe hab ich eine 2 minus geschrieben" -> Note zur letzten Arbeit/zum letzten Test in dem Fach. */
+    fun note(ctx: Context, fach: String, note: String, art: String = ""): String {
+        val n = note.trim().replace(" ", "").replace("plus", "+").replace("minus", "-")
+        if (gnum(n) == null) return "Welche Note? Zum Beispiel 2 oder 3 minus."
+        val today = day(System.currentTimeMillis())
+        val a = all(ctx)
+        val cand = (0 until a.length()).mapNotNull { a.optJSONObject(it) }
+            .filter { it.optString("art") in setOf("arbeit", "test") && it.optString("datum") <= today && it.optString("note").isBlank() && it.optString("fach").equals(fach, true) && (art.isBlank() || it.optString("art") == art) }
+            .maxByOrNull { it.optString("datum") }
+        if (cand != null) cand.put("note", n) else a.put(JSONObject().put("id", "s" + System.currentTimeMillis().toString(36)).put("art", art.ifBlank { "arbeit" }).put("fach", fach)
+            .put("text", "").put("datum", today).put("done", true).put("quelle", "ich").put("note", n).put("ts", System.currentTimeMillis()))
+        setAll(ctx, a)
+        val l = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { it.optString("fach").equals(fach, true) }.mapNotNull { gnum(it.optString("note")) }
+        val avg = if (l.isNotEmpty()) " Dein Schnitt in $fach: ${"%.1f".format(Locale.GERMANY, l.average())}." else ""
+        return "Eingetragen: $n in $fach${if (cand != null) " (${artName(cand.optString("art"))} vom ${cand.optString("datum").takeLast(5).split("-").reversed().joinToString(".")}.)" else ""}.$avg"
+    }
+
     /** Für die KI: was ansteht und was zuletzt in schul.cloud kam (damit er beim Lernen helfen kann). */
     fun prompt(ctx: Context): String = try {
         val today = day(System.currentTimeMillis())
         val a = all(ctx); val up = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { !it.optBoolean("done") && it.optString("datum") >= today }.sortedBy { it.optString("datum") }.take(8)
         val log = JSONArray(prefs(ctx).getString("schulcloud_log", "[]"))
         val last = (maxOf(0, log.length() - 8) until log.length()).mapNotNull { log.optJSONObject(it) }.joinToString(" | ") { it.optString("von") + ": " + it.optString("text").take(160) }
+        run {
+            val gr = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { gnum(it.optString("note")) != null }.groupBy { it.optString("fach").ifBlank { "?" } }
+            if (gr.isEmpty()) "" else "Noten: " + gr.entries.joinToString("; ") { (f, l) -> "$f ${l.sortedBy { it.optString("datum") }.joinToString(", ") { it.optString("note") }} (Schnitt ${"%.1f".format(Locale.GERMANY, l.mapNotNull { gnum(it.optString("note")) }.average())})" } +
+                ". Nutze das, um ihm zu sagen, wo er steht, und gezielt bei schwächeren Fächern zu helfen – ermutigend, nie vorwurfsvoll. "
+        } +
         (if (up.isNotEmpty()) "Schule – steht an: " + up.joinToString("; ") { "${it.optString("datum")} ${artName(it.optString("art"))} ${it.optString("fach")} ${it.optString("text")}".trim() } + ". " else "") +
             (if (last.isNotBlank()) "Zuletzt in schul.cloud: $last. " else "") +
             (if (up.isNotEmpty() || last.isNotBlank()) "Wenn er lernen will („frag mich ab“, „erklär mir …“): stell ihm passende Fragen zum Thema, eine nach der anderen, und erklär kurz, was falsch war." else "")

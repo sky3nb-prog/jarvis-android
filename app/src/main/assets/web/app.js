@@ -214,6 +214,20 @@
     e.classList.toggle("on");
     if (e.id === "set-loc" && e.classList.contains("on") && A && A.askLocation) A.askLocation();
   }));
+  // Aufgeräumte Einstellungen: in jedem Bereich sind die Abschnitte zugeklappt – antippen öffnet einen (die anderen gehen zu)
+  document.querySelectorAll(".spane").forEach((pane) => {
+    if (pane.id === "sp-home") return;
+    const secs = [...pane.querySelectorAll(":scope > .sec")];
+    if (secs.length < 2) return;
+    secs.forEach((sec) => {
+      const h = sec.querySelector(":scope > h3"); if (!h) return;
+      sec.classList.add("coll");
+      h.setAttribute("role", "button"); h.tabIndex = 0;
+      const toggle = () => { const open = !sec.classList.contains("open"); secs.forEach((x) => x.classList.remove("open")); sec.classList.toggle("open", open); if (open) setTimeout(() => sec.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60); };
+      h.addEventListener("click", toggle);
+      h.addEventListener("keydown", (e) => { if (e.key === "Enter") toggle(); });
+    });
+  });
   // Modi-Raster (Fokus, Gaming, Chill …) – gleicher Look wie am PC
   window.JModiToast = (t) => toast(t);
   { const pe = window.jarvis && window.jarvis.onEvent; if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "widget_talk") { try { if (window.show) show("fokus"); } catch (e) {} setTimeout(() => { const b = $("callbtn"); if (b) b.click(); }, 250); return; } return pe && pe.call(window.jarvis, type, data); }; }
@@ -531,6 +545,15 @@
     $("leute-learn").onclick = () => { try { A.learnLeute(); toast("Ich lerne – dauert ein paar Sekunden."); } catch (e) {} };
     const pe = window.jarvis && window.jarvis.onEvent;
     if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "leute") { draw(); toast("Fertig gelernt."); return; } return pe && pe.call(window.jarvis, type, data); };
+  })();
+  // Direkte Verbindung (Tailscale)
+  (function () {
+    if (!$("direct-state")) return;
+    const show = () => { try { const d = JSON.parse(A.getDirect() || "{}"); $("direct-ip").value = d.ip || "";
+      $("direct-state").textContent = d.active ? "✓ Direkt verbunden (Tailscale)" : (d.ip ? "Nicht direkt erreichbar – läuft Tailscale am Handy und PC?" : "Noch keine PC-Adresse – trag sie unten ein") + (d.limit ? " · Kopplungsdienst: Tageslimit erreicht" : ""); } catch (e) {} };
+    show(); setInterval(() => { if (document.querySelector("#sp-fern.on")) show(); }, 4000);
+    $("direct-ip").addEventListener("change", () => { try { A.setPcIp($("direct-ip").value.trim()); toast("Gespeichert – ich verbinde mich gleich."); } catch (e) {} show(); });
+    $("direct-check").addEventListener("click", () => { show(); toast("Prüfe …"); setTimeout(show, 5000); });
   })();
   // Gassi + SMS-Tests (sofort gespeichert)
   try { const g = JSON.parse(A.getGassi() || "{}"); sw("gs-an", !!g.an); sw("gs-sms", !!g.sms); $("gs-wer").value = g.wer || "Mama"; $("gs-text").value = g.text || ""; } catch (e) {}

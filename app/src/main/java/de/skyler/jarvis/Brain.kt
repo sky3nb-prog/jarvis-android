@@ -93,6 +93,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"schule","art":"ha" | "arbeit" | "test","fach":"<Fach oder leer>","text":"<was genau, z. B. Seite 42 Nr. 3 oder Thema der Arbeit>","datum":"yyyy-MM-dd"}   ("Hausaufgabe Mathe Seite 42 bis Donnerstag", "nächsten Dienstag schreiben wir Englisch, Vokabeln Unit 3", "am 21.11. ist Bio-Test über Zellen" – Datum selbst ausrechnen)
 {"action":"person","wer":"<Name, wie er ihn nennt>","geschenk":true|false}   ("Geschenkidee für Janis", "was soll ich Mama schenken?" -> geschenk true; "was weißt du über Janis?", "wie heißt Janis auf Discord?" -> false)
 {"action":"pakete"}   ("wo ist mein Paket?", "kommt heute ein Paket?", "Paketstatus")
+{"action":"note","fach":"<Fach>","note":"<z. B. 2, 2+, 3->","art":"arbeit" | "test" | ""}   ("in Mathe hab ich eine 2 geschrieben", "Bio-Test zurück: 3 minus")
 {"action":"idee","text":"<die Idee in seinen Worten, kurz>"}   ("Jarvis, ich hab eine Idee: …", "schreib auf die Ideenliste …", "merk dir als Idee …")
 {"action":"statuscheck"}   ("Statuscheck", "Systemcheck", "laufen alle Systeme?", "ist alles okay mit dir?")
 {"action":"gesundheit","was":"heute" | "gestern" | "woche" | "schlaf" | "bilanz"}   ("wie viele Kalorien hab ich heute verbraucht?", "war ich im Defizit?", "wie aktiv war ich die Woche?", "wie hab ich geschlafen?", "Tagesbilanz") – Daten aus Samsung Health und der Schlaf-Erkennung, NIE raten

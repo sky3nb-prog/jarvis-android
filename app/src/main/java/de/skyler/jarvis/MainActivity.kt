@@ -498,6 +498,12 @@ class MainActivity : ComponentActivity() {
         fun getModus(): String = Modes.current(this@MainActivity)
 
         @JavascriptInterface
+        fun getDirect(): String = Link.directInfo(this@MainActivity).toString()
+
+        @JavascriptInterface
+        fun setPcIp(ip: String) = Link.setPcIp(this@MainActivity, ip)
+
+        @JavascriptInterface
         fun getModiCfg(): String = Modes.cfg(this@MainActivity).toString()
 
         @JavascriptInterface
