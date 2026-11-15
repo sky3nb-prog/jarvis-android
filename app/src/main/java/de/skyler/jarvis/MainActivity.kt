@@ -45,11 +45,49 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Sticker aus der Galerie: auf 512×512 verkleinern und als PNG (Base64) an die Seite – die schickt es an den PC. */
-    private val pickSticker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri == null) return@registerForActivityResult
+    private val pickSticker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri -> if (uri != null) stickerFromUri(uri) }
+
+    /** Sticker direkt aus der Handy-Tastatur (Samsung/Gboard): kleines Eingabefeld, das Bilder/Sticker annimmt. */
+    private fun stickerKeyboard() {
+        val et = android.widget.EditText(this).apply {
+            hint = "Hier den Sticker aus der Tastatur antippen"
+            setTextColor(Color.WHITE); setHintTextColor(Color.GRAY)
+            setPadding(40, 30, 40, 30)
+        }
+        var dlg: android.app.AlertDialog? = null
+        ViewCompat.setOnReceiveContentListener(et, arrayOf("image/*")) { _, payload ->
+            val clip = payload.clip
+            val uri = (0 until clip.itemCount).firstNotNullOfOrNull { clip.getItemAt(it).uri }
+            if (uri != null) {
+                // gleich hier lesen: die Leseerlaubnis der Tastatur gilt nur kurz
+                val bytes = try { contentResolver.openInputStream(uri)?.use { it.readBytes() } } catch (_: Exception) { null }
+                if (bytes != null) stickerFromBytes(bytes) else send("sticker_img", JSONObject().put("err", "Den Sticker konnte ich nicht lesen."))
+                dlg?.dismiss()
+                null
+            } else payload
+        }
+        dlg = android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("Sticker aus der Tastatur")
+            .setMessage("Tipp ins Feld, öffne in der Tastatur die Sticker und tipp einen an.")
+            .setView(et).setNegativeButton("Abbrechen", null).create()
+        dlg.setOnShowListener {
+            et.requestFocus()
+            et.postDelayed({ (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).showSoftInput(et, 0) }, 200)
+        }
+        dlg.show()
+    }
+
+    private fun stickerFromUri(uri: Uri) {
+        Thread({
+            val b = try { contentResolver.openInputStream(uri)?.use { it.readBytes() } } catch (_: Exception) { null }
+            if (b != null) stickerFromBytes(b) else send("sticker_img", JSONObject().put("err", "Bild ging nicht"))
+        }, "sticker-img").start()
+    }
+
+    private fun stickerFromBytes(bytes: ByteArray) {
         Thread({
             try {
-                val bmp = contentResolver.openInputStream(uri)!!.use { android.graphics.BitmapFactory.decodeStream(it) }
+                val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: throw RuntimeException("Das Bild kann ich nicht öffnen.")
                 val sc = minOf(512f / bmp.width, 512f / bmp.height, 1f)
                 val small = android.graphics.Bitmap.createScaledBitmap(bmp, maxOf(1, (bmp.width * sc).toInt()), maxOf(1, (bmp.height * sc).toInt()), true)
                 val out = java.io.ByteArrayOutputStream()
@@ -882,6 +920,9 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun stickerPickImage() { runOnUiThread { try { pickSticker.launch("image/*") } catch (_: Exception) {} } }
+
+        @JavascriptInterface
+        fun stickerKeyboard() { runOnUiThread { try { this@MainActivity.stickerKeyboard() } catch (_: Exception) {} } }
 
         /** Befehl an den PC (Fernbedienung). Antwort kommt als Ereignis "pc_reply". */
         @JavascriptInterface

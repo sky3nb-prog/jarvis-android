@@ -258,6 +258,7 @@
     };
     document.querySelectorAll('.sitem[data-go="leute"], #stabs span[data-p="leute"]').forEach((e) => e.addEventListener("click", () => setTimeout(stkLoad, 150)));
     $("stk-add").onclick = () => A.stickerPickImage();
+    $("stk-kb").onclick = () => A.stickerKeyboard && A.stickerKeyboard();
     $("stk-go").onclick = () => {
       const to = $("stk-to").value.trim(), n = Math.min(1000, parseInt($("stk-n").value, 10) || 0);
       if (!to || !n) { toast("Trag ein, an wen und wie viele."); return; }
