@@ -44,6 +44,21 @@ class MainActivity : ComponentActivity() {
         pendingTalk = false
     }
 
+    /** Sticker aus der Galerie: auf 512×512 verkleinern und als PNG (Base64) an die Seite – die schickt es an den PC. */
+    private val pickSticker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        Thread({
+            try {
+                val bmp = contentResolver.openInputStream(uri)!!.use { android.graphics.BitmapFactory.decodeStream(it) }
+                val sc = minOf(512f / bmp.width, 512f / bmp.height, 1f)
+                val small = android.graphics.Bitmap.createScaledBitmap(bmp, maxOf(1, (bmp.width * sc).toInt()), maxOf(1, (bmp.height * sc).toInt()), true)
+                val out = java.io.ByteArrayOutputStream()
+                small.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                send("sticker_img", JSONObject().put("data", android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)))
+            } catch (e: Exception) { send("sticker_img", JSONObject().put("err", e.message ?: "Bild ging nicht")) }
+        }, "sticker-img").start()
+    }
+
     private val locPerm = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
         if (res.values.any { it }) Here.refresh(this, force = true)
         else send("info", JSONObject().put("text", "Ohne Standort-Erlaubnis nutze ich deinen Wohnort."))
@@ -853,6 +868,20 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun themenSelbst(csv: String) { Themen.setManual(this@MainActivity, csv) }
+
+        /** Sticker am PC: Liste, auswählen, hinzufügen, schicken. Antwort kommt als Ereignis "sticker". */
+        @JavascriptInterface
+        fun stickerCmd(json: String) {
+            val cmd = try { JSONObject(json) } catch (_: Exception) { return }
+            if (!Link.paired(this@MainActivity)) { send("sticker", JSONObject().put("ok", false).put("text", "Handy und PC sind noch nicht gekoppelt.")); return }
+            Thread({
+                val r = try { Link.command(this@MainActivity, cmd, 30_000) } catch (_: Exception) { null }
+                send("sticker", (r ?: JSONObject().put("ok", false).put("text", "Der PC antwortet nicht. Läuft Jarvis am PC?")).put("op", cmd.optString("type")))
+            }, "jarvis-sticker").start()
+        }
+
+        @JavascriptInterface
+        fun stickerPickImage() { runOnUiThread { try { pickSticker.launch("image/*") } catch (_: Exception) {} } }
 
         /** Befehl an den PC (Fernbedienung). Antwort kommt als Ereignis "pc_reply". */
         @JavascriptInterface

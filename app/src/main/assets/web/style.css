@@ -507,3 +507,9 @@ body.clean #v-fokus .talkbox, body.clean #v-fokus .callbtn, body.clean #v-fokus 
 .spane .sec.coll.open > h3::after { transform: rotate(90deg); }
 
 .ws-lay { margin: 4px 0 12px; } .ws-lay h4 { margin: 10px 0 6px; font-size: 10.5px; letter-spacing: 1.4px; color: var(--c, var(--cyan)); }
+
+.stk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; margin: 4px 0 8px; }
+.stk-it { aspect-ratio: 1; border-radius: 14px; border: 1px solid #16506a; background: #0a2233; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.stk-it img { max-width: 80%; max-height: 80%; }
+.stk-it.on { border-color: #ffb43c; box-shadow: 0 0 0 2px rgba(255,180,60,.45); }
+.stk-it.on::after { content: "✓"; position: absolute; top: 3px; right: 6px; color: #ffd678; font-weight: 700; font-size: 12px; }

@@ -228,6 +228,45 @@
       h.addEventListener("keydown", (e) => { if (e.key === "Enter") toggle(); });
     });
   });
+  // Sticker-Regen: Auswahl liegt am PC (Ordner „Sticker“), hier antippen, aus der Galerie hinzufügen, schicken
+  if (A && A.stickerCmd) {
+    let stkSel = "", stkAsk = false;
+    const stkShow = (d) => {
+      const g = $("stk-grid"); if (!g) return;
+      const it = (d && d.items) || []; stkSel = (d && d.chosen) || "";
+      g.innerHTML = it.length ? it.map((s) => `<div class="stk-it${s.name === stkSel ? " on" : ""}" data-n="${String(s.name).replace(/"/g, "&quot;")}">${s.img ? `<img src="${s.img}">` : ""}</div>`).join("")
+        : '<div class="note">Noch keine Sticker – tipp auf „Galerie“.</div>';
+      g.querySelectorAll(".stk-it").forEach((x) => x.onclick = () => { g.querySelectorAll(".stk-it").forEach((y) => y.classList.toggle("on", y === x)); A.stickerCmd(JSON.stringify({ type: "sticker_pick", name: x.dataset.n })); });
+      if (d && d.running && d.running.on) $("stk-state").textContent = `Schickt gerade: ${d.running.sent} von ${d.running.n} an ${d.running.to}`;
+    };
+    const stkLoad = () => { $("stk-grid").innerHTML = '<div class="note">Frage den PC …</div>'; A.stickerCmd(JSON.stringify({ type: "sticker_list" })); };
+    const pe2 = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) {
+      const d = typeof data === "string" ? (() => { try { return JSON.parse(data); } catch (e) { return {}; } })() : (data || {});
+      if (type === "sticker") {
+        if (d.op === "sticker" || d.ok === false) { $("stk-state").textContent = d.text || ""; if (d.op === "sticker") toast(d.text || ""); }
+        if (d.op && d.op.startsWith("sticker_") && d.ok !== false) { try { stkShow(JSON.parse(d.text)); } catch (e) {} if (d.op === "sticker_add") toast("Sticker ist am PC und ausgewählt."); }
+        if (d.ok === false && d.op !== "sticker") $("stk-grid").innerHTML = `<div class="note">${String(d.text || "").replace(/</g, "")}</div>`;
+        return;
+      }
+      if (type === "sticker_img") {
+        if (d.err) { toast(d.err); return; }
+        $("stk-grid").innerHTML = '<div class="note">Schicke das Bild zum PC …</div>';
+        A.stickerCmd(JSON.stringify({ type: "sticker_add", data: d.data })); return;
+      }
+      return pe2 && pe2.call(window.jarvis, type, data);
+    };
+    document.querySelectorAll('.sitem[data-go="leute"], #stabs span[data-p="leute"]').forEach((e) => e.addEventListener("click", () => setTimeout(stkLoad, 150)));
+    $("stk-add").onclick = () => A.stickerPickImage();
+    $("stk-go").onclick = () => {
+      const to = $("stk-to").value.trim(), n = Math.min(1000, parseInt($("stk-n").value, 10) || 0);
+      if (!to || !n) { toast("Trag ein, an wen und wie viele."); return; }
+      if (!stkSel) { toast("Tipp erst einen Sticker an."); return; }
+      if (!stkAsk) { stkAsk = true; $("stk-go").textContent = "Wirklich?"; $("stk-state").textContent = `${n} Sticker an ${to} – nochmal tippen zum Schicken.`; setTimeout(() => { stkAsk = false; $("stk-go").textContent = "Schicken"; }, 5000); return; }
+      stkAsk = false; $("stk-go").textContent = "Schicken"; $("stk-state").textContent = "Schicke …";
+      A.stickerCmd(JSON.stringify({ type: "sticker", to, n }));
+    };
+  }
   // Modi-Raster (Fokus, Gaming, Chill …) – gleicher Look wie am PC
   window.JModiToast = (t) => toast(t);
   { const pe = window.jarvis && window.jarvis.onEvent; if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "widget_talk") { try { if (window.show) show("fokus"); } catch (e) {} setTimeout(() => { const b = $("callbtn"); if (b) b.click(); }, 250); return; } return pe && pe.call(window.jarvis, type, data); }; }
