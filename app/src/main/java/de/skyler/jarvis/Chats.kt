@@ -10,6 +10,7 @@ import android.os.Environment
 import android.service.notification.StatusBarNotification
 import android.util.Base64
 import android.util.Log
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
@@ -78,6 +79,12 @@ object Chats {
         var text = ex.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
         var time = n.`when`
         val msgs = ex.getParcelableArray(Notification.EXTRA_MESSAGES)
+        // eigene Nachrichten aus dem Verlauf der Benachrichtigung (ohne Absender = von ihm) für den Gesprächsverlauf merken
+        msgs?.mapNotNull { it as? Bundle }?.forEach { b ->
+            val s = b.getCharSequence("sender")?.toString() ?: (if (Build.VERSION.SDK_INT >= 28) (b.getParcelable<android.app.Person>("sender_person"))?.name?.toString() else null)
+            val t = b.getCharSequence("text")?.toString()?.trim() ?: ""
+            if (t.isNotBlank()) hist(ctx, norm(chat), if (s.isNullOrBlank()) "ich" else s, t, b.getLong("time", 0L))
+        }
         if (msgs != null && msgs.isNotEmpty()) {
             val last = msgs.mapNotNull { it as? Bundle }.lastOrNull { b ->
                 val s = b.getCharSequence("sender")?.toString()
@@ -118,14 +125,20 @@ object Chats {
         if (!Link.paired(ctx)) return
         val m = JSONObject().put("kind", "wa_msg").put("from", "phone").put("chat", chat).put("sender", sender)
             .put("text", text).put("voice", voice).put("key", norm(chat)).put("ts", System.currentTimeMillis() / 1000)
+        val key = prefs(ctx).getString("groq_key", "") ?: ""
+        var inFile: File? = null
         if (voice) {
-            val f = voiceFile(time)
+            val f = voiceFile(time); inFile = f
             if (f != null) {
-                val key = prefs(ctx).getString("groq_key", "") ?: ""
+                markVoice(ctx, f)
                 if (key.isNotBlank()) try { m.put("transcript", Groq.transcribeFile(key, f)) } catch (e: Exception) { Log.w(TAG, "umwandeln: $e") }
                 if (f.length() < 700_000) m.put("audio", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
             } else Log.i(TAG, "Sprachnachricht-Datei nicht gefunden (Zugriff auf alle Dateien?)")
         }
+        // Seine eigenen Sprachnachrichten kurz davor (neue Dateien, die nicht von anderen kamen) -> Inhalt für den Verlauf
+        try { ownVoices(ctx, key, norm(chat), inFile) } catch (e: Exception) { Log.w(TAG, "eigene Sprachnachricht: $e") }
+        hist(ctx, norm(chat), sender, if (voice) "(Sprachnachricht) " + m.optString("transcript", "Inhalt unbekannt") else text, time)
+        m.put("verlauf", verlauf(ctx, norm(chat)))
         Link.toPc(ctx, m)
     }
 
@@ -151,8 +164,43 @@ object Chats {
     }
 
     /** Antwort über die Benachrichtigung schicken. true = geklappt. */
+    // --- Gesprächsverlauf pro Chat (für sinnvolle Antwortvorschläge) ---------------------------------------------
+    @Synchronized private fun hist(ctx: Context, ck: String, von: String, text: String, t: Long) {
+        val a = try { JSONArray(prefs(ctx).getString("hist_$ck", "[]")) } catch (_: Exception) { JSONArray() }
+        val tt = if (t > 0) t else System.currentTimeMillis()
+        for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("text") == text && (it.optString("von") == von)) return }
+        a.put(JSONObject().put("von", von).put("text", text.take(400)).put("t", tt))
+        val l = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.sortedBy { it.optLong("t") }.takeLast(14)
+        prefs(ctx).edit().putString("hist_$ck", JSONArray(l).toString()).apply()
+    }
+    private fun verlauf(ctx: Context, ck: String): JSONArray = try {
+        val a = JSONArray(prefs(ctx).getString("hist_$ck", "[]"))
+        JSONArray((0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { System.currentTimeMillis() - it.optLong("t") < 3 * 86_400_000L }.takeLast(10))
+    } catch (_: Exception) { JSONArray() }
+
+    private fun markVoice(ctx: Context, f: File) {
+        val s = (prefs(ctx).getString("voice_seen", "") ?: "").split("|").takeLast(40) + f.name
+        prefs(ctx).edit().putString("voice_seen", s.joinToString("|")).apply()
+    }
+
+    /** Neue Sprachnachrichten-Dateien der letzten 30 Min., die nicht von anderen kamen = seine eigenen -> umwandeln, in den Verlauf. */
+    private fun ownVoices(ctx: Context, key: String, ck: String, except: File?) {
+        if (!filesOk() || key.isBlank()) return
+        val root = Environment.getExternalStorageDirectory()
+        val seen = (prefs(ctx).getString("voice_seen", "") ?: "").split("|").toSet()
+        val dirs = listOf("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes", "WhatsApp/Media/WhatsApp Voice Notes").map { File(root, it) }.filter { it.isDirectory }
+        val fresh = dirs.flatMap { d -> d.walkTopDown().maxDepth(3).filter { it.isFile && it.name.endsWith(".opus") && System.currentTimeMillis() - it.lastModified() < 30 * 60_000L }.toList() }
+            .filter { it.name !in seen && it != except }.sortedBy { it.lastModified() }.takeLast(2)
+        for (f in fresh) {
+            markVoice(ctx, f)
+            val t = try { Groq.transcribeFile(key, f) } catch (_: Exception) { "" }
+            if (t.isNotBlank()) hist(ctx, ck, "ich", "(seine Sprachnachricht, wahrscheinlich an diesen Chat) $t", f.lastModified())
+        }
+    }
+
     fun reply(ctx: Context, key: String, chat: String, text: String): Boolean {
         val r = synchronized(repliers) { repliers[norm(key)] ?: repliers[norm(chat)] } ?: return false
+        try { hist(ctx, norm(key).ifBlank { norm(chat) }, "ich", text, System.currentTimeMillis()) } catch (_: Exception) {}
         return try {
             val ins = r.action.remoteInputs ?: return false
             val intent = Intent(); val b = Bundle()

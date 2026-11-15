@@ -4,6 +4,7 @@ window.JNEU = { stand: "2026-11-15 02:00", neu: [
   { title: "Stundenplan", text: "Einstellungen → Alltag → Schule: Zeiten stehen, trag die Fächer ein." },
   { title: "Aufstehen!", text: "Liegst du an Schultagen noch im Bett, stupse ich dich an – spätestens 7:20." },
   { title: "Essens-Tipp", text: "Morgens eine kleine Idee, die zu deinem Tag passt – und „Guten Appetit“, wenn du isst." },
+  { title: "Antworten mit Verlauf", text: "WhatsApp-Vorschläge kennen jetzt den Gesprächsverlauf und schreiben in deinem Stil." },
   { title: "Humor", text: "Ich merke mir, worüber du lachst – und was nicht ankommt." },
   { title: "Ich lese, wie du drauf bist", text: "Aus Schlaf, Bewegung, Terminen und dem, was du sagst – an schweren Tagen bin ich ruhiger, an guten lockerer." },
   { title: "Persönlicher Tagesabschluss", text: "Ich kommentiere deinen Tag – z. B. „Elternsprechtag – hoffentlich lief es gut“." },
