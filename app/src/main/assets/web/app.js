@@ -609,8 +609,13 @@
   $("set-bootanim").addEventListener("click", () => setTimeout(() => { try { localStorage.setItem("boot_anim", sw("set-bootanim") ? "1" : "0"); } catch (e) {} }, 50));
   try { sw("set-melden", A.getFlag("melden", true)); } catch (e) {}
   $("set-melden").addEventListener("click", () => setTimeout(() => { try { A.setFlag("melden", sw("set-melden")); } catch (e) {} }, 50));
-  if (A && A.gmailGet) { const g = () => { try { const d = JSON.parse(A.gmailGet()); $("gm-user").value = d.user || ""; $("gm-state").textContent = d.ok ? "Verbunden." : "Noch nicht verbunden."; } catch (e) {} };
-    g(); $("gm-save").onclick = () => { A.gmailSet($("gm-user").value.trim(), $("gm-pw").value.trim()); $("gm-pw").value = ""; $("gm-state").textContent = "Teste …"; A.gmailTest(); setTimeout(g, 400); }; }
+  if (A && A.gmailGet) { const g = () => { try { const d = JSON.parse(A.gmailGet()); $("gm-user").value = d.user || ""; $("gm-state").textContent = d.ok ? "✓ Verbunden (von Google bestätigt)." : "Noch nicht verbunden."; } catch (e) {} };
+    g(); $("gm-save").onclick = () => { A.gmailSet($("gm-user").value.trim(), $("gm-pw").value.trim()); $("gm-pw").value = ""; $("gm-state").textContent = "Frage Google …"; A.gmailTest(); };
+    const pg = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) {
+      if (type === "gmail_test") { const d = typeof data === "string" ? JSON.parse(data) : (data || {}); $("gm-state").textContent = (d.ok ? "✓ " : "✕ ") + (d.text || ""); toast(d.text || ""); return; }
+      return pg && pg.call(window.jarvis, type, data);
+    }; }
   { const MO = ["Selten – höchstens 1× am Tag", "Normal – bis 3× am Tag", "Oft – bis 6× am Tag"], r = $("set-meldenoft");
     const show = () => { $("mo-l").textContent = MO[+r.value]; };
     try { r.value = A.getMeldenOft(); } catch (e) {} show();

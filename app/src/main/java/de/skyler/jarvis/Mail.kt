@@ -24,12 +24,14 @@ object Mail {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
     fun user(ctx: Context) = prefs(ctx).getString("gmail_user", "") ?: ""
     private fun pw(ctx: Context) = (prefs(ctx).getString("gmail_pw", "") ?: "").replace(" ", "")
-    fun configured(ctx: Context) = user(ctx).contains("@") && pw(ctx).length >= 12
+    private fun filled(ctx: Context) = user(ctx).contains("@") && pw(ctx).length >= 12
+    /** Erst „verbunden“, wenn die Anmeldung bei Google wirklich geklappt hat. */
+    fun configured(ctx: Context) = filled(ctx) && prefs(ctx).getBoolean("gmail_ok", false)
 
     fun set(ctx: Context, user: String, pw: String) {
         val e = prefs(ctx).edit().putString("gmail_user", user.trim())
         if (pw.isNotBlank()) e.putString("gmail_pw", pw.trim())
-        e.remove("mail_seen").apply()
+        e.remove("mail_seen").putBoolean("gmail_ok", false).apply()
     }
 
     private class Imap(host: String) {
@@ -72,14 +74,25 @@ object Mail {
         } catch (_: Exception) { m.value }
     }
 
-    fun test(ctx: Context): String = try {
-        if (!configured(ctx)) "Trag erst deine Gmail-Adresse und das App-Passwort ein." else {
-            val im = Imap("imap.gmail.com"); im.greet()
-            try { im.cmd("LOGIN ${q(user(ctx))} ${q(pw(ctx))}"); val r = im.cmd("EXAMINE INBOX")
-                val n = Regex("\\* (\\d+) EXISTS").find(r)?.groupValues?.get(1) ?: "?"
-                "Verbunden – im Posteingang sind $n Mails. Ich schaue alle 15 Minuten nach Paketen und neuen Mails." } finally { im.close() }
+    /** Echte Anmeldung bei Google. ok = true nur, wenn Google sie angenommen hat. */
+    fun test(ctx: Context): JSONObject {
+        val p = prefs(ctx)
+        val r = try {
+            if (!filled(ctx)) JSONObject().put("ok", false).put("text", "Trag deine Gmail-Adresse und das App-Passwort (16 Zeichen) ein.") else {
+                val im = Imap("imap.gmail.com"); im.greet()
+                try { im.cmd("LOGIN ${q(user(ctx))} ${q(pw(ctx))}"); val res = im.cmd("EXAMINE INBOX")
+                    val n = Regex("\\* (\\d+) EXISTS").find(res)?.groupValues?.get(1) ?: "?"
+                    JSONObject().put("ok", true).put("text", "Verbunden – Google hat die Anmeldung angenommen, im Posteingang sind $n Mails.") } finally { im.close() }
+            }
+        } catch (e: Exception) {
+            val m = e.message ?: ""
+            JSONObject().put("ok", false).put("text", if (Regex("(?i)AUTHENTICATIONFAILED|Invalid credentials|LOGIN").containsMatchIn(m))
+                "Google hat die Anmeldung abgelehnt – das Passwort stimmt nicht. Es muss ein App-Passwort von Google sein (16 Buchstaben), nicht dein normales."
+                else "Keine Verbindung zu Gmail: ${m.take(100)}")
         }
-    } catch (e: Exception) { "Anmeldung ging nicht: ${e.message?.take(120)}. Ist es ein App-Passwort (16 Zeichen), nicht dein normales Passwort?" }
+        p.edit().putBoolean("gmail_ok", r.optBoolean("ok")).apply()
+        return r
+    }
 
     /** Alle 15 Minuten aus Alltag.tick. */
     fun tick(ctx: Context, say: ((String) -> Unit)?) {

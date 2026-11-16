@@ -535,7 +535,7 @@ class MainActivity : ComponentActivity() {
         fun gmailSet(user: String, pw: String) { Mail.set(this@MainActivity, user, pw) }
 
         @JavascriptInterface
-        fun gmailTest() { Thread({ send("info", JSONObject().put("text", Mail.test(this@MainActivity))) }, "jarvis-mailtest").start() }
+        fun gmailTest() { Thread({ send("gmail_test", Mail.test(this@MainActivity)) }, "jarvis-mailtest").start() }
 
         @JavascriptInterface
         fun getMeldenOft(): Int = prefs.getInt("melden_oft", 1)
