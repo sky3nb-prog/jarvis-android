@@ -146,6 +146,7 @@ object Melden {
     fun route(ctx: Context): String = when {
         sleeping(ctx) -> "hold"
         lessonNow(ctx) != null -> "hold"
+        JarvisService.micOff || Modes.silent(ctx) -> "note"   // Schalter aus / Schulmodus: nie laut, nur Nachricht (Uhr)
         dnd(ctx) -> "note"
         Alltag.isHome(ctx) -> "speak"
         headphones(ctx) -> "speak"

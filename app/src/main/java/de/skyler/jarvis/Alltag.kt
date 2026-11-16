@@ -141,7 +141,12 @@ object Alltag {
         if (!on(ctx, "melden")) return
         val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY)
         // so oft es etwas Neues gibt: zwischen 9 und 21 Uhr, mindestens 2 Stunden Abstand (nicht während der Schulstunde – das hebt Melden auf)
-        if (h < 9 || h >= 21 || System.currentTimeMillis() - s.optLong("melden_last") < 2 * 3_600_000L) return
+        // Regler „Wie oft“: 0 selten (1×/Tag, 6 Std. Abstand), 1 normal (bis 3×, 3 Std.), 2 oft (bis 6×, 1,5 Std.)
+        val oft = prefs(ctx).getInt("melden_oft", 1).coerceIn(0, 2)
+        val gap = longArrayOf(6 * 3_600_000L, 3 * 3_600_000L, 90 * 60_000L)[oft]
+        val maxDay = intArrayOf(1, 3, 6)[oft]
+        if (h < 9 || h >= 21 || System.currentTimeMillis() - s.optLong("melden_last") < gap) return
+        if (s.optInt("melden_n|${today()}") >= maxDay) return
         val slotKey = "melden|${today()}|$h"
         if (!Vorschlag.allowed(ctx, "persoenlich")) return
         val now = System.currentTimeMillis()
@@ -174,7 +179,7 @@ object Alltag {
         val usedToday = s.optString("melden_was|${today()}")
         obs.removeAll { usedToday.contains(it.take(25)) }   // nicht zweimal am Tag dasselbe
         if (obs.isEmpty()) return
-        mark(s, slotKey); s.put("melden_last", System.currentTimeMillis())
+        mark(s, slotKey); s.put("melden_last", System.currentTimeMillis()); s.put("melden_n|${today()}", s.optInt("melden_n|${today()}") + 1)
         val what = obs.first()
         s.put("melden_was|${today()}", (usedToday + "|" + what.take(25)).takeLast(400))
         Thread({
@@ -631,7 +636,9 @@ object Alltag {
         try { Schule.tick(ctx, say) } catch (e: Exception) { Log.w(TAG, "schule: $e") }
         try { JarvisWidget.refresh(ctx) } catch (_: Exception) {}
         try { Leute.tick(ctx, say) } catch (e: Exception) { Log.w(TAG, "leute: $e") }
+        try { Mail.tick(ctx, say) } catch (e: Exception) { Log.w(TAG, "mail: $e") }
         try { Halte.tick(ctx, fix, s.optBoolean("is_home")) } catch (e: Exception) { Log.w(TAG, "halte: $e") }
+        try { Halte.approach(ctx, fix, s.optBoolean("is_home"))?.let { say(it) } } catch (e: Exception) { Log.w(TAG, "halt naht: $e") }   // „Gleich kommt der Rewe“
         try { Gassi.tick(ctx, fix, s.optBoolean("home_wifi")) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
         // Unterwegs mit Gassi/Einmal-SMS: genauer und öfter orten (GPS, alle 20 s), sonst sparsam
         wantFine = Gassi.active(ctx) && !(s.optBoolean("home_wifi"))
@@ -1066,7 +1073,7 @@ object Alltag {
         // Halt unterwegs (z. B. "zu Opa, vorher noch zum Rewe") oder ein Laden als Ziel: Zweck merken, Zeit einplanen
         val kind = Halte.kind("$was $stopp")
         if (Regex("(?i)rewe|aldi|lidl|edeka|penny|netto|kaufland|dm\\b|bäcker|trölsch").containsMatchIn(ziel) && stopp.isBlank()) Halte.expect(ctx, ziel, kind)
-        val stopMin = if (stopp.isNotBlank()) { Halte.expect(ctx, stopp, kind); Halte.planMinutes(ctx, stopp, kind) + 3 } else 0
+        val stopMin = if (stopp.isNotBlank()) { Halte.expect(ctx, stopp, kind, was); Halte.planMinutes(ctx, stopp, kind) + 3 } else 0
         if (aus) return einmaligAdd(ctx, JSONObject().put("datum", d).put("aus", true))
         val dow = Calendar.getInstance().apply { time = SimpleDateFormat("yyyy-MM-dd", de).parse(d) ?: Date() }.get(Calendar.DAY_OF_WEEK)
         val fw = festerWeg(ctx)
@@ -1430,12 +1437,37 @@ object Alltag {
         Thread({
             val (t, fid) = eveningBrief(ctx) ?: return@Thread
             notify(ctx, 341, "Dein Tagesabschluss", t, feed = fid)
+            outfitAsk(ctx)
             pcOffer(ctx, "Tagesabschluss", "Dein Tagesabschluss ist da. Soll ich ihn öffnen?", t)
         }, "jarvis-abend").start()
     }
 
+    /** Abends: „Was hattest du heute an?“ – antippen öffnet die kurze Abfrage (Kleiderschrank lernt). */
+    fun outfitAsk(ctx: Context) {
+        val today = SimpleDateFormat("yyyy-MM-dd", de).format(Date())
+        if (Wardrobe.get(ctx).optString("abend_tag") == today) return
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        val pi = PendingIntent.getActivity(ctx, 342, Intent(ctx, MainActivity::class.java).putExtra("outfit", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        try { nm.notify(342, NotificationCompat.Builder(ctx, CH).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("Was hattest du heute an?")
+            .setContentText("Kurz antippen – und sag, ob es gepasst hat. So lernt der Kleiderschrank.").setContentIntent(pi).setAutoCancel(true).build()) } catch (_: Exception) {}
+    }
+
+    /** Für die Abfrage: alle Teile, heutiger Vorschlag, kälteste gefühlte Temperatur draußen (7–18 Uhr). */
+    fun outfitData(ctx: Context): JSONObject {
+        val o = Wardrobe.get(ctx)
+        val items = JSONArray()
+        val arr = o.getJSONArray("items")
+        for (i in 0 until arr.length()) arr.optJSONObject(i)?.takeIf { it.optBoolean("on", true) }?.let { items.put(JSONObject().put("id", it.optString("id")).put("name", it.optString("name")).put("icon", it.optString("icon")).put("layer", it.optString("layer"))) }
+        val wx = try { dayWx(ctx, 0) } catch (_: Exception) { null }
+        val feels = wx?.optJSONArray("hours")?.let { h -> (0 until h.length()).mapNotNull { h.optJSONObject(it) }.filter { it.optInt("h") in 7..18 }.map { it.optDouble("feel") } } ?: emptyList()
+        val t = feels.minOrNull()
+        val pick = if (t != null) try { Wardrobe.pick(ctx, t, feels.maxOrNull() ?: t) } catch (_: Exception) { null } else null
+        return JSONObject().put("items", items).put("vorschlag", pick?.optJSONArray("ids") ?: JSONArray()).put("t", t ?: JSONObject.NULL)
+    }
+
     /** Wetter eines Tages als Daten: min, max, Regen, und einige Stunden. */
-    private fun dayWx(ctx: Context, dayOffset: Int): JSONObject? = try {
+    fun dayWx(ctx: Context, dayOffset: Int): JSONObject? = try {
         val home = Route.home(ctx) ?: throw Exception("keine Adresse")
         val url = "https://api.open-meteo.com/v1/forecast?latitude=${home.lat}&longitude=${home.lon}" +
             "&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,weather_code,is_day" +

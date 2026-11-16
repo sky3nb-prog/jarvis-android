@@ -98,11 +98,32 @@ object Halte {
         else -> ""
     }
 
-    /** Plan hat einen Halt an [name] – der nächste Halt dort bekommt den Zweck (zum getrennten Lernen). */
-    fun expect(ctx: Context, name: String, kind: String) {
+    /** Plan hat einen Halt an [name] – der nächste Halt dort bekommt den Zweck (zum getrennten Lernen). was = was du dort willst. */
+    fun expect(ctx: Context, name: String, kind: String, was: String = "") {
         if (name.isBlank()) return
-        prefs(ctx).edit().putString("halt_expect", JSONObject().put("name", name.substringBefore(" (").trim()).put("kind", kind)
+        prefs(ctx).edit().putString("halt_expect", JSONObject().put("name", name.substringBefore(" (").trim()).put("kind", kind).put("was", was)
             .put("until", System.currentTimeMillis() + 8 * 3_600_000L).toString()).apply()
+    }
+
+    /** Unterwegs (jede Minute): Bist du einem geplanten Halt (gelernte Stelle dieses Ladens) auf 500 m nah und kommst näher? -> einmal Text. */
+    fun approach(ctx: Context, loc: Location?, home: Boolean): String? {
+        if (loc == null || home || System.currentTimeMillis() - loc.time > 3 * 60_000L || loc.accuracy > 80) return null
+        val e = try { JSONObject(prefs(ctx).getString("halt_expect", "{}") ?: "{}") } catch (_: Exception) { return null }
+        if (e.optLong("until") < System.currentTimeMillis() || e.optBoolean("told")) return null
+        val name = e.optString("name"); if (name.isBlank()) return null
+        val spots = list(ctx).filter { match(it.optString("name"), name) }
+        if (spots.isEmpty()) return null
+        val here = Route.P(loc.latitude, loc.longitude, "")
+        val d = spots.minOf { Route.distKm(here, Route.P(it.optDouble("lat"), it.optDouble("lon"), "")) } * 1000
+        val prev = e.optDouble("d", 1e9); e.put("d", d)
+        if (d < 500 && d > 40 && d < prev) {
+            e.put("told", true)
+            prefs(ctx).edit().putString("halt_expect", e.toString()).apply()
+            val was = e.optString("was").trim()
+            return "Gleich kommt der $name" + (if (was.isNotBlank()) " – denk an: $was." else " – nicht vorbeifahren.")
+        }
+        prefs(ctx).edit().putString("halt_expect", e.toString()).apply()
+        return null
     }
 
     /** Gelernte Aufenthaltsdauer (Minuten, Median der letzten 8) bei diesem Laden / dieser Kette und diesem Zweck, null = noch nicht gelernt. */

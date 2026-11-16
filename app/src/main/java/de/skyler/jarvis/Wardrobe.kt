@@ -124,6 +124,38 @@ object Wardrobe {
 
     fun lastTrip(ctx: Context): JSONObject? = try { JSONObject(prefs(ctx).getString("schrank_letzt", "") ?: "") } catch (_: Exception) { null }
 
+    /** Abends: was hattest du heute an und hat's gepasst? ids = getragene Teile, v = -1 zu kalt / 0 passt / +1 zu warm,
+     *  t = kälteste gefühlte Temperatur draußen heute. Lernt pro Teil: zu kalt -> das Teil gilt erst ab 1° wärmer,
+     *  zu warm -> nur noch bis 1° kälter; „passt“ -> Grenzen so erweitern, dass t sicher drin liegt. Dazu ein kleiner Gesamtschritt. */
+    fun dayFeedback(ctx: Context, ids: List<String>, v: Int, t: Double?): String {
+        val o = get(ctx)
+        val arr = o.getJSONArray("items")
+        val tt = t?.let { Math.round(it).toInt() }
+        var n = 0
+        for (i in 0 until arr.length()) {
+            val it = arr.getJSONObject(i)
+            if (it.optString("id") !in ids || it.optBoolean("rain")) continue
+            n++
+            if (tt == null) continue
+            val mn = it.optInt("min"); val mx = it.optInt("max")
+            when {
+                v < 0 && tt >= mn - 1 -> it.put("min", minOf(mx - 1, maxOf(mn, tt) + 1))   // war zu kalt bei tt: braucht es wärmer
+                v > 0 && tt <= mx + 1 -> it.put("max", maxOf(mn + 1, minOf(mx, tt) - 1))   // war zu warm bei tt: nur bei kälterem Wetter
+                v == 0 -> { if (tt < mn) it.put("min", tt); if (tt > mx) it.put("max", tt) }
+            }
+        }
+        o.put("adj", (o.optDouble("adj", 0.0) + when { v < 0 -> -0.25; v > 0 -> 0.25; else -> 0.0 }).coerceIn(-5.0, 5.0))
+        val log = o.optJSONArray("log") ?: JSONArray()
+        log.put(JSONObject().put("ts", System.currentTimeMillis()).put("v", v).put("t", t ?: 0.0).put("ids", JSONArray(ids)).put("abend", true))
+        while (log.length() > 60) log.remove(0)
+        o.put("log", log).put("abend_tag", java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.GERMANY).format(java.util.Date()))
+        save(ctx, o)
+        val temp = if (tt != null) " bei $tt °" else ""
+        return when { v < 0 -> "Notiert: $n Teile waren$temp zu kalt – ich ziehe dich da künftig wärmer an."
+            v > 0 -> "Notiert: $n Teile waren$temp zu warm – künftig etwas luftiger."
+            else -> "Super, gemerkt: das passt$temp." }
+    }
+
     /** Rückmeldung: -1 zu kalt, 0 passt, +1 zu warm. Verschiebt langsam (0,5° pro Antwort, höchstens ±5°). */
     fun feedback(ctx: Context, v: Int): String {
         val o = get(ctx)

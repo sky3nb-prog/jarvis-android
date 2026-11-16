@@ -10,7 +10,7 @@
     Object.assign({}, B, { id: "gaming", n: "Gaming", i: "▶", h: 280, d: "Discord an, Anrufe weg", handy: "dnd", discord: "Gurken" }),
     Object.assign({}, B, { id: "chill", n: "Chill", i: "♪", h: 160, d: "Musik an, entspannt", musik: "deezer" }),
     Object.assign({}, B, { id: "kino", n: "Kino", i: "◐", h: 320, d: "Alles leise, nichts stört", handy: "lautlos", sammeln: true, still: true }),
-    Object.assign({}, B, { id: "schule", n: "Schule", i: "▦", h: 45, d: "Handy leise", handy: "lautlos" }),
+    Object.assign({}, B, { id: "schule", n: "Schule", i: "▦", h: 45, d: "Alles stumm, nur Uhr", handy: "stumm", still: true }),
     Object.assign({}, B, { id: "nacht", n: "Gute Nacht", i: "☾", h: 230, d: "Handy still, PC aus", handy: "dnd", sammeln: true, still: true, aus: true }),
     { id: "aus", n: "Normal", i: "○", h: 30, d: "Alles wieder normal" },
   ];
@@ -108,7 +108,7 @@
   // --- Bearbeiten: was jeder Modus macht -------------------------------------------------------------------
   let editing = false, cfg = null;
   const saveCfg = window.JModiSaveCfg || ((c) => window.PC && window.PC.post("modi_cfg", { cfg: c }));
-  const HANDY = [["dnd", "Nicht stören"], ["lautlos", "Lautlos"], ["normal", "Normal"], ["", "Nichts ändern"]];
+  const HANDY = [["stumm", "Alles stumm (nur Uhr)"], ["dnd", "Nicht stören"], ["lautlos", "Lautlos"], ["normal", "Normal"], ["", "Nichts ändern"]];
   const MUSIK = [["", "Keine"], ["lofi", "Lofi (YouTube)"], ["deezer", "Deezer"], ["spotify", "Spotify"], ["youtube", "Eigene YouTube-Suche"]];
   function editDraw() {
     const list = (cfg || (st.alle || st.modi || DEF).filter((m) => m.id !== "aus")).map((m) => Object.assign({ handy: "normal", sammeln: false, still: false, musik: "", discord: "", apps: "", pomo: false, lern: 25, pause: 5, aus: false }, m));

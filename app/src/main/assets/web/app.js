@@ -609,6 +609,12 @@
   $("set-bootanim").addEventListener("click", () => setTimeout(() => { try { localStorage.setItem("boot_anim", sw("set-bootanim") ? "1" : "0"); } catch (e) {} }, 50));
   try { sw("set-melden", A.getFlag("melden", true)); } catch (e) {}
   $("set-melden").addEventListener("click", () => setTimeout(() => { try { A.setFlag("melden", sw("set-melden")); } catch (e) {} }, 50));
+  if (A && A.gmailGet) { const g = () => { try { const d = JSON.parse(A.gmailGet()); $("gm-user").value = d.user || ""; $("gm-state").textContent = d.ok ? "Verbunden." : "Noch nicht verbunden."; } catch (e) {} };
+    g(); $("gm-save").onclick = () => { A.gmailSet($("gm-user").value.trim(), $("gm-pw").value.trim()); $("gm-pw").value = ""; $("gm-state").textContent = "Teste …"; A.gmailTest(); setTimeout(g, 400); }; }
+  { const MO = ["Selten – höchstens 1× am Tag", "Normal – bis 3× am Tag", "Oft – bis 6× am Tag"], r = $("set-meldenoft");
+    const show = () => { $("mo-l").textContent = MO[+r.value]; };
+    try { r.value = A.getMeldenOft(); } catch (e) {} show();
+    r.addEventListener("input", show); r.addEventListener("change", () => { try { A.setMeldenOft(+r.value); } catch (e) {} }); }
   $("tst-boot").addEventListener("click", () => { closeSettings(); setTimeout(() => window.JBoot && JBoot.play(), 350); });
   $("tst-check").addEventListener("click", () => { closeSettings(); setTimeout(() => { let it = []; try { it = JSON.parse(A.sysCheck(false)).items || []; } catch (e) {} window.JCheck && JCheck.play(it); }, 350); });
   $("lern-btn").addEventListener("click", () => { try { $("lern-info").textContent = A.lernInfo(); } catch (e) {} });

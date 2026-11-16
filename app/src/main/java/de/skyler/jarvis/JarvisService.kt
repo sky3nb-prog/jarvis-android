@@ -41,7 +41,10 @@ class JarvisService : Service() {
         @Volatile var appVisible = false
         const val CH = "jarvis_listen"
         const val ACTION_TALK = "de.skyler.jarvis.TALK"   // Gespräch starten (ohne Aktivierungswort)
-        const val ACTION_STOP = "de.skyler.jarvis.STOP"
+        const val ACTION_STOP = "de.skyler.jarvis.STOP"     // Schalter aus: nur Mikro + Stimme aus, Meldungen kommen als Nachricht
+        const val ACTION_MIC_ON = "de.skyler.jarvis.MIC_ON" // Schalter an: wieder aufs Aktivierungswort hören
+        /** Mikro aus (Schalter oder Schulmodus): kein Zuhören, kein Sprechen – Briefings, Erinnerungen usw. kommen als Benachrichtigung (auch auf der Uhr). */
+        @Volatile var micOff = false
         const val ACTION_PAUSE = "de.skyler.jarvis.PAUSE" // Mikrofon kurz freigeben (z. B. für ElevenLabs)
         const val ACTION_RESUME = "de.skyler.jarvis.RESUME"
         const val ACTION_RELOAD = "de.skyler.jarvis.RELOAD"
@@ -67,6 +70,7 @@ class JarvisService : Service() {
     private val prefs by lazy { getSharedPreferences("jarvis", MODE_PRIVATE) }
     @Volatile private var alive = false
     @Volatile private var paused = false
+    private fun quietNow() = micOff || Modes.silent(this)
     @Volatile private var speaking = false
     private var tts: TextToSpeech? = null
     private var ttsReady = false
@@ -95,6 +99,7 @@ class JarvisService : Service() {
                 setShowBadge(false); description = "Damit Jarvis im Hintergrund auf sein Aktivierungswort hören kann."
             })
         }
+        micOff = !prefs.getBoolean("background", true)
         reload()
         // Mikrofon + Standort (Standort nur, wenn erlaubt: für Zuhause/weg, Losfahren, Ankunft)
         if (Build.VERSION.SDK_INT >= 29) {
@@ -109,7 +114,7 @@ class JarvisService : Service() {
             }
         } else startForeground(1, notification())
         running = true
-        Bus.emit("power", JSONObject().put("on", true))
+        Bus.emit("power", JSONObject().put("on", !quietNow()))
         tts = TextToSpeech(this) { st ->
             ttsReady = st == TextToSpeech.SUCCESS
             if (ttsReady) setupVoice()
@@ -176,6 +181,7 @@ class JarvisService : Service() {
     /** Von sich aus etwas sagen (Losfahren, Briefing, Ortserinnerung): Karte + Stimme, danach kurz zuhören. */
     private fun announce(text: String) = main.post {
         // Am Handy laut nur zuhause oder mit Kopfhörern; "Nicht stören" = nur Nachricht; in der Schulstunde: bis zur Pause aufheben
+        if (quietNow()) { Thread { Melden.note(this, "Jarvis", text) }.start(); return@post }   // Mikro aus / Schulmodus: nur als Nachricht (Uhr)
         when (try { Melden.route(this) } catch (_: Exception) { "speak" }) {
             "hold" -> { Thread { Melden.deliver(this, "Jarvis", text) }.start(); return@post }
             "note" -> { Thread { Melden.note(this, "Jarvis", text) }.start(); overlay?.card(JSONObject().put("kind", "text").put("text", text)); return@post }
@@ -208,13 +214,19 @@ class JarvisService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_TALK -> startTalk()
-            ACTION_STOP -> {   // auch "Ausschalten" in der Mitteilung: bleibt aus, bis du ihn wieder einschaltest
+            ACTION_STOP -> {   // Schalter aus (auch in der Mitteilung): Mikro + Stimme aus, er läuft aber weiter und meldet sich per Nachricht
                 prefs.edit().putBoolean("background", false).apply()
-                endTalk(); Bus.emit("power", JSONObject().put("on", false)); stopSelf()
+                micOff = true
+                endTalk(); Bus.emit("power", JSONObject().put("on", false)); refreshNote()
+            }
+            ACTION_MIC_ON -> {
+                prefs.edit().putBoolean("background", true).apply()
+                micOff = false
+                Bus.emit("power", JSONObject().put("on", !quietNow())); refreshNote()
             }
             ACTION_PAUSE -> { paused = true; endTalk() }
             ACTION_RESUME -> paused = false
-            ACTION_RELOAD -> { reload(); setupVoice(); syncNow(); startLocation() }
+            ACTION_RELOAD -> { reload(); setupVoice(); syncNow(); startLocation(); if (quietNow()) endTalk(); Bus.emit("power", JSONObject().put("on", !quietNow())); refreshNote() }
             ACTION_SAY -> intent.getStringExtra("text")?.takeIf { it.isNotBlank() }?.let { announce(it) }
         }
         return START_STICKY
@@ -245,12 +257,24 @@ class JarvisService : Service() {
         if (running) nm.notify(1, notification())
     }
 
+    fun refreshNote() { try { if (running) getSystemService(NotificationManager::class.java).notify(1, notification()) } catch (_: Exception) {} }
+
     private fun notification(): Notification {
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val stop = PendingIntent.getService(this, 1, Intent(this, JarvisService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE)
         val b = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CH) else @Suppress("DEPRECATION") Notification.Builder(this)
+        if (quietNow()) {
+            val on = PendingIntent.getService(this, 2, Intent(this, JarvisService::class.java).setAction(ACTION_MIC_ON), PendingIntent.FLAG_IMMUTABLE)
+            val sch = Modes.silent(this)
+            b.setSmallIcon(android.R.drawable.ic_lock_silent_mode)
+                .setContentTitle(if (sch) "Jarvis ist im Schulmodus" else "Jarvis hört nicht zu")
+                .setContentText("Mikro und Stimme aus – Meldungen kommen als Nachricht.")
+                .setContentIntent(open).setOngoing(true)
+            if (!sch) b.addAction(Notification.Action.Builder(null, "Zuhören an", on).build())
+            return b.build()
+        }
         return b.setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("Jarvis hört zu")
             .setContentText("Sag „${words.first().replaceFirstChar { it.uppercase() }}“ – ich bin da.")
@@ -440,7 +464,7 @@ class JarvisService : Service() {
         var micPaused = false
         val longQuiet = (getSharedPreferences("jarvis", MODE_PRIVATE).getFloat("pause_lang", 1.8f) * 10).toInt().coerceIn(10, 40)
         while (alive) {
-            if (paused) {
+            if (paused || (quietNow() && mode == Mode.IDLE)) {   // Mikro aus: nur hören, wenn du selbst ein Gespräch startest
                 if (!micPaused) { try { ar.stop() } catch (_: Exception) {}; micPaused = true }
                 Thread.sleep(200); continue
             } else if (micPaused) { ar.startRecording(); micPaused = false }

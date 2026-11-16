@@ -253,7 +253,7 @@
     if (a.length) setSeen(a[0].ts);
     dots(false);
     const shown = a.filter((m) => filter === "alle" || (KIND[m.kind] || [])[2] === filter);
-    let h = `<div class="fp-now"><div data-now="heute">☀️ Heute<small>Tages-Update</small></div><div data-now="morgen">🌙 Abend<small>Tagesabschluss</small></div></div>
+    let h = `<div class="fp-now"><div data-now="heute">☀️ Heute<small>Tages-Update</small></div><div data-now="tag_morgen">🌅 Morgen<small>Was morgen kommt</small></div><div data-now="morgen">🌙 Abend<small>Tagesrückblick</small></div></div>
       <div class="fp-now"><div data-now="woche">🗓️ Nächste Woche<small>7 Tage voraus</small></div><div data-now="rueckblick">📊 Letzte Woche<small>Rückblick</small></div></div>
       <div class="fp-seg">${FILTERS.map(([k, n]) => `<span data-f="${k}" class="${k === filter ? "on" : ""}">${n}</span>`).join("")}</div>`;
     if (!shown.length) h += '<div class="fp-empty">Noch keine Mitteilungen.<br>Briefings, Fahrten und Anrufe erscheinen hier.</div>';

@@ -1,5 +1,11 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-15 21:55", neu: [
+window.JNEU = { stand: "2026-11-17 00:30", neu: [
+  { title: "Schalter = nur still", text: "Ausgeschaltet höre ich nicht zu und rede nicht – aber Briefings und Erinnerungen kommen weiter als Nachricht, auch auf deiner Uhr." },
+  { title: "Schulmodus: alles stumm", text: "Nicht stören, alle Töne auf 0, ich bin still und melde mich nur per Nachricht. Danach stelle ich alles zurück. Wecker bleiben an." },
+  { title: "Was hattest du an?", text: "Abends tippst du an, was du anhattest und ob es gepasst hat – der Kleiderschrank lernt pro Teil." },
+  { title: "Briefing für morgen", text: "Glocke → „Morgen“: was morgen kommt, jederzeit abrufbar." },
+  { title: "Gleich kommt der Rewe", text: "Geplanter Halt unterwegs: Ich sag kurz vorher Bescheid, damit du nicht vorbeifährst." },
+  { title: "Gmail", text: "Ganzes Postfach (nur lesen): Pakete und „Hab ich neue Mails?“. Einstellungen → Allgemein → Gmail." },
   { title: "Sticker-Regen", text: "„Schick 200 Sticker in die Gruppe …“ – ich frag einmal nach, der PC schickt sie über WhatsApp. Sticker aus deiner Tastatur oder Galerie: Einstellungen → Leute & Anrufe → Sticker-Regen." },
   { title: "Jarvis-Konto", text: "Einmal verbinden – dann ist dein Jarvis in deinem Konto gesichert und auf jedem anderen Gerät ladbar." },
   { title: "Neu sortiert", text: "Einstellungen nach Themen: Wecker, Schule, Zuhause & Orte, Unterwegs, Kleiderschrank … – am PC genauso." },

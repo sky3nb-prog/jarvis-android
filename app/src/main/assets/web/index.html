@@ -351,6 +351,12 @@
           <div class="srow"><div>Bildschirm-Zugriff für „Schau mal hier“<small>Einmal in den Bedienungshilfen „Jarvis – Schau mal hier“ einschalten. Er schaut nur hin, wenn du es sagst.</small></div><div class="sbtn" id="set-screen">Einrichten</div></div>
           <div class="note" id="set-version"></div>
         </div>
+        <div class="sec" data-neu="n92" style="--c:#ff7a5a"><h3>GMAIL – POSTFACH</h3>
+          <div class="note" style="margin:0 0 6px">Damit ich Pakete und neue Mails aus deinem ganzen Postfach kenne (nur lesen). Dafür brauchst du ein <b>App-Passwort</b>: myaccount.google.com → Sicherheit → Bestätigung in zwei Schritten (muss an sein) → ganz unten „App-Passwörter“ → Name „Jarvis“ → die 16 Zeichen hier einfügen. Nicht dein normales Passwort.</div>
+          <div class="f"><label>Gmail-Adresse</label><input id="gm-user" type="text" placeholder="du@gmail.com" autocapitalize="none"></div>
+          <div class="f"><label>App-Passwort (16 Zeichen)</label><input id="gm-pw" type="password" placeholder="leer lassen = nicht ändern" autocomplete="off"></div>
+          <div class="srow"><div id="gm-state" class="note" style="margin:0"></div><div class="sbtn" id="gm-save">Speichern & testen</div></div>
+        </div>
         <div class="sec" style="--c:#d7a8ff"><h3>KALENDER</h3>
           <div class="f"><label>Neue Termine eintragen in</label><select id="set-cal"></select></div>
           <div class="note">Google-Kalender erscheinen auch am PC und im Browser, Samsung-Kalender nur auf diesem Handy.</div>
@@ -410,6 +416,7 @@
         </div>
       </div>
       <div class="spane" id="sp-schrank">
+        <div class="srow" style="margin:0 14px 10px"><div>Was hattest du heute an?<small>Antippen und sagen, ob es gepasst hat – so lerne ich dazu</small></div><div class="sbtn" id="ws-heute" onclick="window.JOutfit && window.JOutfit.open()">Eintragen</div></div>
         <div class="ws-hero" id="ws-hero"><small>HEUTE ANZIEHEN</small><div class="ws-chips" id="ws-today">…</div><div class="ws-why" id="ws-why"></div></div>
         <div class="sec" style="--c:#3cc8ff"><h3>MEINE SACHEN &amp; TEMPERATUREN</h3><div id="ws-layers"></div></div>
         <div class="sec" style="--c:#ffd678"><h3>EIGENES TEIL</h3>
@@ -441,7 +448,8 @@
         </div>
         <div class="sec" data-neu="n80" style="--c:#6effcd"><h3>VORSCHLÄGE – ER LERNT MIT</h3>
           <div class="note" style="margin:0 0 6px">Gehst du auf einen Vorschlag 5× hintereinander nicht ein (z. B. Bahn bei Regen, du fährst aber Rad), lässt er ihn erst 2 Wochen weg, beim nächsten Mal einen Monat. Am PC genauso.</div>
-          <div class="srow"><div>Von selbst melden<small>Bis zu zweimal am Tag (mittags, abends), wenn mir was auffällt: wie lief gestern …, lange nicht bei Oma und Opa, noch nicht draußen, Geburtstag bald</small></div><div class="sw" id="set-melden"></div></div>
+          <div class="srow"><div>Von selbst melden<small>Wenn mir was auffällt: wie lief gestern …, lange nicht bei Oma und Opa, noch nicht draußen, Geburtstag bald</small></div><div class="sw" id="set-melden"></div></div>
+          <div class="f"><label>Wie oft? <b id="mo-l" style="color:#ffd678"></b></label><input id="set-meldenoft" type="range" min="0" max="2" step="1" value="1"></div>
           <div class="srow"><div>Was gerade pausiert ist<small id="lern-info">Tippe auf Zeigen</small></div><div class="sbtn" id="lern-btn">Zeigen</div></div>
           <div class="srow"><div>Alles wieder vorschlagen<small>Pausen zurücksetzen</small></div><div class="sbtn" id="lern-reset">Zurücksetzen</div></div>
         </div>
@@ -519,6 +527,7 @@ window.JModiSaveCfg = (c) => { try { window.Android.setModiCfg(JSON.stringify(c)
 <script src="bootfx.js"></script>
 <script src="neu.js"></script>
 <script src="konto.js"></script>
+<script src="outfit.js"></script>
 <script>(function(){const J=window.jarvis;if(!J)return;const prev=J.onEvent;J.onEvent=function(t,d){if(t==="skill"){window.JSkill&&JSkill.show(d||{});return;}if(t==="checkfx"){window.JCheck&&JCheck.play((d||{}).items);return;}return prev&&prev.call(J,t,d);};setTimeout(function(){try{const N=window.JNEU;if(!N)return;let seen=[];try{seen=JSON.parse(localStorage.getItem("skills_seen")||"[]");}catch(e){}const nu=N.neu.filter(function(x){return seen.indexOf(x.title)<0;});nu.forEach(function(x){JSkill.show({title:x.title,text:x.text,kind:"funktion"});seen.push(x.title);});try{localStorage.setItem("skills_seen",JSON.stringify(seen.slice(-80)));}catch(e){}}catch(e){}},(window.JBoot&&(JBoot.running||JBoot.pending))?6500:2500);})();</script>
 <script>
 (function(){ // Nur-Kugel-Modus im Fokus: Text, Gesprächsknopf und Schreibfeld gleiten nach unten weg

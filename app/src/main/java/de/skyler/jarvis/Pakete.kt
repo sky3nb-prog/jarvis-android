@@ -54,9 +54,14 @@ object Pakete {
         val ex = n.extras ?: return
         val title = ex.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = (ex.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: ex.getCharSequence(Notification.EXTRA_TEXT))?.toString() ?: ""
+        if (sbn.packageName == "com.amazon.mShop.android.shopping" && !WORDS.containsMatchIn("$title $text")) return
+        fromText(ctx, app, title, text, say)
+    }
+
+    /** Meldung (Benachrichtigung oder E-Mail) auswerten. app = Paketdienst, wenn bekannt, sonst "". */
+    fun fromText(ctx: Context, app: String, title: String, text: String, say: ((String) -> Unit)?) {
         val all = "$title $text"
         if (app.isBlank() && !WORDS.containsMatchIn(all)) return          // Gmail/SMS: nur Versandmeldungen
-        if (sbn.packageName == "com.amazon.mShop.android.shopping" && !WORDS.containsMatchIn(all)) return
         val nr = NR.firstNotNullOfOrNull { (r, _) -> r.find(all)?.groupValues?.get(1) } ?: ""
         val carrier = carrierOf(all, app)
         val st = status(all)

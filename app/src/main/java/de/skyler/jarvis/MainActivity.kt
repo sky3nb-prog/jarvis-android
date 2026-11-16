@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.widget.FrameLayout
+import org.json.JSONArray
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
@@ -124,7 +125,7 @@ class MainActivity : ComponentActivity() {
     /** Hintergrund-Jarvis (Aktivierungswort) starten, wenn eingeschaltet. */
     private fun startBackground() {
         if (!hasMic()) return
-        if (prefs.getBoolean("background", true)) JarvisService.start(this)
+        JarvisService.start(this)   // läuft immer (Briefings, Erinnerungen); der Schalter macht nur Mikro + Stimme aus
     }
 
     private val textBrain by lazy { Brain(this) }   // für getippte Fragen
@@ -167,10 +168,12 @@ class MainActivity : ComponentActivity() {
         }
         pendingFeed = intent?.getStringExtra("feed")
         if (intent?.getBooleanExtra("talk", false) == true) pendingWidgetTalk = true
+        if (intent?.getBooleanExtra("outfit", false) == true) pendingOutfit = true
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
                 pageReady = true
                 pendingFeed?.let { id -> pendingFeed = null; send("feed_open", JSONObject().put("id", id)) }
+                if (pendingOutfit) { pendingOutfit = false; web.postDelayed({ send("outfit_ask", JSONObject()) }, 1500) }
                 if (pendingWidgetTalk) { pendingWidgetTalk = false; web.postDelayed({ send("widget_talk", JSONObject()) }, 900) }
             }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -205,8 +208,10 @@ class MainActivity : ComponentActivity() {
         showOverLock(intent)
         intent.getStringExtra("feed")?.let { id -> if (pageReady) send("feed_open", JSONObject().put("id", id)) else pendingFeed = id }
         if (intent.getBooleanExtra("talk", false)) { if (pageReady) send("widget_talk", JSONObject()) else pendingWidgetTalk = true }
+        if (intent.getBooleanExtra("outfit", false)) { if (pageReady) send("outfit_ask", JSONObject()) else pendingOutfit = true }
     }
     @Volatile private var pendingWidgetTalk = false
+    @Volatile private var pendingOutfit = false
 
     /** Vom Weckwort geöffnet: über dem Sperrbildschirm zeigen und Bildschirm anschalten (nur solange Jarvis offen ist). */
     private fun showOverLock(i: Intent?) {
@@ -430,8 +435,8 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 if (o.optBoolean("background", true)) {
                     startBackground(); JarvisService.start(this@MainActivity, JarvisService.ACTION_RELOAD)
-                } else if (JarvisService.running) {
-                    startService(Intent(this@MainActivity, JarvisService::class.java).setAction(JarvisService.ACTION_STOP))
+                } else {
+                    JarvisService.start(this@MainActivity, JarvisService.ACTION_STOP)
                 }
             }
         }
@@ -442,11 +447,10 @@ class MainActivity : ComponentActivity() {
             prefs.edit().putBoolean("background", on).apply()
             runOnUiThread {
                 if (on) {
-                    if (!hasMic()) askPermissions() else JarvisService.start(this@MainActivity)
+                    if (!hasMic()) askPermissions() else JarvisService.start(this@MainActivity, JarvisService.ACTION_MIC_ON)
                 } else {
                     talk?.stop(); talk = null
-                    if (JarvisService.running)
-                        startService(Intent(this@MainActivity, JarvisService::class.java).setAction(JarvisService.ACTION_STOP))
+                    JarvisService.start(this@MainActivity, JarvisService.ACTION_STOP)
                 }
             }
         }
@@ -525,6 +529,21 @@ class MainActivity : ComponentActivity() {
         fun setFlag(k: String, v: Boolean) { if (k in listOf("melden", "aufsteh_check", "regen_warnung")) prefs.edit().putBoolean(k, v).apply() }
 
         @JavascriptInterface
+        fun gmailGet(): String = JSONObject().put("user", Mail.user(this@MainActivity)).put("ok", Mail.configured(this@MainActivity)).toString()
+
+        @JavascriptInterface
+        fun gmailSet(user: String, pw: String) { Mail.set(this@MainActivity, user, pw) }
+
+        @JavascriptInterface
+        fun gmailTest() { Thread({ send("info", JSONObject().put("text", Mail.test(this@MainActivity))) }, "jarvis-mailtest").start() }
+
+        @JavascriptInterface
+        fun getMeldenOft(): Int = prefs.getInt("melden_oft", 1)
+
+        @JavascriptInterface
+        fun setMeldenOft(v: Int) { prefs.edit().putInt("melden_oft", v.coerceIn(0, 2)).apply() }
+
+        @JavascriptInterface
         fun getSchule(): String = Schule.all(this@MainActivity).toString()
 
         @JavascriptInterface
@@ -600,11 +619,20 @@ class MainActivity : ComponentActivity() {
 
         /** Tages-, Morgen- oder Wochen-Update jetzt erzeugen (kind: heute, morgen, woche). Antwort kommt als "feed_open". */
         @JavascriptInterface
+        fun outfitData(): String = try { Alltag.outfitData(this@MainActivity).toString() } catch (_: Exception) { "{}" }
+
+        @JavascriptInterface
+        fun outfitSave(idsJson: String, v: Int, t: Double): String {
+            val ids = try { JSONArray(idsJson).let { a -> (0 until a.length()).map { a.optString(it) } } } catch (_: Exception) { emptyList() }
+            return Wardrobe.dayFeedback(this@MainActivity, ids, v, if (t.isNaN() || t < -60) null else t)
+        }
+
+        @JavascriptInterface
         fun feedNow(kind: String) {
             Thread({
                 val r = try {
                     when (kind) { "woche" -> Alltag.weekAhead(this@MainActivity); "rueckblick" -> Alltag.weekBack(this@MainActivity); "bilanz" -> Alltag.dayHealth(this@MainActivity)
-                        "morgen" -> Alltag.eveningBrief(this@MainActivity); else -> Alltag.dayBrief(this@MainActivity, 0) }
+                        "morgen" -> Alltag.eveningBrief(this@MainActivity); "tag_morgen" -> Alltag.dayBrief(this@MainActivity, 1); else -> Alltag.dayBrief(this@MainActivity, 0) }
                 } catch (_: Exception) { null }
                 if (r != null) send("feed_open", JSONObject().put("id", r.second))
                 else send("info", JSONObject().put("text", "Das Update ging gerade nicht (Groq-Schlüssel? Internet?)."))

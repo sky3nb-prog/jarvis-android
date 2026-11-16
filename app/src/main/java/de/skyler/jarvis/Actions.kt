@@ -78,6 +78,7 @@ class Actions(private val ctx: Context) {
             "idee" -> Ideen.add(ctx, a.optString("text"))
             "note" -> Schule.note(ctx, a.optString("fach"), a.optString("note"), a.optString("art").let { if (it == "null") "" else it })
             "pakete" -> Pakete.summary(ctx)
+            "mails" -> Mail.summary(ctx)
             "person" -> Leute.about(ctx, a.optString("wer"), a.optBoolean("geschenk"))
             "statuscheck" -> SysCheck.run(ctx).let { a -> try { Bus.emit("checkfx", org.json.JSONObject().put("items", a)) } catch (_: Exception) {}; SysCheck.summary(a) }
             "modus" -> Modes.set(ctx, a.optString("name"))

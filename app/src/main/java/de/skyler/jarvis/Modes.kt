@@ -49,9 +49,50 @@ object Modes {
       {"id":"gaming","n":"Gaming","i":"▶","h":280,"d":"Discord an, Anrufe weg","handy":"dnd","sammeln":false,"still":false,"musik":"","discord":"Gurken","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
       {"id":"chill","n":"Chill","i":"♪","h":160,"d":"Musik an, entspannt","handy":"normal","sammeln":false,"still":false,"musik":"deezer","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
       {"id":"kino","n":"Kino","i":"◐","h":320,"d":"Alles leise, nichts stört","handy":"lautlos","sammeln":true,"still":true,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
-      {"id":"schule","n":"Schule","i":"▦","h":45,"d":"Handy leise","handy":"lautlos","sammeln":false,"still":false,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
+      {"id":"schule","n":"Schule","i":"▦","h":45,"d":"Alles stumm, nur Uhr","handy":"stumm","sammeln":false,"still":true,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":false},
       {"id":"nacht","n":"Gute Nacht","i":"☾","h":230,"d":"Handy still, PC aus","handy":"dnd","sammeln":true,"still":true,"musik":"","discord":"","apps":"","pomo":false,"lern":25,"pause":5,"aus":true}]"""
-    fun cfg(ctx: Context): JSONArray = try { JSONArray(prefs(ctx).getString("modi_cfg", "") ?: "").takeIf { it.length() > 0 } } catch (_: Exception) { null } ?: JSONArray(DEF)
+    /** Schulmodus (bzw. jeder Modus mit "Alles stumm"): Jarvis hört nicht zu, spricht nicht, meldet sich nur per Nachricht (Uhr). */
+    fun silent(ctx: Context): Boolean {
+        val id = current(ctx)
+        return id.isNotBlank() && find(ctx, id)?.optString("handy") == "stumm"
+    }
+
+    // Lautstärken, die "Alles stumm" auf 0 setzt (Wecker bleibt!) – vorher gemerkt und danach zurückgestellt
+    private val STREAMS = intArrayOf(AudioManager.STREAM_MUSIC, AudioManager.STREAM_RING, AudioManager.STREAM_NOTIFICATION,
+        AudioManager.STREAM_SYSTEM, 10 /* STREAM_ACCESSIBILITY */, 11 /* STREAM_ASSISTANT (KI-Assistent) */)
+
+    private fun muteAll(ctx: Context) {
+        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (!prefs(ctx).contains("vol_backup")) {
+            val b = JSONObject()
+            STREAMS.forEach { s -> try { b.put(s.toString(), am.getStreamVolume(s)) } catch (_: Exception) {} }
+            prefs(ctx).edit().putString("vol_backup", b.toString()).apply()
+        }
+        dnd(ctx, true)
+        STREAMS.forEach { s -> try { am.setStreamVolume(s, 0, 0) } catch (_: Exception) {} }
+        try { am.ringerMode = AudioManager.RINGER_MODE_SILENT } catch (_: Exception) {}
+    }
+
+    private fun unmuteAll(ctx: Context) {
+        val raw = prefs(ctx).getString("vol_backup", null) ?: return
+        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        try { am.ringerMode = AudioManager.RINGER_MODE_NORMAL } catch (_: Exception) {}
+        try { val b = JSONObject(raw); b.keys().forEach { k -> try { am.setStreamVolume(k.toInt(), b.optInt(k), 0) } catch (_: Exception) {} } } catch (_: Exception) {}
+        prefs(ctx).edit().remove("vol_backup").apply()
+    }
+
+    private fun jarvisRefresh(ctx: Context) {
+        try { if (JarvisService.running) JarvisService.start(ctx, JarvisService.ACTION_RELOAD) } catch (_: Exception) {}
+    }
+
+    fun cfg(ctx: Context): JSONArray {
+        val a = try { JSONArray(prefs(ctx).getString("modi_cfg", "") ?: "").takeIf { it.length() > 0 } } catch (_: Exception) { null } ?: return JSONArray(DEF)
+        if (!prefs(ctx).getBoolean("schule_stumm_v1", false)) {   // Wunsch 16.11.: Schulmodus = alles stumm, Jarvis aus, nur Uhr
+            for (i in 0 until a.length()) a.optJSONObject(i)?.takeIf { it.optString("id") == "schule" }?.apply { put("handy", "stumm"); put("still", true); put("d", "Alles stumm, nur Uhr") }
+            prefs(ctx).edit().putBoolean("schule_stumm_v1", true).putString("modi_cfg", a.toString()).apply()
+        }
+        return a
+    }
     fun setCfg(ctx: Context, a: JSONArray, toPc: Boolean) {
         prefs(ctx).edit().putString("modi_cfg", if (a.length() == 0) "" else a.toString()).apply()
         if (toPc && Link.paired(ctx)) Thread { try { Link.command(ctx, JSONObject().put("type", "modi_cfg").put("cfg", a), 15_000) } catch (_: Exception) {} }.start()
@@ -71,6 +112,7 @@ object Modes {
     private fun handy(ctx: Context, how: String): Boolean {
         val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         return when (how) {
+            "stumm" -> { muteAll(ctx); true }
             "dnd" -> dnd(ctx, true)
             "lautlos" -> { try { am.ringerMode = AudioManager.RINGER_MODE_SILENT } catch (_: Exception) { try { am.ringerMode = AudioManager.RINGER_MODE_VIBRATE } catch (_: Exception) {} }; true }
             "normal" -> { dnd(ctx, false); try { am.ringerMode = AudioManager.RINGER_MODE_NORMAL } catch (_: Exception) {}; true }
@@ -89,14 +131,16 @@ object Modes {
         }
         val m = if (id == "aus") null else find(ctx, id)
         clearFokus(ctx)
+        if (m?.optString("handy") != "stumm") unmuteAll(ctx)   // vorher „Alles stumm“: Lautstärken zurück
         if (m == null) {   // aus / guten Morgen
             val was = current(ctx)
-            handy(ctx, "normal"); prefs(ctx).edit().putString("modus", "").apply()
+            handy(ctx, "normal"); prefs(ctx).edit().putString("modus", "").apply(); jarvisRefresh(ctx)
             if (was.isNotBlank() && was != "nacht") toPc(ctx, "modus aus vom handy")
             return "Alles wieder normal: Klingelton an, Nicht stören aus."
         }
         prefs(ctx).edit().putString("modus", id).apply()
-        val how = handyOverride ?: m.optString("handy", "normal")
+        val how = if (m.optString("handy") == "stumm") "stumm" else (handyOverride ?: m.optString("handy", "normal"))
+        jarvisRefresh(ctx)
         val ok = handy(ctx, how)
         val label = m.optString("n", id)
         if (id == "nacht") {
@@ -122,7 +166,8 @@ object Modes {
             prefs(ctx).edit().putString("fokus_ids", ids.joinToString(",")).apply()
         }
         return "$label-Modus an." + (if (m.optBoolean("pomo")) " ${m.optInt("lern", 25)} Minuten konzentriert, dann ${m.optInt("pause", 5)} Minuten Pause." else "") +
-            when (how) { "dnd" -> if (ok) " Nicht stören ist an." else " Erlaub mir bitte einmal „Nicht stören“ – ich hab die Einstellung geöffnet."; "lautlos" -> " Handy ist lautlos."; else -> "" }
+            when (how) { "dnd" -> if (ok) " Nicht stören ist an." else " Erlaub mir bitte einmal „Nicht stören“ – ich hab die Einstellung geöffnet."; "lautlos" -> " Handy ist lautlos."
+                "stumm" -> " Alles ist stumm, ich höre nicht zu und melde mich nur per Nachricht auf der Uhr. Wecker bleiben an."; else -> "" }
     }
 
     @Volatile var fromPc = false

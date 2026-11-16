@@ -57,6 +57,13 @@ object Gassi {
     /** Jede Minute aus Alltag.tick. homeWifi = Handy hängt im Heim-WLAN. Zuhause = Heim-WLAN oder unter 40 m vom Haus
      *  (eigene, enge Grenze – das allgemeine "zuhause" von Jarvis gilt schon ab 150 m und wäre für kurze Runden zu grob). */
     fun tick(ctx: Context, loc: Location?, homeWifi: Boolean) {
+        if (!prefs(ctx).getBoolean("gassi_clean_v1", false)) {   // einmalig: falsch erkannte „Runden“ (z. B. Schulweg mit Rad) raus
+            val a = walks(ctx); val keep = JSONArray()
+            for (i in 0 until a.length()) a.optJSONObject(i)?.let { w -> val m = w.optDouble("min"); val k = w.optDouble("km")
+                if (m in 4.0..120.0 && k / (m / 60) >= 2.0) keep.put(w) }
+            try { file(ctx).writeText(keep.toString()) } catch (_: Exception) {}
+            prefs(ctx).edit().putBoolean("gassi_clean_v1", true).apply()
+        }
         val one = once(ctx)
         if (!on(ctx) && one == null) { if (st(ctx).length() > 0) put(ctx, JSONObject()); return }
         val now = System.currentTimeMillis()
@@ -75,10 +82,16 @@ object Gassi {
         if (h == null) { log(ctx, loc, -1.0, false, "keine Heimadresse"); return }
         if (!fresh) { log(ctx, loc, d, false, if (loc == null) "kein Standort" else "Standort zu alt/ungenau"); return }
         val p = Route.P(loc!!.latitude, loc.longitude, "")
-        if (!c.has("start")) c.put("start", now).put("km", 0.0).put("maxd", d).put("lat", p.lat).put("lon", p.lon).put("d", d).put("pts", JSONArray())
+        if (!c.has("start")) c.put("start", now).put("km", 0.0).put("maxd", d).put("lat", p.lat).put("lon", p.lon).put("d", d).put("pts", JSONArray()).put("t", loc.time)
         else {
             val step = Route.distKm(Route.P(c.optDouble("lat"), c.optDouble("lon"), ""), p)
-            if (step > 0.012) c.put("km", c.optDouble("km") + step).put("lat", p.lat).put("lon", p.lon)
+            // Fahrrad/Bus erkennen: ein Stück schneller als 11 km/h (genauer Standort) = keine Hunderunde
+            val dtH = (loc.time - c.optLong("t", loc.time)) / 3_600_000.0
+            if (dtH > 0 && step > 0.05 && loc.accuracy <= 40 && step / dtH > 11.0) c.put("fast", true)
+            // Länger irgendwo geblieben (Schule, Laden, Freunde): über 12 Min. kaum bewegt = keine Hunderunde
+            if (step < 0.06) { if (!c.has("still")) c.put("still", now) else if (now - c.optLong("still") > 12 * 60_000L) c.put("halt", true) }
+            else c.remove("still")
+            if (step > 0.012) c.put("km", c.optDouble("km") + step).put("lat", p.lat).put("lon", p.lon).put("t", loc.time)
             c.put("maxd", maxOf(c.optDouble("maxd"), d))
         }
         val pts = c.optJSONArray("pts") ?: JSONArray().also { c.put("pts", it) }
@@ -87,7 +100,7 @@ object Gassi {
         val kmh = if (min > 0) c.optDouble("km") / (min / 60) else 0.0
         val prevD = c.optDouble("d", d); c.put("d", d)
         val maxd = c.optDouble("maxd")
-        val walking = kmh <= 7.0 && maxd < 3000
+        val walking = kmh <= 7.0 && maxd < 3000 && !c.optBoolean("fast") && !c.optBoolean("halt")
         c.put("walk", walking)
         // (1) wieder deutlich näher am Haus (auch kurze Runden ab 120 m). Weil nur alle 20–60 s ein Standort kommt:
         //     auch dann, wenn du beim gleichen Tempo vor dem nächsten Standort schon daheim wärst.
@@ -144,7 +157,11 @@ object Gassi {
         val min = (now - c.optLong("start")) / 60_000.0
         val km = c.optDouble("km")
         val kmh = if (min > 0) km / (min / 60) else 0.0
-        val ok = !(min < 4 || min > 180 || kmh > 7.0 || c.optDouble("maxd") < 100 || c.optDouble("maxd") > 3000)
+        // nur echte Runden zu Fuß: kein Rad-/Bus-Stück, kein langer Aufenthalt (z. B. Schule), nicht länger als 2 Stunden
+        val ok = !(min < 4 || min > 120 || kmh > 7.0 || kmh < 2.0 || c.optDouble("maxd") < 100 || c.optDouble("maxd") > 3000 ||
+            c.optBoolean("fast") || c.optBoolean("halt"))
+        if (!ok) log(ctx, null, -1.0, true, "keine Hunderunde: ${min.toInt()} min, ${"%.1f".format(Locale.GERMANY, kmh)} km/h" +
+            (if (c.optBoolean("fast")) ", Rad/Bus-Tempo" else "") + (if (c.optBoolean("halt")) ", lange Pause unterwegs" else ""))
         if (ok) {
             val a = walks(ctx)
             a.put(JSONObject().put("start", c.optLong("start")).put("end", now).put("min", Math.round(min)).put("km", Math.round(km * 100) / 100.0)
