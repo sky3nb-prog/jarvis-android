@@ -538,6 +538,12 @@ class MainActivity : ComponentActivity() {
         fun gmailTest() { Thread({ send("gmail_test", Mail.test(this@MainActivity)) }, "jarvis-mailtest").start() }
 
         @JavascriptInterface
+        fun meldenTest() { Thread({ try { Alltag.checkInTest(this@MainActivity) } catch (_: Exception) {} }, "jarvis-meldetest").start() }
+
+        @JavascriptInterface
+        fun watchTest() { Alltag.watchTest(this@MainActivity) }
+
+        @JavascriptInterface
         fun getMeldenOft(): Int = prefs.getInt("melden_oft", 1)
 
         @JavascriptInterface

@@ -137,18 +137,24 @@ object Alltag {
      * Persönlich formuliert (Groq, mit dem, was er über dich weiß). Am PC gesagt, wenn du dort sitzt, sonst als Mitteilung.
      * Lernt mit: öffnest du die Mitteilungen nie, meldet er sich seltener (Vorschlag "persoenlich").
      */
-    private fun checkIn(ctx: Context, s: JSONObject) {
-        if (!on(ctx, "melden")) return
+    /** Knopf „Testen“: sich jetzt einmal melden – genau wie sonst (laut oder als Nachricht), ohne Uhrzeit-/Abstands-Regeln. */
+    fun checkInTest(ctx: Context) { val s = state(ctx); checkIn(ctx, s, force = true); save(ctx, s) }
+
+    /** Knopf „Uhr testen“: eine normale Jarvis-Nachricht, die auf der Galaxy Watch erscheinen sollte. */
+    fun watchTest(ctx: Context) = Melden.note(ctx, "Jarvis – Test", "Wenn du das auf deiner Uhr siehst, klappt es. So kommen meine Meldungen, wenn ich still bin.")
+
+    private fun checkIn(ctx: Context, s: JSONObject, force: Boolean = false) {
+        if (!on(ctx, "melden") && !force) return
         val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY)
         // so oft es etwas Neues gibt: zwischen 9 und 21 Uhr, mindestens 2 Stunden Abstand (nicht während der Schulstunde – das hebt Melden auf)
         // Regler „Wie oft“: 0 selten (1×/Tag, 6 Std. Abstand), 1 normal (bis 3×, 3 Std.), 2 oft (bis 6×, 1,5 Std.)
         val oft = prefs(ctx).getInt("melden_oft", 1).coerceIn(0, 2)
         val gap = longArrayOf(6 * 3_600_000L, 3 * 3_600_000L, 90 * 60_000L)[oft]
         val maxDay = intArrayOf(1, 3, 6)[oft]
-        if (h < 9 || h >= 21 || System.currentTimeMillis() - s.optLong("melden_last") < gap) return
-        if (s.optInt("melden_n|${today()}") >= maxDay) return
+        if (!force && (h < 9 || h >= 21 || System.currentTimeMillis() - s.optLong("melden_last") < gap)) return
+        if (!force && s.optInt("melden_n|${today()}") >= maxDay) return
         val slotKey = "melden|${today()}|$h"
-        if (!Vorschlag.allowed(ctx, "persoenlich")) return
+        if (!force && !Vorschlag.allowed(ctx, "persoenlich")) return
         val now = System.currentTimeMillis()
         val dayStart = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
         val obs = mutableListOf<String>()
@@ -177,7 +183,8 @@ object Alltag {
             obs.clear(); obs.add("Er scheint heute ${mood.optString("label")} zu sein (${(0 until (mood.optJSONArray("why")?.length() ?: 0)).joinToString(", ") { mood.getJSONArray("why").optString(it) }}). Frag behutsam, wie sein Tag war, KEIN Vorschlag, keine Aufgabe")
         }
         val usedToday = s.optString("melden_was|${today()}")
-        obs.removeAll { usedToday.contains(it.take(25)) }   // nicht zweimal am Tag dasselbe
+        if (!force) obs.removeAll { usedToday.contains(it.take(25)) }   // nicht zweimal am Tag dasselbe
+        if (obs.isEmpty() && force) obs.add("Er testet gerade, wie du dich meldest – frag locker, wie sein Tag so läuft")
         if (obs.isEmpty()) return
         mark(s, slotKey); s.put("melden_last", System.currentTimeMillis()); s.put("melden_n|${today()}", s.optInt("melden_n|${today()}") + 1)
         val what = obs.first()
@@ -189,6 +196,7 @@ object Alltag {
                 what.startsWith("Er scheint") -> "Hey, alles okay bei dir? Klang nach einem langen Tag. Wenn du reden willst, ich bin da."
                 what.startsWith("Gestern war") -> "Sag mal, gestern war ${what.substringAfter("„").substringBefore("“")} – wie ist es gelaufen?"
                 what.contains("draußen") -> "Du warst heute noch gar nicht draußen. Kurz an die frische Luft?"
+                what.startsWith("Er testet") -> "Hey, kurzer Test von mir – wie läuft dein Tag so?"
                 else -> "Heute war noch keine Hunderunde – der Hund freut sich bestimmt."
             }
             val key = prefs(ctx).getString("groq_key", "") ?: ""
@@ -200,7 +208,7 @@ object Alltag {
                     .put(JSONObject().put("role", "user").put("content", "Dir ist aufgefallen: $what. Nur der Text.")), 160).trim().trim('"')
                 if (out.length in 10..300) text = out
             } catch (_: Exception) {}
-            if (Melden.lessonNow(ctx) == null && pcSay(ctx, text)) return@Thread
+            if (!force && Melden.lessonNow(ctx) == null && pcSay(ctx, text)) return@Thread
             val fid = Feed.add(ctx, "test", "Jarvis meldet sich", text, text)
             Melden.deliver(ctx, "Jarvis", text, fid)   // laut nur zuhause/Kopfhörer, sonst Nachricht, in der Stunde erst in der Pause
             Vorschlag.shown(ctx, "persoenlich", fid)
