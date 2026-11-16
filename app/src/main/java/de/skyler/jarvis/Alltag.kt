@@ -1593,6 +1593,9 @@ object Alltag {
             else if (firstAlarm != null) "erster Wecker ${clock(firstAlarm)}" else "kein Wecker, er kann ausschlafen"))
         if (wx != null) parts.add("MORGEN – Wetter Leonberg: $wx")
         val epick = dayPick(ctx, wx)
+        try { Wardrobe.today(ctx).takeIf { it.optBoolean("done") }?.let { w ->   // was er heute anhatte (wenn schon eingetragen)
+            parts.add("HEUTE – angehabt: ${(0 until w.getJSONArray("names").length()).joinToString(", ") { w.getJSONArray("names").getString(it).substringAfter(" ") }} – " +
+                when (w.optInt("v")) { -1 -> "war ihm zu kalt"; 1 -> "war ihm zu warm"; else -> "hat gepasst" } + ". Erwähne das kurz im Rückblick.") } } catch (_: Exception) {}
         parts.add(epick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))
         val sys = "Du bist Jarvis und gibst Skyler seinen Tagesabschluss am Abend. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, persönlich wie ein guter Freund, ohne Listen und Sonderzeichen, 3 bis 6 kurze Sätze: kurzer Rückblick auf heute (was los war – kommentiere 1 bis 2 Termine oder Dinge von heute kurz und persönlich, z. B. Elternsprechtag -> 'hoffentlich lief's gut', Klassenarbeit -> 'ich drück dir die Daumen fürs Ergebnis', Treffen mit Freunden -> 'klingt nach einem guten Tag'; passend zu seiner Stimmung: war der Tag eher schwer, warm und aufmunternd, ohne Ratschläge; war er gut, freu dich mit" +

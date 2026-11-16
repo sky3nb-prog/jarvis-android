@@ -156,6 +156,19 @@ object Wardrobe {
             else -> "Super, gemerkt: das passt$temp." }
     }
 
+    /** Was du heute (bis 5 Uhr: gestern) angegeben hast – für den Tagesrückblick. */
+    fun today(ctx: Context): JSONObject {
+        val o = get(ctx)
+        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.GERMANY).format(java.util.Date(System.currentTimeMillis() - Alltag.lateShift() * 86_400_000L))
+        if (o.optString("abend_tag") != day) return JSONObject().put("done", false)
+        val log = o.optJSONArray("log") ?: return JSONObject().put("done", false)
+        val e = (0 until log.length()).mapNotNull { log.optJSONObject(it) }.lastOrNull { it.optBoolean("abend") } ?: return JSONObject().put("done", false)
+        val ids = e.optJSONArray("ids")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
+        val arr = o.getJSONArray("items")
+        val names = (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }.filter { it.optString("id") in ids }.map { it.optString("icon") + " " + it.optString("name") }
+        return JSONObject().put("done", true).put("names", JSONArray(names)).put("v", e.optInt("v")).put("t", e.optDouble("t"))
+    }
+
     /** Rückmeldung: -1 zu kalt, 0 passt, +1 zu warm. Verschiebt langsam (0,5° pro Antwort, höchstens ±5°). */
     fun feedback(ctx: Context, v: Int): String {
         val o = get(ctx)

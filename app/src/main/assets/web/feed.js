@@ -140,6 +140,14 @@
     h += card("⏰ MORGEN AUFSTEHEN", "#d7a8ff", d.aufstehen ? `<div class="fp-row"><span class="z">${hm(d.aufstehen)}</span><span>aufstehen${(d.wecker || []).length ? `<span class="o">Wecker ${d.wecker.map(esc).join(", ")}</span>` : ""}</span></div>` +
       (d.bett ? `<div class="fp-row"><span class="z">${hm(d.bett)}</span><span>schlafen gehen<span class="o">dann sind es 8 Stunden</span></span></div>` : "")
       : `<div class="fp-row"><span class="z">${d.erster_wecker ? hm(d.erster_wecker) : "–"}</span><span>${d.erster_wecker ? "erster Wecker" : "kein Wecker – ausschlafen"}</span></div>`);
+    // Was du heute anhattest (aus der Abend-Abfrage) – oder Knopf zum Eintragen
+    let w = {}; try { w = JSON.parse((A.outfitToday && A.outfitToday()) || "{}"); } catch (e) {}
+    const VV = { "-1": "🥶 war zu kalt", "0": "👍 hat gepasst", "1": "🥵 war zu warm" };
+    h += card("👕 HEUTE ANGEHABT", "#ffd678", w.done
+      ? `<div class="fp-todo" style="gap:9px;flex-wrap:wrap">${(w.names || []).map(esc).join(" · ")}</div><div class="fp-row"><span>${VV[String(w.v)] || ""}${w.t ? ` <span class="o">bei gefühlt ${Math.round(w.t)}°</span>` : ""}</span></div>
+         <div class="fp-now" style="margin-top:8px"><div onclick="window.JOutfit && window.JOutfit.open()">Ändern</div></div>`
+      : `<div class="fp-row"><span>Noch nicht eingetragen – sag mir, was du anhattest und ob es gepasst hat. Dann lerne ich dazu.</span></div>
+         <div class="fp-now" style="margin-top:8px"><div onclick="window.JOutfit && window.JOutfit.open()">👕 Jetzt eintragen</div></div>`);
     h += outfit(d.outfit, d.anziehen);
     return h + say(m.text);
   }

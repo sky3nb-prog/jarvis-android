@@ -628,6 +628,9 @@ class MainActivity : ComponentActivity() {
         fun outfitData(): String = try { Alltag.outfitData(this@MainActivity).toString() } catch (_: Exception) { "{}" }
 
         @JavascriptInterface
+        fun outfitToday(): String = try { Wardrobe.today(this@MainActivity).toString() } catch (_: Exception) { "{}" }
+
+        @JavascriptInterface
         fun outfitSave(idsJson: String, v: Int, t: Double): String {
             val ids = try { JSONArray(idsJson).let { a -> (0 until a.length()).map { a.optString(it) } } } catch (_: Exception) { emptyList() }
             return Wardrobe.dayFeedback(this@MainActivity, ids, v, if (t.isNaN() || t < -60) null else t)
