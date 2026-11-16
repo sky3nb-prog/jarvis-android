@@ -70,7 +70,12 @@ class JarvisService : Service() {
     private val prefs by lazy { getSharedPreferences("jarvis", MODE_PRIVATE) }
     @Volatile private var alive = false
     @Volatile private var paused = false
-    private fun quietNow() = micOff || Modes.silent(this)
+    @Volatile private var silentAt = 0L
+    @Volatile private var silentVal = false
+    private fun quietNow(): Boolean {   // Schulmodus-Abfrage nur alle 5 s neu (läuft im Audio-Takt)
+        if (System.currentTimeMillis() - silentAt > 5000) { silentVal = try { Modes.silent(this) } catch (_: Exception) { false }; silentAt = System.currentTimeMillis() }
+        return micOff || silentVal
+    }
     @Volatile private var speaking = false
     private var tts: TextToSpeech? = null
     private var ttsReady = false
@@ -226,7 +231,7 @@ class JarvisService : Service() {
             }
             ACTION_PAUSE -> { paused = true; endTalk() }
             ACTION_RESUME -> paused = false
-            ACTION_RELOAD -> { reload(); setupVoice(); syncNow(); startLocation(); if (quietNow()) endTalk(); Bus.emit("power", JSONObject().put("on", !quietNow())); refreshNote() }
+            ACTION_RELOAD -> { silentAt = 0L; reload(); setupVoice(); syncNow(); startLocation(); if (quietNow()) endTalk(); Bus.emit("power", JSONObject().put("on", !quietNow())); refreshNote() }
             ACTION_SAY -> intent.getStringExtra("text")?.takeIf { it.isNotBlank() }?.let { announce(it) }
         }
         return START_STICKY
