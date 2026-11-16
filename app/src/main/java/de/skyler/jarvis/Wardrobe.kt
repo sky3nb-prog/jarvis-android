@@ -148,7 +148,7 @@ object Wardrobe {
         val log = o.optJSONArray("log") ?: JSONArray()
         log.put(JSONObject().put("ts", System.currentTimeMillis()).put("v", v).put("t", t ?: 0.0).put("ids", JSONArray(ids)).put("abend", true))
         while (log.length() > 60) log.remove(0)
-        o.put("log", log).put("abend_tag", java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.GERMANY).format(java.util.Date()))
+        o.put("log", log).put("abend_tag", java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.GERMANY).format(java.util.Date(System.currentTimeMillis() - Alltag.lateShift() * 86_400_000L)))
         save(ctx, o)
         val temp = if (tt != null) " bei $tt °" else ""
         return when { v < 0 -> "Notiert: $n Teile waren$temp zu kalt – ich ziehe dich da künftig wärmer an."

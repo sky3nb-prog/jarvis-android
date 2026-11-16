@@ -1459,7 +1459,7 @@ object Alltag {
         val items = JSONArray()
         val arr = o.getJSONArray("items")
         for (i in 0 until arr.length()) arr.optJSONObject(i)?.takeIf { it.optBoolean("on", true) }?.let { items.put(JSONObject().put("id", it.optString("id")).put("name", it.optString("name")).put("icon", it.optString("icon")).put("layer", it.optString("layer"))) }
-        val wx = try { dayWx(ctx, 0) } catch (_: Exception) { null }
+        val wx = try { dayWx(ctx, -lateShift()) } catch (_: Exception) { null }   // nachts: der Tag, der gerade zu Ende ging
         val feels = wx?.optJSONArray("hours")?.let { h -> (0 until h.length()).mapNotNull { h.optJSONObject(it) }.filter { it.optInt("h") in 7..18 }.map { it.optDouble("feel") } } ?: emptyList()
         val t = feels.minOrNull()
         val pick = if (t != null) try { Wardrobe.pick(ctx, t, feels.maxOrNull() ?: t) } catch (_: Exception) { null } else null
@@ -1471,7 +1471,7 @@ object Alltag {
         val home = Route.home(ctx) ?: throw Exception("keine Adresse")
         val url = "https://api.open-meteo.com/v1/forecast?latitude=${home.lat}&longitude=${home.lon}" +
             "&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,weather_code,is_day" +
-            "&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,precipitation_probability_max,sunset&timezone=auto&forecast_days=3"
+            "&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,precipitation_probability_max,sunset&timezone=auto&forecast_days=3&past_days=1"
         val js = JSONObject(http.newCall(Request.Builder().url(url).build()).execute().use { it.body?.string() ?: "{}" })
         val h = js.getJSONObject("hourly"); val d = js.getJSONObject("daily")
         val day = SimpleDateFormat("yyyy-MM-dd", de).format(Date(System.currentTimeMillis() + dayOffset * 86_400_000L))
@@ -1490,14 +1490,17 @@ object Alltag {
     } catch (e: Exception) { Log.w(TAG, "wetter: $e"); null }
 
     /** Tages-Update: day 0 = heute (Morgen-Briefing), 1 = morgen (Abend-Briefing). Gibt (Text, Mitteilungs-ID) zurück. */
-    fun dayBrief(ctx: Context, day: Int): Pair<String, String>? {
+    fun dayBrief(ctx: Context, dayIn: Int): Pair<String, String>? {
         val p = prefs(ctx)
+        // nach Mitternacht, vor dem Schlafen: „morgen“ = der Kalendertag, der gerade angefangen hat
+        val day = if (dayIn == 1 && lateShift() == 1) 0 else dayIn
+        val label = dayIn
         val dayStart = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, day); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
         val evs = Cal.events(ctx, maxOf(dayStart, if (day == 0) System.currentTimeMillis() - 3_600_000L else 0), dayStart + 86_400_000L)
         val want = { k: String -> p.getBoolean(k, true) }
         val wx = dayWx(ctx, day)
-        val wecker = if (day == 1) (ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager).nextAlarmClock?.triggerTime?.takeIf { it - dayStart in 0..86_400_000L } else null
-        val wege = if (day == 0) todayWege(ctx).map { "${it.label} um %d:%02d".format(it.h, it.m) } else emptyList()
+        val wecker = if (label == 1) (ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager).nextAlarmClock?.triggerTime?.takeIf { it - dayStart in 0..86_400_000L } else null
+        val wege = if (label == 0) todayWege(ctx).map { "${it.label} um %d:%02d".format(it.h, it.m) } else emptyList()
         val parts = mutableListOf<String>()
         if (wx != null) parts.add("Wetter Leonberg: $wx")
         val pick = dayPick(ctx, wx)
@@ -1506,9 +1509,9 @@ object Alltag {
         if (wege.isNotEmpty()) parts.add("Feste Wege: ${wege.joinToString()}")
         parts.add("Was du über ihn weißt:\n" + Memory.facts(ctx).takeLast(40).joinToString("\n") { "- $it" })
         if (wecker != null) parts.add("Sein Wecker morgen: ${clock(wecker)}")
-        val schlaf = if (day == 0) try { Sleep.night(ctx, 0) } catch (_: Exception) { null } else null
+        val schlaf = if (label == 0) try { Sleep.night(ctx, 0) } catch (_: Exception) { null } else null
         if (schlaf != null) parts.add("Sein Schlaf letzte Nacht: ${Sleep.text(schlaf)}")
-        if (day == 0) {   // für den kleinen Essens-Tipp: wie war gestern, was steht heute an
+        if (label == 0) {   // für den kleinen Essens-Tipp: wie war gestern, was steht heute an
             try { if (Health.connected(ctx)) Health.day(ctx, 1)?.let { parts.add("Gestern: ${Health.text(it)}") } } catch (_: Exception) {}
             Melden.schoolText(ctx).takeIf { it.isNotBlank() }?.let { parts.add(it) }
             Gassi.summary(ctx).takeIf { it.isNotBlank() }?.let { parts.add(it) }
@@ -1517,14 +1520,14 @@ object Alltag {
         val topics = listOf("bi_wetter" to "Wetter (vor allem für die Radfahrt)", "bi_anzieh" to "was er anziehen soll, genau nach seinen Regeln",
             "bi_termine" to "Termine", "bi_mitnehmen" to "was er mitnehmen oder vorbereiten sollte (nur wenn es aus den Terminen folgt)")
             .filter { want(it.first) }.joinToString(", ") { it.second }
-        val sys = "Du bist Jarvis und gibst Skyler sein ${if (day == 0) "Tages-Update für heute" else "Update für morgen"}. Antworte NUR mit JSON: " +
+        val sys = "Du bist Jarvis und gibst Skyler sein ${if (label == 0) "Tages-Update für heute" else "Update für morgen"}. Antworte NUR mit JSON: " +
             "{\"text\": \"gesprochen, locker, ohne Listen und Sonderzeichen, 4 bis 6 kurze Sätze. Inhalt: $topics" +
             (if (wecker != null) ", zum Schluss wann sein Wecker klingelt" else "") +
-            (if (day == 0) ", und ein kleiner, einfacher Essens-Tipp für heute in einem halben Satz" else "") +
-            (if (schlaf != null) ", und ein halber Satz zum Schlaf nur wenn er unter 7 Stunden war (dann locker, nicht belehrend)" else "") + ". Beginne mit " + (if (day == 0) "'Guten Morgen'" else "'Kurz zu morgen'") + "\", " +
+            (if (label == 0) ", und ein kleiner, einfacher Essens-Tipp für heute in einem halben Satz" else "") +
+            (if (schlaf != null) ", und ein halber Satz zum Schlaf nur wenn er unter 7 Stunden war (dann locker, nicht belehrend)" else "") + ". Beginne mit " + (if (label == 0) "'Guten Morgen'" else "'Kurz zu morgen'") + "\", " +
             "\"outfit\": {\"jacke\": \"genau welche Jacke: Winterjacke, Softshelljacke, dünne Jacke, Regenjacke oder keine\", \"oben\": \"T-Shirt, Pulli oder T-Shirt und Pulli\", \"hose\": \"dicke lange Hose, lange Hose, dünne lange Hose oder kurze Hose\", \"extras\": [\"Mütze\", \"Handschuhe\", \"Schal\", \"Regenhose\" – nur was nötig ist]}, \"anziehen\": [\"dieselben Teile als kurze Liste\"], \"achtung\": [\"kurze Hinweise fürs Rad: Glätte, Wind, Regen, früh dunkel – nur wenn zutreffend\"], " +
             "\"mitnehmen\": [\"was mitnehmen/vorbereiten, nur wenn es aus den Terminen folgt\"]" +
-            (if (day == 0) ", \"essen\": \"EIN kleiner Essens-Tipp, der zu seinem Tag passt (viel gesessen -> etwas Frisches oder Obst zwischendurch; viel Bewegung oder Sport -> etwas Sättigendes; langer Schultag -> Snack und Wasser einpacken; kalt -> was Warmes), mal was Neues zum Ausprobieren, locker und freundlich, OHNE Kalorien, Zahlen, Verbote, Abnehmen oder Diät-Sprache\"" else "") +
+            (if (label == 0) ", \"essen\": \"EIN kleiner Essens-Tipp, der zu seinem Tag passt (viel gesessen -> etwas Frisches oder Obst zwischendurch; viel Bewegung oder Sport -> etwas Sättigendes; langer Schultag -> Snack und Wasser einpacken; kalt -> was Warmes), mal was Neues zum Ausprobieren, locker und freundlich, OHNE Kalorien, Zahlen, Verbote, Abnehmen oder Diät-Sprache\"" else "") +
             "}. Keine Bahn-Verbindungen. Erfinde nichts."
         val ai = aiJson(ctx, sys, parts.joinToString("\n\n"), 700) ?: return null
         val text = ai.optString("text").replace(Regex("[*#`]"), "").trim().ifBlank { return null }
@@ -1532,15 +1535,15 @@ object Alltag {
         for (e in evs.distinctBy { it.id to it.begin }.take(8)) termine.put(JSONObject().put("zeit",
             if (e.allDay) (if (e.end - e.begin > 86_400_000L) Cal.whenText(e, "EE d.M.") else "ganztägig") else SimpleDateFormat("H:mm", de).format(Date(e.begin)))
             .put("titel", e.title).put("ort", e.place))
-        for (f in if (day == 0) todayWege(ctx) else emptyList()) termine.put(JSONObject().put("zeit", "%d:%02d".format(f.h, f.m)).put("titel", "Los zu ${f.label}").put("ort", ""))
-        val d = JSONObject().put("day", day).put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date(dayStart)))
+        for (f in if (label == 0) todayWege(ctx) else emptyList()) termine.put(JSONObject().put("zeit", "%d:%02d".format(f.h, f.m)).put("titel", "Los zu ${f.label}").put("ort", ""))
+        val d = JSONObject().put("day", label).put("datum", SimpleDateFormat("EEEE, d. MMMM", de).format(Date(dayStart)))
             .put("wx", wx ?: JSONObject.NULL).put("anziehen", pick?.optJSONArray("anziehen") ?: strs(ai.optJSONArray("anziehen"))).put("achtung", strs(ai.optJSONArray("achtung")))
             .put("outfit", pick?.let { outfitOf(it) } ?: ai.optJSONObject("outfit") ?: JSONObject.NULL).put("warum", pick?.optString("warum") ?: "")
             .put("mitnehmen", strs(ai.optJSONArray("mitnehmen"))).put("termine", termine).put("wecker", wecker ?: 0L)
             .put("schlaf", schlaf ?: JSONObject.NULL).put("essen", ai.optString("essen"))
         val sub = listOfNotNull(wx?.let { "${it.optInt("min")}–${it.optInt("max")}°" + (if (it.optInt("rain_pct") >= 50) ", Regen" else ", trocken") },
             strs(ai.optJSONArray("anziehen")).optString(0).ifBlank { null }, "${termine.length()} Termin" + (if (termine.length() == 1) "" else "e")).joinToString(" · ")
-        val id = Feed.add(ctx, if (day == 0) "morgen" else "abend", if (day == 0) "Guten Morgen" else "Kurz zu morgen", sub, text, d)
+        val id = Feed.add(ctx, if (label == 0) "morgen" else "abend", if (label == 0) "Guten Morgen" else "Kurz zu morgen", sub, text, d)
         return text to id
     }
 
@@ -1551,21 +1554,26 @@ object Alltag {
      * Abend: Rückblick auf HEUTE (was los war, Fahrten, Kalorien/Aktivität, Schlaf letzte Nacht) + für MORGEN nur das Nötige:
      * wann du aufstehst (und die Wecker) und was du anziehst. Keine Termine von morgen – die kommen morgens.
      */
+    /** Dein Tag endet mit dem Schlafen, nicht um Mitternacht: zwischen 0 und 5 Uhr ist „heute“ noch gestern (1), sonst 0. */
+    fun lateShift(): Int = if (Calendar.getInstance().get(Calendar.HOUR_OF_DAY) < 5) 1 else 0
+
     fun eveningBrief(ctx: Context): Pair<String, String>? {
         val p = prefs(ctx)
         val now = System.currentTimeMillis()
-        val d0 = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        val sh = lateShift()   // um 1 Uhr nachts: Rückblick auf den Tag davor
+        val d0 = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -sh); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
         val d1 = d0 + 86_400_000L
         val heute = Cal.events(ctx, d0, now).distinctBy { it.id to it.begin }
         val fahrten = list(trips(ctx)).filter { it.optLong("end") >= d0 }.map { it.optString("to") }.filter { it != "zuhause" }
-        val fit = if (on(ctx, "bilanz")) try { Health.day(ctx, 0) } catch (_: Exception) { null } else null
-        val schlaf = try { Sleep.night(ctx, 0) } catch (_: Exception) { null }
+        val fit = if (on(ctx, "bilanz")) try { Health.day(ctx, sh) } catch (_: Exception) { null } else null
+        val schlaf = try { Sleep.night(ctx, sh) } catch (_: Exception) { null }
         val up = try { Wecker.upFor(ctx, d1) } catch (_: Exception) { null }
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val firstAlarm = am.nextAlarmClock?.triggerTime?.takeIf { it in d1 until d1 + 86_400_000L }
         val wecker = if (up != null) try { Wecker.timesFor(ctx, SimpleDateFormat("H", de).format(Date(up)).toInt() to SimpleDateFormat("m", de).format(Date(up)).toInt()) } catch (_: Exception) { emptyList() } else emptyList()
-        val wx = dayWx(ctx, 1)
+        val wx = dayWx(ctx, 1 - sh)
         val parts = mutableListOf<String>()
+        if (sh == 1) parts.add("Es ist schon nach Mitternacht – HEUTE meint den Tag, der gerade zu Ende geht (${SimpleDateFormat("EEEE", de).format(Date(d0))}), MORGEN den Tag nach dem Schlafen.")
         parts.add("HEUTE – Termine:\n" + Cal.describe(heute).ifBlank { "keine" })
         parts.add(Stimmung.prompt(ctx))
         Gassi.summary(ctx).takeIf { it.isNotBlank() }?.let { parts.add("HEUTE – $it") }
