@@ -55,6 +55,23 @@ object Chats {
         prefs(ctx).edit().putString("watch", o.toString()).apply()
     }
 
+    /** Test-Chat (Zweitnummer) – auch bei kleinem Tippfehler im Kontaktnamen („Tohmas“ = „Thomas“). */
+    fun isTest(ctx: Context, name: String): Boolean {
+        val t = norm(prefs(ctx).getString("test_chat", "") ?: "").substringBefore(" ")
+        val n = norm(name).substringBefore(" ")
+        if (t.isBlank() || n.isBlank()) return false
+        if (t == n) return true
+        if (t.length < 4) return false
+        val d = Array(t.length + 1) { IntArray(n.length + 1) }
+        for (i in 0..t.length) d[i][0] = i
+        for (j in 0..n.length) d[0][j] = j
+        for (i in 1..t.length) for (j in 1..n.length) {
+            d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + if (t[i - 1] == n[j - 1]) 0 else 1)
+            if (i > 1 && j > 1 && t[i - 1] == n[j - 2] && t[i - 2] == n[j - 1]) d[i][j] = minOf(d[i][j], d[i - 2][j - 2] + 1)   // vertauscht
+        }
+        return d[t.length][n.length] <= 1
+    }
+
     private fun matches(list: List<String>, vararg names: String) =
         names.map { norm(it) }.filter { it.isNotBlank() }.any { n -> list.any { it == n || n.startsWith("$it ") } }
 
@@ -133,7 +150,7 @@ object Chats {
         }
 
         if (!group && !isVoice(text) && System.currentTimeMillis() - time < 10 * 60_000L) try { Stil.onIncoming(ctx, chat, text, verlauf(ctx, norm(chat))) } catch (_: Exception) {}
-        val test = (prefs(ctx).getString("test_chat", "") ?: "").trim().let { it.isNotBlank() && matches(listOf(norm(it)), chat, sender) }
+        val test = isTest(ctx, chat) || isTest(ctx, sender)
         val wanted = test || matches(important(ctx), chat, sender) || matches(watched(ctx), chat, sender)
         if (!wanted) return
         val ck = norm(chat)

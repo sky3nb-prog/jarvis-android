@@ -360,6 +360,9 @@
       const t = s.termine || [];
       $("stil-tl").textContent = t.length ? "Aus WhatsApp eingetragen: " + t.map((x) => `${x.titel} (${new Date(x.start).toLocaleString("de-DE", { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })})`).join(" · ") : "";
       $("stil-xp").textContent = `${s.rang} · ${s.xp} XP`;
+      const g = s.gelernt || [];
+      $("stil-list").innerHTML = g.length ? g.map((c) => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffffff12"><span>${String(c.name).replace(/[<&]/g, "")}</span><small>${c.n} von dir · ${c.stellen} Quiz-Stellen</small></div>`).join("")
+        : "Noch keine – scroll in WhatsApp durch einen Chat oder lade einen Export.";
     } catch (e) {}
   }
   const stilSave = () => { try { A.stilSet($("stil-modus").value, $("stil-chats").value, sw("stil-term")); } catch (e) {} setTimeout(stilShow, 100); };

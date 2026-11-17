@@ -46,6 +46,14 @@ object Stil {
     private fun good(t: String) = t.length in 2..300 && !t.startsWith("(") && !t.contains("Medien ausgeschlossen") && !t.contains("<Medien") &&
         !t.contains("Nachricht wurde gelöscht") && !t.contains("Diese Nachricht") && !t.startsWith("http") && !t.contains("null")
 
+    /** Welche Chats schon drin sind: [{name, ck, n (deine Nachrichten), stellen (Quiz)}], meiste zuerst. */
+    fun learnedChats(ctx: Context): JSONArray {
+        val keys = (prefs(ctx).getString("stil_chats_all", "") ?: "").split("|").filter { it.isNotBlank() }
+        val ps = pairs(ctx).groupingBy { it.optString("chat") }.eachCount()
+        return JSONArray(keys.map { k -> JSONObject().put("ck", k).put("name", prefs(ctx).getString("stil_cn_$k", "")?.ifBlank { null } ?: k.replaceFirstChar { it.uppercase() })
+            .put("n", chatSamples(ctx, k).size).put("stellen", ps[k] ?: 0) }.sortedByDescending { it.optInt("n") })
+    }
+
     /** Person vergessen: ihre Beispiele und Quiz-Stellen raus. */
     @Synchronized fun forgetChat(ctx: Context, ck: String) {
         val mine = chatSamples(ctx, ck).toSet()

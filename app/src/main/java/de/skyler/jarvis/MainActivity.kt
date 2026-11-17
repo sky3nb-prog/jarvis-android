@@ -934,7 +934,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun stilGet(): String = Stil.quizState(this@MainActivity).put("modus", Stil.mode(this@MainActivity))
             .put("chats", prefs.getString("stil_chats", "") ?: "").put("wa_termine", WaTermine.on(this@MainActivity))
-            .put("termine", org.json.JSONArray(WaTermine.upcoming(this@MainActivity))).toString()
+            .put("termine", org.json.JSONArray(WaTermine.upcoming(this@MainActivity))).put("gelernt", Stil.learnedChats(this@MainActivity)).toString()
         @JavascriptInterface
         fun stilImport() { runOnUiThread { try { pickExport.launch(arrayOf("text/plain", "application/zip", "*/*")) } catch (_: Exception) {} } }
         @JavascriptInterface
