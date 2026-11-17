@@ -95,6 +95,8 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"person","wer":"<Name, wie er ihn nennt>","geschenk":true|false}   ("Geschenkidee für Janis", "was soll ich Mama schenken?" -> geschenk true; "was weißt du über Janis?", "wie heißt Janis auf Discord?" -> false)
 {"action":"pakete"}   ("wo ist mein Paket?", "kommt heute ein Paket?", "Paketstatus")
 {"action":"mails"}   ("hab ich neue Mails?", "was kam per Mail?", "neue E-Mails")
+{"action":"ausgaben"}   ("wie viel hab ich diesen Monat ausgegeben?", "meine Ausgaben", "was hab ich bei Amazon ausgegeben?")
+{"action":"notfall"}   (NUR wenn er ausdrücklich „Notfall“ sagt oder klar um Hilfe in einer Notlage bittet: „Jarvis, Notfall“, „Hilfe, ich hatte einen Unfall“ – schickt sofort SMS mit Standort an seine Notfall-Person und ruft an)
 {"action":"note","fach":"<Fach>","note":"<z. B. 2, 2+, 3->","art":"arbeit" | "test" | ""}   ("in Mathe hab ich eine 2 geschrieben", "Bio-Test zurück: 3 minus")
 {"action":"idee","text":"<die Idee in seinen Worten, kurz>"}   ("Jarvis, ich hab eine Idee: …", "schreib auf die Ideenliste …", "merk dir als Idee …")
 {"action":"statuscheck"}   ("Statuscheck", "Systemcheck", "laufen alle Systeme?", "ist alles okay mit dir?")

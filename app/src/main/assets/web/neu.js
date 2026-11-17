@@ -1,5 +1,7 @@
 // Neue Fähigkeiten: fliegen nach einem Update einmal als Skill in die Kugel (jede nur einmal; "Rausnehmen" in der Kugel = kommt wieder)
-window.JNEU = { stand: "2026-11-17 12:45", neu: [
+window.JNEU = { stand: "2026-11-17 15:40", neu: [
+  { title: "Notfall", text: "„Jarvis, Notfall“: SMS mit deinem Standort und sofort anrufen. Wen, stellst du unter Leute & Anrufe ein." },
+  { title: "Ausgaben", text: "„Wie viel hab ich diesen Monat ausgegeben?“ – aus deinen Bestätigungsmails (PayPal, Amazon, Rewe …), mit Grenze." },
   { title: "Akku sparen", text: "Weckwort-Erkennung rechnet nur, wenn jemand spricht; nachts ist das Mikro ganz aus; zuhause seltener Standort; PC aus = seltener nachsehen." },
   { title: "Schalter = nur still", text: "Ausgeschaltet höre ich nicht zu und rede nicht – aber Briefings und Erinnerungen kommen weiter als Nachricht, auch auf deiner Uhr." },
   { title: "Schulmodus: alles stumm", text: "Nicht stören, alle Töne auf 0, ich bin still und melde mich nur per Nachricht. Danach stelle ich alles zurück. Wecker bleiben an." },

@@ -75,6 +75,20 @@ object Mail {
     }
 
     /** Echte Anmeldung bei Google. ok = true nur, wenn Google sie angenommen hat. */
+    /** Mail-Text lesbar machen: Base64-Teile und =C3=A4-Kodierung auflösen, HTML raus. */
+    private fun readable(raw: String): String {
+        var t = raw
+        // Base64-Abschnitte (Zeilen nur aus Base64-Zeichen) entschlüsseln
+        t = Regex("(?m)((?:^[A-Za-z0-9+/=]{60,}\\r?\\n){3,})").replace(t) { m ->
+            try { String(Base64.decode(m.value.replace(Regex("\\s"), ""), Base64.DEFAULT), Charsets.UTF_8) } catch (_: Exception) { m.value } }
+        // quoted-printable
+        t = t.replace(Regex("=\\r?\\n"), "")
+        t = Regex("(=[0-9A-F]{2})+").replace(t) { m ->
+            try { val b = m.value.split("=").filter { it.length == 2 }.map { it.toInt(16).toByte() }.toByteArray(); String(b, Charsets.UTF_8) } catch (_: Exception) { m.value } }
+        t = t.replace(Regex("(?is)<style.*?</style>"), " ").replace(Regex("<[^>]+>"), " ").replace("&nbsp;", " ").replace("&euro;", "€").replace("&amp;", "&")
+        return t.replace(Regex("\\s+"), " ")
+    }
+
     fun test(ctx: Context): JSONObject {
         val p = prefs(ctx)
         val r = try {
@@ -117,13 +131,14 @@ object Mail {
             val uids = Regex("\\* SEARCH([\\d ]*)").find(im.cmd("UID SEARCH SINCE $since"))?.groupValues?.get(1)?.trim()?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
             val neu = uids.filter { it !in seenSet }.takeLast(25)
             for (u in neu) {
-                val r = im.cmd("UID FETCH $u (BODY.PEEK[HEADER.FIELDS (FROM SUBJECT)] BODY.PEEK[TEXT]<0.3000>)")
+                val r = im.cmd("UID FETCH $u (BODY.PEEK[HEADER.FIELDS (FROM SUBJECT)] BODY.PEEK[TEXT]<0.8000>)")
                 val from = decode(Regex("(?im)^From:\\s*(.+)$").find(r)?.groupValues?.get(1)?.trim() ?: "")
                 val subj = decode(Regex("(?im)^Subject:\\s*(.+)$").find(r)?.groupValues?.get(1)?.trim() ?: "")
-                val body = r.substringAfter("BODY[TEXT]", "").replace(Regex("<[^>]+>"), " ").replace(Regex("=\\r?\\n"), "").replace(Regex("\\s+"), " ").take(1500)
+                val body = readable(r.substringAfter("BODY[TEXT]", "")).take(3000)
                 val who = from.substringBefore("<").trim().trim('"').ifBlank { from }
                 if (!first) {   // beim ersten Mal nur merken, nicht alles Alte ansagen
                     try { Pakete.fromText(ctx, "", "$who: $subj", body, say) } catch (_: Exception) {}
+                    try { Ausgaben.fromMail(ctx, from, subj, body) } catch (_: Exception) {}
                     recent.put(JSONObject().put("from", who).put("subj", subj).put("t", System.currentTimeMillis()))
                 }
                 seenSet.add(u)

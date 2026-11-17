@@ -1517,6 +1517,9 @@ object Alltag {
         parts.add(pick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))
         parts.add("Termine:\n" + (Cal.describe(evs).ifBlank { "keine" }))
         if (wege.isNotEmpty()) parts.add("Feste Wege: ${wege.joinToString()}")
+        // Hund bei Hitze (Hunderunde an): ab 24 °C die kühlsten Zeiten nennen, heißer Asphalt (Handrücken-Test: 7 Sekunden)
+        try { if (Gassi.on(ctx) && wx != null && wx.optDouble("max", 0.0) >= 24) parts.add("HUND: Heute bis ${wx.optInt("max")} °C – für den Hund zu warm in der Mittagshitze. " +
+            "Nenne kurz die kühlsten Zeiten für die Hunderunde (früh morgens / spät abends, aus den Stunden oben) und den Asphalt-Test (Handrücken 7 Sekunden). Wenn du weißt, welche Rasse er hat (z. B. Husky), berücksichtige das.") } catch (_: Exception) {}
         parts.add("Was du über ihn weißt:\n" + Memory.facts(ctx).takeLast(40).joinToString("\n") { "- $it" })
         if (wecker != null) parts.add("Sein Wecker morgen: ${clock(wecker)}")
         val schlaf = if (label == 0) try { Sleep.night(ctx, 0) } catch (_: Exception) { null } else null

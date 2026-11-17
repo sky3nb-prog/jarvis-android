@@ -79,6 +79,8 @@ class Actions(private val ctx: Context) {
             "note" -> Schule.note(ctx, a.optString("fach"), a.optString("note"), a.optString("art").let { if (it == "null") "" else it })
             "pakete" -> Pakete.summary(ctx)
             "mails" -> Mail.summary(ctx)
+            "ausgaben" -> Ausgaben.summary(ctx)
+            "notfall" -> notfall()
             "person" -> Leute.about(ctx, a.optString("wer"), a.optBoolean("geschenk"))
             "statuscheck" -> SysCheck.run(ctx).let { a -> try { Bus.emit("checkfx", org.json.JSONObject().put("items", a)) } catch (_: Exception) {}; SysCheck.summary(a) }
             "modus" -> Modes.set(ctx, a.optString("name"))
@@ -215,6 +217,22 @@ class Actions(private val ctx: Context) {
             }
         }
         return if (bestD <= maxOf(1, want.length / 4)) best else null
+    }
+
+    /** „Jarvis, Notfall“: SMS mit deinem Standort an deine Notfall-Person, dann sofort anrufen. */
+    private fun notfall(): String {
+        val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        val who = (p.getString("notfall_wer", "") ?: "").ifBlank { "Mama" }
+        val nr = number(who) ?: return "Ich finde „$who“ nicht in deinen Kontakten – trag unter Einstellungen → Leute & Anrufe ein, wen ich im Notfall anrufen soll."
+        val fix = Alltag.fix?.takeIf { System.currentTimeMillis() - it.time < 15 * 60_000L }
+        val ll = fix?.let { it.latitude to it.longitude } ?: Here.latLon(ctx)
+        val where = if (ll != null) "Mein Standort: https://maps.google.com/?q=%.5f,%.5f".format(java.util.Locale.US, ll.first, ll.second) +
+            (fix?.let { " (±${it.accuracy.toInt()} m)" } ?: "") else "Meinen Standort habe ich gerade nicht."
+        val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date())
+        val ok = Butler.sms(ctx, nr, "NOTFALL – ich brauche Hilfe ($time Uhr). $where Ich rufe gleich an.", who)
+        try { Alltag.fix ?: Here.refresh(ctx, force = true) } catch (_: Exception) {}
+        val c = call(who)
+        return (if (ok) "Notfall: $who hat eine SMS mit deinem Standort. " else "Die SMS ging nicht (SMS-Recht fehlt?). ") + c
     }
 
     private fun call(who: String): String {

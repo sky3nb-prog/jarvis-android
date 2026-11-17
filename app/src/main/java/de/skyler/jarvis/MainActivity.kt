@@ -547,6 +547,18 @@ class MainActivity : ComponentActivity() {
         fun watchTest() { Thread({ Thread.sleep(10_000); Alltag.watchTest(this@MainActivity) }, "jarvis-uhrtest").start() }   // 10 s Zeit zum Sperren (Uhr zeigt nur bei gesperrtem Handy)
 
         @JavascriptInterface
+        fun notfallGet(): String = prefs.getString("notfall_wer", "") ?: ""
+
+        @JavascriptInterface
+        fun notfallSet(w: String) { prefs.edit().putString("notfall_wer", w.trim()).apply() }
+
+        @JavascriptInterface
+        fun ausgabenGet(): String = JSONObject().put("limit", Ausgaben.limit(this@MainActivity)).put("text", Ausgaben.summary(this@MainActivity)).toString()
+
+        @JavascriptInterface
+        fun ausgabenLimit(v: Int) = Ausgaben.setLimit(this@MainActivity, v)
+
+        @JavascriptInterface
         fun getMeldenOft(): Int = prefs.getInt("melden_oft", 1)
 
         @JavascriptInterface

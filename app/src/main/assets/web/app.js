@@ -616,6 +616,12 @@
       if (type === "gmail_test") { const d = typeof data === "string" ? JSON.parse(data) : (data || {}); $("gm-state").textContent = (d.ok ? "✓ " : "✕ ") + (d.text || ""); toast(d.text || ""); return; }
       return pg && pg.call(window.jarvis, type, data);
     }; }
+  if (A && A.notfallGet) {
+    try { $("nf-wer").value = A.notfallGet(); } catch (e) {}
+    $("nf-save").onclick = () => { A.notfallSet($("nf-wer").value.trim()); $("nf-state").textContent = "✓ Gespeichert."; };
+    try { const d = JSON.parse(A.ausgabenGet()); $("ag-lim").value = d.limit || ""; $("ag-state").textContent = d.text || ""; } catch (e) {}
+    $("ag-lim").addEventListener("change", () => { A.ausgabenLimit(parseInt($("ag-lim").value, 10) || 0); toast("Grenze gespeichert."); });
+  }
   { const MO = ["Selten – höchstens 1× am Tag", "Normal – bis 3× am Tag", "Oft – bis 6× am Tag"], r = $("set-meldenoft");
     const show = () => { $("mo-l").textContent = MO[+r.value]; };
     try { r.value = A.getMeldenOft(); } catch (e) {} show();

@@ -333,6 +333,11 @@
           <div id="leute-list"></div>
           <div class="srow"><div>Jetzt lernen<small>Sonst jeden Abend um 20 Uhr, bis zu 6 Chats</small></div><div class="sbtn" id="leute-learn">Lernen</div></div>
         </div>
+        <div class="sec" data-neu="n103" style="--c:#ff5a5a"><h3>NOTFALL</h3>
+          <div class="note" style="margin:0 0 6px">Sag „Jarvis, Notfall“: Ich schicke sofort eine SMS mit deinem Standort und rufe dann an.</div>
+          <div class="f"><label>Wen soll ich im Notfall benachrichtigen? (Name wie in deinen Kontakten)</label><input id="nf-wer" type="text" placeholder="Mama"></div>
+          <div class="srow"><div id="nf-state" class="note" style="margin:0"></div><div class="sbtn" id="nf-save">Speichern</div></div>
+        </div>
         <div class="sec" style="--c:#ffd678"><h3>ANRUF-BUTLER</h3>
           <div class="srow"><div>Anruf-Butler<small>„Nicht stören“ an: Anrufe aus deinen Kontakten wegdrücken und Bescheid geben. Sonst ein Knopf beim Klingeln. Unbekannte Nummern bleiben unberührt.</small></div><div class="sw" id="set-butler"></div></div>
           <div class="f"><label>Absage-Text</label><input id="set-absage" type="text" placeholder="Kann gerade nicht, rufe später zurück."></div>
@@ -356,6 +361,8 @@
           <div class="f"><label>Gmail-Adresse</label><input id="gm-user" type="text" placeholder="du@gmail.com" autocapitalize="none"></div>
           <div class="f"><label>App-Passwort (16 Zeichen)</label><input id="gm-pw" type="password" placeholder="leer lassen = nicht ändern" autocomplete="off"></div>
           <div class="srow"><div id="gm-state" class="note" style="margin:0"></div><div class="sbtn" id="gm-save">Speichern & testen</div></div>
+          <div class="f"><label>Ausgaben-Grenze pro Monat in € (aus deinen Bestätigungsmails, 0 = keine)</label><input id="ag-lim" type="text" inputmode="numeric" placeholder="0"></div>
+          <div class="note" id="ag-state"></div>
         </div>
         <div class="sec" style="--c:#d7a8ff"><h3>KALENDER</h3>
           <div class="f"><label>Neue Termine eintragen in</label><select id="set-cal"></select></div>
