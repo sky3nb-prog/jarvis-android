@@ -137,7 +137,7 @@ class JarvisService : Service() {
         main.postDelayed(alltagTask, 20_000)
         startLocation()
         try {
-            registerReceiver(unlockReceiver, android.content.IntentFilter(Intent.ACTION_USER_PRESENT).apply { addAction(Intent.ACTION_SCREEN_OFF) })
+            registerReceiver(unlockReceiver, android.content.IntentFilter(Intent.ACTION_USER_PRESENT).apply { addAction(Intent.ACTION_SCREEN_OFF); addAction(Intent.ACTION_SCREEN_ON) })
         } catch (_: Exception) {}
     }
 
@@ -153,6 +153,7 @@ class JarvisService : Service() {
     private val unlockReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             if (i.action == Intent.ACTION_SCREEN_OFF) { Thread { try { Sleep.screenOff(this@JarvisService); Melden.screenOff(this@JarvisService) } catch (_: Exception) {} }.start(); return }
+            if (i.action == Intent.ACTION_SCREEN_ON) { Thread { try { Sleep.screenOn(this@JarvisService) } catch (_: Exception) {} }.start(); return }
             Thread { try { Sleep.unlock(this@JarvisService); Melden.unlocked(this@JarvisService) } catch (_: Exception) {} }.start()
             Alltag.onUnlock(this@JarvisService) { t -> announce(t) }
         }
