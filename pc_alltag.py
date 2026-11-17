@@ -103,6 +103,9 @@ def away(settings: dict = None) -> str:
     if settings and settings.get("ets2_quicksave"):
         QUICKSAVE_KEY = str(settings["ets2_quicksave"]).strip().lower() or QUICKSAVE_KEY
     import pc_nachrichten
+    import pc_update
+    if pc_update.AWAY["on"]:   # du hast „ich bin weg“ gesagt: PC soll anbleiben
+        return "Weg-Modus: der PC bleibt an."
     if _idle() < 120:   # da sitzt jemand
         pc_nachrichten.incoming({"kind": "offer", "force": True, "action": "shutdown",
                                  "question": "Skyler ist gerade unterwegs. Soll ich den PC herunterfahren?"})
@@ -112,5 +115,7 @@ def away(settings: dict = None) -> str:
 
 def home() -> str:
     import pc_nachrichten
+    import pc_update
+    pc_update.AWAY["on"] = False
     pc_nachrichten.incoming({"kind": "say", "force": True, "text": "Willkommen zurück, Skyler."})
     return "Begrüßt."

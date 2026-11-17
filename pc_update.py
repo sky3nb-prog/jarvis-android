@@ -225,6 +225,15 @@ def swap_main():
 
 
 IDLE_AUTO = 15 * 60   # so lange niemand an Maus/Tastatur: Update ohne Nachfrage einspielen
+AWAY = {"on": False, "since": 0.0}   # „Jarvis, ich bin jetzt weg“: PC bleibt an, holt Updates öfter und spielt sie sofort ein
+AWAY_EVERY = 5 * 60
+
+
+def set_away(on: bool) -> str:
+    AWAY["on"] = bool(on); AWAY["since"] = time.time() if on else 0.0
+    if on:
+        return "Alles klar, bis später. Ich bleibe an, schaue alle 5 Minuten nach Updates und spiele sie gleich ein. Wenn was ist, schreib ich dir aufs Handy."
+    return "Willkommen zurück."
 
 
 def _auto_install() -> bool:
@@ -233,7 +242,10 @@ def _auto_install() -> bool:
         return False
     try:
         import pc_nachrichten
-        if pc_nachrichten._idle_seconds() < IDLE_AUTO or not pc_nachrichten.ON_QUIT:
+        idle = pc_nachrichten._idle_seconds()
+        if AWAY["on"] and idle < 60:   # doch jemand da: Weg-Modus ist vorbei
+            AWAY["on"] = False
+        if idle < (60 if AWAY["on"] else IDLE_AUTO) or not pc_nachrichten.ON_QUIT:
             return False
         try:
             import pc_phone
@@ -258,7 +270,7 @@ def start(ask):
             try:
                 if _auto_install():
                     return
-                if time.time() - last >= CHECK_EVERY:
+                if time.time() - last >= (AWAY_EVERY if AWAY["on"] else CHECK_EVERY):
                     last = time.time()
                     r = check_now(ask)
                     if "Update" in r:

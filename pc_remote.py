@@ -160,6 +160,9 @@ def execute(cmd: dict) -> str:
         pc_nachrichten.incoming({"kind": t, "force": True, "text": str(cmd.get("text") or ""),
                                  "question": str(cmd.get("question") or ""), "title": str(cmd.get("title") or "")})
         return "Wird angesagt."
+    if t == "weg_modus":   # „Jarvis, ich bin jetzt weg“ am Handy gesagt
+        import pc_update
+        return pc_update.set_away(bool(cmd.get("on", True)))
     if t == "weg":    # Handy hat das Heim-WLAN verlassen
         import pc_alltag
         return pc_alltag.away(SETTINGS() if SETTINGS else None)

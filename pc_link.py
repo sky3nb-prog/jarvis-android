@@ -65,29 +65,78 @@ STATUS = ""
 
 
 # --- Code und Schlüssel ---------------------------------------------------------------------
+_cache = {}   # letzter guter Stand (falls die Datei kurz nicht lesbar ist, z. B. weil OneDrive sie gerade synchronisiert)
+
+
+def _backup_path() -> str:
+    # Zweite Kopie außerhalb von OneDrive – damit der Kopplungscode nie verloren geht
+    la = os.environ.get("LOCALAPPDATA") or ""
+    d = os.path.join(la, "JarvisPair") if la else base_dir()
+    return os.path.join(d, FILE + (".bak" if not la else ""))
+
+
+def _read(p: str):
+    with open(p, encoding="utf-8") as f:
+        d = json.load(f)
+    return d if isinstance(d, dict) else None
+
+
 def _state() -> dict:
+    main = os.path.join(base_dir(), FILE)
+    for i in range(4):
+        try:
+            d = _read(main)
+            if d is not None and d.get("code"):
+                _cache.clear(); _cache.update(d)
+                if not os.path.exists(_backup_path()):
+                    _save_state(dict(d))
+                return dict(d)
+            break
+        except FileNotFoundError:
+            break
+        except Exception:
+            __import__("time").sleep(0.25)   # gesperrt oder halb geschrieben: kurz warten
+    if _cache.get("code"):
+        return dict(_cache)
     try:
-        with open(os.path.join(base_dir(), FILE), encoding="utf-8") as f:
-            return json.load(f)
+        d = _read(_backup_path())
+        if d and d.get("code"):
+            print("Kopplung: aus der Sicherung wiederhergestellt.")
+            _cache.update(d)
+            _save_state(dict(d))
+            return dict(d)
     except Exception:
-        return {}
+        pass
+    return {}
 
 
 def _save_state(st: dict):
-    try:
-        with open(os.path.join(base_dir(), FILE), "w", encoding="utf-8") as f:
-            json.dump(st, f)
-    except Exception:
-        pass
+    if not st.get("code") and _cache.get("code"):   # nie aus Versehen den Code wegschreiben
+        st = dict(st, code=_cache["code"])
+    data = json.dumps(st)
+    for p in (os.path.join(base_dir(), FILE), _backup_path()):
+        try:
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            tmp = p + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.write(data)
+            os.replace(tmp, p)   # ganz oder gar nicht – nie eine halbe Datei
+        except Exception:
+            pass
+    if st.get("code"):
+        _cache.clear(); _cache.update(st)
 
 
 def code(new: bool = False) -> str:
-    """Kopplungscode wie ABCD-EFGH-JKLM-NPQR (wird beim ersten Mal erzeugt)."""
+    """Kopplungscode wie ABCD-EFGH-JKLM-NPQR (wird beim ersten Mal erzeugt, danach nie wieder von selbst)."""
     with _lock:
         st = _state()
         if new or not st.get("code"):
             raw = "".join(secrets.choice(ALPHABET) for _ in range(16))
             st = {"code": "-".join(raw[i:i + 4] for i in range(0, 16, 4))}
+            if new:
+                _cache.clear()
+            print("Kopplung: neuer Code erzeugt" + (" (auf Wunsch)." if new else "."))
             _save_state(st)
         return st["code"]
 
@@ -176,7 +225,7 @@ SHARED = {"city": "home_city", "address": "home_address", "anrede": "address_as"
           "lage_orte": "lage_places", "themen_selbst": "themen_selbst", "lage_spin": "lage_spin",
           "lage_labels": "map_labels", "lage_jump": "globe_auto_open", "lage_zoom": "lage_sat_tour", "lage_orbits": "lage_orbits",
           "orte": "meine_orte", "wege": "meine_wege", "route_an": "route_an",
-          "wichtig": "wichtige_leute", "absage": "absage_text"}
+          "wichtig": "wichtige_leute", "absage": "absage_text", "piper_voice": "piper_voice"}
 ON_SETTINGS = None   # vom Programm gesetzt: übernimmt geänderte Einstellungen (im Tk-Thread)
 
 
@@ -218,6 +267,10 @@ def apply_phone_settings(msg: dict) -> bool:
             continue
         if pc_key in ("home_city",) and not str(val).strip():
             continue   # leerer Wohnort = nichts ändern
+        if pc_key == "piper_voice":
+            import pc_piper
+            if not any(val == x for _, x in pc_piper.VOICES):
+                continue   # „Handy-Stimme“ gibt es nur am Handy
         if pc_key in ("lage_places", "themen_selbst"):
             val = [x.strip() for x in str(val).split(",") if x.strip()]
         elif pc_key == "assistant_name":
