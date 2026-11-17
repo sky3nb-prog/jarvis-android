@@ -333,6 +333,9 @@
           <div class="f"><label>Antworten in deinem Namen</label><select id="stil-modus"><option value="aus">Aus</option><option value="bestaetigen">Vorschlag – du tippst „Senden“</option><option value="selbst">Selbst schreiben (nach dem Quiz)</option></select></div>
           <div class="f"><label>Für diese Chats (Namen wie in WhatsApp, mit Komma)</label><input id="stil-chats" type="text" placeholder="z. B. Tobi, Marius"></div>
           <div class="f"><label>Test-Chat (z. B. deine Zweitnummer – Name wie in WhatsApp)</label><input id="stil-test" type="text" placeholder="z. B. Ich 2"></div>
+          <div class="srow"><div>Test: Nachricht an den PC<small id="t-wapc">So, als käme eine Nachricht aus dem Test-Chat – der PC sagt sie an</small></div><div class="sbtn" id="tb-wapc">Testen</div></div>
+          <div class="srow"><div>Test: Sprachnachricht an den Test-Chat<small id="t-voice">Mit der Jarvis-Stimme vom Handy</small></div><div class="sbtn" id="tb-voice">Testen</div></div>
+          <div class="srow"><div>Test: Gespräch übernehmen<small id="t-take">Jarvis führt den Test-Chat 3 Std. selbst – „ich übernehme wieder“ stoppt</small></div><div class="sbtn" id="tb-take">Starten</div></div>
           <div class="note" style="margin:0 0 6px">Nachrichten aus diesem Chat liest Jarvis am PC immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt – und du kannst sagen „antworte du“, „… als Sprachnachricht“ usw. Zum Ausprobieren.</div>
           <div class="srow"><div>Termine aus WhatsApp<small>Wird im Chat was fest ausgemacht, trag ich's ein (mit „Rückgängig“). Abgesagt oder verschoben – auch per Sprachnachricht – nehm ich's raus bzw. verschieb es.</small></div><div class="sw" id="stil-term"></div></div>
           <div class="note" id="stil-tl" style="margin:4px 0 0"></div>
@@ -340,6 +343,8 @@
         </div>
         <div class="sec" style="--c:#6effcd"><h3>WICHTIGE LEUTE</h3>
           <div class="f"><label>Namen wie in WhatsApp, mit Komma getrennt</label><input id="set-wichtig" type="text" placeholder="Mama, Saya, Opa, Elijah, Tobi, Marius, Jannis"></div>
+          <div class="f"><label>Immer vorlesen (auch beim Zocken, bei offenem WhatsApp, im Fokus)</label><input id="wa-immer" type="text" placeholder="z. B. Mama"></div>
+          <div class="f"><label>Beim Zocken / Discord</label><select id="wa-zocken"><option value="ansagen">Trotzdem ansagen</option><option value="sammeln">Sammeln und danach sagen</option><option value="nie">Gar nicht ansagen</option></select></div>
           <div class="note">Schreiben sie dir, sagt Jarvis es am PC an – auch mitten im Spiel – und fragt, ob du antworten willst. Die Antwort geht über die WhatsApp-Benachrichtigung, WhatsApp geht nicht auf. Gilt auch am PC.</div>
           <div class="srow"><div>Benachrichtigungszugriff<small>Damit Jarvis die WhatsApp-Benachrichtigungen lesen kann</small></div><div class="sbtn" id="set-media2">Erlauben</div></div>
           <div class="srow"><div>Sprachnachrichten<small>„Zugriff auf alle Dateien“, nur um die Sprachnachrichten aus dem WhatsApp-Ordner zu lesen</small></div><div class="sbtn" id="set-files">Erlauben</div></div>

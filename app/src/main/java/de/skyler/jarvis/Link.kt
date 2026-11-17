@@ -129,6 +129,8 @@ object Link {
                 k in BOOL_KEYS -> e.putBoolean(k, s.optBoolean(k, true))
                 k == "themen_selbst" -> Themen.setManual(ctx, s.optString(k))
                 k == "test_chat" -> e.putString("test_chat", s.optString(k).trim())
+                k == "wa_immer" -> e.putString("wa_immer", s.optString(k).trim())
+                k == "wa_beim_zocken" -> e.putString("wa_beim_zocken", s.optString(k).trim())
                 k == "stil_modus" -> s.optString(k).takeIf { it in setOf("aus", "bestaetigen", "selbst") }?.let { m ->
                     e.putString("stil_modus", if (m == "selbst" && !p.getBoolean("stil_frei", false)) "bestaetigen" else m) }
                 k == "wa_name" -> s.optString(k).trim().takeIf { it.isNotBlank() }?.let { e.putString("stil_name", it) }
@@ -157,6 +159,7 @@ object Link {
         set.put("piper_voice", PiperPhone.voice(ctx))
         set.put("stil_chats", p.getString("stil_chats", "") ?: "")
         set.put("test_chat", p.getString("test_chat", "") ?: "")
+        set.put("wa_immer", p.getString("wa_immer", "") ?: "").put("wa_beim_zocken", p.getString("wa_beim_zocken", "ansagen") ?: "ansagen")
         set.put("stil_modus", p.getString("stil_modus", "aus") ?: "aus").put("wa_name", p.getString("stil_name", "") ?: "")
         for (k in BOOL_KEYS) set.put(k, p.getBoolean(k, true))
         post(c, topic(c), JSONObject().put("kind", "settings").put("from", "phone").put("ts", ts).put("settings", set))

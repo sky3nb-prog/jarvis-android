@@ -369,6 +369,13 @@
   $("stil-modus").addEventListener("change", stilSave);
   $("stil-chats").addEventListener("change", stilSave);
   try { $("stil-test").value = A.testChatGet(); } catch (e) {}
+  try { const a = JSON.parse(A.ansageGet()); $("wa-immer").value = a.immer || ""; $("wa-zocken").value = a.zocken || "ansagen"; } catch (e) {}
+  const ansSave = () => { try { A.ansageSet($("wa-immer").value, $("wa-zocken").value); toast("Gespeichert – auch am PC."); } catch (e) {} };
+  $("wa-immer").addEventListener("change", ansSave); $("wa-zocken").addEventListener("change", ansSave);
+  [["tb-wapc", "testWaPc", "t-wapc"], ["tb-voice", "testVoice", "t-voice"], ["tb-take", "testTakeover", "t-take"]].forEach(([b, fn, out]) =>
+    $(b).addEventListener("click", () => { $(out).textContent = "läuft …"; try { A[fn](); } catch (e) { $(out).textContent = "Ging nicht."; } }));
+  { const pt = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "t_res") { const o = $(data.id); if (o) o.textContent = data.text || "–"; return; } return pt && pt.call(window.jarvis, type, data); }; }
   $("stil-test").addEventListener("change", () => { try { A.testChatSet($("stil-test").value); toast("Test-Chat gespeichert – auch am PC."); } catch (e) {} });
   $("stil-term").addEventListener("click", () => setTimeout(stilSave, 0));
   $("stil-mit").addEventListener("click", () => setTimeout(() => { try { A.stilMitlesen(sw("stil-mit")); } catch (e) {} stilShow(); }, 0));

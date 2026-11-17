@@ -151,7 +151,8 @@ object Chats {
 
         if (!group && !isVoice(text) && System.currentTimeMillis() - time < 10 * 60_000L) try { Stil.onIncoming(ctx, chat, text, verlauf(ctx, norm(chat))) } catch (_: Exception) {}
         val test = isTest(ctx, chat) || isTest(ctx, sender)
-        val wanted = test || matches(important(ctx), chat, sender) || matches(watched(ctx), chat, sender)
+        val immer = (prefs(ctx).getString("wa_immer", "") ?: "").split(",").map { norm(it) }.filter { it.isNotBlank() }
+        val wanted = test || matches(immer, chat, sender) || matches(important(ctx), chat, sender) || matches(watched(ctx), chat, sender)
         if (!wanted) return
         val ck = norm(chat)
         synchronized(seen) {
@@ -195,6 +196,7 @@ object Chats {
         if (!Link.paired(ctx)) return
         val m = JSONObject().put("kind", "wa_msg").put("from", "phone").put("chat", chat).put("sender", sender)
             .put("text", text).put("voice", voice).put("key", norm(chat)).put("ts", System.currentTimeMillis() / 1000)
+            .put("test", isTest(ctx, chat) || isTest(ctx, sender))
         val key = prefs(ctx).getString("groq_key", "") ?: ""
         var inFile: File? = null
         if (voice) {
@@ -212,6 +214,16 @@ object Chats {
         synchronized(forwardedAt) { forwardedAt[norm(chat)] = System.currentTimeMillis() }
         try { Leute.promptFor(ctx, norm(chat)).takeIf { it.isNotBlank() }?.let { m.put("person", it) } } catch (_: Exception) {}
         Link.toPc(ctx, m)
+    }
+
+    /** Test-Knopf: so, als käme eine Nachricht aus dem Test-Chat – geht an den PC, der sie ansagt. */
+    fun testToPc(ctx: Context): String {
+        if (!Link.paired(ctx)) return "Nicht mit dem PC gekoppelt."
+        val t = (prefs(ctx).getString("test_chat", "") ?: "").ifBlank { "Test" }
+        Link.toPc(ctx, JSONObject().put("kind", "wa_msg").put("from", "phone").put("chat", t).put("sender", t)
+            .put("text", "Das ist eine Test-Nachricht vom Handy. Sag „antworte du“.").put("voice", false).put("key", norm(t)).put("test", true)
+            .put("ts", System.currentTimeMillis() / 1000))
+        return "Test-Nachricht ist zum PC unterwegs – er sollte sie gleich ansagen."
     }
 
     fun filesOk(): Boolean = Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()
