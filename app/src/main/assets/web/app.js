@@ -327,8 +327,26 @@
   if ($("set-screen")) $("set-screen").addEventListener("click", () => { if (A && A.openScreenAccess) A.openScreenAccess(); });
   const perm = (id, ok, txt) => { const e = $(id); e.textContent = ok ? "erlaubt" : (txt || "Erlauben"); e.classList.toggle("ok", !!ok); };
 
+  function piperShow() {
+    try {
+      const p = JSON.parse(A.piperGet()), sel = $("set-piper");
+      if (!sel.options.length || sel.dataset.n !== String(p.voices.length)) {
+        sel.innerHTML = `<option value="android">Handy-Stimme (Android)</option>` + p.voices.map((v) => `<option value="${v.id}">${v.name}</option>`).join("");
+        sel.dataset.n = String(p.voices.length);
+      }
+      p.voices.forEach((v) => { const o = sel.querySelector(`option[value="${v.id}"]`); if (o) o.textContent = v.name + (v.ready ? " ✓" : " (wird geladen)"); });
+      if (document.activeElement !== sel) sel.value = p.voice;
+      const cur = p.voices.find((v) => v.id === p.voice);
+      $("piper-st").textContent = p.voice === "android" ? "Spricht mit der Android-Stimme." : (cur && cur.ready ? "Bereit – offline, gleiche Stimme wie am PC." : (p.status || "Wird geladen …"));
+    } catch (e) {}
+  }
+  $("set-piper").addEventListener("change", () => { try { A.piperSet($("set-piper").value); } catch (e) {} setTimeout(piperShow, 300); });
+  $("piper-test").addEventListener("click", () => { try { A.piperTest(); } catch (e) {} setTimeout(piperShow, 300); });
+  setInterval(() => { const h = document.getElementById("sp-hoer"); if (h && h.classList.contains("on")) piperShow(); }, 1500);
+
   function openSettings() {
     if (!A) return;
+    piperShow();
     $("set-mode").value = A.getVoiceMode();
     const sel = $("set-voice");
     sel.length = 1;

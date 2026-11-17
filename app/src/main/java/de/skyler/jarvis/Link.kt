@@ -128,6 +128,7 @@ object Link {
             when {
                 k in BOOL_KEYS -> e.putBoolean(k, s.optBoolean(k, true))
                 k == "themen_selbst" -> Themen.setManual(ctx, s.optString(k))
+                k == "piper_voice" -> { val v = s.optString(k); if (v.isNotBlank() && v != PiperPhone.voice(ctx)) { e.putString("piper_voice", v); e.apply(); PiperPhone.ensure(ctx) } }
                 k in listOf("anrede", "assistant_name", "city", "address", "lage_orte", "orte", "wege", "route_an", "wichtig", "absage") -> e.putString(k, s.optString(k))
             }
         }
@@ -148,6 +149,7 @@ object Link {
             .put("wichtig", p.getString("wichtig", Chats.DEFAULT) ?: "").put("absage", p.getString("absage", "") ?: "")
         (p.getString("assistant_name", "") ?: "").takeIf { it.isNotBlank() }?.let { set.put("assistant_name", it) }
         set.put("themen_selbst", Themen.manual(ctx).joinToString(", "))
+        set.put("piper_voice", PiperPhone.voice(ctx))
         for (k in BOOL_KEYS) set.put(k, p.getBoolean(k, true))
         post(c, topic(c), JSONObject().put("kind", "settings").put("from", "phone").put("ts", ts).put("settings", set))
     }

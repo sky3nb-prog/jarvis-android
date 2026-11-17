@@ -383,8 +383,10 @@
             <select id="set-cloud"><option value="0">Sparsam – Handy hört vor, Groq prüft nur Treffer</option><option value="1">Genau – Groq prüft jeden kurzen Satz (mehr Daten)</option></select></div>
         </div>
         <div class="sec"><h3>STIMME</h3>
+          <div class="f"><label>Jarvis-Stimme – dieselben wie am PC</label><select id="set-piper"></select></div>
+          <div class="srow"><div>Probehören<small id="piper-st">Offline, kein Internet nötig. Jede Stimme wird einmal geladen (im WLAN). Am PC umgestellt = hier auch.</small></div><div class="sbtn" id="piper-test">Testen</div></div>
           <div class="f"><label>Stimme beim Reden</label><select id="set-mode"><option value="free">Kostenlos (Handy-Stimme + Groq)</option><option value="auto">George (ElevenLabs) beim Gespräch-Knopf, sonst kostenlos</option></select></div>
-          <div class="f"><label>Handy-Stimme (kostenlose Variante)</label><select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select></div>
+          <div class="f"><label>Android-Stimme (nur wenn oben „Handy-Stimme“ gewählt ist)</label><select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select></div>
           <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache → Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
           <div class="f"><label>Lautstärke von Jarvis (eigene, unabhängig von der Musik)</label><input id="set-jvol" type="range" min="10" max="100" step="5"></div>
           <div class="note">Tipp: Drück die Lautstärketasten, während er spricht – das merkt er sich als seine Lautstärke.</div>

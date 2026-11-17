@@ -884,6 +884,18 @@ class MainActivity : ComponentActivity() {
         fun hasGroqKey(): Boolean = !prefs.getString("groq_key", "").isNullOrBlank()
 
         @JavascriptInterface
+        fun piperGet(): String = JSONObject().put("voice", PiperPhone.voice(this@MainActivity)).put("status", PiperPhone.status)
+            .put("voices", org.json.JSONArray(PiperPhone.VOICES.map { (id, n) -> JSONObject().put("id", id).put("name", n).put("ready", PiperPhone.ready(this@MainActivity, id)) })).toString()
+        @JavascriptInterface
+        fun piperSet(v: String) { PiperPhone.setVoice(this@MainActivity, v); Thread { try { Link.pushSettings(this@MainActivity) } catch (_: Exception) {} }.start() }
+        @JavascriptInterface
+        fun piperTest() {
+            val c = this@MainActivity
+            if (PiperPhone.voice(c) == PiperPhone.ANDROID) { runOnUiThread { android.widget.Toast.makeText(c, "Handy-Stimme gewählt", android.widget.Toast.LENGTH_SHORT).show() }; return }
+            if (!PiperPhone.ready(c)) { PiperPhone.install(c, PiperPhone.voice(c), anyNetwork = true); return }
+            PiperPhone.speak(c, "Hallo. So klinge ich jetzt – genau wie am PC.", prefs.getFloat("tts_rate", 1.05f)) {}
+        }
+        @JavascriptInterface
         fun setVoiceMode(mode: String) { prefs.edit().putString("voice_mode", mode).apply() }
 
         @JavascriptInterface

@@ -23,6 +23,8 @@ object ReadAloud {
         parts = (0 until a.length()).map { a.optString(it) }
         idx = 0; active = parts.isNotEmpty()
         if (!active) return
+        app = ctx.applicationContext
+        if (PiperPhone.active(ctx)) { speak(); return }   // gleiche Stimme wie am PC
         if (tts == null) {
             tts = TextToSpeech(ctx.applicationContext) { st ->
                 ready = st == TextToSpeech.SUCCESS
@@ -53,7 +55,18 @@ object ReadAloud {
         })
     }
 
+    private var app: Context? = null
+    private var myRun = 0
+
     private fun speak() {
+        val c = app
+        if (c != null && PiperPhone.active(c)) {
+            if (idx >= parts.size) { stop(); return }
+            Bus.emit("read_pos", JSONObject().put("i", idx))
+            val run = ++myRun; val i = idx
+            val rate = c.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getFloat("tts_rate", 1.05f)
+            if (PiperPhone.speak(c, parts[idx], rate) { if (active && run == myRun && idx == i) { idx++; speak() } }) return
+        }
         val t = tts ?: return
         if (!ready) return
         if (idx >= parts.size) { stop(); return }
@@ -61,10 +74,11 @@ object ReadAloud {
         t.speak(parts[idx], TextToSpeech.QUEUE_FLUSH, null, "p$idx")
     }
 
-    fun next() { if (!active) return; idx++; speak() }
+    fun next() { if (!active) return; myRun++; try { PiperPhone.stop() } catch (_: Throwable) {}; idx++; speak() }
 
     fun stop() {
         active = false
+        myRun++; try { PiperPhone.stop() } catch (_: Throwable) {}
         try { tts?.stop() } catch (_: Exception) {}
         Bus.emit("read_end", JSONObject())
     }

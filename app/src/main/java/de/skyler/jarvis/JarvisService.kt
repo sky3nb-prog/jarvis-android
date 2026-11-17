@@ -136,6 +136,7 @@ class JarvisService : Service() {
         overlay?.appVisible = appVisible
         Bus.add(appListener)
         VoskModel.ensure(this) { ok -> if (ok) loadModel() }
+        try { PiperPhone.ensure(this); if (PiperPhone.active(this)) PiperPhone.warm(this) } catch (_: Throwable) {}
         alive = true
         Thread({ audioLoop() }, "jarvis-audio").start()
         Thread({ Link.listenPc(this, { alive }) { m -> onPcTask(m) } }, "jarvis-pc").start()
@@ -358,6 +359,14 @@ class JarvisService : Service() {
     private fun speak(text: String, then: () -> Unit) {
         val t = tts
         Bus.emit("agent", JSONObject().put("text", text))
+        // Gleiche Stimme wie am PC (Piper), wenn gewählt und geladen
+        if (PiperPhone.active(this)) {
+            beginVolume(); speaking = true; setState("speaking")
+            val ok = try { PiperPhone.speak(this, text, prefs.getFloat("tts_rate", 1.05f)) {
+                main.postDelayed({ speaking = false; endVolume(); rec?.reset(); then() }, 250) } } catch (_: Throwable) { false }
+            if (ok) return
+            speaking = false; endVolume()
+        }
         if (t == null || !ttsReady) { then(); return }
         beginVolume()
         speaking = true
@@ -407,6 +416,7 @@ class JarvisService : Service() {
         tourId++
         mode = Mode.IDLE
         try { tts?.stop() } catch (_: Exception) {}
+        try { PiperPhone.stop() } catch (_: Throwable) {}
         speaking = false
         main.post { endVolume() }
         setState("ended")
@@ -414,7 +424,7 @@ class JarvisService : Service() {
 
     private fun onOrbTap() {
         tourId++
-        if (speaking) { tts?.stop(); speaking = false; setState("listening"); deadline = System.currentTimeMillis() + 8000 }
+        if (speaking) { tts?.stop(); try { PiperPhone.stop() } catch (_: Throwable) {}; speaking = false; setState("listening"); deadline = System.currentTimeMillis() + 8000 }
         else endTalk()
     }
 

@@ -139,6 +139,14 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
 
     private fun run(key: String, text: String): String {
         termin = null
+        // „Ich bin jetzt weg“: PC bleibt an und hält sich selbst aktuell (Weg-Modus am PC)
+        val lowW = text.lowercase().trim().trim('.', '!', '?')
+        if (!fromPc && lowW.split(" ").size <= 8 && Regex("\\bich bin (jetzt |mal |kurz |dann )*(weg|unterwegs|los)\\b|\\bich (geh|gehe|muss) (jetzt |mal )*(los|weg)\\b|\\bweg-?modus\\b").containsMatchIn(lowW)
+            && !Regex("\\b(aus|herunter|runter)\\b").containsMatchIn(lowW) && Link.paired(ctx)) {
+            val r = try { Link.command(ctx, JSONObject().put("type", "weg_modus").put("on", true), 12_000) } catch (_: Exception) { null }
+            return if (r != null) "Alles klar, bis später. Der PC bleibt an, holt sich Updates selbst und schreibt dir, wenn was ist."
+                   else "Bis später. Der PC antwortet gerade nicht – ist er an?"
+        }
         if (Termin.wants(text)) {
             think("kalender")
             val r = try { Termin.add(ctx, key, text) } catch (e: Groq.KeyError) { Termin.R(e.message ?: "Der Groq-Schlüssel stimmt nicht.", false) }

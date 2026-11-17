@@ -58,4 +58,7 @@ dependencies {
     // Aktivierungswort offline auf dem Handy (Vosk); Modell wird beim ersten Start geladen
     implementation("com.alphacephei:vosk-android:0.3.47@aar")
     implementation("net.java.dev.jna:jna:5.13.0@aar")
+    // Gleiche Stimmen wie am PC (Piper), offline auf dem Handy – sherpa-onnx (nur arm64) + Entpacken der Stimmen
+    implementation(files("libs/sherpa-onnx-1.13.8-arm64.aar"))
+    implementation("org.apache.commons:commons-compress:1.21")
 }
