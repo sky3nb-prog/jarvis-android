@@ -219,9 +219,15 @@ def schema(s: dict) -> dict:
                  tx("test_chat", "Test-Chat (z. B. deine Zweitnummer)", "Nachrichten aus diesem Chat liest Jarvis immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt. Kleine Tippfehler im Kontaktnamen sind egal.", "Name wie in WhatsApp"),
                  btn("stil_import", "WhatsApp-Chat-Export wählen (ZIP direkt, nicht entpacken)"),
                  btn("stil_list", "Welche Chats sind schon drin?"),
+                 btn("test_handy", "Test: Verbindung zum Handy"),
+                 btn("test_ansage", "Test: Nachricht aus dem Test-Chat ansagen"),
+                 btn("test_sprach", "Test: Sprachnachricht an den Test-Chat schicken (über WhatsApp am PC)"),
                  note("Export: in WhatsApp Chat öffnen → ⋮ → Mehr → „Chat exportieren“. „Mit Medien“ = er hört auch die Sprachnachrichten an (bis 120 pro Chat). Mehrere ZIPs auf einmal gehen. Nur was innerhalb von 6 Stunden geantwortet wurde, zählt als Antwort. Am Handy lernt er außerdem mit jeder Nachricht und beim Durchscrollen.")),
             card("Wichtige Leute",
                  tx("wichtige_leute", "Namen wie in WhatsApp", "Mit Komma, z. B. Mama, Saya, Opa. Gilt auch am Handy."),
+                 tx("wa_immer", "Immer vorlesen", "Diese Chats liest er IMMER vor – auch beim Zocken, wenn WhatsApp offen ist oder im Fokus-Modus. Gilt auch am Handy.", "z. B. Mama"),
+                 sel("wa_beim_zocken", "Beim Zocken / Discord", [["Trotzdem ansagen", "ansagen"], ["Sammeln und danach sagen", "sammeln"], ["Gar nicht ansagen", "nie"]],
+                     "„Immer vorlesen“-Chats und der Test-Chat kommen trotzdem durch."),
                  note("Schreiben sie dir, sagt Jarvis es hier an – auch mitten im Spiel. Sprachnachrichten: „vorlesen“ oder „abspielen“. "
                       "Danach: „antworte du“ (Vorschlag, du sagst ja oder nein) oder „ich antworte“ (du diktierst). "
                       "Gesendet wird über die Benachrichtigung am Handy, WhatsApp geht nicht auf.")),
@@ -357,6 +363,7 @@ def schema(s: dict) -> dict:
         "wichtige_leute": s.get("wichtige_leute", "") or "", "absage_text": s.get("absage_text", "") or "",
         "discord_server": s.get("discord_server", "") or "", "stil_chats": s.get("stil_chats", "") or "", "test_chat": s.get("test_chat", "") or "",
         "stil_modus": s.get("stil_modus", "aus") or "aus", "wa_name": s.get("wa_name", "") or "",
+        "wa_immer": s.get("wa_immer", "") or "", "wa_beim_zocken": s.get("wa_beim_zocken", "ansagen") or "ansagen",
     }
     for k, n in LISTS.items():
         values[k] = ", ".join(s.get(k) or (d.get(k) or []))
@@ -389,7 +396,7 @@ def save(s: dict, v: dict) -> dict:
     for k in ("persona", "language", "voice_engine", "piper_voice", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
               "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele",
-              "discord_server", "stil_chats", "test_chat", "stil_modus", "wa_name"):
+              "discord_server", "stil_chats", "test_chat", "stil_modus", "wa_name", "wa_immer", "wa_beim_zocken"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device", "discord_device"):
@@ -521,6 +528,23 @@ def run(ui, name: str, v: dict) -> dict:
         if not paths:
             return {"ok": False, "text": "Keine Datei gewählt."}
         return {"ok": True, "text": pc_stil.import_files(paths)}
+    if name == "test_handy":
+        import pc_handy
+        import pc_link
+        if not pc_handy.paired():
+            return {"ok": False, "text": "Handy ist nicht gekoppelt (Code fehlt)."}
+        direct = time.time() - pc_link.DIRECT["t"] < 90
+        r = pc_handy.ask("ctl", wait=15, what="stil_get")
+        weg = "direkt (Tailscale, ohne Limit)" if direct else "über den Kopplungsdienst" + (" – Tageslimit heute erreicht!" if pc_handy.limited() else "")
+        return {"ok": bool(r), "text": (f"✓ Handy antwortet, Weg: {weg}." if r else "✕ " + pc_handy.not_reached() + f" (Weg: {weg})")}
+    if name == "test_ansage":
+        import pc_nachrichten
+        t = str(s.get("test_chat") or "").strip() or "Test"
+        pc_nachrichten.incoming({"kind": "wa_msg", "sender": t, "chat": t, "text": "Das ist eine Test-Nachricht. Sag „antworte du“.", "key": "", "test": True})
+        return {"ok": True, "text": f"Ich sag gleich eine Test-Nachricht von {t} an."}
+    if name == "test_sprach":
+        import pc_wavoice
+        return {"ok": True, "text": pc_wavoice.test()}
     if name == "stil_list":
         import pc_stil
         return {"ok": True, "text": pc_stil.history_text()}

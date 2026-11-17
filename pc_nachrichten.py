@@ -158,12 +158,107 @@ def _is_test(msg: dict) -> bool:
     return False
 
 
+def _setting(k: str, d=""):
+    try:
+        import pc_settings
+        return pc_settings.load().get(k, d) or d
+    except Exception:
+        return d
+
+
+def _always(msg: dict) -> bool:
+    """Chats, die er IMMER vorliest (Einstellung „wa_immer“) – auch beim Zocken, bei offenem WhatsApp, im Fokus-Modus."""
+    names = [re.sub(r"[^\w ]", " ", x.lower()).strip() for x in str(_setting("wa_immer", "")).split(",") if x.strip()]
+    for k in ("chat", "sender"):
+        v = re.sub(r"[^\w ]", " ", str(msg.get(k) or "").lower()).strip()
+        if v and any(v == n or v.startswith(n + " ") for n in names):
+            return True
+    return False
+
+
+def _gaming() -> bool:
+    """Läuft gerade ein Spiel / Gaming-Modus? (dann gilt „beim Zocken“)"""
+    try:
+        import pc_gaming
+        if pc_gaming.current_game():
+            return True
+    except Exception:
+        pass
+    try:
+        import pc_modi
+        return str(pc_modi.current() or "").lower() in ("gaming", "zocken")
+    except Exception:
+        return False
+
+
+TAKEOVER = {}   # Chat (klein) -> bis wann Jarvis das Gespräch selbst führt („Übernimm den Chat mit Tohmas“)
+
+
+def _norm_name(x) -> str:
+    return re.sub(r"[^\w ]", " ", str(x or "").lower()).strip()
+
+
+def takeover(name: str, on: bool = True) -> str:
+    n = _norm_name(name)
+    if not on:
+        if n:
+            for k in [k for k in TAKEOVER if k == n or k.startswith(n) or n.startswith(k)]:
+                TAKEOVER.pop(k, None)
+        else:
+            TAKEOVER.clear()
+        return "Okay, du übernimmst wieder."
+    if not n:
+        return "Welchen Chat soll ich übernehmen?"
+    TAKEOVER[n] = time.time() + 3 * 3600
+    return (f"Okay, ich übernehme den Chat mit {name} und antworte selbst in deinem Stil – über WhatsApp hier am PC. "
+            "Ich sag dir kurz, was ich geschrieben hab. „Ich übernehme wieder“ stoppt es.")
+
+
+def _taken(msg: dict) -> bool:
+    import difflib
+    now = time.time()
+    for k, until in list(TAKEOVER.items()):
+        if until < now:
+            TAKEOVER.pop(k, None); continue
+        for f in ("chat", "sender"):
+            v = _norm_name(msg.get(f))
+            if v and (v == k or difflib.SequenceMatcher(None, v.split(" ")[0], k.split(" ")[0]).ratio() >= 0.8):
+                return True
+    return False
+
+
+def _auto_reply(msg: dict):
+    try:
+        m = dict(msg)
+        d = _draft(m)
+        if not d:
+            return
+        r = send(m, d)
+        print(f"Übernommen ({m.get('chat')}): {r}")
+        with _lock:
+            _announce.append({"kind": "say", "force": True, "text": f"Ich hab {_who(m)} geantwortet: {d}", "t": time.time()})
+    except Exception as e:
+        print("Chat übernehmen:", e)
+
+
 def incoming(msg: dict):
     """Vom Handy: {sender, chat, text, voice, transcript, audio(b64 ogg), key}."""
-    if msg.get("kind") not in ("say", "offer", "held") and _is_test(msg):   # Test-Chat (Zweitnummer): immer vorlesen
+    if msg.get("kind") not in ("say", "offer", "held") and _taken(msg):   # Jarvis führt das Gespräch selbst
+        threading.Thread(target=_auto_reply, args=(msg,), daemon=True).start()
+        return
+    if msg.get("kind") not in ("say", "offer", "held") and (msg.get("test") or _is_test(msg) or _always(msg)):   # Test-Chat / „immer vorlesen“
         msg["force"] = True; msg["test"] = True
     if msg.get("kind") not in ("say", "offer", "held") and not msg.get("test"):
         now = time.time()
+        mode = _setting("wa_beim_zocken", "ansagen")
+        if mode != "ansagen" and _gaming():   # beim Zocken/Discord: einstellbar
+            if mode == "nie":
+                print(f"Nachricht von {msg.get('sender')}: beim Zocken aus – keine Ansage")
+                return
+            with _lock:
+                _held.append(dict(msg, t=now)); del _held[:-15]
+            print(f"Nachricht von {msg.get('sender')}: beim Zocken – später gesammelt")
+            return
         if _whatsapp_vorne() and _idle_seconds() < 120:   # du bist gerade in WhatsApp: siehst du selbst
             print(f"Nachricht von {msg.get('sender')}: WhatsApp ist vorne – keine Ansage")
             return
@@ -437,10 +532,9 @@ def send(m: dict, text: str) -> str:
     """Antwort senden: zuerst übers Handy (Benachrichtigung, nichts geht auf), sonst WhatsApp am PC."""
     import pc_handy
     text = wa_style(text)
-    if m.get("voice_reply") and pc_handy.paired():   # „… als Sprachnachricht“: Jarvis spricht die Antwort (Handy-Stimme) und schickt sie
-        r = pc_handy.ask("ctl", wait=45, what="wa_voice", name=str(m.get("chat") or m.get("sender") or ""), text=text)
-        if r and r.get("ok") is not False:
-            return r.get("text") or f"Sprachnachricht ist raus: {text}"
+    if m.get("voice_reply"):   # „… als Sprachnachricht“: Jarvis spricht die Antwort und schickt sie über WhatsApp am PC
+        import pc_wavoice
+        return pc_wavoice.send(str(m.get("chat") or m.get("sender") or ""), text, raw=True)
     if pc_handy.paired() and m.get("key"):
         r = pc_handy.ask("wa_reply", wait=20, key=m.get("key"), chat=m.get("chat"), text=text)
         if r and r.get("ok"):

@@ -157,29 +157,23 @@ def handle(text: str):
         return "Den Papierkorb endgültig leeren? Sag ja."
     if re.search(r"\bdiscord\b", low) and re.search(r"\b(wer|online|on|da|drin|im call|im sprachkanal)\b", low) and len(low.split()) <= 10:
         return discord_online()
-    # Sprachnachricht schicken: macht das Handy (Jarvis-Stimme). Fragt es nach („an wen? was?“), geht die nächste Antwort auch dorthin.
-    if (time.time() - PENDING.get("voice", 0) < 90) or (re.search(r"\bsprach ?nachricht\b", low) and re.search(r"\b(schick|send|nimm|nehm|aufnehm|antworte|kannst du|könntest du)\w*", low)):
-        PENDING["voice"] = 0
-        try:
-            import pc_handy
-            if pc_handy.paired():
-                r = pc_handy.command(text)
-                t = (r or {}).get("text") or "Das Handy antwortet gerade nicht."
-                if t.endswith("?"):
-                    PENDING["voice"] = time.time()
-                return t
-            return "Sprachnachrichten schickt das Handy – das ist gerade nicht gekoppelt."
-        except Exception as e:
-            return f"Das ging nicht ({e})."
-    # „Übernimm den Chat mit Tobi“ / „ich übernehme wieder“ – das macht das Handy (dort laufen die WhatsApp-Nachrichten)
-    if len(low.split()) <= 9 and (re.match(r"^(übernimm|übernimmst du|übernehme du)\b", low) or re.match(r"^(ich übernehm\w*|hör auf zu antworten)\b", low)):
-        try:
-            import pc_handy
-            if pc_handy.paired():
-                r = pc_handy.command(text)
-                return r.get("text") or "Okay."
-        except Exception:
-            pass
+    # Sprachnachricht schicken: direkt über WhatsApp am PC (Jarvis-Stimme), fragt nach, wenn etwas fehlt
+    try:
+        import pc_wavoice
+        r = pc_wavoice.handle(text)
+        if r:
+            return r
+    except Exception as e:
+        return f"Die Sprachnachricht ging nicht ({e})."
+    # „Übernimm den Chat mit Tohmas“ / „ich übernehme wieder“ – Jarvis antwortet hier am PC selbst (WhatsApp am PC)
+    m = re.match(r"^(?:übernimm|übernimmst du|übernehme du)\s+(?:mal\s+|jetzt\s+)?(?:den chat (?:mit|von)\s+|das gespräch mit\s+|für mich\s+)?([a-zäöüß-]+)$", low)
+    if m and m.group(1) not in ("das", "den", "es", "du"):
+        import pc_nachrichten
+        return pc_nachrichten.takeover(m.group(1).capitalize())
+    m = re.match(r"^(?:ich übernehm\w*|hör auf zu antworten)(?:\s+(?:wieder|selbst|jetzt))*(?:\s+(?:bei|mit)\s+([a-zäöüß-]+))?$", low)
+    if m:
+        import pc_nachrichten
+        return pc_nachrichten.takeover(m.group(1) or "", on=False)
     # „Wo hab ich … hingelegt?“ / „… liegt in der Schublade“ – das merkt sich das Handy (eine Liste für beide)
     if len(low.split()) <= 14 and (re.match(r"^(wo (ist|sind|liegt|liegen|hab ich|habe ich) (mein|meine|meinen|die|der|das|den)\b)", low)
                                    or re.search(r"\b(liegt|liegen|steht|stehen|hängt|hängen)\b.*\b(in|im|auf|unter|neben|hinter|bei|beim|am|an)\b", low) and re.search(r"\b(mein\w*|schlüssel|kopfhörer|handy|geldbeutel|portemonnaie|brille|ausweis|fahrrad|controller|ladekabel)\b", low)

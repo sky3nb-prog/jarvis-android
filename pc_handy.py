@@ -49,6 +49,8 @@ def _send(obj: dict):
     pc_link.outbox_put("handy", body)   # direkter Weg (Tailscale/WLAN)
     if time.time() - pc_link.DIRECT["t"] < 90:   # Handy holt gerade direkt ab: ntfy sparen
         return
+    if limited():   # Tageslimit: nur noch der direkte Weg (falls das Handy gleich abholt)
+        return
     r = urllib.request.Request(pc_link.SERVER + topic(), data=body.encode(), method="POST")
     r.add_header("User-Agent", "Jarvis-PC")
     try:
@@ -58,7 +60,16 @@ def _send(obj: dict):
         if e.code == 429:
             LIMIT["t"] = time.time()
             print("Kopplungsdienst: Tageslimit erreicht (429) – heute gehen keine Nachrichten mehr durch.")
+            return   # nicht abbrechen: vielleicht holt das Handy direkt ab
         raise
+
+
+def not_reached() -> str:
+    """Warum das Handy gerade nicht antwortet – in Worten für dich."""
+    if limited() and time.time() - pc_link.DIRECT["t"] > 90:
+        return ("Der Kopplungsdienst hat heute sein Tageslimit erreicht (geht ab Mitternacht wieder). "
+                "Mach am Handy Tailscale an, dann geht's direkt und ohne Limit.")
+    return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
 
 
 def ask(kind: str, wait: float = 25, **data):
@@ -70,7 +81,7 @@ def ask(kind: str, wait: float = 25, **data):
     try:
         print(f"Handy-Auftrag {kind}: {str(data)[:120]}")
         _send(dict(kind=kind, id=mid, ts=int(time.time()), **{"from": "pc"}, **data))
-        ev.wait(wait)
+        ev.wait(wait if not (limited() and time.time() - pc_link.DIRECT["t"] > 90) else 3)
         r = _waiting[mid][1]
         print(f"Handy-Antwort {kind} nach {time.time() - t0:.1f} s: " + (str(r.get("text", ""))[:150] if r else "keine (Jarvis-App an? Schalter oben rechts an? Oder Tageslimit des Kopplungsdienstes erreicht)"))
         return r
@@ -224,18 +235,18 @@ def refresh_status(force: bool = False):
 def control(what: str, **data) -> dict:
     """Musik-Tasten, Lautstärke, Lautlos, Lampe, Handy finden."""
     r = ask("ctl", wait=15, what=what, **data)
-    return r or {"ok": False, "text": "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"}
+    return r or {"ok": False, "text": not_reached()}
 
 
 def command(text: str) -> dict:
     """Freier Befehl ans Handy (wie gesprochen beim Handy-Jarvis)."""
     r = ask("do", wait=30, text=text)
-    return r or {"ok": False, "text": "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"}
+    return r or {"ok": False, "text": not_reached()}
 
 
 def call(who: str) -> dict:
     r = ask("call", wait=20, who=who)
-    return r or {"ok": False, "text": "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"}
+    return r or {"ok": False, "text": not_reached()}
 
 
 # --- Wege planen (rechnet das Handy: kennt Standort, Gedächtnis, Läden entlang der Strecke) --------------------

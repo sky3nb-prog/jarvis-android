@@ -8,6 +8,7 @@ import io
 import json
 import os
 import re
+import time
 import zipfile
 
 from pc_apps import base_dir
@@ -216,18 +217,25 @@ def import_files(paths) -> str:
         for t in mine[-300:]:
             pc_nachrichten.stil_lernen(t)
         done += len(mine)
-        if pc_handy.paired():   # in Stücken ans Handy (Stil-Training, Ton pro Person)
+        import pc_link
+        direct = time.time() - pc_link.DIRECT["t"] < 90
+        if pc_handy.paired() and not direct:   # über den Kopplungsdienst nur ein Stück (Tageslimit 250 Nachrichten!)
+            sent_ok = None
+        if pc_handy.paired() and direct:   # direkter Weg (Tailscale): ohne Limit, in großen Stücken
             mine2, pairs2 = mine[-300:], pairs[-150:]
-            chunks = max(1, (len(mine2) + 24) // 25)
+            chunks = max(1, (len(mine2) + 99) // 100)
             for k in range(chunks):
-                part = dict(chat=chat, mine=mine2[k * 25:(k + 1) * 25], pairs=pairs2[k * 12:(k + 1) * 12], last=(k == chunks - 1))
+                part = dict(chat=chat, mine=mine2[k * 100:(k + 1) * 100], pairs=pairs2[k * 50:(k + 1) * 50], last=(k == chunks - 1))
                 r2 = pc_handy.ask("ctl", wait=20, what="stil_paket", **part)
                 if not r2:
                     sent_ok = False
                     break
     out = (f"Gelernt: {done} Nachrichten von dir" + (f", {STATE.get('voice', 0)} Sprachnachrichten angehört" if STATE.get("voice") else "") + ".") if done else "Nichts gelernt."
-    if done and not sent_ok:
-        out += " Das Handy hat nicht geantwortet – am PC ist es gelernt, ans Handy schick ich es beim nächsten Mal."
+    if done and sent_ok is None:
+        out += (" Am PC ist es gelernt. Ans Handy schicke ich es nur über die direkte Verbindung (Tailscale am Handy an) – "
+                "der normale Kopplungsdienst hat ein Tageslimit, das soll für deine Befehle frei bleiben.")
+    elif done and not sent_ok:
+        out += " Das Handy hat nicht geantwortet – am PC ist es gelernt."
     if errs:
         out += " " + " ".join(errs[:3])
     return out
