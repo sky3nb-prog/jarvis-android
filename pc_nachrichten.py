@@ -416,6 +416,10 @@ def send(m: dict, text: str) -> str:
     """Antwort senden: zuerst übers Handy (Benachrichtigung, nichts geht auf), sonst WhatsApp am PC."""
     import pc_handy
     text = wa_style(text)
+    if m.get("voice_reply") and pc_handy.paired():   # „… als Sprachnachricht“: Jarvis spricht die Antwort (Handy-Stimme) und schickt sie
+        r = pc_handy.ask("ctl", wait=45, what="wa_voice", name=str(m.get("chat") or m.get("sender") or ""), text=text)
+        if r and r.get("ok") is not False:
+            return r.get("text") or f"Sprachnachricht ist raus: {text}"
     if pc_handy.paired() and m.get("key"):
         r = pc_handy.ask("wa_reply", wait=20, key=m.get("key"), chat=m.get("chat"), text=text)
         if r and r.get("ok"):
@@ -436,6 +440,14 @@ def handle(text: str):
         return None
     m, low = PENDING, (text or "").lower().strip(" .!?")
     m["t"] = time.time()
+    # „antworte du, aber als Sprachnachricht“ – merken und aus dem Wunsch nehmen
+    VR = r"[,\s]*(?:aber |und )?(?:schick(?:'s| es)? |mach(?:'s| es| das)? |antworte )?(?:als|per|mit einer|mit|in einer|eine) sprach ?nachricht\b|[,\s]*sprich (?:es|das) (?:ein|auf)\b"
+    if re.search(VR, low):
+        m["voice_reply"] = True
+        text = re.sub(VR, "", text, flags=re.I).strip(" ,.")
+        low = text.lower().strip(" .!?") or "ja"
+        if m.get("stage") == "confirm" and low in ("ja", "aber", "und"):
+            text, low = "ja", "ja"
     print(f"Nachrichten-Dialog ({m.get('stage')}): {text}")
     if m.get("stage") == "held":
         if re.search(r"\begal\b|ignorier|vergiss|unwichtig|nicht wichtig|nein|nö|nee|lass", low):

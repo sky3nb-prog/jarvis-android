@@ -41,7 +41,7 @@ def _same(names):
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
 # Dazu kommen automatisch alle Einstellungen, die ein Update neu mitbringt (pc_settings: auto_new).
-NEW = ["discord_server", "piper_voice","sticker_wahl", "schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
+NEW = ["stil_chats", "discord_server", "piper_voice","sticker_wahl", "schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
 _shown = None   # Kennungen, die es in den Einstellungen wirklich als Feld gibt
 
 
@@ -168,6 +168,9 @@ def schema(s: dict) -> dict:
                  sel("discord_device", "Zweites Gerät", [["– aus –", ""]] + outs[1:] if outs else [["– aus –", ""]],
                      "Ein Ausgang, der in dein Discord-Mikro geht: bei Wave Link z. B. der Kanal, der im Stream-/Chat-Mix landet, sonst ein virtuelles Kabel (VB-CABLE: hier „CABLE Input“, in Discord als Mikro „CABLE Output“)."),
                  note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent."),
+                 btn("stil_import", "WhatsApp-Chat-Export wählen (ZIP direkt, nicht entpacken)"),
+                 tx("stil_chats", "Chats, denen Jarvis selbst antworten darf", "Namen wie in WhatsApp, mit Komma. Gilt auch am Handy (Einstellungen → Leute → Schreibstil). Ob er erst fragt oder selbst schreibt, stellst du am Handy ein.", "z. B. Tobi, Marius"),
+                 note("Schreibstil lernen: in WhatsApp (Handy oder PC) einen Chat öffnen → ⋮ → Mehr → „Chat exportieren“ → „Ohne Medien“, die ZIP hier wählen. Am Handy lernt er zusätzlich beim Durchscrollen mit."),
                  tx("discord_server", "Discord-Server für „Wer ist online?“", "Server-ID: in Discord Einstellungen → Erweitert → Entwicklermodus an, dann Rechtsklick auf den Server → „Server-ID kopieren“. Und in den Server-Einstellungen → Widget → „Server-Widget aktivieren“. Kein Bot, keine Anmeldung.", "z. B. 123456789012345678")),
             card("ElevenLabs",
                  sec("eleven_key", "ElevenLabs-Schlüssel", "elevenlabs.io → Entwickler → API-Schlüssel. Wird verschlüsselt gespeichert."),
@@ -345,7 +348,7 @@ def schema(s: dict) -> dict:
         "gemini_api_key": s.get("gemini_api_key", "") or "",
         "meine_orte": s.get("meine_orte", "") or "", "meine_wege": s.get("meine_wege", "") or "", "route_an": s.get("route_an", "") or "",
         "wichtige_leute": s.get("wichtige_leute", "") or "", "absage_text": s.get("absage_text", "") or "",
-        "discord_server": s.get("discord_server", "") or "",
+        "discord_server": s.get("discord_server", "") or "", "stil_chats": s.get("stil_chats", "") or "",
     }
     for k, n in LISTS.items():
         values[k] = ", ".join(s.get(k) or (d.get(k) or []))
@@ -378,7 +381,7 @@ def save(s: dict, v: dict) -> dict:
     for k in ("persona", "language", "voice_engine", "piper_voice", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
               "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele",
-              "discord_server"):
+              "discord_server", "stil_chats"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device", "discord_device"):
@@ -501,6 +504,15 @@ def run(ui, name: str, v: dict) -> dict:
         except Exception:
             pass
         return {"ok": True, "text": "Datei mit eigenen Befehlen ist offen."}
+    if name == "stil_import":
+        import pc_stil
+        try:
+            paths = pc_stil.pick_files()
+        except Exception as e:
+            return {"ok": False, "text": f"Dateiauswahl ging nicht ({e})."}
+        if not paths:
+            return {"ok": False, "text": "Keine Datei gewählt."}
+        return {"ok": True, "text": pc_stil.import_files(paths)}
     if name == "classic":
         ui.q.put(("classic_settings",))
         return {"ok": True, "text": "Klassisches Fenster ist offen."}
