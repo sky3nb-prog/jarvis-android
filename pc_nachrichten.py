@@ -139,9 +139,27 @@ def _watch_front():
 threading.Thread(target=_watch_front, daemon=True, name="wa-vorne").start()
 
 
+def _is_test(msg: dict) -> bool:
+    """Test-Chat aus den Einstellungen („test_chat“, z. B. die Zweitnummer)."""
+    try:
+        import pc_settings
+        t = re.sub(r"[^\w ]", " ", str(pc_settings.load().get("test_chat") or "").lower()).strip()
+        if not t:
+            return False
+        for k in ("chat", "sender"):
+            v = re.sub(r"[^\w ]", " ", str(msg.get(k) or "").lower()).strip()
+            if v and (v == t or v.startswith(t + " ")):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def incoming(msg: dict):
     """Vom Handy: {sender, chat, text, voice, transcript, audio(b64 ogg), key}."""
-    if msg.get("kind") not in ("say", "offer", "held"):
+    if msg.get("kind") not in ("say", "offer", "held") and _is_test(msg):   # Test-Chat (Zweitnummer): immer vorlesen
+        msg["force"] = True; msg["test"] = True
+    if msg.get("kind") not in ("say", "offer", "held") and not msg.get("test"):
         now = time.time()
         if _whatsapp_vorne() and _idle_seconds() < 120:   # du bist gerade in WhatsApp: siehst du selbst
             print(f"Nachricht von {msg.get('sender')}: WhatsApp ist vorne – keine Ansage")
@@ -218,7 +236,7 @@ def announce_text() -> str:
         if m.get("action") not in ("update", "shutdown"):
             pc_lernen.shown(lk)
         return m.get("question") or "Soll ich?"
-    if ASK_FIRST and m.get("kind") not in ("say", "offer"):   # erst nur fragen – "egal" verwirft sie (bleibt in WhatsApp ungelesen)
+    if ASK_FIRST and m.get("kind") not in ("say", "offer") and not m.get("test"):   # erst nur fragen – "egal" verwirft sie (bleibt in WhatsApp ungelesen)
         m["stage"] = "ask"
         art = "Sprachnachricht" if m.get("voice") else "Nachricht"
         return f"Neue {art} von {_who(m)} – soll ich weitermachen, oder ist sie egal?"
