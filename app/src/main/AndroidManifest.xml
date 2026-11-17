@@ -94,6 +94,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- WhatsApp „Chat exportieren“ → Jarvis: Schreibstil lernen -->
+            <intent-filter android:label="Jarvis: Schreibstil lernen">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
             <!-- Health Connect: "Warum braucht Jarvis das?" (Android 13 und älter) -->
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
@@ -134,6 +141,8 @@
         <receiver android:name=".AlltagReceiver" android:exported="false" />
         <receiver android:name=".RemindReceiver" android:exported="false" />
         <receiver android:name=".UpdateReceiver" android:exported="false" />
+        <receiver android:name=".WaTerminReceiver" android:exported="false" />
+        <receiver android:name=".StilReceiver" android:exported="false" />
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

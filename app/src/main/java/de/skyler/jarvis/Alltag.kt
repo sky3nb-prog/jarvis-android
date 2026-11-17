@@ -1234,6 +1234,7 @@ object Alltag {
                 val t = t0 + (if (wer.isNotBlank()) " Ich sag $wer Bescheid, kurz bevor du da bist." else "")
                 notify(ctx, 332, "Gleich los zu ${f.label}", t, feed = fid); say(t)
             }
+            if (pl != null) bahnWatch(ctx, s, "$id|hin", pl, home, dest, f.label, f.mode, say)
             if (pl != null && now in pl.optLong("go", leave)..pl.optLong("go", leave) + 30 * 60_000L && !done(s, "$id|los")) {   // still: Ziel für die Ankunfts-SMS
                 mark(s, "$id|los")
                 if (!s.has("ziel")) s.put("ziel", JSONObject().put("name", f.to).put("label", f.label).put("wer", wer).put("start", pl.optLong("go", leave))
@@ -1262,6 +1263,7 @@ object Alltag {
                     s.put("fest_back", fb)
                 }
                 val pb = s.optJSONObject("fest_back")?.takeIf { it.optString("id") == id } ?: continue
+                bahnWatch(ctx, s, "$id|zur", pb, from, home, "zuhause", f.mode, say)
                 val msgAt = pb.optLong("msg"); val go = pb.optLong("go")
                 if (now in msgAt until go + 10 * 60_000L && !done(s, "$id|bmsg")) {
                     mark(s, "$id|bmsg"); s.put("back_msg", now)
@@ -1280,6 +1282,43 @@ object Alltag {
                 }
             }
         }
+    }
+
+    /**
+     * Bahn-Verspätung: ab 30 Min. vor der Abfahrt alle 5 Min. Echtzeit prüfen. Ist der Zug ≥ 5 Min. zu spät oder fällt aus,
+     * kommt eine Meldung – und wenn du mit dem Rad früher da wärst (und es nicht stark regnet): „Lieber Rad?“
+     */
+    private fun bahnWatch(ctx: Context, s: JSONObject, key: String, pl: JSONObject, from: Route.P, dest: Route.P, label: String, vehicle: String, say: (String) -> Unit) {
+        if (pl.optString("mode") != "transit") return
+        val dep = pl.optLong("ride_dep"); val stop = pl.optString("stop"); val line = pl.optString("line")
+        val now = System.currentTimeMillis()
+        if (dep <= 0 || stop.isBlank() || line.isBlank() || now !in dep - 30 * 60_000L..dep - 2 * 60_000L) return
+        val slot = (now / (5 * 60_000L))
+        if (s.optLong("dly_slot|$key") == slot) return
+        s.put("dly_slot|$key", slot)
+        Thread({
+            try {
+                val d = Route.delay(stop, line, dep) ?: return@Thread
+                val pk = "dly_told|$key"
+                val last = prefs(ctx).getInt(pk, 0)
+                if (d in 0..4 || (d > 0 && d - last < 3 && last != 0) || (d == -1 && last == -1)) return@Thread
+                prefs(ctx).edit().putInt(pk, d).apply()
+                val ln = line.substringBefore(" (")
+                val arrBahn = pl.optLong("arr") + (if (d > 0) d * 60_000L else 0L)
+                val km = Route.distKm(from, dest)
+                val bikeMin = (learned(ctx, label, "rad") ?: (km * 1.3 / (if (vehicle == "rad") 16.0 else 22.0) * 60 + 3))
+                val startBike = maxOf(now + 5 * 60_000L, pl.optLong("go", now))
+                val arrBike = startBike + (bikeMin * 60_000).toLong()
+                val heavyRain = try { rainAt(from.lat, from.lon, now) && (wxAt(from.lat, from.lon, now)?.optDouble("rain_mm") ?: 0.0) >= 2.0 } catch (_: Exception) { false }
+                val head = if (d == -1) "$ln um ${clock(dep)} fällt aus." else "$ln hat $d Min. Verspätung (statt ${clock(dep)} erst ${clock(dep + d * 60_000L)})."
+                val bikeBetter = km <= 18 && !heavyRain && (d == -1 || arrBike < arrBahn - 2 * 60_000L)
+                val text = if (bikeBetter) "$head Lieber Rad? Mit dem ${if (vehicle == "rad") "Fahrrad" else "E-Bike"} bist du in ${bikeMin.toInt()} Min. ${if (label == "zuhause") "zuhause" else "bei $label"} – gegen ${clock(arrBike)}" +
+                        (if (d > 0) ", mit der Bahn erst ${clock(arrBahn)}." else ".")
+                    else "$head ${if (d == -1) "Schau in der App nach der nächsten Verbindung." else "Du bist dann gegen ${clock(arrBahn)} ${if (label == "zuhause") "zuhause" else "da"}."}"
+                notify(ctx, 335, if (bikeBetter) "Bahn zu spät – lieber Rad?" else "Bahn: $ln zu spät", text, url = if (bikeBetter) Route.mapsLink(from, dest, "bicycling") else null)
+                say(text)
+            } catch (e: Exception) { Log.w(TAG, "bahnWatch: $e") }
+        }, "jarvis-bahn-dly").start()
     }
 
     /** Wetter zu einer Stunde (für die Mitteilungsseite): temp, feel, rain_mm, rain_pct, wind, gust, dark, code. */

@@ -454,6 +454,34 @@ Antworte NUR mit dem JSON."""
         try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
     }
 
+    /**
+     * Verspätung einer geplanten Abfahrt (VVS-Abfahrtsmonitor, Echtzeit). null = unbekannt, -1 = fällt aus, sonst Minuten.
+     * line z. B. "S6" oder "S6 (1× umsteigen)", plannedDep = Abfahrt laut Plan.
+     */
+    fun delay(stop: String, line: String, plannedDep: Long): Int? = try {
+        val want = line.substringBefore(" (").trim().split(" ").last().lowercase()
+        val d = SimpleDateFormat("yyyyMMdd", de).format(Date(plannedDep - 10 * 60_000L)); val hm = SimpleDateFormat("HHmm", de).format(Date(plannedDep - 10 * 60_000L))
+        val url = "https://www3.vvs.de/mngvvs/XML_DM_REQUEST?outputFormat=rapidJSON&language=de&mode=direct&useRealtime=1&limit=40" +
+            "&type_dm=stop&name_dm=${enc(stop)}&itdDate=$d&itdTime=$hm"
+        val ev = JSONObject(http.newCall(Request.Builder().url(url).header("User-Agent", "Jarvis-Handy/1.0 (privat)").build())
+            .execute().use { it.body?.string() ?: "{}" }).optJSONArray("stopEvents") ?: JSONArray()
+        var best: Int? = null; var bestGap = Long.MAX_VALUE
+        for (i in 0 until ev.length()) {
+            val e = ev.optJSONObject(i) ?: continue
+            val tr = e.optJSONObject("transportation")
+            val names = listOf(tr?.optString("disassembledName"), tr?.optString("number"), tr?.optString("name")).map { (it ?: "").lowercase() }
+            if (names.none { it == want || it.endsWith(" $want") }) continue
+            val plan = parseIso(e.optString("departureTimePlanned")) ?: continue
+            val gap = Math.abs(plan - plannedDep)
+            if (gap > 4 * 60_000L || gap >= bestGap) continue
+            bestGap = gap
+            val rt = e.optJSONArray("realtimeStatus")?.toString() ?: ""
+            best = if (rt.contains("CANCEL", true) || e.optBoolean("isCancelled")) -1
+                else parseIso(e.optString("departureTimeEstimated"))?.let { ((it - plan) / 60_000L).toInt().coerceAtLeast(0) } ?: 0
+        }
+        best
+    } catch (_: Exception) { null }
+
     private fun hm(s: String?): Long? {
         val m = Regex("^(\\d{1,2})[:.](\\d{2})$").find((s ?: "").trim()) ?: return null
         val c = java.util.Calendar.getInstance().apply {

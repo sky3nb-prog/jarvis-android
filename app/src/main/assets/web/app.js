@@ -344,6 +344,52 @@
   $("piper-test").addEventListener("click", () => { try { A.piperTest(); } catch (e) {} setTimeout(piperShow, 300); });
   setInterval(() => { const h = document.getElementById("sp-hoer"); if (h && h.classList.contains("on")) piperShow(); }, 1500);
 
+  // --- Schreibstil, Quiz, Termine aus WhatsApp ---
+  let stilQ = null;
+  function stilShow() {
+    try {
+      const s = JSON.parse(A.stilGet());
+      $("stil-st").textContent = `${s.beispiele} Nachrichten von dir gelernt · Quiz: ${s.runden ? `${s.getaeuscht} von ${s.runden}× getäuscht, Stil ${s.level} %` : "noch nicht gespielt"}` + (s.frei ? " · ✓ selbst schreiben freigeschaltet" : " · selbst schreiben ab 10 Runden mit ≥ 40 % getäuscht");
+      if (document.activeElement !== $("stil-modus")) $("stil-modus").value = s.modus;
+      $("stil-modus").querySelector('option[value="selbst"]').disabled = !s.frei;
+      if (document.activeElement !== $("stil-chats")) $("stil-chats").value = s.chats || "";
+      sw("stil-term", s.wa_termine);
+      const t = s.termine || [];
+      $("stil-tl").textContent = t.length ? "Aus WhatsApp eingetragen: " + t.map((x) => `${x.titel} (${new Date(x.start).toLocaleString("de-DE", { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })})`).join(" · ") : "";
+    } catch (e) {}
+  }
+  const stilSave = () => { try { A.stilSet($("stil-modus").value, $("stil-chats").value, sw("stil-term")); } catch (e) {} setTimeout(stilShow, 100); };
+  $("stil-modus").addEventListener("change", stilSave);
+  $("stil-chats").addEventListener("change", stilSave);
+  $("stil-term").addEventListener("click", () => setTimeout(stilSave, 0));
+  $("stil-imp").addEventListener("click", () => { try { A.stilImport(); } catch (e) {} });
+  $("stil-qbtn").addEventListener("click", () => {
+    $("stil-quiz").style.display = ""; $("stil-q").textContent = "Ich überlege mir eine Antwort …"; $("stil-a").textContent = ""; $("stil-b").textContent = ""; $("stil-res").textContent = "";
+    try { A.stilQuiz(); } catch (e) {}
+  });
+  const stilPick = (i) => {
+    if (!stilQ || stilQ.done) return; stilQ.done = true;
+    const right = i === stilQ.mine;
+    let st = {}; try { st = JSON.parse(A.stilAnswer(right)); } catch (e) {}
+    $(i === 0 ? "stil-a" : "stil-b").style.outline = "2px solid " + (right ? "#6effcd" : "#ff6b6b");
+    $("stil-res").textContent = (right ? "Richtig, das war deine. " : "Erwischt – die war von mir 😎 ") + `Stil ${st.level || 0} %. Tipp auf „Start“ für die nächste Runde.`;
+    stilShow();
+  };
+  $("stil-a").addEventListener("click", () => stilPick(0));
+  $("stil-b").addEventListener("click", () => stilPick(1));
+  { const pq = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) {
+      if (type === "stil_quiz") {
+        if (data.error) { $("stil-q").textContent = data.error; return; }
+        stilQ = data; ["stil-a", "stil-b"].forEach((id) => { $(id).style.outline = ""; });
+        $("stil-q").textContent = "Nachricht an dich: „" + data.q + "“ – welche Antwort ist von dir?";
+        $("stil-a").textContent = "A: " + data.a; $("stil-b").textContent = "B: " + data.b; return;
+      }
+      if (type === "stil_import") { toast(data.text || "Fertig."); stilShow(); return; }
+      return pq && pq.call(window.jarvis, type, data);
+    }; }
+  document.querySelectorAll('.sitem[data-go="leute"], #stabs span[data-p="leute"]').forEach((e) => e.addEventListener("click", () => setTimeout(stilShow, 120)));
+
   function openSettings() {
     if (!A) return;
     piperShow();

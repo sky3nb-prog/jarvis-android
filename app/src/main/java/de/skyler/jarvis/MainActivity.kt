@@ -197,14 +197,52 @@ class MainActivity : ComponentActivity() {
         setContentView(root)
         Bus.add(busListener)
         askPermissions()
+        handleShare(intent)
     }
 
     @Volatile private var pendingFeed: String? = null
     @Volatile private var pageReady = false
 
+    /** WhatsApp-Export (über „Teilen“ oder die Dateiauswahl) einlesen -> Schreibstil lernen. */
+    private val pickExport = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris -> if (uris.isNotEmpty()) importStil(uris) }
+
+    private fun importStil(uris: List<Uri>) {
+        Thread({
+            var n = 0; var fail = 0
+            for (u in uris) try {
+                val name = try { contentResolver.query(u, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null } } catch (_: Exception) { null } ?: (u.lastPathSegment ?: "")
+                val txt = contentResolver.openInputStream(u)?.use { inp ->
+                    if (name.endsWith(".zip", true)) java.util.zip.ZipInputStream(inp).use { z ->
+                        var e = z.nextEntry; var t = ""
+                        while (e != null) { if (e.name.endsWith(".txt")) { t = z.readBytes().toString(Charsets.UTF_8); break }; e = z.nextEntry }
+                        t
+                    } else inp.readBytes().toString(Charsets.UTF_8)
+                } ?: ""
+                val r = Stil.importExport(this, name.removeSuffix(".zip"), txt)
+                if (r > 0) n += r else fail++
+            } catch (e: Exception) { fail++ }
+            val msg = if (n > 0) "Schreibstil: $n Nachrichten von dir gelernt." else "Den Export konnte ich nicht lesen – nimm in WhatsApp „Chat exportieren“ → „Ohne Medien“ bei einem Einzelchat."
+            runOnUiThread { android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show() }
+            send("stil_import", JSONObject().put("n", n).put("text", msg))
+        }, "jarvis-stil-import").start()
+    }
+
+    private fun handleShare(i: Intent?) {
+        if (i == null || (i.action != Intent.ACTION_SEND && i.action != Intent.ACTION_SEND_MULTIPLE)) return
+        @Suppress("DEPRECATION") val uris: List<Uri> = if (i.action == Intent.ACTION_SEND_MULTIPLE) (i.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: arrayListOf())
+            else listOfNotNull(i.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))
+        if (uris.isNotEmpty()) importStil(uris.filter { true })
+        else i.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { it.length > 200 }?.let { t ->
+            Thread { val r = Stil.importExport(this, i.getStringExtra(Intent.EXTRA_SUBJECT) ?: "", t)
+                runOnUiThread { android.widget.Toast.makeText(this, if (r > 0) "Schreibstil: $r Nachrichten gelernt." else "Konnte ich nicht lesen.", android.widget.Toast.LENGTH_LONG).show() } }.start()
+        }
+        i.action = Intent.ACTION_MAIN
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleShare(intent)
         showOverLock(intent)
         intent.getStringExtra("feed")?.let { id -> if (pageReady) send("feed_open", JSONObject().put("id", id)) else pendingFeed = id }
         if (intent.getBooleanExtra("talk", false)) { if (pageReady) send("widget_talk", JSONObject()) else pendingWidgetTalk = true }
@@ -883,6 +921,20 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun hasGroqKey(): Boolean = !prefs.getString("groq_key", "").isNullOrBlank()
 
+        @JavascriptInterface
+        fun stilGet(): String = Stil.quizState(this@MainActivity).put("modus", Stil.mode(this@MainActivity))
+            .put("chats", prefs.getString("stil_chats", "") ?: "").put("wa_termine", WaTermine.on(this@MainActivity))
+            .put("termine", org.json.JSONArray(WaTermine.upcoming(this@MainActivity))).toString()
+        @JavascriptInterface
+        fun stilImport() { runOnUiThread { try { pickExport.launch(arrayOf("text/plain", "application/zip", "*/*")) } catch (_: Exception) {} } }
+        @JavascriptInterface
+        fun stilQuiz() { Thread({ val q = try { Stil.quizNext(this@MainActivity) } catch (e: Exception) { JSONObject().put("error", "Ging gerade nicht.") }; send("stil_quiz", q) }, "jarvis-quiz").start() }
+        @JavascriptInterface
+        fun stilAnswer(right: Boolean): String = Stil.quizAnswer(this@MainActivity, right).toString()
+        @JavascriptInterface
+        fun stilSet(modus: String, chats: String, termine: Boolean) {
+            Stil.setMode(this@MainActivity, modus); prefs.edit().putString("stil_chats", chats.trim()).apply(); WaTermine.setOn(this@MainActivity, termine)
+        }
         @JavascriptInterface
         fun piperGet(): String = JSONObject().put("voice", PiperPhone.voice(this@MainActivity)).put("status", PiperPhone.status)
             .put("voices", org.json.JSONArray(PiperPhone.VOICES.map { (id, n) -> JSONObject().put("id", id).put("name", n).put("ready", PiperPhone.ready(this@MainActivity, id)) })).toString()

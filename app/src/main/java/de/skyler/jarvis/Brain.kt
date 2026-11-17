@@ -147,6 +147,17 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             return if (r != null) "Alles klar, bis später. Der PC bleibt an, holt sich Updates selbst und schreibt dir, wenn was ist."
                    else "Bis später. Der PC antwortet gerade nicht – ist er an?"
         }
+        // „Wo hab ich … hingelegt?“, „… liegt in der Schublade“, Warenkorb öffnen
+        try { Dinge.handle(ctx, text)?.let { return it } } catch (_: Exception) {}
+        // „Plan ein Treffen mit Max (am Wochenende)“ -> freie Zeiten + Nachricht in seinem Stil
+        Regex("\\b(?:plan|mach|organisier|frag)\\w*\\s+(?:mir\\s+)?(?:ein(?:en)?\\s+)?(?:treffen|termin)\\s+mit\\s+([\\p{L}-]+)(.*)$").find(lowW)?.let { m ->
+            val name = m.groupValues[1].replaceFirstChar { it.uppercase() }
+            return try { Stil.meet(ctx, name, m.groupValues[2]) } catch (e: Exception) { "Das ging gerade nicht (${e.message})." }
+        }
+        if (Regex("\\b(?:stil[- ]?quiz|schreibstil[- ]?quiz|quiz (?:zu|über) meinem? (?:schreib)?stil)\\b").containsMatchIn(lowW)) {
+            Bus.emit("open_page", JSONObject().put("page", "stil"))
+            return "Mach ich auf: Welche Antwort ist von dir? Findest du unter Einstellungen → Leute → Schreibstil."
+        }
         if (Termin.wants(text)) {
             think("kalender")
             val r = try { Termin.add(ctx, key, text) } catch (e: Groq.KeyError) { Termin.R(e.message ?: "Der Groq-Schlüssel stimmt nicht.", false) }

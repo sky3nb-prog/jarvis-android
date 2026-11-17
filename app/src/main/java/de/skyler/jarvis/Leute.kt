@@ -112,8 +112,9 @@ object Leute {
             val k = "gb_${x.optString("key")}|$today"; if (p.getBoolean(k, false)) continue
             p.edit().putBoolean(k, true).apply()
             val name = x.optString("name"); val idee = x.optString("geschenk")
+            if (days == 0) Thread { try { Stil.birthday(ctx, name) } catch (_: Exception) {} }.start()   // Glückwunsch in deinem Stil, Antippen = WhatsApp
             say(when (days) {
-                0 -> "Heute hat $name Geburtstag. Schreib kurz – soll ich dir eine Nachricht vorschlagen?"
+                0 -> "Heute hat $name Geburtstag. Ich hab dir eine Nachricht in deinem Stil vorbereitet – tipp auf die Mitteilung, dann ist sie in WhatsApp."
                 1 -> "Morgen hat $name Geburtstag." + if (idee.isNotBlank()) " Falls du noch was brauchst: $idee." else ""
                 else -> "In einer Woche hat $name Geburtstag." + if (idee.isNotBlank()) " Geschenkideen, die zu $name passen: $idee." else " Sag „Geschenkidee für $name“, dann überleg ich mir was."
             })

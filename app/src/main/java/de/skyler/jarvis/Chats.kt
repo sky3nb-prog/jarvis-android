@@ -32,6 +32,7 @@ object Chats {
     private val repliers = HashMap<String, Reply>()          // Chat -> Antworten-Knopf der Benachrichtigung
     private val seen = HashMap<String, Long>()                // Chat -> Zeit der letzten gemeldeten Nachricht
     private val recent = ArrayDeque<String>()                 // gegen doppelte Meldungen
+    private val termSeen = LinkedHashSet<String>()            // schon auf Termine geprüft
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
     fun norm(s: String) = s.lowercase().replace(Regex("[^\\p{L}\\p{N} ]"), " ").replace(Regex("\\s+"), " ").trim()
@@ -86,6 +87,24 @@ object Chats {
             val t = b.getCharSequence("text")?.toString()?.trim() ?: ""
             if (t.isNotBlank()) hist(ctx, norm(chat), if (s.isNullOrBlank()) "ich" else s, t, b.getLong("time", 0L))
         }
+        // Termine aus WhatsApp (alle Chats, auch deine eigenen Antworten wie „jo passt“)
+        try {
+            val lb = msgs?.mapNotNull { it as? Bundle }?.lastOrNull()
+            val lt = (lb?.getCharSequence("text") ?: ex.getCharSequence(Notification.EXTRA_TEXT))?.toString()?.replace(Regex("[‎‏‪-‮]"), "")?.trim() ?: ""
+            val lw = lb?.getLong("time", n.`when`) ?: n.`when`
+            val ls = lb?.let { b -> b.getCharSequence("sender")?.toString() ?: (if (Build.VERSION.SDK_INT >= 28) (b.getParcelable<android.app.Person>("sender_person"))?.name?.toString() else null) }
+            val sig = "${norm(chat)}|$lt|$lw"
+            if (lt.isNotBlank() && !SYSTEM.containsMatchIn(lt) && System.currentTimeMillis() - lw < 15 * 60_000L && synchronized(termSeen) { termSeen.add(sig).also { while (termSeen.size > 60) termSeen.remove(termSeen.first()) } }) {
+                val who = if (ls.isNullOrBlank() && msgs != null) "ich" else (ls ?: chat)
+                if (isVoice(lt) && !group) Thread({
+                    val key = prefs(ctx).getString("groq_key", "") ?: ""
+                    val f = if (key.isNotBlank()) voiceFile(lw) else null
+                    val tx = if (f != null) try { Groq.transcribeFile(key, f) } catch (_: Exception) { "" } else ""
+                    if (tx.isNotBlank()) WaTermine.onMessage(ctx, chat, who, "(Sprachnachricht) $tx", verlauf(ctx, norm(chat)))
+                }, "jarvis-watermin-voice").start()
+                else if (!isVoice(lt)) WaTermine.onMessage(ctx, chat, who, lt, verlauf(ctx, norm(chat)))
+            }
+        } catch (e: Exception) { Log.w(TAG, "Termine: $e") }
         if (msgs != null && msgs.isNotEmpty()) {
             (msgs.lastOrNull() as? Bundle)?.let { b ->   // letzte Nachricht ohne Absender = du hast geantwortet
                 val s = b.getCharSequence("sender")?.toString() ?: (if (Build.VERSION.SDK_INT >= 28) (b.getParcelable<android.app.Person>("sender_person"))?.name?.toString() else null)
@@ -112,6 +131,7 @@ object Chats {
             synchronized(repliers) { repliers[norm(chat)] = Reply(it, System.currentTimeMillis()) }
         }
 
+        if (!group && !isVoice(text) && System.currentTimeMillis() - time < 10 * 60_000L) try { Stil.onIncoming(ctx, chat, text, verlauf(ctx, norm(chat))) } catch (_: Exception) {}
         val wanted = matches(important(ctx), chat, sender) || matches(watched(ctx), chat, sender)
         if (!wanted) return
         val ck = norm(chat)
@@ -198,10 +218,14 @@ object Chats {
 
     /** Antwort über die Benachrichtigung schicken. true = geklappt. */
     // --- Gesprächsverlauf pro Chat (für sinnvolle Antwortvorschläge) ---------------------------------------------
-    @Synchronized private fun hist(ctx: Context, ck: String, von: String, text: String, t: Long) {
+    @Synchronized private fun hist(ctx: Context, ck: String, von: String, text: String, t: Long, learn: Boolean = true) {
         val a = try { JSONArray(prefs(ctx).getString("hist_$ck", "[]")) } catch (_: Exception) { JSONArray() }
         val tt = if (t > 0) t else System.currentTimeMillis()
         for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("text") == text && (it.optString("von") == von)) return }
+        if (von == "ich" && learn) try {   // deine eigene Nachricht: Schreibstil mitlernen (mit der Nachricht davor fürs Quiz)
+            val before = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { it.optLong("t") <= tt }.lastOrNull()
+            Stil.learn(ctx, text, before?.takeIf { it.optString("von") != "ich" }?.optString("text"))
+        } catch (_: Exception) {}
         a.put(JSONObject().put("von", von).put("text", text.take(400)).put("t", tt))
         val l = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.sortedBy { it.optLong("t") }.takeLast(14)
         prefs(ctx).edit().putString("hist_$ck", JSONArray(l).toString()).apply()
@@ -243,7 +267,7 @@ object Chats {
     fun reply(ctx: Context, key: String, chat: String, text0: String): Boolean {
         val text = waStyle(text0)
         val r = synchronized(repliers) { repliers[norm(key)] ?: repliers[norm(chat)] } ?: return false
-        try { hist(ctx, norm(key).ifBlank { norm(chat) }, "ich", text, System.currentTimeMillis()) } catch (_: Exception) {}
+        try { hist(ctx, norm(key).ifBlank { norm(chat) }, "ich", text, System.currentTimeMillis(), learn = false) } catch (_: Exception) {}
         return try {
             val ins = r.action.remoteInputs ?: return false
             val intent = Intent(); val b = Bundle()
