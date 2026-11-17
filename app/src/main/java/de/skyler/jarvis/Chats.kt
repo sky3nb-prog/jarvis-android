@@ -222,6 +222,7 @@ object Chats {
     @Synchronized private fun hist(ctx: Context, ck: String, von: String, text: String, t: Long, learn: Boolean = true) {
         val a = try { JSONArray(prefs(ctx).getString("hist_$ck", "[]")) } catch (_: Exception) { JSONArray() }
         val tt = if (t > 0) t else System.currentTimeMillis()
+        if (try { Leute.isIgnored(ctx, ck) } catch (_: Exception) { false }) return   // vergessene Person: nichts merken
         for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("text") == text && (it.optString("von") == von)) return }
         if (von == "ich" && learn) try {   // deine eigene Nachricht: Schreibstil mitlernen (mit der Nachricht davor fürs Quiz)
             val before = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { it.optLong("t") <= tt }.lastOrNull()

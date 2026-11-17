@@ -619,6 +619,8 @@ class MainActivity : ComponentActivity() {
         fun editLeute(key: String, json: String) { try { Leute.edit(this@MainActivity, key, if (json.isBlank()) null else JSONObject(json)) } catch (_: Exception) {} }
 
         @JavascriptInterface
+        fun addLeute(name: String) { Leute.add(this@MainActivity, name) }
+        @JavascriptInterface
         fun learnLeute() { Thread { try { Leute.learn(this@MainActivity, true); runOnUiThread { send("leute", JSONObject()) } } catch (_: Exception) {} }.start() }
 
         @JavascriptInterface

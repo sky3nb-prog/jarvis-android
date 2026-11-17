@@ -371,7 +371,7 @@
   $("stil-imp").addEventListener("click", () => { try { A.stilImport(); } catch (e) {} });
   const stilAsk = () => {
     $("stil-quiz").style.display = ""; $("stil-q").textContent = "Ich such eine Stelle aus deinen Chats …"; $("stil-ctx").textContent = ""; $("stil-who").textContent = "";
-    ["stil-a", "stil-b"].forEach((id) => { $(id).textContent = ""; $(id).style.outline = ""; }); $("stil-res").textContent = ""; $("stil-own").value = "";
+    ["stil-a", "stil-b"].forEach((id) => { $(id).textContent = ""; $(id).style.outline = ""; $(id).style.display = "none"; }); $("stil-res").textContent = ""; $("stil-own").value = "";
     try { A.stilQuiz(); } catch (e) {}
   };
   $("stil-qbtn").addEventListener("click", stilAsk);
@@ -397,7 +397,8 @@
         $("stil-who").textContent = "💬 " + (data.chat || "Chat");
         $("stil-ctx").textContent = data.ctx || "";
         $("stil-q").textContent = data.q;
-        $("stil-a").textContent = data.a; $("stil-b").textContent = data.b; return;
+        $("stil-a").textContent = data.a; $("stil-b").textContent = data.b;
+        ["stil-a", "stil-b"].forEach((id) => { $(id).style.display = "block"; }); return;
       }
       if (type === "stil_import") { toast(data.text || "Fertig."); stilShow(); return; }
       return pq && pq.call(window.jarvis, type, data);
@@ -648,19 +649,25 @@
     function draw() {
       let l = []; try { l = JSON.parse(A.getLeute() || "[]"); } catch (e) {}
       box.innerHTML = l.length ? l.map((p) => `<details class="lp"><summary><b>${e2(p.name)}</b>${p.geburtstag ? ` <small>🎂 ${e2(p.geburtstag.slice(-2))}.${e2(p.geburtstag.slice(-5, -3))}.</small>` : ""}${p.discord ? ` <small>· Discord: ${e2(p.discord)}</small>` : ""}</summary>
-        ${p.interessen ? `<div class="lp-r"><span>Themen</span>${e2(p.interessen)}</div>` : ""}${p.art ? `<div class="lp-r"><span>So ist ${e2(p.name)}</span>${e2(p.art)}</div>` : ""}${p.stil ? `<div class="lp-r"><span>So schreibst du</span>${e2(p.stil)}</div>` : ""}${p.geschenk ? `<div class="lp-r"><span>Geschenkideen</span>${e2(p.geschenk)}</div>` : ""}
+        <div class="f"><label>So ist ${e2(p.name)}</label><textarea rows="2" data-lk="${e2(p.key)}" data-f="art" placeholder="z. B. lustig, immer müde, zockt viel">${e2(p.art)}</textarea></div>
+        <div class="f"><label>So schreibst du mit ${e2(p.name)}</label><textarea rows="2" data-lk="${e2(p.key)}" data-f="stil" placeholder="z. B. kurz, viel Spaß, nennt ihn Bro">${e2(p.stil)}</textarea></div>
+        <div class="f"><label>Themen</label><input type="text" data-lk="${e2(p.key)}" data-f="interessen" value="${e2(p.interessen)}"></div>
+        <div class="f"><label>Geschenkideen</label><input type="text" data-lk="${e2(p.key)}" data-f="geschenk" value="${e2(p.geschenk)}"></div>
         <div class="f"><label>Discord-Name</label><input type="text" data-lk="${e2(p.key)}" data-f="discord" value="${e2(p.discord)}"></div>
         <div class="f"><label>Andere Namen / Spitznamen (mit Komma)</label><input type="text" data-lk="${e2(p.key)}" data-f="aliases" value="${e2(p.aliases)}"></div>
         <div class="f"><label>Geburtstag (TT.MM.)</label><input type="text" data-lk="${e2(p.key)}" data-f="geburtstag" value="${p.geburtstag ? e2(p.geburtstag.slice(-2) + "." + p.geburtstag.slice(-5, -3) + ".") : ""}" placeholder="z. B. 24.03."></div>
         <div class="sbtn" data-ldel="${e2(p.key)}" style="margin-top:6px">Vergessen</div></details>`).join("") : '<div class="note">Noch niemand – ich lerne aus WhatsApp-Nachrichten, die reinkommen.</div>';
-      box.querySelectorAll("input[data-lk]").forEach((i) => i.addEventListener("change", () => {
+      box.querySelectorAll("input[data-lk], textarea[data-lk]").forEach((i) => i.addEventListener("change", () => {
         let v = i.value.trim();
         if (i.dataset.f === "geburtstag") { const m = /^(\d{1,2})\.(\d{1,2})/.exec(v); v = m ? String(m[2]).padStart(2, "0") + "-" + String(m[1]).padStart(2, "0") : ""; }
         try { A.editLeute(i.dataset.lk, JSON.stringify({ [i.dataset.f]: v })); toast("Gespeichert."); } catch (e) {}
       }));
-      box.querySelectorAll("[data-ldel]").forEach((b) => b.onclick = () => { try { A.editLeute(b.dataset.ldel, ""); } catch (e) {} draw(); });
+      box.querySelectorAll("[data-ldel]").forEach((b) => b.onclick = () => {
+        if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "Wirklich vergessen? Nochmal tippen"; return; }
+        try { A.editLeute(b.dataset.ldel, ""); } catch (e) {} toast("Vergessen – über sie lerne ich nichts mehr."); draw(); });
     }
     draw();
+    $("leute-add").onclick = () => { const v = $("leute-new").value.trim(); if (!v) return; try { A.addLeute(v); } catch (e) {} $("leute-new").value = ""; toast(v + " ist drin."); draw(); };
     $("leute-learn").onclick = () => { try { A.learnLeute(); toast("Ich lerne – dauert ein paar Sekunden."); } catch (e) {} };
     const pe = window.jarvis && window.jarvis.onEvent;
     if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "leute") { draw(); toast("Fertig gelernt."); return; } return pe && pe.call(window.jarvis, type, data); };

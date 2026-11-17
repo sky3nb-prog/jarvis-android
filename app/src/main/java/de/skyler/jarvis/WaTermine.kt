@@ -46,7 +46,7 @@ object WaTermine {
 
     /** Aus Chats.onPosted: neue Nachricht (Text oder umgewandelte Sprachnachricht) in einem Chat. */
     fun onMessage(ctx: Context, chat: String, sender: String, text: String, verlauf: JSONArray) {
-        if (!on(ctx) || text.isBlank()) return
+        if (!on(ctx) || text.isBlank() || Leute.isIgnored(ctx, Chats.norm(chat))) return
         if (!HINT.containsMatchIn(text) && upcoming(ctx).none { Chats.norm(it.optString("chat")) == Chats.norm(chat) }) return
         val key = prefs(ctx).getString("groq_key", "") ?: ""
         if (key.isBlank()) return

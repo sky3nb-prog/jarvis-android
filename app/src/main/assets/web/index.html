@@ -323,8 +323,8 @@
             <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.8"><b id="stil-who"></b><span id="stil-xp"></span></div>
             <div class="note" id="stil-ctx" style="margin:6px 0 0;opacity:.7;white-space:pre-line;font-size:12px"></div>
             <div class="note" id="stil-q" style="margin:6px 0 8px;font-size:15px"></div>
-            <div class="sbtn" id="stil-a" style="display:block;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
-            <div class="sbtn" id="stil-b" style="display:block;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
+            <div class="sbtn" id="stil-a" style="display:none;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
+            <div class="sbtn" id="stil-b" style="display:none;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
             <div class="f" style="margin-top:6px"><label>Oder: so würde ich's schreiben</label><input id="stil-own" type="text" placeholder="deine Antwort …"></div>
             <div style="display:flex;gap:8px;margin-top:6px"><div class="sbtn" id="stil-ownbtn">Meine nehmen</div><div class="sbtn" id="stil-next" style="margin-left:auto">Nächste ›</div></div>
             <div class="note" id="stil-res" style="margin:6px 0 0"></div>
@@ -352,8 +352,11 @@
         </div>
         <div class="sec" data-neu="n82" style="--c:#ffb43c"><h3>LEUTE – WER IST WIE?</h3>
           <div class="note" style="margin:0 0 6px">Ich lerne aus euren WhatsApp-Nachrichten, worüber ihr schreibt, wie die Leute drauf sind und wie du mit ihnen schreibst – für bessere Antwortvorschläge und Geschenkideen zum Geburtstag. Trag Discord-Namen und Geburtstage ein, wenn sie fehlen. Bleibt auf deinem Handy.</div>
+          <div class="note" style="margin:0 0 6px">Tipp auf eine Person: alles ist änderbar – was du korrigierst, behalte ich. „Vergessen“ nimmt sie ganz raus, danach lerne ich nichts mehr über sie.</div>
           <div id="leute-list"></div>
-          <div class="srow"><div>Jetzt lernen<small>Sonst jeden Abend um 20 Uhr, bis zu 6 Chats</small></div><div class="sbtn" id="leute-learn">Lernen</div></div>
+          <div class="f" style="margin-top:6px"><label>Person hinzufügen (Name wie in WhatsApp)</label><input id="leute-new" type="text" placeholder="z. B. Jannis"></div>
+          <div class="srow"><div>+ Hinzufügen<small>Ich lerne sie beim nächsten Lernen kennen</small></div><div class="sbtn" id="leute-add">Hinzufügen</div></div>
+          <div class="srow"><div>Jetzt lernen<small>Alle Chats, aus denen ich etwas habe (bis zu 15) – sonst jeden Abend um 20 Uhr</small></div><div class="sbtn" id="leute-learn">Lernen</div></div>
         </div>
         <div class="sec" data-neu="n103" style="--c:#ff5a5a"><h3>NOTFALL</h3>
           <div class="note" style="margin:0 0 6px">Sag „Jarvis, Notfall“: Ich schicke sofort eine SMS mit deinem Standort und rufe dann an.</div>

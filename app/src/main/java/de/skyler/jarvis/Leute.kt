@@ -26,17 +26,37 @@ object Leute {
     /** Liste für die Einstellungen (mit Geburtstagen aus den Kontakten). */
     fun list(ctx: Context): JSONArray {
         val o = all(ctx); val bd = contactBirthdays(ctx)
-        for ((n, d) in bd) { val k = Chats.norm(n); val p = o.optJSONObject(k) ?: JSONObject().put("name", n).also { o.put(k, it) }; if (p.optString("geburtstag").isBlank()) p.put("geburtstag", d).put("gb_quelle", "kontakte") }
+        val ig = ignored(ctx)
+        for ((n, d) in bd) { val k = Chats.norm(n); if (k in ig) continue; val p = o.optJSONObject(k) ?: JSONObject().put("name", n).also { o.put(k, it) }; if (p.optString("geburtstag").isBlank()) p.put("geburtstag", d).put("gb_quelle", "kontakte") }
         return JSONArray(o.keys().asSequence().mapNotNull { o.optJSONObject(it)?.put("key", it) }.sortedBy { it.optString("name").lowercase() }.toList())
     }
 
     /** Aus den Einstellungen: Namen/Geburtstag/andere Namen ändern oder Person löschen. */
     fun edit(ctx: Context, key: String, data: JSONObject?) {
         val o = all(ctx)
-        if (data == null) { o.remove(key); save(ctx, o); return }
+        if (data == null) { forget(ctx, key); return }
         val p = o.optJSONObject(key) ?: JSONObject().also { o.put(key, it) }
-        for (k in listOf("name", "aliases", "discord", "geburtstag")) if (data.has(k)) p.put(k, data.optString(k).trim())
+        for (k in listOf("name", "aliases", "discord", "geburtstag", "interessen", "art", "stil", "geschenk")) if (data.has(k)) p.put(k, data.optString(k).trim())
+        if (data.has("art") || data.has("stil") || data.has("interessen")) p.put("selbst", true)   // von dir korrigiert: beim Lernen behalten
         save(ctx, o)
+    }
+
+    /** „Vergessen“: Person raus und ab jetzt nichts mehr über sie lernen (auch kein Schreibstil, keine Termine). */
+    fun forget(ctx: Context, key: String) {
+        val o = all(ctx); o.remove(key); save(ctx, o)
+        val ig = ignored(ctx) + key
+        prefs(ctx).edit().putString("leute_ignore", ig.joinToString("|")).remove("hist_$key").remove("stil_c_$key").apply()
+        try { Stil.forgetChat(ctx, key) } catch (_: Exception) {}
+    }
+    fun ignored(ctx: Context): Set<String> = (prefs(ctx).getString("leute_ignore", "") ?: "").split("|").filter { it.isNotBlank() }.toSet()
+    fun isIgnored(ctx: Context, ck: String) = ck in ignored(ctx)
+
+    /** „+ Person“: selbst hinzufügen (auch jemand, der dir noch nie geschrieben hat). */
+    fun add(ctx: Context, name: String) {
+        val k = Chats.norm(name); if (k.isBlank()) return
+        val o = all(ctx); if (!o.has(k)) o.put(k, JSONObject().put("name", name.trim()))
+        save(ctx, o)
+        prefs(ctx).edit().putString("leute_ignore", (ignored(ctx) - k).joinToString("|")).apply()
     }
 
     private fun contactBirthdays(ctx: Context): List<Pair<String, String>> = try {
@@ -68,15 +88,19 @@ object Leute {
         prefs(ctx).edit().putString("leute_gelernt", today).apply()
         val o = all(ctx); val all = prefs(ctx).all
         var n = 0
-        for ((k, v) in all) {
-            if (!k.startsWith("hist_") || n >= 6) continue
-            val ck = k.removePrefix("hist_")
-            val a = try { JSONArray(v as String) } catch (_: Exception) { continue }
-            val msgs = (0 until a.length()).mapNotNull { a.optJSONObject(it) }
-            if (msgs.size < 5 || msgs.none { it.optString("von") == "ich" }) continue
+        val ig = ignored(ctx)
+        // Quellen: Verlauf aus den Benachrichtigungen (hist_) und was du ihnen geschrieben hast (Mitlesen/Export: stil_c_)
+        val keys = all.keys.filter { it.startsWith("hist_") || it.startsWith("stil_c_") }.map { it.removePrefix("hist_").removePrefix("stil_c_") }.distinct()
+        for (ck in keys) {
+            if (n >= 15 || ck in ig || ck.isBlank()) continue
+            val a = try { JSONArray(all["hist_$ck"] as? String ?: "[]") } catch (_: Exception) { JSONArray() }
+            val own = try { JSONArray(all["stil_c_$ck"] as? String ?: "[]") } catch (_: Exception) { JSONArray() }
+            val msgs = (0 until a.length()).mapNotNull { a.optJSONObject(it) } +
+                (0 until own.length()).map { JSONObject().put("von", "ich").put("text", own.optString(it)).put("t", 0L) }
+            if (msgs.size < 3) continue
             val p = o.optJSONObject(ck) ?: JSONObject().also { o.put(ck, it) }
-            val newest = msgs.maxOf { it.optLong("t") }
-            if (newest <= p.optLong("gelernt_bis")) continue
+            val newest = maxOf(msgs.maxOf { it.optLong("t") }, own.length().toLong())
+            if (!force && newest <= p.optLong("gelernt_bis")) continue
             val name = p.optString("name").ifBlank { msgs.firstOrNull { it.optString("von") != "ich" }?.optString("von") ?: ck }
             val chat = msgs.joinToString("\n") { (if (it.optString("von") == "ich") "SKYLER" else it.optString("von")) + ": " + it.optString("text").take(200) }
             val sys = "Du hilfst einem persönlichen Assistenten, Skylers Freunde und Familie zu verstehen. Lies den WhatsApp-Ausschnitt und das bisherige Profil. " +
@@ -87,7 +111,10 @@ object Leute {
             try {
                 val r = JSONObject(Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content", sys)).put(JSONObject().put("role", "user").put("content", user)), 350, json = true)
                     .let { it.substring(it.indexOf('{'), it.lastIndexOf('}') + 1) })
-                for (f in listOf("interessen", "art", "stil", "geschenk")) r.optString(f).trim().takeIf { it.isNotBlank() && it != "null" }?.let { p.put(f, it.take(240)) }
+                for (f in listOf("interessen", "art", "stil", "geschenk")) {
+                    if (p.optBoolean("selbst") && f != "geschenk" && p.optString(f).isNotBlank()) continue   // deine Korrektur bleibt
+                    r.optString(f).trim().takeIf { it.isNotBlank() && it != "null" }?.let { p.put(f, it.take(240)) }
+                }
                 p.put("name", name).put("gelernt_bis", newest); n++
             } catch (_: Exception) {}
         }

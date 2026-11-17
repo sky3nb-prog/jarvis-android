@@ -46,8 +46,16 @@ object Stil {
     private fun good(t: String) = t.length in 2..300 && !t.startsWith("(") && !t.contains("Medien ausgeschlossen") && !t.contains("<Medien") &&
         !t.contains("Nachricht wurde gelöscht") && !t.contains("Diese Nachricht") && !t.startsWith("http") && !t.contains("null")
 
+    /** Person vergessen: ihre Beispiele und Quiz-Stellen raus. */
+    @Synchronized fun forgetChat(ctx: Context, ck: String) {
+        val mine = chatSamples(ctx, ck).toSet()
+        prefs(ctx).edit().remove("stil_c_$ck").putString("stil_ich", JSONArray(samples(ctx).filter { it !in mine }).toString())
+            .putString("stil_paare", JSONArray(pairs(ctx).filter { it.optString("chat") != ck }).toString()).apply()
+    }
+
     /** Mehrere neue eigene Nachrichten auf einmal speichern (schnell, auch für große Exporte). */
     @Synchronized private fun addAll(ctx: Context, ck: String, mine: List<String>, newPairs: List<JSONObject>): Int {
+        if (ck.isNotBlank() && Leute.isIgnored(ctx, ck)) return 0   // vergessene Person: nichts mehr lernen
         val ok = mine.map { it.trim() }.filter { good(it) }
         if (ok.isEmpty() && newPairs.isEmpty()) return 0
         val g = LinkedHashSet(samples(ctx)); val before = g.size
