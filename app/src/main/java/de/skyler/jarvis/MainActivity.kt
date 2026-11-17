@@ -225,7 +225,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        try { web.onResume() } catch (_: Exception) {}
         JarvisService.appVisible = true
         try { Link.poke() } catch (_: Exception) {}
         try { Konto.tick(this) } catch (_: Exception) {}
@@ -233,7 +232,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onPause() {
-        try { web.onPause() } catch (_: Exception) {}   // Akku: Animationen der Seite ruhen, solange die App im Hintergrund ist
         JarvisService.appVisible = false
         Bus.emit("app_visible", JSONObject().put("on", false))
         super.onPause()
@@ -255,6 +253,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val fernBusy = java.util.concurrent.atomic.AtomicBoolean(false)
     private fun send(type: String, data: JSONObject) {
         val js = "window.jarvis && window.jarvis.onEvent(${JSONObject.quote(type)}, ${data})"
         runOnUiThread { web.evaluateJavascript(js, null) }
@@ -470,7 +469,12 @@ class MainActivity : ComponentActivity() {
 
         /** Fernzugriff: Adresse des PCs im Tailscale-Netz + Schlüssel (refresh = beim PC nachfragen). */
         @JavascriptInterface
-        fun fernInfo(refresh: Boolean): String = Link.fernInfo(this@MainActivity, refresh).toString()
+        fun fernInfo(refresh: Boolean): String {   // Nachfragen beim PC im Hintergrund (sonst hängt die Seite, wenn der PC aus ist)
+            if (refresh && fernBusy.compareAndSet(false, true)) Thread({
+                try { Link.fernInfo(this@MainActivity, true); send("fern_ready", JSONObject()) } catch (_: Exception) {} finally { fernBusy.set(false) }
+            }, "jarvis-fern").start()
+            return Link.fernInfo(this@MainActivity, false).toString()
+        }
 
         /** Mitteilung vorlesen (Punkte als JSON-Liste), weiter, stopp */
         @JavascriptInterface
@@ -640,7 +644,10 @@ class MainActivity : ComponentActivity() {
 
         /** Tages-, Morgen- oder Wochen-Update jetzt erzeugen (kind: heute, morgen, woche). Antwort kommt als "feed_open". */
         @JavascriptInterface
-        fun outfitData(): String = try { Alltag.outfitData(this@MainActivity).toString() } catch (_: Exception) { "{}" }
+        fun outfitData(): String {   // sofort die Teile, das Wetter kommt danach (nie das Internet auf dem Seiten-Faden abwarten)
+            Thread({ try { send("outfit_t", Alltag.outfitData(this@MainActivity)) } catch (_: Exception) {} }, "jarvis-outfit").start()
+            return try { Alltag.outfitItems(this@MainActivity).toString() } catch (_: Exception) { "{}" }
+        }
 
         @JavascriptInterface
         fun outfitToday(): String = try { Wardrobe.today(this@MainActivity).toString() } catch (_: Exception) { "{}" }
@@ -711,7 +718,11 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
-        fun sysTest(id: String): String = SysCheck.test(this@MainActivity, id)
+        fun sysTest(id: String): String {   // Test im Hintergrund – Ergebnis kommt als Event „systest“
+            Thread({ val r = try { SysCheck.test(this@MainActivity, id) } catch (e: Exception) { "Test ging nicht." }
+                send("systest", JSONObject().put("id", id).put("text", r)) }, "jarvis-systest").start()
+            return ""
+        }
 
         /** Kleiderschrank */
         @JavascriptInterface

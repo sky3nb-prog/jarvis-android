@@ -721,10 +721,12 @@
       $("sys-list").innerHTML = it.map((i) => `<div class="sys-row ${i.ok === true ? "g" : i.ok === false ? "r" : "n"}"><i></i><div style="flex:1"><b>${i.name}</b><small>${i.detail || ""}</small>${i.ok === false && i.fix ? `<em>${i.fix}</em>` : ""}<div class="sys-res" id="syr-${i.id}"></div></div><div class="sbtn sys-tb" data-test="${i.id}">Test</div></div>`).join("");
       $("sys-list").querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => {
         const out = $("syr-" + b.dataset.test); out.textContent = "teste …";
-        setTimeout(() => { try { out.textContent = A.sysTest(b.dataset.test) || "–"; } catch (e) { out.textContent = "Test ging nicht."; } }, 30);
+        try { A.sysTest(b.dataset.test); } catch (e) { out.textContent = "Test ging nicht."; }
       }));
     }, 30);
   }
+  { const ps = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "systest") { const o = $("syr-" + (data && data.id)); if (o) o.textContent = (data && data.text) || "–"; return; } return ps && ps.call(window.jarvis, type, data); }; }
   document.querySelector('[data-p="sys"]').addEventListener("click", () => sysShow(false));
   $("sys-again").addEventListener("click", () => sysShow(true));
   const closeSettings = () => { $("settings").classList.remove("on"); newDots(); if (window.show) try { show("fokus"); } catch (e) {} };
@@ -771,6 +773,8 @@
   })();
   // --- Fernzugriff über Tailscale ---
   let fern = {};
+  { const pf = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "fern_ready") { try { fernShow(false); } catch (e) {} return; } return pf && pf.call(window.jarvis, type, data); }; }
   function fernShow(refresh) {
     try { fern = JSON.parse(A.fernInfo(!!refresh) || "{}"); } catch (e) { fern = {}; }
     $("fern-state").textContent = !fern.paired ? "Erst mit dem PC koppeln (Allgemein → Kopplungscode)."

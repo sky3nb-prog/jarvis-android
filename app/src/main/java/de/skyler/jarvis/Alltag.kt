@@ -1463,6 +1463,15 @@ object Alltag {
             .setContentText("Kurz antippen – und sag, ob es gepasst hat. So lernt der Kleiderschrank.").setContentIntent(pi).setAutoCancel(true).build()) } catch (_: Exception) {}
     }
 
+    /** Nur die Teile (ohne Internet) – für den sofortigen Aufbau der Abfrage. */
+    fun outfitItems(ctx: Context): JSONObject {
+        val o = Wardrobe.get(ctx)
+        val items = JSONArray()
+        val arr = o.getJSONArray("items")
+        for (i in 0 until arr.length()) arr.optJSONObject(i)?.takeIf { it.optBoolean("on", true) }?.let { items.put(JSONObject().put("id", it.optString("id")).put("name", it.optString("name")).put("icon", it.optString("icon")).put("layer", it.optString("layer"))) }
+        return JSONObject().put("items", items).put("vorschlag", JSONArray()).put("t", JSONObject.NULL)
+    }
+
     /** Für die Abfrage: alle Teile, heutiger Vorschlag, kälteste gefühlte Temperatur draußen (7–18 Uhr). */
     fun outfitData(ctx: Context): JSONObject {
         val o = Wardrobe.get(ctx)

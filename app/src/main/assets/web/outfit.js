@@ -51,6 +51,14 @@
   const prev = window.jarvis && window.jarvis.onEvent;
   if (window.jarvis) window.jarvis.onEvent = function (type, data) {
     if (type === "outfit_ask") { open(); return; }
+    if (type === "outfit_t") {   // Wetter + Vorschlag kommen nach
+      const d = typeof data === "string" ? JSON.parse(data) : (data || {});
+      if (ov.hidden) return;
+      if (typeof d.t === "number") { T = d.t; $("of-sub").textContent = `Heute draußen gefühlt bis ${Math.round(T)} °. Tipp an, was du anhattest – dann ob es gepasst hat.`; }
+      const sel = new Set(d.vorschlag || []);
+      if (sel.size && !ov.querySelector(".of-chip.on")) ov.querySelectorAll(".of-chip").forEach((c) => c.classList.toggle("on", sel.has(c.dataset.id)));
+      return;
+    }
     return prev && prev.call(window.jarvis, type, data);
   };
 })();
