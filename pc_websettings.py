@@ -41,7 +41,7 @@ def _same(names):
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
 # Dazu kommen automatisch alle Einstellungen, die ein Update neu mitbringt (pc_settings: auto_new).
-NEW = ["sticker_wahl", "schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
+NEW = ["piper_voice", "sticker_wahl", "schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
 _shown = None   # Kennungen, die es in den Einstellungen wirklich als Feld gibt
 
 
@@ -51,7 +51,7 @@ def _fields() -> set:
         import re
         try:
             src = open(os.path.abspath(__file__), encoding="utf-8").read()
-            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"sticker_wahl", "stundenplan_pc", "schulkal_pc", "ideen_pc", "steam_api_key", "pause_lang"}
+            _shown = set(re.findall(r'\b(?:sw|tx|sel|rng|sec)\(\s*"(\w+)"', src)) | {"piper_voice", "sticker_wahl", "stundenplan_pc", "schulkal_pc", "ideen_pc", "steam_api_key", "pause_lang"}
         except Exception:
             _shown = set()
     return _shown
@@ -154,6 +154,7 @@ def schema(s: dict) -> dict:
             card("Sprechen",
                  sw("speak", "Antworten laut sprechen"),
                  sel("voice_engine", "Stimmenart", _opts(su.ENGINES), "Klappt ElevenLabs nicht, nimmt er die Online-Stimme."),
+                 sel("piper_voice", "Schnelle Stimme", _opts(__import__("pc_piper").VOICES), "Für „Schnell“. Eine neue Stimme lädt er beim ersten Testen einmal (10–60 MB), dann geht sie sofort."),
                  sel("output_device", "Ausgabe", outs, "Z. B. ein Kanal von Elgato Wave Link."),
                  rng("voice_volume", "Lautstärke der Stimme", 10, 100, " %"),
                  rng("voice_pitch", "Tonhöhe", -10, 10),
@@ -321,7 +322,7 @@ def schema(s: dict) -> dict:
         "input_device": g("input_device") if not isinstance(g("input_device"), int) else pc_audio.device_name(g("input_device")),
         "output_device": g("output_device") if not isinstance(g("output_device"), int) else pc_audio.device_name(g("output_device")),
         "discord_hoerbar": bool(g("discord_hoerbar")), "discord_device": g("discord_device") or "",
-        "followup_seconds": g("followup_seconds"), "speak": bool(g("speak")), "voice_engine": g("voice_engine"),
+        "followup_seconds": g("followup_seconds"), "speak": bool(g("speak")), "voice_engine": g("voice_engine"), "piper_voice": g("piper_voice") or "de_DE-thorsten-medium",
         "voice_volume": s.get("voice_volume", 100), "voice_pitch": g("voice_pitch"), "voice_rate": g("voice_rate"),
         "eleven_voice": g("eleven_voice"), "eleven_model": g("eleven_model"), "edge_voice": g("edge_voice"),
         "windows_voice": g("windows_voice") or "", "chime_volume": g("chime_volume"), "early_chime": bool(g("early_chime")),
@@ -372,7 +373,7 @@ def save(s: dict, v: dict) -> dict:
     for k in ("followup_seconds", "pause_lang", "voice_volume", "voice_pitch", "voice_rate", "chime_volume", "orb_size"):
         if k in v:
             new[k] = num(k)
-    for k in ("persona", "language", "voice_engine", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
+    for k in ("persona", "language", "voice_engine", "piper_voice", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
               "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele"):
         if k in v:
@@ -434,6 +435,13 @@ def run(ui, name: str, v: dict) -> dict:
         import pc_eleven
         eng = v.get("voice_engine") or "auto"
         pc_eleven.LAST_ERROR = ""
+        if eng == "auto" and v.get("piper_voice"):   # neue schnelle Stimme: erst laden (einmalig), dann hören
+            import pc_piper
+            pc_piper.set_voice(v["piper_voice"])
+            if not pc_piper.ready():
+                pc_piper.install()
+                if not pc_piper.ready():
+                    return {"ok": False, "text": "Die Stimme ließ sich nicht laden: " + pc_piper.STATE.get("status", "")}
         out = v.get("output_device") or None
         pc_audio.play_chime(device=out)
         time.sleep(0.6)

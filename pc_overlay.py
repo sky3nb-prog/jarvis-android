@@ -165,6 +165,14 @@ def apply_settings(s: dict):
     pc_audio.MIRROR_DEVICE = (s.get("discord_device") or None) if s.get("discord_hoerbar") else None
     pc_audio.VOICE_RATE = int(s.get("voice_rate", 0))
     pc_audio.VOICE_ENGINE = s.get("voice_engine", "auto")
+    try:
+        import pc_piper
+        old = pc_piper.VOICE
+        pc_piper.set_voice(s.get("piper_voice") or "de_DE-thorsten-medium")
+        if pc_piper.VOICE != old and not pc_piper.ready():
+            pc_piper.install_async()   # neue Stimme im Hintergrund laden; solange spricht er online
+    except Exception as e:
+        print("Schnelle Stimme:", e)
     pc_audio.EDGE_VOICE = s.get("edge_voice") or "de-DE-KillianNeural"
     pc_audio.WINDOWS_VOICE = s.get("windows_voice", "") or ""
     pc_audio.VOICE_PITCH = int(s.get("voice_pitch", -3))
@@ -2043,7 +2051,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-17 16:05"
+VERSION = "2026-11-17 16:45"
 
 
 def main():
@@ -2070,7 +2078,7 @@ def main():
         pc_settings.save(settings)
     import pc_piper
 
-    def _piper_boot():   # einmal laden (Piper + Stimme Thorsten), dann vorwärmen
+    def _piper_boot():   # einmal laden (Piper + gewählte Stimme), dann vorwärmen
         pc_piper.install()
         pc_piper.warm()
     threading.Thread(target=_piper_boot, daemon=True, name="piper").start()

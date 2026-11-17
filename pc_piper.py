@@ -16,8 +16,27 @@ import zipfile
 from pc_apps import base_dir
 
 PIPER_ZIP = "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip"
-VOICE = "de_DE-thorsten-medium"
-VOICE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/thorsten/medium/"
+VOICE = "de_DE-thorsten-medium"   # aktuelle Stimme (Einstellung „piper_voice“)
+BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/"
+# Deutsche Stimmen zur Auswahl (werden erst geladen, wenn du sie auswählst)
+VOICES = [("Thorsten (männlich, Standard)", "de_DE-thorsten-medium"),
+          ("Thorsten HD (männlich, natürlicher)", "de_DE-thorsten-high"),
+          ("Karlsson (männlich)", "de_DE-karlsson-low"),
+          ("Pavoque (männlich, tief)", "de_DE-pavoque-low"),
+          ("Kerstin (weiblich)", "de_DE-kerstin-low"),
+          ("Ramona (weiblich)", "de_DE-ramona-low"),
+          ("Eva (weiblich, sehr schnell)", "de_DE-eva_k-x_low")]
+
+
+def set_voice(v: str):
+    global VOICE
+    if v and any(v == x for _, x in VOICES):
+        VOICE = v
+
+
+def _voice_url(v: str, ext: str) -> str:
+    _, name, q = v.split("-", 2)
+    return f"{BASE_URL}{name}/{q}/{v}{ext}?download=true"
 NO_WINDOW = 0x08000000
 STATE = {"status": "", "busy": False}
 _proc = {"p": None, "lock": threading.Lock()}
@@ -53,7 +72,9 @@ def _get(url: str, dst: str):
 
 def install():
     """Einmal herunterladen (im Hintergrund beim Start). Ohne Erfolg bleibt die Online-Stimme."""
-    if ready() or STATE["busy"]:
+    while STATE["busy"]:
+        time.sleep(0.5)
+    if ready():
         return
     STATE["busy"] = True
     try:
@@ -69,7 +90,7 @@ def install():
             p = os.path.join(folder(), VOICE + ext)
             if not os.path.exists(p):
                 STATE["status"] = "lade Stimme …"
-                _get(VOICE_URL + VOICE + ext + "?download=true", p)
+                _get(_voice_url(VOICE, ext), p)
         STATE["status"] = "bereit" if ready() else "unvollständig"
         print("Schnelle Stimme (Piper):", STATE["status"])
     except Exception as e:
@@ -85,7 +106,7 @@ def install_async():
 
 def _start(length_scale: float):
     p = _proc["p"]
-    if p and p.poll() is None and getattr(p, "_ls", None) == length_scale:
+    if p and p.poll() is None and getattr(p, "_ls", None) == length_scale and getattr(p, "_m", None) == model():
         return p
     if p:
         try:
@@ -99,6 +120,7 @@ def _start(length_scale: float):
                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                          cwd=os.path.dirname(exe()), creationflags=NO_WINDOW, text=True, encoding="utf-8", bufsize=1)
     p._ls = length_scale
+    p._m = model()
     _proc["p"] = p
     return p
 
