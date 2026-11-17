@@ -150,6 +150,9 @@ def _is_test(msg: dict) -> bool:
             v = re.sub(r"[^\w ]", " ", str(msg.get(k) or "").lower()).strip()
             if v and (v == t or v.startswith(t + " ")):
                 return True
+            import difflib   # Tippfehler im Kontaktnamen (z. B. „Tohmas“ statt „Thomas“)
+            if v and len(t) >= 4 and difflib.SequenceMatcher(None, v.split(" ")[0], t.split(" ")[0]).ratio() >= 0.8:
+                return True
     except Exception:
         pass
     return False

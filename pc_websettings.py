@@ -169,9 +169,10 @@ def schema(s: dict) -> dict:
                      "Ein Ausgang, der in dein Discord-Mikro geht: bei Wave Link z. B. der Kanal, der im Stream-/Chat-Mix landet, sonst ein virtuelles Kabel (VB-CABLE: hier „CABLE Input“, in Discord als Mikro „CABLE Output“)."),
                  note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent."),
                  btn("stil_import", "WhatsApp-Chat-Export wählen (ZIP direkt, nicht entpacken)"),
+                 btn("stil_list", "Welche Chats sind schon drin?"),
                  tx("stil_chats", "Chats, denen Jarvis selbst antworten darf", "Namen wie in WhatsApp, mit Komma. Gilt auch am Handy (Einstellungen → Leute → Schreibstil). Ob er erst fragt oder selbst schreibt, stellst du am Handy ein.", "z. B. Tobi, Marius"),
                  tx("test_chat", "Test-Chat (z. B. deine Zweitnummer)", "Nachrichten aus diesem Chat liest Jarvis immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt. Zum Ausprobieren von „antworte du“ und „als Sprachnachricht“.", "Name wie in WhatsApp"),
-                 note("Schreibstil lernen: in WhatsApp (Handy oder PC) einen Chat öffnen → ⋮ → Mehr → „Chat exportieren“ → „Ohne Medien“, die ZIP hier wählen. Am Handy lernt er zusätzlich beim Durchscrollen mit."),
+                 note("Schreibstil lernen: in WhatsApp einen Chat öffnen → ⋮ → Mehr → „Chat exportieren“. „Mit Medien“ = er hört auch die Sprachnachrichten an (bis 120 pro Chat), „Ohne Medien“ geht schneller. Die ZIP hier wählen, mehrere auf einmal gehen. Er achtet auf die Zeiten: nur was innerhalb von 6 Stunden geantwortet wurde, zählt als Antwort. Am Handy lernt er außerdem mit jeder Nachricht und beim Durchscrollen."),
                  tx("discord_server", "Discord-Server für „Wer ist online?“", "Server-ID: in Discord Einstellungen → Erweitert → Entwicklermodus an, dann Rechtsklick auf den Server → „Server-ID kopieren“. Und in den Server-Einstellungen → Widget → „Server-Widget aktivieren“. Kein Bot, keine Anmeldung.", "z. B. 123456789012345678")),
             card("ElevenLabs",
                  sec("eleven_key", "ElevenLabs-Schlüssel", "elevenlabs.io → Entwickler → API-Schlüssel. Wird verschlüsselt gespeichert."),
@@ -514,6 +515,9 @@ def run(ui, name: str, v: dict) -> dict:
         if not paths:
             return {"ok": False, "text": "Keine Datei gewählt."}
         return {"ok": True, "text": pc_stil.import_files(paths)}
+    if name == "stil_list":
+        import pc_stil
+        return {"ok": True, "text": pc_stil.history_text()}
     if name == "classic":
         ui.q.put(("classic_settings",))
         return {"ok": True, "text": "Klassisches Fenster ist offen."}

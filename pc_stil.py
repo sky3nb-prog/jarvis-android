@@ -15,7 +15,57 @@ from pc_apps import base_dir
 LINE = re.compile(r"^\[?(\d{1,2}[./]\d{1,2}[./]\d{2,4}),? (\d{1,2}:\d{2})(?::\d{2})?\]?\s*[-–]?\s*([^:]{1,40}): (.*)$")
 NAME = re.compile(r"(?:WhatsApp[- ]Chat mit|WhatsApp Chat with)\s+(.+?)(?:\s*\(\d+\))?$", re.I)
 INVIS = re.compile("[‎‏‪-‮]")
-SKIP = ("<Medien ausgeschlossen>", "Medien ausgeschlossen", "Diese Nachricht wurde gelöscht", "<Media omitted>", "null")
+SKIP = ("<Medien ausgeschlossen>", "Medien ausgeschlossen", "Diese Nachricht wurde gelöscht", "Du hast diese Nachricht gelöscht", "<Media omitted>", "null",
+        "(Datei angehängt)", "(file attached)", ".jpg", ".webp", ".mp4", "Standort:", "location:")
+AUDIO = re.compile(r"((?:PTT|AUD)-[\w-]+\.(?:opus|ogg|m4a|mp3))", re.I)
+EDITED = re.compile(r"\s*<(?:Diese Nachricht wurde bearbeitet|This message was edited)>\s*$", re.I)
+STATE = {"voice": 0}
+MAX_VOICE = 120   # so viele Sprachnachrichten wandelt er pro Import höchstens um (Groq, kostenlos aber mit Limit)
+
+
+def _hist_file():
+    return os.path.join(base_dir(), "stil_importiert.json")
+
+
+def history() -> dict:
+    try:
+        with open(_hist_file(), encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _hist_add(chat, n, voice, pairs):
+    h = history()
+    import time as _t
+    old = h.get(chat) or {}
+    h[chat] = {"n": max(n, old.get("n", 0)), "voice": max(voice, old.get("voice", 0)), "pairs": max(pairs, old.get("pairs", 0)), "t": int(_t.time())}
+    try:
+        with open(_hist_file(), "w", encoding="utf-8") as f:
+            json.dump(h, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def history_text() -> str:
+    h = history()
+    if not h:
+        return "Noch keine Chats importiert."
+    import time as _t
+    rows = sorted(h.items(), key=lambda kv: -kv[1].get("t", 0))
+    return "Importiert: " + " · ".join(f"{c} ({v.get('n', 0)} Nachrichten" + (f", {v['voice']} Sprachnachr." if v.get("voice") else "") +
+                                       f", {_t.strftime('%d.%m.', _t.localtime(v.get('t', 0)))})" for c, v in rows[:40])
+
+
+def _when(d: str, hm: str):
+    import datetime as _dt
+    try:
+        dd, mm, yy = re.split(r"[./]", d)
+        y = int(yy) + (2000 if len(yy) == 2 else 0)
+        h, mi = hm.split(":")
+        return _dt.datetime(y, int(mm), int(dd), int(h), int(mi)).timestamp()
+    except Exception:
+        return 0.0
 
 
 def _me_file():
@@ -39,22 +89,29 @@ def _set_me(n: str):
 
 
 def _read(path: str):
-    """(Chat-Name, Text) aus einer .zip oder .txt."""
+    """(Chat-Name, Text, {Audiodatei: Bytes-Lader}) aus einer .zip (mit oder ohne Medien) oder .txt."""
     base = os.path.splitext(os.path.basename(path))[0]
     if path.lower().endswith(".zip"):
-        with zipfile.ZipFile(path) as z:
-            names = [n for n in z.namelist() if n.lower().endswith(".txt")]
-            if not names:
-                return base, ""
-            n = sorted(names, key=lambda x: z.getinfo(x).file_size)[-1]
-            return base, io.TextIOWrapper(z.open(n), encoding="utf-8", errors="replace").read()
+        z = zipfile.ZipFile(path)
+        names = [n for n in z.namelist() if n.lower().endswith(".txt")]
+        audio = {os.path.basename(n): (lambda n=n: z.read(n)) for n in z.namelist() if AUDIO.search(os.path.basename(n))}
+        if not names:
+            return base, "", audio
+        n = sorted(names, key=lambda x: z.getinfo(x).file_size)[-1]
+        return base, io.TextIOWrapper(z.open(n), encoding="utf-8", errors="replace").read(), audio
     with open(path, encoding="utf-8", errors="replace") as f:
-        return base, f.read()
+        return base, f.read(), {}
+
+
+def _voice_text(data: bytes) -> str:
+    import base64
+    import pc_nachrichten
+    return pc_nachrichten._transcribe({"audio": base64.b64encode(data).decode()})
 
 
 def parse(path: str):
     """-> (chat, eigene Nachrichten, Paare [{q, a, ctx}]) oder Fehlertext."""
-    base, text = _read(path)
+    base, text, audio = _read(path)
     m = NAME.search(base)
     partner = m.group(1).strip() if m else ""
     msgs = []
@@ -62,14 +119,14 @@ def parse(path: str):
         line = INVIS.sub("", raw)
         x = LINE.match(line)
         if x:
-            msgs.append([x.group(3).strip(), x.group(4).strip()])
+            msgs.append([x.group(3).strip(), EDITED.sub("", x.group(4).strip()), _when(x.group(1), x.group(2)), False])
         elif msgs and line.strip():
             msgs[-1][1] += "\n" + line.strip()
     if not msgs:
         return "In der Datei finde ich keinen WhatsApp-Chat."
     senders = {}
-    for s, _ in msgs:
-        senders[s] = senders.get(s, 0) + 1
+    for mm in msgs:
+        senders[mm[0]] = senders.get(mm[0], 0) + 1
     me = _me()
     if not me or me not in senders:
         others = [s for s in senders if partner and s.lower() != partner.lower()]
@@ -79,16 +136,32 @@ def parse(path: str):
         else:
             return "Bei Gruppen weiß ich noch nicht, welcher Name du bist – lade zuerst einen Einzelchat."
     chat = partner or next((s for s in senders if s != me), base)
+    # Sprachnachrichten (nur bei „Mit Medien“-Export): anhören und als Text einsetzen
+    nv = 0
+    for mm in msgs:
+        a = AUDIO.search(mm[1])
+        if a and a.group(1) in audio and nv < MAX_VOICE:
+            try:
+                t = _voice_text(audio[a.group(1)]())
+            except Exception:
+                t = ""
+            if t:
+                mm[1] = t; mm[3] = True; nv += 1
     good = lambda t: 2 <= len(t) <= 300 and not t.startswith("(") and not any(k in t for k in SKIP) and not t.startswith("http")  # noqa: E731
     mine, pairs = [], []
     last = msgs[-4000:]
-    for i, (s, t) in enumerate(last):
+    for i, (s, t, ts, voice) in enumerate(last):
         if s != me or not good(t):
             continue
-        mine.append(t)
-        if i > 0 and last[i - 1][0] != me and good(last[i - 1][1]):
-            cx = "\n".join(f"{'ICH' if v == me else v}: {w[:150]}" for v, w in last[max(0, i - 4):i - 1])
-            pairs.append({"q": f"{last[i - 1][0]}: {last[i - 1][1][:300]}", "a": t, "ctx": cx[:500]})
+        if not voice:
+            mine.append(t)   # gesprochene Nachrichten sind kein Schreibstil
+        p = last[i - 1] if i > 0 else None
+        # nur echte Antworten: direkt davor von der anderen Person und höchstens 6 Stunden später
+        if p and p[0] != me and good(p[1]) and (not ts or not p[2] or 0 <= ts - p[2] <= 6 * 3600):
+            cx = "\n".join(f"{'ICH' if v == me else v}: {('🎤 ' if vo else '') + w[:150]}" for v, w, tt, vo in last[max(0, i - 4):i - 1]
+                           if not ts or not tt or ts - tt <= 12 * 3600)
+            pairs.append({"q": f"{p[0]}: {('🎤 ' if p[3] else '') + p[1][:300]}", "a": t, "ctx": cx[:500]})
+    STATE["voice"] = nv
     return chat, mine, pairs
 
 
@@ -106,6 +179,7 @@ def import_files(paths) -> str:
             errs.append(f"{os.path.basename(p)}: {r}")
             continue
         chat, mine, pairs = r
+        _hist_add(chat, len(mine), STATE.get("voice", 0), len(pairs))
         for t in mine[-300:]:
             pc_nachrichten.stil_lernen(t)
         done += len(mine)
@@ -118,7 +192,7 @@ def import_files(paths) -> str:
                 if not r2:
                     sent_ok = False
                     break
-    out = f"Gelernt: {done} Nachrichten von dir." if done else "Nichts gelernt."
+    out = (f"Gelernt: {done} Nachrichten von dir" + (f", {STATE.get('voice', 0)} Sprachnachrichten angehört" if STATE.get("voice") else "") + ".") if done else "Nichts gelernt."
     if done and not sent_ok:
         out += " Das Handy hat nicht geantwortet – am PC ist es gelernt, ans Handy schick ich es beim nächsten Mal."
     if errs:
