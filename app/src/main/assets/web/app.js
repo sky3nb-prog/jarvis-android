@@ -344,46 +344,60 @@
   $("piper-test").addEventListener("click", () => { try { A.piperTest(); } catch (e) {} setTimeout(piperShow, 300); });
   setInterval(() => { const h = document.getElementById("sp-hoer"); if (h && h.classList.contains("on")) piperShow(); }, 1500);
 
-  // --- Schreibstil, Quiz, Termine aus WhatsApp ---
+  // --- Schreibstil, Stil-Training (Quiz), Termine aus WhatsApp ---
   let stilQ = null;
   function stilShow() {
     try {
       const s = JSON.parse(A.stilGet());
-      $("stil-st").textContent = `${s.beispiele} Nachrichten von dir gelernt · Quiz: ${s.runden ? `${s.getaeuscht} von ${s.runden}× getäuscht, Stil ${s.level} %` : "noch nicht gespielt"}` + (s.frei ? " · ✓ selbst schreiben freigeschaltet" : " · selbst schreiben ab 10 Runden mit ≥ 40 % getäuscht");
+      $("stil-st").textContent = `${s.beispiele} Nachrichten von dir gelernt (${s.personen} Personen/Gruppen) · Rang: ${s.rang} (${s.xp} XP)` +
+        (s.runden ? ` · Stil ${s.level} %` : "") + (s.frei ? " · ✓ selbst schreiben freigeschaltet" : " · selbst schreiben ab 10 Runden, wenn du meine Antwort oft genug nehmen würdest");
       if (document.activeElement !== $("stil-modus")) $("stil-modus").value = s.modus;
       $("stil-modus").querySelector('option[value="selbst"]').disabled = !s.frei;
       if (document.activeElement !== $("stil-chats")) $("stil-chats").value = s.chats || "";
-      sw("stil-term", s.wa_termine);
+      sw("stil-term", s.wa_termine); sw("stil-mit", s.mitlesen);
+      let acc = true; try { acc = A.accOn(); } catch (e) {}
+      $("stil-accrow").style.display = s.mitlesen && !acc ? "" : "none";
       const t = s.termine || [];
       $("stil-tl").textContent = t.length ? "Aus WhatsApp eingetragen: " + t.map((x) => `${x.titel} (${new Date(x.start).toLocaleString("de-DE", { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })})`).join(" · ") : "";
+      $("stil-xp").textContent = `${s.rang} · ${s.xp} XP`;
     } catch (e) {}
   }
   const stilSave = () => { try { A.stilSet($("stil-modus").value, $("stil-chats").value, sw("stil-term")); } catch (e) {} setTimeout(stilShow, 100); };
   $("stil-modus").addEventListener("change", stilSave);
   $("stil-chats").addEventListener("change", stilSave);
   $("stil-term").addEventListener("click", () => setTimeout(stilSave, 0));
+  $("stil-mit").addEventListener("click", () => setTimeout(() => { try { A.stilMitlesen(sw("stil-mit")); } catch (e) {} stilShow(); }, 0));
+  $("stil-acc").addEventListener("click", () => { try { A.accOpen(); } catch (e) {} });
   $("stil-imp").addEventListener("click", () => { try { A.stilImport(); } catch (e) {} });
-  $("stil-qbtn").addEventListener("click", () => {
-    $("stil-quiz").style.display = ""; $("stil-q").textContent = "Ich überlege mir eine Antwort …"; $("stil-a").textContent = ""; $("stil-b").textContent = ""; $("stil-res").textContent = "";
+  const stilAsk = () => {
+    $("stil-quiz").style.display = ""; $("stil-q").textContent = "Ich such eine Stelle aus deinen Chats …"; $("stil-ctx").textContent = ""; $("stil-who").textContent = "";
+    ["stil-a", "stil-b"].forEach((id) => { $(id).textContent = ""; $(id).style.outline = ""; }); $("stil-res").textContent = ""; $("stil-own").value = "";
     try { A.stilQuiz(); } catch (e) {}
-  });
-  const stilPick = (i) => {
+  };
+  $("stil-qbtn").addEventListener("click", stilAsk);
+  $("stil-next").addEventListener("click", stilAsk);
+  const stilDone = (pick, own) => {
     if (!stilQ || stilQ.done) return; stilQ.done = true;
-    const right = i === stilQ.mine;
-    let st = {}; try { st = JSON.parse(A.stilAnswer(right)); } catch (e) {}
-    $(i === 0 ? "stil-a" : "stil-b").style.outline = "2px solid " + (right ? "#6effcd" : "#ff6b6b");
-    $("stil-res").textContent = (right ? "Richtig, das war deine. " : "Erwischt – die war von mir 😎 ") + `Stil ${st.level || 0} %. Tipp auf „Start“ für die nächste Runde.`;
+    let st = {}; try { st = JSON.parse(A.stilAnswer(JSON.stringify(stilQ), pick, own || "")); } catch (e) {}
+    const mineId = stilQ.mine === 0 ? "stil-a" : "stil-b", fakeId = stilQ.mine === 0 ? "stil-b" : "stil-a";
+    $(mineId).style.outline = "2px solid #6effcd"; $(fakeId).style.outline = "2px dashed #ff9de2";
+    $("stil-res").textContent = (st.res === 2 ? "Danke – genau so merk ich's mir für " + stilQ.chat + ". +15 XP"
+      : st.res === 1 ? "Das war deine echte Antwort (grün). Meine war die gestrichelte – ich übe weiter. +10 XP"
+      : "Du hast meine genommen 😎 – die merk ich mir als gut. Grün war deine echte. +10 XP") + ` · Stil ${st.level || 0} %`;
     stilShow();
   };
-  $("stil-a").addEventListener("click", () => stilPick(0));
-  $("stil-b").addEventListener("click", () => stilPick(1));
+  $("stil-a").addEventListener("click", () => stilDone(0, ""));
+  $("stil-b").addEventListener("click", () => stilDone(1, ""));
+  $("stil-ownbtn").addEventListener("click", () => { const v = $("stil-own").value.trim(); if (v) stilDone(-1, v); });
   { const pq = window.jarvis && window.jarvis.onEvent;
     if (window.jarvis) window.jarvis.onEvent = function (type, data) {
       if (type === "stil_quiz") {
         if (data.error) { $("stil-q").textContent = data.error; return; }
-        stilQ = data; ["stil-a", "stil-b"].forEach((id) => { $(id).style.outline = ""; });
-        $("stil-q").textContent = "Nachricht an dich: „" + data.q + "“ – welche Antwort ist von dir?";
-        $("stil-a").textContent = "A: " + data.a; $("stil-b").textContent = "B: " + data.b; return;
+        stilQ = data;
+        $("stil-who").textContent = "💬 " + (data.chat || "Chat");
+        $("stil-ctx").textContent = data.ctx || "";
+        $("stil-q").textContent = data.q;
+        $("stil-a").textContent = data.a; $("stil-b").textContent = data.b; return;
       }
       if (type === "stil_import") { toast(data.text || "Fertig."); stilShow(); return; }
       return pq && pq.call(window.jarvis, type, data);

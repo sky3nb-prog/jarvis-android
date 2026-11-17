@@ -930,7 +930,13 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun stilQuiz() { Thread({ val q = try { Stil.quizNext(this@MainActivity) } catch (e: Exception) { JSONObject().put("error", "Ging gerade nicht.") }; send("stil_quiz", q) }, "jarvis-quiz").start() }
         @JavascriptInterface
-        fun stilAnswer(right: Boolean): String = Stil.quizAnswer(this@MainActivity, right).toString()
+        fun stilAnswer(q: String, pick: Int, own: String): String = try { Stil.quizAnswer(this@MainActivity, JSONObject(q), pick, own.trim()).toString() } catch (e: Exception) { "{}" }
+        @JavascriptInterface
+        fun stilMitlesen(on: Boolean) { prefs.edit().putBoolean("stil_mitlesen", on).apply() }
+        @JavascriptInterface
+        fun accOpen() { runOnUiThread { try { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) } catch (_: Exception) {} } }
+        @JavascriptInterface
+        fun accOn(): Boolean = ScreenService.enabled()
         @JavascriptInterface
         fun stilSet(modus: String, chats: String, termine: Boolean) {
             Stil.setMode(this@MainActivity, modus); prefs.edit().putString("stil_chats", chats.trim()).apply(); WaTermine.setOn(this@MainActivity, termine)

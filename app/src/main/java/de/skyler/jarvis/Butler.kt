@@ -100,7 +100,49 @@ object Butler {
     @Volatile private var floatView: android.view.View? = null
     private val main = android.os.Handler(android.os.Looper.getMainLooper())
 
-    private fun showFloat(ctx: Context, name: String, number: String) = main.post {
+    // --- WhatsApp-Anrufe: Wegdrücken über Jarvis + Nachricht in deinem Stil ------------------------------------------
+    @Volatile var waCall: Pair<String, android.app.PendingIntent>? = null; private set
+    @Volatile private var waCallAt = 0L
+
+    /** Aus MediaWatch: Benachrichtigung von WhatsApp. Eingehender Anruf = Kategorie „call“ mit „Ablehnen“-Knopf. */
+    fun onWaNotification(ctx: Context, sbn: android.service.notification.StatusBarNotification) {
+        if (sbn.packageName != "com.whatsapp" && sbn.packageName != "com.whatsapp.w4b") return
+        val n = sbn.notification ?: return
+        if (n.category != android.app.Notification.CATEGORY_CALL || !on(ctx)) return
+        val decline = n.actions?.firstOrNull { a -> Regex("ablehn|decline|abweis|reject", RegexOption.IGNORE_CASE).containsMatchIn(a.title?.toString() ?: "") } ?: return
+        val name = (n.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString() ?: "").replace(Regex("[\u200e\u200f\u202a-\u202e]"), "").trim()
+        if (name.isBlank() || System.currentTimeMillis() - waCallAt < 8_000L && waCall?.first == name) return
+        waCall = name to decline.actionIntent; waCallAt = System.currentTimeMillis()
+        val nn = Chats.norm(name); val important = Chats.important(ctx).any { it.isNotBlank() && (nn.contains(it) || it.contains(nn)) }
+        if (Modes.current(ctx) == "schule" && !important) { waDecline(ctx); return }
+        showFloat(ctx, name, "", wa = true)
+        main.postDelayed({ if (System.currentTimeMillis() - waCallAt >= 59_000L) waCall = null }, 60_000)
+    }
+
+    /** Wegdrücken (auch per Sprache: „Friday, drück weg“) und kurz auf WhatsApp Bescheid geben. */
+    fun waDecline(ctx: Context): String {
+        val (name, pi) = waCall ?: return "Gerade ruft niemand über WhatsApp an."
+        waCall = null; hideFloat(ctx)
+        try { pi.send() } catch (e: Exception) { Log.w(TAG, "wa ablehnen: $e") }
+        Thread({
+            val msg = try { if (Stil.samples(ctx).size >= 20) Stil.write(ctx, "Sag $name kurz, dass du gerade nicht telefonieren kannst und dich später meldest.", chat = Chats.norm(name)) else "" } catch (_: Exception) { "" }
+                .ifBlank { text(ctx) }
+            Thread.sleep(1500)   // Anruf-Bildschirm erst zugehen lassen
+            val ok = try { WaSend.text(ctx, name, msg) } catch (_: Exception) { false }
+            Feed.add(ctx, "anruf", "WhatsApp-Anruf von $name weggedrückt", "„$msg“ " + if (ok) "geschickt" else "– Senden ging nicht", msg,
+                JSONObject().put("name", name).put("text", msg).put("ok", ok))
+        }, "jarvis-wa-absage").start()
+        return "Weggedrückt. Ich schreib $name, dass du dich später meldest."
+    }
+
+    fun onWaRemoved(ctx: Context, sbn: android.service.notification.StatusBarNotification) {
+        if (sbn.packageName != "com.whatsapp" && sbn.packageName != "com.whatsapp.w4b") return
+        if (sbn.notification?.category != android.app.Notification.CATEGORY_CALL) return
+        if (System.currentTimeMillis() - waCallAt < 1500L) return
+        waCall = null; hideFloat(ctx)
+    }
+
+    private fun showFloat(ctx: Context, name: String, number: String, wa: Boolean = false) = main.post {
         try {
             if (!android.provider.Settings.canDrawOverlays(ctx) || floatView != null) return@post
             val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
@@ -112,18 +154,19 @@ object Butler {
                 elevation = 12 * d
             }
             val title = android.widget.TextView(ctx).apply {
-                text = if (name.isNotBlank()) "JARVIS · $name ruft an" else "JARVIS · unbekannte Nummer"
+                text = if (wa) "JARVIS · $name ruft über WhatsApp an" else if (name.isNotBlank()) "JARVIS · $name ruft an" else "JARVIS · unbekannte Nummer"
                 setTextColor(0xFFFFD678.toInt()); textSize = 12f; letterSpacing = .12f
             }
             val btn = android.widget.TextView(ctx).apply {
-                text = if (name.isNotBlank()) "Auflegen + „${text(ctx)}“ schicken" else "Auflegen"
+                text = if (wa) "Wegdrücken + kurz schreiben" else if (name.isNotBlank()) "Auflegen + „${text(ctx)}“ schicken" else "Auflegen"
                 setTextColor(0xFF1A1206.toInt()); textSize = 16f; typeface = android.graphics.Typeface.DEFAULT_BOLD
                 gravity = android.view.Gravity.CENTER
                 setPadding((14 * d).toInt(), (12 * d).toInt(), (14 * d).toInt(), (12 * d).toInt())
                 background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 22 * d; setColor(0xFFFFC04A.toInt()) }
                 setOnClickListener {
                     hideFloat(ctx)
-                    if (name.isNotBlank()) decline(ctx, name, number)
+                    if (wa) waDecline(ctx)
+                    else if (name.isNotBlank()) decline(ctx, name, number)
                     else try { if (Build.VERSION.SDK_INT >= 28 && has(ctx, Manifest.permission.ANSWER_PHONE_CALLS))
                         @Suppress("DEPRECATION") (ctx.getSystemService(Context.TELECOM_SERVICE) as TelecomManager).endCall() } catch (_: Exception) {}
                 }

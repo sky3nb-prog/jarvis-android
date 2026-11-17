@@ -69,6 +69,7 @@ object Chats {
         if (sbn.packageName !in PKGS) return
         val n = sbn.notification ?: return
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
+        if (n.category == Notification.CATEGORY_CALL) return   // Anrufe macht der Butler
         val ex = n.extras ?: return
         val chat0 = (ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE) ?: ex.getCharSequence(Notification.EXTRA_TITLE))?.toString()
             ?.replace(Regex("\\s*\\(\\d+ (?:Nachrichten|messages)\\)\\s*$"), "")?.replace(Regex(":\\s*$"), "")?.trim() ?: return
@@ -224,7 +225,7 @@ object Chats {
         for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("text") == text && (it.optString("von") == von)) return }
         if (von == "ich" && learn) try {   // deine eigene Nachricht: Schreibstil mitlernen (mit der Nachricht davor fürs Quiz)
             val before = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { it.optLong("t") <= tt }.lastOrNull()
-            Stil.learn(ctx, text, before?.takeIf { it.optString("von") != "ich" }?.optString("text"))
+            Stil.learn(ctx, text, before?.takeIf { it.optString("von") != "ich" }?.let { "${it.optString("von")}: ${it.optString("text")}" }, ck)
         } catch (_: Exception) {}
         a.put(JSONObject().put("von", von).put("text", text.take(400)).put("t", tt))
         val l = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.sortedBy { it.optLong("t") }.takeLast(14)

@@ -6,18 +6,24 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * "Schau mal hier": macht auf Kommando ein Bildschirmfoto (Bedienungshilfe, einmal in den Einstellungen einschalten).
- * Liest keine Inhalte mit. Einzige Ausnahme: der ZEITPUNKT der letzten Berührung (Tippen, Wischen, Tippen auf der Tastatur)
- * wird für die Schlaf-Erkennung gemerkt (Sleep.touch) – was berührt wurde, sieht Jarvis nicht.
+ * Bedienungshilfe (einmal in den Einstellungen einschalten):
+ *  - "Schau mal hier": Bildschirmfoto auf Kommando.
+ *  - Zeitpunkt der letzten Berührung für die Schlaf-Erkennung (was berührt wurde, sieht Jarvis nicht).
+ *  - NUR in WhatsApp: liest die Nachrichten mit, die gerade auf dem Bildschirm stehen (wenn du einen Chat offen hast
+ *    oder hochscrollst), damit Jarvis deinen Schreibstil pro Person lernt. Ausschaltbar: Einstellungen → Leute → Schreibstil.
+ *  - Drückt in WhatsApp auf „Senden“, wenn Jarvis gerade selbst etwas verschickt (Sprachnachricht, Absage) – nur dann.
  */
 class ScreenService : AccessibilityService() {
     companion object {
         @Volatile var inst: ScreenService? = null
             private set
+        private val WA = setOf("com.whatsapp", "com.whatsapp.w4b")
+        @Volatile var sendUntil = 0L   // bis dahin darf er in WhatsApp „Senden“ drücken (von Jarvis ausgelöst)
 
         fun enabled() = inst != null
 
@@ -42,7 +48,12 @@ class ScreenService : AccessibilityService() {
             done.await(5, TimeUnit.SECONDS)
             return out
         }
+
+        /** Jarvis verschickt gleich selbst etwas über WhatsApp: in den nächsten 20 Sekunden einmal „Senden“ drücken. */
+        fun armSend() { sendUntil = System.currentTimeMillis() + 20_000L }
     }
+
+    private var lastRead = 0L
 
     override fun onServiceConnected() { inst = this }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -50,7 +61,59 @@ class ScreenService : AccessibilityService() {
             AccessibilityEvent.TYPE_VIEW_CLICKED, AccessibilityEvent.TYPE_VIEW_LONG_CLICKED, AccessibilityEvent.TYPE_VIEW_SCROLLED,
             AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> try { Sleep.touch(this) } catch (_: Exception) {}
         }
+        val pkg = event?.packageName?.toString() ?: return
+        if (pkg !in WA) return
+        if (System.currentTimeMillis() < sendUntil) try { if (pressSend()) sendUntil = 0L } catch (_: Exception) {}
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED || event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            val now = System.currentTimeMillis()
+            if (now - lastRead < 2500) return
+            lastRead = now
+            try { readChat(pkg) } catch (_: Exception) {}
+        }
     }
+
+    private fun byId(root: AccessibilityNodeInfo, pkg: String, id: String) = try { root.findAccessibilityNodeInfosByViewId("$pkg:id/$id") ?: emptyList() } catch (_: Exception) { emptyList() }
+
+    private fun pressSend(): Boolean {
+        val root = rootInActiveWindow ?: return false
+        val pkg = root.packageName?.toString() ?: return false
+        val btn = (byId(root, pkg, "send") + byId(root, pkg, "send_btn") + byId(root, pkg, "fab")).firstOrNull { it.isEnabled && it.isVisibleToUser }
+            ?: root.findAccessibilityNodeInfosByText("Senden")?.firstOrNull { it.isClickable && it.isVisibleToUser }
+            ?: return false
+        return btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    }
+
+    /** Sichtbare Nachrichten des offenen Chats: eigene (mit Häkchen) und fremde, in Bildschirm-Reihenfolge. */
+    private fun readChat(pkg: String) {
+        if (!Stil.mitlesen(this)) return
+        val root = rootInActiveWindow ?: return
+        val title = byId(root, pkg, "conversation_contact_name").firstOrNull()?.text?.toString()?.trim() ?: return
+        if (title.isBlank()) return
+        val texts = byId(root, pkg, "message_text")
+        if (texts.isEmpty()) return
+        val rows = mutableListOf<Triple<String, String, Int>>()   // (von, text, y)
+        for (t in texts) {
+            val txt = t.text?.toString()?.trim() ?: continue
+            if (txt.isBlank()) continue
+            // die Sprechblase: nach oben gehen, bis ein Element mit Häkchen (= eigene) oder Absendername (Gruppe) auftaucht
+            var p: AccessibilityNodeInfo? = t.parent; var mine = false; var sender = ""
+            var depth = 0
+            while (p != null && depth < 4) {
+                if (byIdIn(p, pkg, "status").isNotEmpty()) mine = true
+                byIdIn(p, pkg, "name_in_group_tv").firstOrNull()?.text?.toString()?.let { sender = it }
+                if (mine || sender.isNotBlank()) break
+                p = p.parent; depth++
+            }
+            val r = android.graphics.Rect(); t.getBoundsInScreen(r)
+            rows.add(Triple(if (mine) "ich" else sender.ifBlank { title }, txt, r.top))
+        }
+        rows.sortBy { it.third }
+        Stil.fromScreen(this, title, rows.map { it.first to it.second })
+    }
+
+    private fun byIdIn(n: AccessibilityNodeInfo, pkg: String, id: String) = try { n.findAccessibilityNodeInfosByViewId("$pkg:id/$id") ?: emptyList() } catch (_: Exception) { emptyList() }
+
     override fun onInterrupt() {}
     override fun onUnbind(intent: Intent?): Boolean { inst = null; return super.onUnbind(intent) }
     override fun onDestroy() { inst = null; super.onDestroy() }

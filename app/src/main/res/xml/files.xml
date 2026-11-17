@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sprachnachrichten, die Jarvis an WhatsApp übergibt -->
+<paths>
+    <cache-path name="wa" path="wa/" />
+</paths>

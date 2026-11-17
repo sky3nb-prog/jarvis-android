@@ -316,12 +316,18 @@
         <div class="sec" style="--c:#ff9de2"><h3>SCHREIBSTIL – ER LERNT MIT</h3>
           <div class="note" id="stil-st" style="margin:0 0 6px">–</div>
           <div class="srow"><div>Chat-Export laden<small>Schneller lernen: in WhatsApp Chat öffnen → ⋮ → Mehr → „Chat exportieren“ → „Ohne Medien“ → Jarvis. Oder hier eine Datei wählen.</small></div><div class="sbtn" id="stil-imp">Datei</div></div>
-          <div class="srow"><div>Stil-Quiz<small>Welche Antwort ist von dir? Täusche ich dich oft genug, darf ich selbst schreiben.</small></div><div class="sbtn" id="stil-qbtn">Start</div></div>
-          <div id="stil-quiz" style="display:none;margin:6px 0">
-            <div class="note" id="stil-q" style="margin:0 0 6px"></div>
-            <div class="sbtn" id="stil-a" style="display:block;text-align:left;margin:4px 0;white-space:normal"></div>
-            <div class="sbtn" id="stil-b" style="display:block;text-align:left;margin:4px 0;white-space:normal"></div>
-            <div class="note" id="stil-res" style="margin:4px 0 0"></div>
+          <div class="srow"><div>Mitlesen in WhatsApp<small>Wenn du einen Chat offen hast oder hochscrollst, lerne ich, wie du mit genau dieser Person schreibst. Braucht die Bedienungshilfe „Jarvis – Schau mal hier“.</small></div><div class="sw" id="stil-mit"></div></div>
+          <div class="srow" id="stil-accrow" style="display:none"><div>Bedienungshilfe ist aus<small>Einstellungen → Bedienungshilfen → Installierte Apps → „Jarvis – Schau mal hier“ an</small></div><div class="sbtn" id="stil-acc">Öffnen</div></div>
+          <div class="srow"><div>Stil-Training 🎮<small>Eine echte Stelle aus deinen Chats: wer, worum es ging, zwei Antworten – eine von dir, eine von mir. Tipp, was DU schreiben würdest – oder schreib's selbst.</small></div><div class="sbtn" id="stil-qbtn">Spielen</div></div>
+          <div id="stil-quiz" style="display:none;margin:6px 0;padding:10px;border:1px solid #ff9de244;border-radius:14px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.8"><b id="stil-who"></b><span id="stil-xp"></span></div>
+            <div class="note" id="stil-ctx" style="margin:6px 0 0;opacity:.7;white-space:pre-line;font-size:12px"></div>
+            <div class="note" id="stil-q" style="margin:6px 0 8px;font-size:15px"></div>
+            <div class="sbtn" id="stil-a" style="display:block;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
+            <div class="sbtn" id="stil-b" style="display:block;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
+            <div class="f" style="margin-top:6px"><label>Oder: so würde ich's schreiben</label><input id="stil-own" type="text" placeholder="deine Antwort …"></div>
+            <div style="display:flex;gap:8px;margin-top:6px"><div class="sbtn" id="stil-ownbtn">Meine nehmen</div><div class="sbtn" id="stil-next" style="margin-left:auto">Nächste ›</div></div>
+            <div class="note" id="stil-res" style="margin:6px 0 0"></div>
           </div>
           <div class="f"><label>Antworten in deinem Namen</label><select id="stil-modus"><option value="aus">Aus</option><option value="bestaetigen">Vorschlag – du tippst „Senden“</option><option value="selbst">Selbst schreiben (nach dem Quiz)</option></select></div>
           <div class="f"><label>Für diese Chats (Namen wie in WhatsApp, mit Komma)</label><input id="stil-chats" type="text" placeholder="z. B. Tobi, Marius"></div>

@@ -125,6 +125,15 @@ object PiperPhone {
         engine
     }
 
+    /** Ganzen Text als Audio (für Sprachnachrichten): Samples + Abtastrate, oder null. */
+    fun render(ctx: Context, text: String): Pair<FloatArray, Int>? = try {
+        val t = tts(ctx) ?: throw Exception("keine Stimme")
+        val parts = text.split(Regex("(?<=[.!?…])\\s+|\\n+")).map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { listOf(text) }
+        val gap = FloatArray(t.sampleRate() / 5)
+        val all = parts.flatMap { (t.generate(it, 0, ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getFloat("tts_rate", 1.05f)).samples + gap).asIterable() }
+        all.toFloatArray() to t.sampleRate()
+    } catch (e: Throwable) { Log.w(TAG, "render: $e"); null }
+
     /** Beim Start einmal laden, damit der erste Satz sofort kommt. */
     fun warm(ctx: Context) { Thread({ try { tts(ctx)?.generate("Bereit.", 0, 1.0f) } catch (e: Throwable) { Log.w(TAG, "warm: $e") } }, "jarvis-piper-warm").start() }
 

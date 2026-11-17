@@ -154,6 +154,23 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             val name = m.groupValues[1].replaceFirstChar { it.uppercase() }
             return try { Stil.meet(ctx, name, m.groupValues[2]) } catch (e: Exception) { "Das ging gerade nicht (${e.message})." }
         }
+        // WhatsApp-Anruf läuft: „drück weg“
+        if (Butler.waCall != null && lowW.split(" ").size <= 6 && Regex("\\b(drück\\w* (ihn |sie )?weg|wegdrück\\w*|ablehn\\w*|leg auf|auflegen|kann (jetzt |gerade )?nicht)\\b").containsMatchIn(lowW))
+            return Butler.waDecline(ctx)
+        // „Schick Tobi eine Sprachnachricht: ich komm später“ / „Nimm eine Sprachnachricht für Tobi auf und sag …“
+        (Regex("^(?:schick|sende|schicke)\\s+([\\p{L}-]+)\\s+(?:eine |ne )?sprachnachricht\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW)
+            ?: Regex("^(?:nimm|nehm|nehme)\\s+(?:mal\\s+)?(?:eine |ne )?sprachnachricht\\s+(?:für|an)\\s+([\\p{L}-]+)\\s+auf\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW))?.let { m ->
+            val name = m.groupValues[1].replaceFirstChar { it.uppercase() }
+            val inhalt = text.trim().let { t -> t.substring(minOf(t.length, (t.lowercase().indexOf(m.groupValues[2].take(12)).takeIf { it >= 0 } ?: 0))) }.ifBlank { m.groupValues[2] }
+            return try { WaSend.voice(ctx, name, inhalt) } catch (e: Exception) { "Die Sprachnachricht ging nicht (${e.message})." }
+        }
+        (Regex("^(?:du darfst|darfst du|du kannst) (?:jetzt |ab jetzt |auch )?([\\p{L}-]+) (?:selbst |alleine |allein |für mich )*(?:antworten|schreiben|zurückschreiben)$").find(lowW)
+            ?: Regex("^antworte (?:ab jetzt |jetzt )?(?:selbst |du |für mich |alleine )+(?:auf |an |bei )?([\\p{L}-]+)$").find(lowW))?.let { m ->
+            return Stil.grant(ctx, m.groupValues[1].replaceFirstChar { it.uppercase() })
+        }
+        Regex("^(?:antworte|schreib) ([\\p{L}-]+) nicht mehr(?: selbst)?$|^hör auf,? ([\\p{L}-]+) zu (?:antworten|schreiben)$").find(lowW)?.let { m ->
+            return Stil.revoke(ctx, (m.groupValues[1].ifBlank { m.groupValues[2] }).replaceFirstChar { it.uppercase() })
+        }
         if (Regex("\\b(?:stil[- ]?quiz|schreibstil[- ]?quiz|quiz (?:zu|über) meinem? (?:schreib)?stil)\\b").containsMatchIn(lowW)) {
             Bus.emit("open_page", JSONObject().put("page", "stil"))
             return "Mach ich auf: Welche Antwort ist von dir? Findest du unter Einstellungen → Leute → Schreibstil."

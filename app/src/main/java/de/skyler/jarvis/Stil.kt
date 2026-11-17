@@ -34,25 +34,70 @@ object Stil {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
 
     // --- Sammeln ------------------------------------------------------------------------------------------------
+    // stil_ich: alle eigenen Nachrichten (global), stil_c_<chat>: deine Nachrichten pro Person/Gruppe,
+    // stil_paare: {q (Nachricht davor), a (deine Antwort), chat, ctx (Verlauf davor), src} fürs Quiz und als Beispiele
     private fun arr(ctx: Context, k: String) = try { JSONArray(prefs(ctx).getString(k, "[]")) } catch (_: Exception) { JSONArray() }
-    fun samples(ctx: Context): List<String> = arr(ctx, "stil_ich").let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() } }
+    private fun strs(a: JSONArray) = (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() }
+    fun samples(ctx: Context): List<String> = strs(arr(ctx, "stil_ich"))
+    fun chatSamples(ctx: Context, ck: String): List<String> = strs(arr(ctx, "stil_c_$ck"))
     fun pairs(ctx: Context): List<JSONObject> = arr(ctx, "stil_paare").let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }
+    fun mitlesen(ctx: Context) = prefs(ctx).getBoolean("stil_mitlesen", true)
 
     private fun good(t: String) = t.length in 2..300 && !t.startsWith("(") && !t.contains("Medien ausgeschlossen") && !t.contains("<Medien") &&
         !t.contains("Nachricht wurde gelöscht") && !t.contains("Diese Nachricht") && !t.startsWith("http") && !t.contains("null")
 
-    @Synchronized fun learn(ctx: Context, text: String, before: String? = null) {
-        val t = text.trim()
-        if (!good(t)) return
-        val l = samples(ctx).filter { it != t } + t
-        val e = prefs(ctx).edit().putString("stil_ich", JSONArray(l.takeLast(600)).toString())
-        if (!before.isNullOrBlank() && good(before.trim())) {
-            val p = pairs(ctx).filter { it.optString("a") != t } + JSONObject().put("q", before.trim().take(300)).put("a", t)
-            e.putString("stil_paare", JSONArray(p.takeLast(300)).toString())
+    /** Mehrere neue eigene Nachrichten auf einmal speichern (schnell, auch für große Exporte). */
+    @Synchronized private fun addAll(ctx: Context, ck: String, mine: List<String>, newPairs: List<JSONObject>): Int {
+        val ok = mine.map { it.trim() }.filter { good(it) }
+        if (ok.isEmpty() && newPairs.isEmpty()) return 0
+        val g = LinkedHashSet(samples(ctx)); val before = g.size
+        ok.forEach { g.remove(it); g.add(it) }
+        val e = prefs(ctx).edit().putString("stil_ich", JSONArray(g.toList().takeLast(800)).toString())
+        if (ck.isNotBlank()) {
+            val c = LinkedHashSet(chatSamples(ctx, ck)); ok.forEach { c.remove(it); c.add(it) }
+            e.putString("stil_c_$ck", JSONArray(c.toList().takeLast(80)).toString())
+            val known = (prefs(ctx).getString("stil_chats_all", "") ?: "").split("|").filter { it.isNotBlank() }.toMutableSet()
+            if (known.add(ck)) e.putString("stil_chats_all", known.joinToString("|"))
         }
-        val n = prefs(ctx).getInt("stil_neu", 0) + 1
-        e.putInt("stil_neu", n).apply()
-        if (n >= 25) { prefs(ctx).edit().putInt("stil_neu", 0).apply(); toPc(ctx); Thread { try { profile(ctx, false) } catch (_: Exception) {} }.start() }
+        if (newPairs.isNotEmpty()) {
+            val seen = HashSet<String>()
+            val all = (pairs(ctx) + newPairs).reversed().filter { seen.add(it.optString("chat") + "|" + it.optString("a")) }.reversed()
+            e.putString("stil_paare", JSONArray(all.takeLast(500)).toString())
+        }
+        val added = g.size - before
+        val n = prefs(ctx).getInt("stil_neu", 0) + maxOf(added, 0)
+        e.putInt("stil_neu", if (n >= 25) 0 else n).apply()
+        if (n >= 25) { toPc(ctx); Thread { try { profile(ctx, false) } catch (_: Exception) {} }.start() }
+        return added
+    }
+
+    private fun pair(q: String, a: String, ck: String, cx: String, src: String) =
+        JSONObject().put("q", q.trim().take(300)).put("a", a.trim()).put("chat", ck).put("ctx", cx.take(500)).put("src", src)
+
+    /** Aus Chats.hist: deine eigene Nachricht aus der Benachrichtigung. */
+    fun learn(ctx: Context, text: String, before: String? = null, ck: String = "") {
+        val t = text.trim(); if (!good(t)) return
+        addAll(ctx, ck, listOf(t), if (!before.isNullOrBlank() && good(before.trim())) listOf(pair(before, t, ck, "", "live")) else emptyList())
+    }
+
+    /** Aus der Bedienungshilfe: was gerade im offenen WhatsApp-Chat auf dem Bildschirm steht (auch beim Hochscrollen). */
+    fun fromScreen(ctx: Context, chat: String, rows: List<Pair<String, String>>) {
+        if (rows.size < 2) return
+        val ck = Chats.norm(chat)
+        val mine = mutableListOf<String>(); val ps = mutableListOf<JSONObject>()
+        for (i in rows.indices) {
+            val (von, t) = rows[i]
+            if (von != "ich") continue
+            mine.add(t)
+            val prev = (i - 1 downTo 0).firstOrNull { rows[it].first != "ich" }?.let { rows[it] }
+            if (prev != null && i - rows.indexOf(prev) <= 2 && good(prev.second)) {
+                val cx = rows.subList(maxOf(0, rows.indexOf(prev) - 3), rows.indexOf(prev)).joinToString("\n") { (v, x) -> "${if (v == "ich") "ICH" else v}: $x" }
+                ps.add(pair("${prev.first}: ${prev.second}", t, ck, cx, "bildschirm"))
+            }
+        }
+        val names = prefs(ctx).getString("stil_names", "") ?: ""
+        if (!names.split("|").contains(ck)) prefs(ctx).edit().putString("stil_names", "$names|$ck").putString("stil_cn_$ck", chat).apply()
+        addAll(ctx, ck, mine, ps)
     }
 
     /** Neue Beispiele auch an den PC (der schreibt am PC Antworten in deinem Namen). */
@@ -67,7 +112,7 @@ object Stil {
         val line = Regex("^\\[?(\\d{1,2}[./]\\d{1,2}[./]\\d{2,4}),? (\\d{1,2}:\\d{2})(?::\\d{2})?\\]?\\s*[-–]?\\s*([^:]{1,40}): (.*)$")
         val msgs = mutableListOf<Pair<String, String>>()
         for (raw in text.lines()) {
-            val l = raw.replace(Regex("[‎‏‪-‮]"), "")
+            val l = raw.replace(Regex("[\u200e\u200f\u202a-\u202e]"), "")
             val m = line.find(l)
             if (m != null) msgs.add(m.groupValues[3].trim() to m.groupValues[4].trim())
             else if (msgs.isNotEmpty() && l.isNotBlank()) msgs[msgs.size - 1] = msgs.last().first to (msgs.last().second + "\n" + l.trim())
@@ -80,23 +125,28 @@ object Stil {
             if (me.isBlank()) return -1
             prefs(ctx).edit().putString("stil_name", me).apply()
         }
-        var n = 0; var prevOther: String? = null
-        for ((s, t) in msgs.takeLast(3000)) {
-            if (s == me) { learnQuiet(ctx, t, prevOther); n++; prevOther = null } else prevOther = t
+        val ck = Chats.norm(partner.ifBlank { senders.keys.firstOrNull { it != me } ?: "" })
+        if (ck.isNotBlank()) prefs(ctx).edit().putString("stil_cn_$ck", partner.ifBlank { ck }).apply()
+        val last = msgs.takeLast(4000)
+        val mine = mutableListOf<String>(); val ps = mutableListOf<JSONObject>()
+        for (i in last.indices) {
+            val (s, t) = last[i]
+            if (s != me) continue
+            mine.add(t)
+            val prev = last.getOrNull(i - 1)
+            if (prev != null && prev.first != me && good(prev.second)) {
+                val cx = last.subList(maxOf(0, i - 4), i - 1).joinToString("\n") { (v, x) -> "${if (v == me) "ICH" else v}: ${x.take(150)}" }
+                ps.add(pair("${prev.first}: ${prev.second}", t, ck, cx, "export"))
+            }
         }
-        prefs(ctx).edit().putString("stil_ich", JSONArray(samples(ctx).takeLast(600)).toString()).apply()
+        addAll(ctx, ck, mine, ps)
         toPc(ctx)
         Thread { try { profile(ctx, true) } catch (_: Exception) {} }.start()
-        return n
+        return mine.size
     }
 
-    private fun learnQuiet(ctx: Context, t0: String, before: String?) {
-        val t = t0.trim(); if (!good(t)) return
-        val l = samples(ctx).filter { it != t } + t
-        val e = prefs(ctx).edit().putString("stil_ich", JSONArray(l.takeLast(600)).toString())
-        if (!before.isNullOrBlank() && good(before.trim()))
-            e.putString("stil_paare", JSONArray((pairs(ctx) + JSONObject().put("q", before.trim().take(300)).put("a", t)).takeLast(300)).toString())
-        e.apply()
+    private fun learnQuiet(ctx: Context, t0: String, before: String?, ck: String = "") {
+        addAll(ctx, ck, listOf(t0), if (!before.isNullOrBlank() && good(before.trim())) listOf(pair(before, t0, ck, "", "bestaetigt")) else emptyList())
     }
 
     /** Kurze Beschreibung deines Stils (KI), wird bei jedem Vorschlag mitgegeben. */
@@ -116,13 +166,21 @@ object Stil {
     }
 
     // --- Schreiben wie du -------------------------------------------------------------------------------------------
-    fun write(ctx: Context, aufgabe: String, verlauf: String = "", person: String = ""): String {
+    /** chat = an wen (normalisiert): dann zählen vor allem deine Nachrichten an genau diese Person / Gruppe. */
+    fun write(ctx: Context, aufgabe: String, verlauf: String = "", person: String = "", chat: String = "", exclude: String = ""): String {
         val key = prefs(ctx).getString("groq_key", "") ?: ""; if (key.isBlank()) return ""
-        val ex = samples(ctx).let { l -> (l.takeLast(10) + l.dropLast(10).shuffled().take(14)) }
+        val per = if (chat.isNotBlank()) chatSamples(ctx, chat).filter { it != exclude }.let { it.takeLast(8) + it.dropLast(8).shuffled().take(8) } else emptyList()
+        val ex = samples(ctx).filter { it !in per && it != exclude }.let { l -> (l.takeLast(6) + l.dropLast(6).shuffled().take(if (per.isEmpty()) 16 else 8)) }
+        val fixes = pairs(ctx).filter { it.optString("src") == "quiz" && (chat.isBlank() || it.optString("chat") == chat) }.takeLast(6)
+        val who = prefs(ctx).getString("stil_cn_$chat", "")?.ifBlank { null } ?: chat
         val sys = "Du schreibst eine WhatsApp-Nachricht IM NAMEN des Nutzers, so dass niemand merkt, dass sie nicht von ihm ist. " +
             "Erfinde nichts über ihn (keine Pläne, Orte, Gefühle). Ist unklar, worum es geht: kurz und neutral. " +
-            (prefs(ctx).getString("stil_profil", "")?.takeIf { it.isNotBlank() }?.let { "So schreibt er:\n$it\n" } ?: "") +
-            (if (ex.isNotEmpty()) "Echte Nachrichten von ihm (genau diesen Stil treffen – Länge, Kleinschreibung, Abkürzungen, Emojis):\n" + ex.joinToString("\n") + "\n" else "") +
+            "WICHTIG: Er redet mit jeder Person anders. Sprüche, Beleidigungen oder Insider, die er zu EINER Person gesagt hat (auch in Gruppen), " +
+            "gelten nur für diese Person – nie auf andere übertragen. Richte Ton und Nähe nach den Beispielen an genau diese Person.\n" +
+            (prefs(ctx).getString("stil_profil", "")?.takeIf { it.isNotBlank() }?.let { "So schreibt er allgemein:\n$it\n" } ?: "") +
+            (if (per.isNotEmpty()) "So schreibt er an $who (am wichtigsten):\n" + per.joinToString("\n") + "\n" else "") +
+            (if (ex.isNotEmpty()) "Weitere echte Nachrichten von ihm (Stil: Länge, Kleinschreibung, Abkürzungen, Emojis):\n" + ex.joinToString("\n") + "\n" else "") +
+            (if (fixes.isNotEmpty()) "So hat er selbst geantwortet, als du es falsch hattest (genau so!):\n" + fixes.joinToString("\n") { "${it.optString("q")} -> ${it.optString("a")}" } + "\n" else "") +
             (if (person.isNotBlank()) "Über die Person: $person\n" else "") +
             "Gib NUR den Nachrichtentext zurück."
         val out = Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content", sys))
@@ -131,35 +189,62 @@ object Stil {
     }
 
     // --- Quiz ---------------------------------------------------------------------------------------------------
-    /** {q, a, b, mine: 0|1} – a/b in zufälliger Reihenfolge. */
+    /**
+     * Eine zufällige Stelle aus deinen Chats: wer, was davor war, die Nachricht an dich – und zwei Antworten:
+     * deine echte und eine von Jarvis (zufällige Reihenfolge). Du tippst, welche DU schreiben würdest – oder schreibst eine eigene.
+     * {chat, ctx, q, a, b, mine: 0|1}
+     */
     fun quizNext(ctx: Context): JSONObject {
-        val p = pairs(ctx).filter { it.optString("a").length >= 3 }
-        if (p.size < 5) return JSONObject().put("error", "Ich hab noch zu wenig von dir gelesen. Schreib ein paar Tage normal auf WhatsApp oder lade einen Chat-Export.")
-        val pick = p.shuffled().first()
-        val fake = try { write(ctx, "Antworte auf diese Nachricht: ${pick.optString("q")}") } catch (e: Exception) { "" }
+        val p = pairs(ctx).filter { it.optString("a").length >= 2 && it.optString("src") != "quiz" }
+        if (p.size < 5) return JSONObject().put("error", "Ich hab noch zu wenig von dir gelesen. Öffne ein paar WhatsApp-Chats und scroll hoch (ich lese mit) oder lade einen Chat-Export.")
+        val asked = (prefs(ctx).getString("stil_quiz_seen", "") ?: "").split("|").toSet()
+        val pick = p.filter { (it.optString("chat") + it.optString("a")).hashCode().toString() !in asked }.ifEmpty { p }.shuffled().first()
+        prefs(ctx).edit().putString("stil_quiz_seen", (asked.toList().takeLast(200) + (pick.optString("chat") + pick.optString("a")).hashCode().toString()).joinToString("|")).apply()
+        val ck = pick.optString("chat")
+        val who = prefs(ctx).getString("stil_cn_$ck", "")?.ifBlank { null } ?: ck.replaceFirstChar { it.uppercase() }
+        val person = try { Leute.promptFor(ctx, ck) } catch (_: Exception) { "" }
+        val fake = try { write(ctx, "Neue Nachricht: ${pick.optString("q")}\nSchreib seine Antwort.", pick.optString("ctx"), person, ck, pick.optString("a")) } catch (e: Exception) { "" }
         if (fake.isBlank()) return JSONObject().put("error", "Gerade keine Verbindung zur KI.")
         val mineFirst = Math.random() < 0.5
-        return JSONObject().put("q", pick.optString("q")).put("a", if (mineFirst) pick.optString("a") else fake)
-            .put("b", if (mineFirst) fake else pick.optString("a")).put("mine", if (mineFirst) 0 else 1)
+        return JSONObject().put("chat", who).put("ck", ck).put("ctx", pick.optString("ctx")).put("q", pick.optString("q"))
+            .put("a", if (mineFirst) pick.optString("a") else fake).put("b", if (mineFirst) fake else pick.optString("a"))
+            .put("mine", if (mineFirst) 0 else 1).put("fake", fake)
     }
 
-    /** Antwort im Quiz: richtig = du hast deine echte Nachricht erkannt. */
-    fun quizAnswer(ctx: Context, right: Boolean): JSONObject {
-        val a = arr(ctx, "stil_quiz"); a.put(if (right) 1 else 0)
-        val l = (0 until a.length()).map { a.optInt(it) }.takeLast(20)
-        prefs(ctx).edit().putString("stil_quiz", JSONArray(l).toString()).apply()
-        return quizState(ctx)
+    /**
+     * pick: 0/1 = die gewählte Antwort, own = deine eigene Antwort (statt beiden).
+     * Lernen: eigene Antwort = stärkstes Beispiel; wählst du Jarvis' Antwort, war sie gut genug (zählt als „getäuscht“ und wird Beispiel).
+     */
+    fun quizAnswer(ctx: Context, q: JSONObject, pick: Int, own: String): JSONObject {
+        val ck = q.optString("ck"); val msg = q.optString("q")
+        val res: Int
+        when {
+            own.isNotBlank() -> { res = 2; addAll(ctx, ck, listOf(own), listOf(pair(msg, own, ck, q.optString("ctx"), "quiz"))) }
+            pick == q.optInt("mine") -> res = 1
+            else -> { res = 0; addAll(ctx, ck, listOf(q.optString("fake")), emptyList()) }
+        }
+        val a = arr(ctx, "stil_quiz"); a.put(res)
+        val l = (0 until a.length()).map { a.optInt(it) }.takeLast(30)
+        val xp = prefs(ctx).getInt("stil_xp", 0) + (if (res == 2) 15 else 10)
+        prefs(ctx).edit().putString("stil_quiz", JSONArray(l).toString()).putInt("stil_xp", xp).apply()
+        return quizState(ctx).put("res", res)
     }
 
     fun quizState(ctx: Context): JSONObject {
         val a = arr(ctx, "stil_quiz"); val l = (0 until a.length()).map { a.optInt(it) }
-        val fooled = l.count { it == 0 }
-        val level = if (l.isEmpty()) 0 else (fooled * 100 / l.size * 2).coerceAtMost(100)   // 50 % getäuscht = 100 % (nicht unterscheidbar)
-        val unlocked = l.size >= 10 && fooled * 100 / l.size >= 40
+        val rated = l.filter { it != 2 }
+        val fooled = rated.count { it == 0 }
+        val level = if (rated.isEmpty()) 0 else (fooled * 100 / rated.size * 2).coerceAtMost(100)   // 50 % „würde ich auch schreiben“ = 100 %
+        val unlocked = rated.size >= 10 && fooled * 100 / rated.size >= 40
         if (unlocked && !prefs(ctx).getBoolean("stil_frei", false)) prefs(ctx).edit().putBoolean("stil_frei", true).apply()
+        val xp = prefs(ctx).getInt("stil_xp", 0)
         return JSONObject().put("runden", l.size).put("getaeuscht", fooled).put("level", level).put("frei", prefs(ctx).getBoolean("stil_frei", false))
-            .put("beispiele", samples(ctx).size).put("paare", pairs(ctx).size).put("profil", prefs(ctx).getString("stil_profil", "") ?: "")
+            .put("xp", xp).put("rang", RANKS.lastOrNull { xp >= it.first }?.second ?: RANKS[0].second)
+            .put("beispiele", samples(ctx).size).put("paare", pairs(ctx).size).put("personen", (prefs(ctx).getString("stil_chats_all", "") ?: "").split("|").count { it.isNotBlank() })
+            .put("eigene", l.count { it == 2 }).put("profil", prefs(ctx).getString("stil_profil", "") ?: "").put("mitlesen", mitlesen(ctx))
     }
+
+    private val RANKS = listOf(0 to "Fremder", 50 to "Bekannter", 150 to "Kumpel", 300 to "Schreibt fast wie du", 600 to "Dein Doppelgänger", 1000 to "Nicht mehr zu unterscheiden")
 
     // --- Selbst antworten (ausgewählte Chats) ---------------------------------------------------------------------
     /** "aus" | "bestaetigen" (ein Tipp) | "selbst" (erst nach dem Quiz) */
@@ -167,6 +252,20 @@ object Stil {
     fun setMode(ctx: Context, m: String) {
         val v = if (m == "selbst" && !prefs(ctx).getBoolean("stil_frei", false)) "bestaetigen" else m
         prefs(ctx).edit().putString("stil_modus", v).apply()
+    }
+    /** „Du darfst Tobi selbst antworten“ */
+    fun grant(ctx: Context, name: String): String {
+        val l = autoChats(ctx).filter { Chats.norm(it) != Chats.norm(name) } + name
+        prefs(ctx).edit().putString("stil_chats", l.joinToString(", ")).apply()
+        val frei = prefs(ctx).getBoolean("stil_frei", false)
+        if (mode(ctx) == "aus") setMode(ctx, if (frei) "selbst" else "bestaetigen")
+        return if (mode(ctx) == "selbst") "Okay, ab jetzt antworte ich $name selbst – in deinem Stil. Du siehst jede Antwort als Mitteilung."
+            else "Okay, bei $name schlag ich dir Antworten vor, du tippst nur „Senden“. Ganz selbst geht, sobald du im Stil-Training oft genug meine Antwort nimmst."
+    }
+    fun revoke(ctx: Context, name: String): String {
+        val l = autoChats(ctx).filter { Chats.norm(it) != Chats.norm(name) }
+        prefs(ctx).edit().putString("stil_chats", l.joinToString(", ")).apply()
+        return "Okay, $name antworte ich nicht mehr."
     }
     fun autoChats(ctx: Context): List<String> = (prefs(ctx).getString("stil_chats", "") ?: "").split(",").map { it.trim() }.filter { it.isNotBlank() }
 
@@ -186,7 +285,7 @@ object Stil {
                 val hist = (0 until verlauf.length()).mapNotNull { verlauf.optJSONObject(it) }.takeLast(10)
                     .joinToString("\n") { "${if (it.optString("von") == "ich") "ICH" else it.optString("von")}: ${it.optString("text")}" }
                 val person = try { Leute.promptFor(ctx, ck) } catch (_: Exception) { "" }
-                val d = write(ctx, "Neue Nachricht von $chat: $text\nSchreib seine Antwort.", hist, person)
+                val d = write(ctx, "Neue Nachricht von $chat: $text\nSchreib seine Antwort.", hist, person, ck)
                 if (d.isBlank()) return@Thread
                 if (m == "selbst") {
                     if (Chats.reply(ctx, ck, chat, d)) note(ctx, ck, "Hab $chat geantwortet", d, false)
@@ -207,7 +306,7 @@ object Stil {
     }
 
     // --- Geburtstag und Treffen ---------------------------------------------------------------------------------
-    private fun number(ctx: Context, name: String): String? = try {
+    fun number(ctx: Context, name: String): String? = try {
         ctx.contentResolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
             "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?", arrayOf("%$name%"), null)?.use { c ->
             if (c.moveToFirst()) c.getString(0) else null
@@ -222,7 +321,7 @@ object Stil {
     }
 
     fun birthday(ctx: Context, name: String) {
-        val d = try { write(ctx, "Schreib $name eine kurze Geburtstagsnachricht.", person = try { Leute.promptFor(ctx, Chats.norm(name)) } catch (_: Exception) { "" }) } catch (_: Exception) { "" }
+        val d = try { write(ctx, "Schreib $name eine kurze Geburtstagsnachricht.", person = try { Leute.promptFor(ctx, Chats.norm(name)) } catch (_: Exception) { "" }, chat = Chats.norm(name)) } catch (_: Exception) { "" }
         if (d.isBlank()) return
         noteOpen(ctx, "gb_$name", "$name hat Geburtstag", d, openIntent(ctx, name, d))
     }
@@ -246,7 +345,7 @@ object Stil {
         }
         if (free.isEmpty()) return "In den nächsten Tagen ist dein Kalender ziemlich voll."
         val d = try { write(ctx, "Frag $name, ob er/sie Lust hat sich zu treffen. Schlag diese Zeiten vor: ${free.take(3).joinToString(", ")}.",
-            person = try { Leute.promptFor(ctx, Chats.norm(name)) } catch (_: Exception) { "" }) } catch (_: Exception) { "" }
+            person = try { Leute.promptFor(ctx, Chats.norm(name)) } catch (_: Exception) { "" }, chat = Chats.norm(name)) } catch (_: Exception) { "" }
         if (d.isBlank()) return "Gerade komme ich nicht an die KI."
         noteOpen(ctx, "treffen_$name", "Treffen mit $name", d, openIntent(ctx, name, d))
         return "Du hast ${free.take(3).joinToString(", ")} frei. Vorschlag für $name: „$d“ – tipp auf die Mitteilung, dann ist es in WhatsApp, du musst nur noch senden. Wenn ihr euch einigt, trag ich's ein."

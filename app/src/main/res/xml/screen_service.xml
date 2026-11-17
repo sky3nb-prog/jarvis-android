@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Jarvis darf auf Kommando ("Schau mal hier") ein Bildschirmfoto machen. Sonst merkt er sich nur den Zeitpunkt der letzten Berührung (Schlaf). -->
+<!-- Jarvis: Bildschirmfoto auf Kommando, Zeitpunkt der letzten Berührung (Schlaf), in WhatsApp: Schreibstil mitlesen und – nur wenn Jarvis selbst etwas verschickt – „Senden“ drücken. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeViewClicked|typeViewLongClicked|typeViewScrolled|typeViewTextChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewClicked|typeViewLongClicked|typeViewScrolled|typeViewTextChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:notificationTimeout="5000"
-    android:canRetrieveWindowContent="false"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
+    android:notificationTimeout="500"
+    android:canRetrieveWindowContent="true"
     android:canTakeScreenshot="true"
     android:description="@string/screen_desc" />
