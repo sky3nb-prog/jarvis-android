@@ -224,17 +224,47 @@ def swap_main():
                      creationflags=0x00000008 | 0x00000200)   # eigenständig weiterlaufen
 
 
+IDLE_AUTO = 15 * 60   # so lange niemand an Maus/Tastatur: Update ohne Nachfrage einspielen
+
+
+def _auto_install() -> bool:
+    """Update fertig, aber keiner am PC (z. B. du bist weg): selbst neu starten und dem Handy Bescheid geben."""
+    if not _state["ready"]:
+        return False
+    try:
+        import pc_nachrichten
+        if pc_nachrichten._idle_seconds() < IDLE_AUTO or not pc_nachrichten.ON_QUIT:
+            return False
+        try:
+            import pc_phone
+            pc_phone.push("PC-Update", "Du warst nicht am PC – ich spiele das Update jetzt selbst ein und bin in einer Minute wieder da.", tags="arrows_counterclockwise")
+        except Exception as e:
+            print("Update-Meldung ans Handy:", e)
+        print("Update: keiner am PC – starte selbst neu.")
+        restart(pc_nachrichten.ON_QUIT)
+        return True
+    except Exception as e:
+        print("Auto-Update:", e)
+        return False
+
+
 def start(ask):
-    """Hintergrund-Schleife: alle 30 Minuten nachsehen (erstes Mal nach 2 Minuten)."""
+    """Hintergrund-Schleife: alle 30 Minuten nachsehen (erstes Mal nach 2 Minuten). Ist ein Update fertig und
+    keiner am PC, spielt er es selbst ein (sonst fragt er wie bisher)."""
     def loop():
         time.sleep(120)
+        last = 0.0
         while True:
             try:
-                r = check_now(ask)
-                if "Update" in r:
-                    print(r)
+                if _auto_install():
+                    return
+                if time.time() - last >= CHECK_EVERY:
+                    last = time.time()
+                    r = check_now(ask)
+                    if "Update" in r:
+                        print(r)
             except Exception as e:
                 print("Update-Prüfung:", e)
-            time.sleep(CHECK_EVERY)
+            time.sleep(60)
     if possible():
         threading.Thread(target=loop, daemon=True).start()
