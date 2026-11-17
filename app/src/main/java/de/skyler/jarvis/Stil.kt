@@ -341,15 +341,36 @@ object Stil {
     private val seenIn = LinkedHashSet<String>()
 
     /** Aus Chats.onPosted (Einzelchat, neue Nachricht von jemand anderem). */
+    // --- „Übernimm den Chat mit Tobi“: Jarvis führt das Gespräch selbst (bis du „ich übernehme wieder“ sagst, höchstens 3 Stunden)
+    private fun takeoverKey(ck: String) = "stil_ueber_$ck"
+    fun takeover(ctx: Context, name: String): String {
+        val ck = Chats.norm(name); if (ck.isBlank()) return "Welchen Chat soll ich übernehmen?"
+        val l = (prefs(ctx).getString("stil_ueber_alle", "") ?: "").split("|").filter { it.isNotBlank() }.toMutableSet().apply { add(ck) }
+        prefs(ctx).edit().putLong(takeoverKey(ck), System.currentTimeMillis() + 3 * 3600_000L).putString("stil_ueber_alle", l.joinToString("|"))
+            .putString("stil_cn_$ck", prefs(ctx).getString("stil_cn_$ck", "")?.ifBlank { null } ?: name).apply()
+        return "Okay, ich übernehme den Chat mit $name und antworte selbst in deinem Stil – jede Antwort siehst du als Mitteilung. Sag „ich übernehme wieder“, dann hör ich auf."
+    }
+    fun release(ctx: Context, name: String = ""): String {
+        val all = (prefs(ctx).getString("stil_ueber_alle", "") ?: "").split("|").filter { it.isNotBlank() }
+        val ck = Chats.norm(name)
+        val off = if (ck.isBlank()) all else all.filter { it == ck || it.contains(ck) || ck.contains(it) }
+        if (off.isEmpty()) return "Ich hab gerade keinen Chat übernommen."
+        val e = prefs(ctx).edit(); off.forEach { e.remove(takeoverKey(it)) }
+        e.putString("stil_ueber_alle", (all - off.toSet()).joinToString("|")).apply()
+        return "Okay, du übernimmst wieder."
+    }
+    fun takenOver(ctx: Context, ck: String) = prefs(ctx).getLong(takeoverKey(ck), 0L) > System.currentTimeMillis()
+
     fun onIncoming(ctx: Context, chat: String, text: String, verlauf: JSONArray) {
-        val m = mode(ctx); if (m == "aus") return
         val ck = Chats.norm(chat)
+        val over = takenOver(ctx, ck) || (Chats.isTest(ctx, chat) && (prefs(ctx).getString("stil_ueber_alle", "") ?: "").split("|").any { Chats.isTest(ctx, it) && takenOver(ctx, it) })
+        val m = if (over) "selbst" else mode(ctx); if (m == "aus") return
         synchronized(seenIn) { if (!seenIn.add("$ck|$text")) return; while (seenIn.size > 40) seenIn.remove(seenIn.first()) }
-        if (autoChats(ctx).none { Chats.norm(it) == ck || (Chats.norm(it).length >= 3 && ck.contains(Chats.norm(it))) }) return
+        if (!over && autoChats(ctx).none { Chats.norm(it) == ck || (Chats.norm(it).length >= 3 && ck.contains(Chats.norm(it))) }) return
         Thread({
             try {
-                Thread.sleep(45_000)   // kurz warten: antwortest du selbst, lassen wir's
-                if (prefs(ctx).getLong("read_$ck", 0) > System.currentTimeMillis() - 50_000L) return@Thread
+                Thread.sleep(if (over) 6_000 else 45_000)   // kurz warten: antwortest du selbst, lassen wir's
+                if (prefs(ctx).getLong("read_$ck", 0) > System.currentTimeMillis() - (if (over) 8_000L else 50_000L)) return@Thread
                 val hist = (0 until verlauf.length()).mapNotNull { verlauf.optJSONObject(it) }.takeLast(10)
                     .joinToString("\n") { "${if (it.optString("von") == "ich") "ICH" else it.optString("von")}: ${it.optString("text")}" }
                 val person = try { Leute.promptFor(ctx, ck) } catch (_: Exception) { "" }

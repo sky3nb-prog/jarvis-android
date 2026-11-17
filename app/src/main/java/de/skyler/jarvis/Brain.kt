@@ -154,6 +154,13 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             val name = m.groupValues[1].replaceFirstChar { it.uppercase() }
             return try { Stil.meet(ctx, name, m.groupValues[2]) } catch (e: Exception) { "Das ging gerade nicht (${e.message})." }
         }
+        // „Übernimm den Chat mit Tobi“ / „ich übernehme wieder“
+        Regex("^(?:übernimm|übernehme du|übernimmst du)\\s+(?:mal\\s+|jetzt\\s+)?(?:den chat (?:mit|von)\\s+|das gespräch mit\\s+|für mich\\s+)?([\\p{L}-]+)$").find(lowW)?.let { m ->
+            if (m.groupValues[1] !in setOf("das", "den", "es", "du")) return Stil.takeover(ctx, m.groupValues[1].replaceFirstChar { it.uppercase() })
+        }
+        Regex("^(?:ich übernehm\\w*|hör auf zu antworten|lass mich wieder)(?:\\s+(?:wieder|selbst|jetzt))*(?:\\s+(?:bei|mit)\\s+([\\p{L}-]+))?$").find(lowW)?.let { m ->
+            return Stil.release(ctx, m.groupValues[1])
+        }
         // WhatsApp-Anruf läuft: „drück weg“
         if (Butler.waCall != null && lowW.split(" ").size <= 6 && Regex("\\b(drück\\w* (ihn |sie )?weg|wegdrück\\w*|ablehn\\w*|leg auf|auflegen|kann (jetzt |gerade )?nicht)\\b").containsMatchIn(lowW))
             return Butler.waDecline(ctx)
