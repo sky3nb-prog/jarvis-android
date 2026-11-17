@@ -41,7 +41,7 @@ def _same(names):
 
 # Neue Einstellungen (bekommen einen kleinen Punkt, bis du den Bereich einmal angeschaut hast). Bei jedem Update ergänzen.
 # Dazu kommen automatisch alle Einstellungen, die ein Update neu mitbringt (pc_settings: auto_new).
-NEW = ["piper_voice", "sticker_wahl", "schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
+NEW = ["discord_server", "piper_voice","sticker_wahl", "schulkal_pc", "ideen_pc", "stundenplan_pc", "voice_engine", "boot_animation", "msg_ask_first", "kommentare", "lieblingskanaele"]
 _shown = None   # Kennungen, die es in den Einstellungen wirklich als Feld gibt
 
 
@@ -167,7 +167,8 @@ def schema(s: dict) -> dict:
                  sw("discord_hoerbar", "Jarvis in Discord hörbar", "Spielt seine Stimme zusätzlich auf dein Discord-Mikro – Freunde hören ihn, und er ist in Discord-Clips mit drauf."),
                  sel("discord_device", "Zweites Gerät", [["– aus –", ""]] + outs[1:] if outs else [["– aus –", ""]],
                      "Ein Ausgang, der in dein Discord-Mikro geht: bei Wave Link z. B. der Kanal, der im Stream-/Chat-Mix landet, sonst ein virtuelles Kabel (VB-CABLE: hier „CABLE Input“, in Discord als Mikro „CABLE Output“)."),
-                 note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent.")),
+                 note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent."),
+                 tx("discord_server", "Discord-Server für „Wer ist online?“", "Server-ID: in Discord Einstellungen → Erweitert → Entwicklermodus an, dann Rechtsklick auf den Server → „Server-ID kopieren“. Und in den Server-Einstellungen → Widget → „Server-Widget aktivieren“. Kein Bot, keine Anmeldung.", "z. B. 123456789012345678")),
             card("ElevenLabs",
                  sec("eleven_key", "ElevenLabs-Schlüssel", "elevenlabs.io → Entwickler → API-Schlüssel. Wird verschlüsselt gespeichert."),
                  sel("eleven_voice", "Stimme", _opts(voices)),
@@ -344,6 +345,7 @@ def schema(s: dict) -> dict:
         "gemini_api_key": s.get("gemini_api_key", "") or "",
         "meine_orte": s.get("meine_orte", "") or "", "meine_wege": s.get("meine_wege", "") or "", "route_an": s.get("route_an", "") or "",
         "wichtige_leute": s.get("wichtige_leute", "") or "", "absage_text": s.get("absage_text", "") or "",
+        "discord_server": s.get("discord_server", "") or "",
     }
     for k, n in LISTS.items():
         values[k] = ", ".join(s.get(k) or (d.get(k) or []))
@@ -375,7 +377,8 @@ def save(s: dict, v: dict) -> dict:
             new[k] = num(k)
     for k in ("persona", "language", "voice_engine", "piper_voice", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
-              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele"):
+              "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele",
+              "discord_server"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device", "discord_device"):

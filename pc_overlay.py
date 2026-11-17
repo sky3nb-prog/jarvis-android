@@ -2051,7 +2051,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-17 17:15"
+VERSION = "2026-11-17 18:40"
 
 
 def main():
@@ -2218,6 +2218,11 @@ def main():
         threading.Timer(10.0, _new_features).start()
     pc_update.start(lambda: pc_nachrichten.incoming({"kind": "offer", "action": "update", "title": "Update",
                                                      "question": "Ein Update für mich ist fertig. Soll ich kurz neu starten?"}))
+    try:
+        import pc_waechter
+        pc_waechter.start()   # Weg-Modus: hängende Programme / voller Speicher
+    except Exception as e:
+        print("Weg-Wächter:", e)
     pc_media.start(stop)  # mitschreiben, was du hörst und schaust (für deine Interessen)
     threading.Thread(target=assistant_runner, args=(ui, stop, shutdown), daemon=True).start()
     try:

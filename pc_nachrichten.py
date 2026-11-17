@@ -332,7 +332,7 @@ def stil_lernen(text: str):
         import json
         a = [x for x in _stil_load() if x != t] + [t]
         with open(_stil_file(), "w", encoding="utf-8") as f:
-            json.dump(a[-40:], f, ensure_ascii=False)
+            json.dump(a[-300:], f, ensure_ascii=False)
     except Exception:
         pass
 
@@ -347,7 +347,9 @@ def _draft(m: dict, wish: str = "") -> str:
     for v in verlauf:   # was er selbst geschrieben hat, ist sein echter Stil
         if v.get("von") == "ich" and not str(v.get("text", "")).startswith("("):
             stil_lernen(str(v.get("text", "")))
-    stil = _stil_load()[-12:]
+    import random
+    _all = _stil_load()
+    stil = _all[-8:] + random.sample(_all[:-8], min(12, max(0, len(_all) - 8)))   # neueste + gemischte ältere
     sys_ = ("Du schreibst für den Nutzer (Skyler) eine kurze WhatsApp-Antwort in seinem Namen, so dass niemand merkt, dass "
             "sie nicht von ihm ist. Ich-Form, locker. Lies den bisherigen Verlauf: die Antwort muss zum Gespräch passen "
             "(worauf bezieht sich die neue Nachricht? auf seine letzte Nachricht oder Sprachnachricht?). "

@@ -264,6 +264,14 @@ def process(body: str, c: str = None):
             except Exception as e:
                 print(f"Nachricht vom Handy: {e}")
         return
+    if msg and msg.get("from") == "phone" and msg.get("kind") == "stil":   # Schreibstil-Beispiele vom Handy
+        try:
+            import pc_nachrichten
+            for t in (msg.get("texte") or [])[-60:]:
+                pc_nachrichten.stil_lernen(str(t))
+        except Exception as e:
+            print(f"Schreibstil vom Handy: {e}")
+        return
     if msg and msg.get("from") == "phone" and msg.get("kind") == "wa_read":
         try:
             import pc_nachrichten

@@ -564,6 +564,15 @@ def handle_fixed(text: str):
         _NIGHT.cancel()
         return "Okay, der PC bleibt an."
 
+    # PC aufräumen, Discord „wer ist online“, Warenkorb, „wo hab ich … hingelegt“
+    try:
+        import pc_extras
+        r = pc_extras.handle(t)
+        if r:
+            return r
+    except Exception as e:
+        print("Extras:", e)
+
     # Weg-Modus: „Jarvis, ich bin jetzt weg“ – PC bleibt an und hält sich selbst aktuell
     if len(low.split()) <= 8 and re.search(r"\bich bin (jetzt |mal |kurz |dann )*(weg|unterwegs|raus|los)\b|\bich (geh|gehe|muss) (jetzt |mal )*(los|weg|raus)\b|\bweg-?modus\b", low) \
             and not re.search(r"\baus\b|herunter|runter", low):
