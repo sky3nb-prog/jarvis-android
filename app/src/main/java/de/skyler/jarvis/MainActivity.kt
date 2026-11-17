@@ -718,6 +718,15 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun updGet(): String = JSONObject().put("auto", Updater.auto(this@MainActivity)).put("can", Updater.canInstall(this@MainActivity))
+            .put("pending", Updater.pending(this@MainActivity)).put("version", try { packageManager.getPackageInfo(packageName, 0).versionName } catch (_: Exception) { "" }).toString()
+        @JavascriptInterface
+        fun updSet(on: Boolean) = Updater.setAuto(this@MainActivity, on)
+        @JavascriptInterface
+        fun updAllow() { runOnUiThread { try { startActivity(Updater.allowIntent(this@MainActivity)) } catch (_: Exception) {} } }
+        @JavascriptInterface
+        fun updNow() { Alltag.updateNow(this@MainActivity) }
+        @JavascriptInterface
         fun sysTest(id: String): String {   // Test im Hintergrund – Ergebnis kommt als Event „systest“
             Thread({ val r = try { SysCheck.test(this@MainActivity, id) } catch (e: Exception) { "Test ging nicht." }
                 send("systest", JSONObject().put("id", id).put("text", r)) }, "jarvis-systest").start()

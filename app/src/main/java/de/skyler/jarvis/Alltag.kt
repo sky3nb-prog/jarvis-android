@@ -269,9 +269,10 @@ object Alltag {
 
     /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
     private const val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/neueste/Jarvis.apk"
+    fun updateNow(ctx: Context) { val s = state(ctx); s.put("upd_check", 0L); prefs(ctx).edit().remove("upd_told").apply(); appUpdate(ctx, s); save(ctx, s) }
     private fun appUpdate(ctx: Context, s: JSONObject) {
         val now = System.currentTimeMillis()
-        if (now - s.optLong("upd_check") < 3 * 3_600_000L) return
+        if (now - s.optLong("upd_check") < (if (Updater.pending(ctx) > 0) 3_600_000L else 3 * 3_600_000L)) return
         s.put("upd_check", now)
         Thread({
             try {
@@ -281,9 +282,10 @@ object Alltag {
                 val pi = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
                 val mine = if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode else @Suppress("DEPRECATION") pi.versionCode.toLong()
                 val p = prefs(ctx)
+                if (build > mine && Updater.found(ctx, build)) return@Thread   // installiert selbst, sobald der Bildschirm aus ist
                 if (build > mine && p.getLong("upd_told", 0) != build) {
                     p.edit().putLong("upd_told", build).apply()
-                    notify(ctx, 360, "Neue Jarvis-Version da", "Antippen zum Herunterladen, dann installieren (Build $build).", url = APK)
+                    notify(ctx, 360, "Neue Jarvis-Version da", "Antippen zum Herunterladen (Build $build). Tipp: Einstellungen → System → Updates – dann installiere ich selbst.", url = APK)
                 }
             } catch (e: Exception) { Log.w(TAG, "update: $e") }
         }, "jarvis-upd").start()

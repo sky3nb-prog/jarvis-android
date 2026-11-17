@@ -221,5 +221,6 @@ class RemindReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         try { Remind.reschedule(ctx) } catch (_: Exception) {}
+        if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) try { Updater.replaced(ctx) } catch (_: Exception) {}
     }
 }

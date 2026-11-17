@@ -729,6 +729,17 @@
     if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "systest") { const o = $("syr-" + (data && data.id)); if (o) o.textContent = (data && data.text) || "–"; return; } return ps && ps.call(window.jarvis, type, data); }; }
   document.querySelector('[data-p="sys"]').addEventListener("click", () => sysShow(false));
   $("sys-again").addEventListener("click", () => sysShow(true));
+  function updShow() {
+    try { const u = JSON.parse(A.updGet());
+      sw("upd-auto", u.auto); $("upd-allowrow").style.display = u.can ? "none" : "";
+      $("upd-state").textContent = `Version ${u.version}` + (u.pending ? ` · Build ${u.pending} ist geladen, kommt beim nächsten Bildschirm-aus` : "") + (u.auto && !u.can ? " · Erlaubnis fehlt noch" : "");
+    } catch (e) {}
+  }
+  document.querySelector('[data-p="sys"]').addEventListener("click", () => setTimeout(updShow, 60));
+  $("upd-auto").addEventListener("click", () => setTimeout(() => { try { A.updSet(sw("upd-auto")); } catch (e) {} updShow(); }, 0));
+  $("upd-allow").addEventListener("click", () => { try { A.updAllow(); } catch (e) {} setTimeout(updShow, 4000); });
+  $("upd-now").addEventListener("click", () => { try { A.updNow(); } catch (e) {} toast("Schaue nach …"); setTimeout(updShow, 8000); setTimeout(updShow, 30000); });
+  window.addEventListener("focus", updShow);
   const closeSettings = () => { $("settings").classList.remove("on"); newDots(); if (window.show) try { show("fokus"); } catch (e) {} };
   $("tst-skill").addEventListener("click", () => { closeSettings(); setTimeout(() => window.JSkill && JSkill.test(), 400); });
   $("tst-rem").addEventListener("click", () => { if (A.remindTest) A.remindTest(); toast("Erinnerung kommt in 5 Sekunden."); });
