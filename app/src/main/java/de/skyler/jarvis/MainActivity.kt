@@ -544,7 +544,7 @@ class MainActivity : ComponentActivity() {
         fun meldenTest() { Thread({ try { Alltag.checkInTest(this@MainActivity) } catch (_: Exception) {} }, "jarvis-meldetest").start() }
 
         @JavascriptInterface
-        fun watchTest() { Alltag.watchTest(this@MainActivity) }
+        fun watchTest() { Thread({ Thread.sleep(10_000); Alltag.watchTest(this@MainActivity) }, "jarvis-uhrtest").start() }   // 10 s Zeit zum Sperren (Uhr zeigt nur bei gesperrtem Handy)
 
         @JavascriptInterface
         fun getMeldenOft(): Int = prefs.getInt("melden_oft", 1)
