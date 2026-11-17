@@ -168,11 +168,6 @@ def schema(s: dict) -> dict:
                  sel("discord_device", "Zweites Gerät", [["– aus –", ""]] + outs[1:] if outs else [["– aus –", ""]],
                      "Ein Ausgang, der in dein Discord-Mikro geht: bei Wave Link z. B. der Kanal, der im Stream-/Chat-Mix landet, sonst ein virtuelles Kabel (VB-CABLE: hier „CABLE Input“, in Discord als Mikro „CABLE Output“)."),
                  note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent."),
-                 btn("stil_import", "WhatsApp-Chat-Export wählen (ZIP direkt, nicht entpacken)"),
-                 btn("stil_list", "Welche Chats sind schon drin?"),
-                 tx("stil_chats", "Chats, denen Jarvis selbst antworten darf", "Namen wie in WhatsApp, mit Komma. Gilt auch am Handy (Einstellungen → Leute → Schreibstil). Ob er erst fragt oder selbst schreibt, stellst du am Handy ein.", "z. B. Tobi, Marius"),
-                 tx("test_chat", "Test-Chat (z. B. deine Zweitnummer)", "Nachrichten aus diesem Chat liest Jarvis immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt. Zum Ausprobieren von „antworte du“ und „als Sprachnachricht“.", "Name wie in WhatsApp"),
-                 note("Schreibstil lernen: in WhatsApp einen Chat öffnen → ⋮ → Mehr → „Chat exportieren“. „Mit Medien“ = er hört auch die Sprachnachrichten an (bis 120 pro Chat), „Ohne Medien“ geht schneller. Die ZIP hier wählen, mehrere auf einmal gehen. Er achtet auf die Zeiten: nur was innerhalb von 6 Stunden geantwortet wurde, zählt als Antwort. Am Handy lernt er außerdem mit jeder Nachricht und beim Durchscrollen."),
                  tx("discord_server", "Discord-Server für „Wer ist online?“", "Server-ID: in Discord Einstellungen → Erweitert → Entwicklermodus an, dann Rechtsklick auf den Server → „Server-ID kopieren“. Und in den Server-Einstellungen → Widget → „Server-Widget aktivieren“. Kein Bot, keine Anmeldung.", "z. B. 123456789012345678")),
             card("ElevenLabs",
                  sec("eleven_key", "ElevenLabs-Schlüssel", "elevenlabs.io → Entwickler → API-Schlüssel. Wird verschlüsselt gespeichert."),
@@ -215,6 +210,16 @@ def schema(s: dict) -> dict:
                  note("Fragst du am PC, öffnet sich die Route am PC und auf dem Handy, und der PC schickt den Link per WhatsApp.")),
         ]},
         {"id": "leute", "n": "Leute", "i": "☺", "items": [
+            card("Schreibstil & Antworten",
+                 note("Wie am Handy unter Leute → Schreibstil – alles hier gilt auf beiden Geräten."),
+                 sel("stil_modus", "Darf Jarvis in deinem Namen antworten?", [["Aus", "aus"], ["Vorschlag – du sagst/tippst ja", "bestaetigen"], ["Selbst schreiben (erst nach dem Stil-Training am Handy)", "selbst"]],
+                     "Gilt nur für die Chats darunter."),
+                 tx("stil_chats", "Für diese Chats", "Namen wie in WhatsApp, mit Komma. Per Sprache: „Du darfst Tobi selbst antworten“ / „Antworte Tobi nicht mehr“.", "z. B. Tobi, Marius"),
+                 tx("wa_name", "Dein Name in WhatsApp-Exporten", "So stehst du in exportierten Chats (z. B. „Sky“). Leer = ich erkenne es selbst – bei Gruppen brauch ich ihn.", "z. B. Sky"),
+                 tx("test_chat", "Test-Chat (z. B. deine Zweitnummer)", "Nachrichten aus diesem Chat liest Jarvis immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt. Kleine Tippfehler im Kontaktnamen sind egal.", "Name wie in WhatsApp"),
+                 btn("stil_import", "WhatsApp-Chat-Export wählen (ZIP direkt, nicht entpacken)"),
+                 btn("stil_list", "Welche Chats sind schon drin?"),
+                 note("Export: in WhatsApp Chat öffnen → ⋮ → Mehr → „Chat exportieren“. „Mit Medien“ = er hört auch die Sprachnachrichten an (bis 120 pro Chat). Mehrere ZIPs auf einmal gehen. Nur was innerhalb von 6 Stunden geantwortet wurde, zählt als Antwort. Am Handy lernt er außerdem mit jeder Nachricht und beim Durchscrollen.")),
             card("Wichtige Leute",
                  tx("wichtige_leute", "Namen wie in WhatsApp", "Mit Komma, z. B. Mama, Saya, Opa. Gilt auch am Handy."),
                  note("Schreiben sie dir, sagt Jarvis es hier an – auch mitten im Spiel. Sprachnachrichten: „vorlesen“ oder „abspielen“. "
@@ -351,6 +356,7 @@ def schema(s: dict) -> dict:
         "meine_orte": s.get("meine_orte", "") or "", "meine_wege": s.get("meine_wege", "") or "", "route_an": s.get("route_an", "") or "",
         "wichtige_leute": s.get("wichtige_leute", "") or "", "absage_text": s.get("absage_text", "") or "",
         "discord_server": s.get("discord_server", "") or "", "stil_chats": s.get("stil_chats", "") or "", "test_chat": s.get("test_chat", "") or "",
+        "stil_modus": s.get("stil_modus", "aus") or "aus", "wa_name": s.get("wa_name", "") or "",
     }
     for k, n in LISTS.items():
         values[k] = ", ".join(s.get(k) or (d.get(k) or []))
@@ -383,7 +389,7 @@ def save(s: dict, v: dict) -> dict:
     for k in ("persona", "language", "voice_engine", "piper_voice", "eleven_model", "edge_voice", "windows_voice", "hud_mode", "hud_layout",
               "hud_style", "sphere_color", "overlay_style", "orb_corner", "accent", "home_address", "address_as",
               "calendar_url", "gemini_api_key", "meine_orte", "meine_wege", "route_an", "wichtige_leute", "absage_text", "ets2_quicksave", "lieblingskanaele",
-              "discord_server", "stil_chats", "test_chat"):
+              "discord_server", "stil_chats", "test_chat", "stil_modus", "wa_name"):
         if k in v:
             new[k] = text(k)
     for k in ("input_device", "output_device", "discord_device"):
@@ -549,7 +555,7 @@ def _ordnen(tabs, card):
     return [
         T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),
         T("wege", A, "Zuhause & Orte", "🗺️", [card("Zuhause", *ort)] + pick("Meine Orte", "Meine Wege", "Routen schicken")),
-        T("leute", A, "Leute & Anrufe", "👥", pick("Wichtige Leute") + [card("Nachrichten", *nachr)] + pick("Sticker", "Anruf-Butler")),
+        T("leute", A, "Leute & Anrufe", "👥", pick("Schreibstil & Antworten", "Wichtige Leute") + [card("Nachrichten", *nachr)] + pick("Sticker", "Anruf-Butler")),
         T("allg", J, "Allgemein", "⚙️", pick("Über dich") + [ki] + pick("Kalender", "Meine Ideen", "Start", "Zum Ausfüllen von Formularen")),
         T("hoer", J, "Zuhören & Stimme", "🎙️", pick("Aktivierung", "Sprechen", "ElevenLabs", "Ersatzstimmen", "Wecksound")),
         T("anz", J, "Anzeige", "◐", pick("HUD", "Beim Weckwort") + [infos] + pick("Schnellstart-Knöpfe")),

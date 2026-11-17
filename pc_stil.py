@@ -74,6 +74,13 @@ def _me_file():
 
 def _me() -> str:
     try:
+        import pc_settings
+        n = str(pc_settings.load().get("wa_name") or "").strip()
+        if n:
+            return n
+    except Exception:
+        pass
+    try:
         with open(_me_file(), encoding="utf-8") as f:
             return json.load(f).get("me", "")
     except Exception:
@@ -128,13 +135,18 @@ def parse(path: str):
     for mm in msgs:
         senders[mm[0]] = senders.get(mm[0], 0) + 1
     me = _me()
+    if me and me not in senders:   # Name aus den Einstellungen etwas anders geschrieben?
+        me = next((x for x in senders if x.lower().startswith(me.lower()) or me.lower().startswith(x.lower())), me)
+    if (not me or me not in senders) and GUESS.get("me") in senders:
+        me = GUESS["me"]
     if not me or me not in senders:
         others = [s for s in senders if partner and s.lower() != partner.lower()]
         if partner and len(senders) == 2 and others:
             me = others[0]
             _set_me(me)
         else:
-            return "Bei Gruppen weiß ich noch nicht, welcher Name du bist – lade zuerst einen Einzelchat."
+            return ("Bei dieser Gruppe weiß ich nicht, welcher Name du bist. Trag in den Einstellungen unter Leute → Schreibstil „Dein Name in WhatsApp-Exporten“ ein "
+                    "(so, wie du in der Datei stehst) – oder wähl zusammen mit der Gruppe einen Einzelchat aus.")
     chat = partner or next((s for s in senders if s != me), base)
     # Sprachnachrichten (nur bei „Mit Medien“-Export): anhören und als Text einsetzen
     nv = 0
@@ -165,9 +177,30 @@ def parse(path: str):
     return chat, mine, pairs
 
 
+GUESS = {"me": ""}
+
+
+def _senders(path: str) -> set:
+    try:
+        _, text, _ = _read(path)
+        return {m.group(3).strip() for m in (LINE.match(INVIS.sub("", l)) for l in text.splitlines()) if m}
+    except Exception:
+        return set()
+
+
 def import_files(paths) -> str:
     import pc_handy
     import pc_nachrichten
+    # Wer bist du? Der Name, der in ALLEN gewählten Chats vorkommt (bei 2+ Dateien eindeutig)
+    if len(paths) >= 2 and not _me():
+        common = None
+        for p in paths:
+            s = _senders(p)
+            common = s if common is None else (common & s)
+        if common and len(common) == 1:
+            GUESS["me"] = next(iter(common)); _set_me(GUESS["me"])
+    # Einzelchats zuerst – daraus lernt er deinen Namen für die Gruppen
+    paths = sorted(paths, key=lambda p: 0 if NAME.search(os.path.splitext(os.path.basename(p))[0]) else 1)
     done, errs, sent_ok = 0, [], True
     for p in paths:
         try:
