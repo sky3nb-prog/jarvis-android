@@ -42,11 +42,11 @@ object WaSend {
     }
 
     /** „Schick Tobi eine Sprachnachricht: ich komm 10 Minuten später“ */
-    fun voice(ctx: Context, name: String, wish: String): String {
+    fun voice(ctx: Context, name: String, wish: String, raw: Boolean = false): String {
         if (!PiperPhone.active(ctx)) return "Dafür brauch ich meine Stimme: Einstellungen → Zuhören & Stimme → „Jarvis-Stimme“ wählen und einmal laden."
         val j = jid(ctx, name) ?: return "Ich finde $name nicht in deinen Kontakten."
         val key = prefs(ctx).getString("groq_key", "") ?: ""
-        val spoken = try {
+        val spoken = if (raw) wish.trim() else try {
             if (key.isBlank()) "Hey $name, hier ist Jarvis. Ich soll dir ausrichten: $wish"
             else Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content",
                 "Du bist Jarvis, der KI-Assistent des Nutzers, und sprichst eine kurze WhatsApp-Sprachnachricht an $name. " +

@@ -141,6 +141,7 @@ object PhoneCtl {
                 Schule.setAll(ctx, a); Bus.emit("schule", JSONObject()); "Arbeiten und Hausaufgaben sind auf dem Handy."
             }
             "ideen_get" -> Ideen.all(ctx).toString()
+            "wa_voice" -> WaSend.voice(ctx, c.optString("name"), c.optString("text"), raw = true)   // PC: „antworte du, als Sprachnachricht“
             "stil_paket" -> Stil.fromPc(ctx, c)   // Chat-Export, am PC eingelesen
             "stil_chats" -> { Stil.setChats(ctx, c.optString("chats")); "Freigegebene Chats sind auf dem Handy." }
             "stil_get" -> Stil.quizState(ctx).put("chats", Stil.autoChats(ctx).joinToString(", ")).put("modus", Stil.mode(ctx)).toString()

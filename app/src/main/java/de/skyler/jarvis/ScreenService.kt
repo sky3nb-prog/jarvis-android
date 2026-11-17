@@ -54,6 +54,8 @@ class ScreenService : AccessibilityService() {
     }
 
     private var lastRead = 0L
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val late = Runnable { try { rootInActiveWindow?.packageName?.toString()?.takeIf { it in WA }?.let { readChat(it) } } catch (_: Exception) {} }
 
     override fun onServiceConnected() { inst = this }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -66,8 +68,11 @@ class ScreenService : AccessibilityService() {
         if (System.currentTimeMillis() < sendUntil) try { if (pressSend()) sendUntil = 0L } catch (_: Exception) {}
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED || event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            // Beim schnellen Hochscrollen jede neue Bildschirmseite mitnehmen: höchstens alle 0,4 s lesen,
+            // und nach dem letzten Scrollen noch einmal (falls er mitten im Wischen stehen blieb)
             val now = System.currentTimeMillis()
-            if (now - lastRead < 2500) return
+            handler.removeCallbacks(late); handler.postDelayed(late, 600)
+            if (now - lastRead < 400) return
             lastRead = now
             try { readChat(pkg) } catch (_: Exception) {}
         }

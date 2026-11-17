@@ -89,8 +89,21 @@ object Stil {
     }
 
     /** Aus der Bedienungshilfe: was gerade im offenen WhatsApp-Chat auf dem Bildschirm steht (auch beim Hochscrollen). */
+    private val bg = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val screenSeen = LinkedHashSet<String>()
+
     fun fromScreen(ctx: Context, chat: String, rows: List<Pair<String, String>>) {
         if (rows.size < 2) return
+        val sig = rows.map { Chats.norm(chat) + "|" + it.first + "|" + it.second }
+        synchronized(screenSeen) {
+            if (sig.all { it in screenSeen }) return   // nichts Neues auf dem Bildschirm
+            sig.forEach { screenSeen.add(it) }
+            while (screenSeen.size > 3000) screenSeen.remove(screenSeen.first())
+        }
+        bg.execute { try { fromScreenNow(ctx, chat, rows) } catch (_: Exception) {} }
+    }
+
+    private fun fromScreenNow(ctx: Context, chat: String, rows: List<Pair<String, String>>) {
         val ck = Chats.norm(chat)
         val mine = mutableListOf<String>(); val ps = mutableListOf<JSONObject>()
         for (i in rows.indices) {

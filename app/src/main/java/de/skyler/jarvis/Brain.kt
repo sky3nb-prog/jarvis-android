@@ -159,6 +159,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             return Butler.waDecline(ctx)
         // „Schick Tobi eine Sprachnachricht: ich komm später“ / „Nimm eine Sprachnachricht für Tobi auf und sag …“
         (Regex("^(?:schick|sende|schicke)\\s+([\\p{L}-]+)\\s+(?:eine |ne )?sprachnachricht\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW)
+            ?: Regex("^antworte\\s+([\\p{L}-]+)\\s+(?:als|per|mit (?:einer )?)\\s*sprachnachricht\\s*(?:und sag(?:e)?|dass|:|,)?\\s*(.+)$").find(lowW)
             ?: Regex("^(?:nimm|nehm|nehme)\\s+(?:mal\\s+)?(?:eine |ne )?sprachnachricht\\s+(?:für|an)\\s+([\\p{L}-]+)\\s+auf\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW))?.let { m ->
             val name = m.groupValues[1].replaceFirstChar { it.uppercase() }
             val inhalt = text.trim().let { t -> t.substring(minOf(t.length, (t.lowercase().indexOf(m.groupValues[2].take(12)).takeIf { it >= 0 } ?: 0))) }.ifBlank { m.groupValues[2] }

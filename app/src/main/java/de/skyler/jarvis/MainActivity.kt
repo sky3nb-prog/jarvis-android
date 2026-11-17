@@ -941,7 +941,9 @@ class MainActivity : ComponentActivity() {
         fun accOn(): Boolean = ScreenService.enabled()
         @JavascriptInterface
         fun stilSet(modus: String, chats: String, termine: Boolean) {
+            val changed = (prefs.getString("stil_chats", "") ?: "") != chats.trim()
             Stil.setMode(this@MainActivity, modus); prefs.edit().putString("stil_chats", chats.trim()).apply(); WaTermine.setOn(this@MainActivity, termine)
+            if (changed) Thread { try { Link.pushSettings(this@MainActivity) } catch (_: Exception) {} }.start()   // auch am PC
         }
         @JavascriptInterface
         fun piperGet(): String = JSONObject().put("voice", PiperPhone.voice(this@MainActivity)).put("status", PiperPhone.status)
