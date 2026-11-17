@@ -24,6 +24,10 @@ _proc = {"p": None, "lock": threading.Lock()}
 
 
 def folder() -> str:
+    # Ordner nur mit einfachen Buchstaben (der Programmordner liegt unter „الصور“ – damit kommt Piper nicht zurecht)
+    la = os.environ.get("LOCALAPPDATA") or ""
+    if la and la.isascii():
+        return os.path.join(la, "JarvisPiper")
     return os.path.join(base_dir(), "piper")
 
 
@@ -107,7 +111,7 @@ def synth(text: str, rate: int = 0, timeout: float = 8.0) -> str:
     out = os.path.join(folder(), "out", f"s{int(time.time() * 1000)}_{threading.get_ident() % 1000}.wav")
     with _proc["lock"]:
         p = _start(ls)
-        p.stdin.write(json.dumps({"text": text, "output_file": out}, ensure_ascii=False) + "\n")
+        p.stdin.write(json.dumps({"text": text, "output_file": out}, ensure_ascii=True) + "\n")
         p.stdin.flush()
         res = {}
 
