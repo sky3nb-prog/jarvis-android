@@ -133,7 +133,7 @@ object Butler {
                 if (Build.VERSION.SDK_INT >= 26) android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else @Suppress("DEPRECATION") android.view.WindowManager.LayoutParams.TYPE_PHONE,
                 android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
                 android.graphics.PixelFormat.TRANSLUCENT).apply {
-                gravity = android.view.Gravity.TOP; y = (90 * d).toInt(); horizontalMargin = 0f
+                gravity = android.view.Gravity.TOP; y = (215 * d).toInt(); horizontalMargin = 0f   // unter der Anruf-Leiste oben (die liegt immer darüber), damit der Knopf frei bleibt
             }
             val wrap = android.widget.FrameLayout(ctx).apply { setPadding((16 * d).toInt(), 0, (16 * d).toInt(), 0); addView(box) }
             wm.addView(wrap, lp); floatView = wrap
