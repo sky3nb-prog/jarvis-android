@@ -28,7 +28,7 @@ object Gassi {
     fun on(ctx: Context) = prefs(ctx).getBoolean("gassi_an", false)
     fun smsOn(ctx: Context) = prefs(ctx).getBoolean("gassi_sms", false)
     fun who(ctx: Context) = (prefs(ctx).getString("gassi_wer", "Mama") ?: "Mama").ifBlank { "Mama" }
-    fun text(ctx: Context) = (prefs(ctx).getString("gassi_text", "") ?: "").ifBlank { "Bin gleich da." }
+    fun text(ctx: Context) = (prefs(ctx).getString("gassi_text", "") ?: "").ifBlank { "Bin wieder da." }
 
     private fun st(ctx: Context) = try { JSONObject(prefs(ctx).getString("gassi_cur", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
     private fun put(ctx: Context, o: JSONObject) = prefs(ctx).edit().putString("gassi_cur", o.toString()).apply()
@@ -38,9 +38,9 @@ object Gassi {
     /** Einmalige SMS beim Heimkommen (per Sprache). */
     fun heimSms(ctx: Context, wer: String, text: String): String {
         val w = wer.ifBlank { who(ctx) }
-        prefs(ctx).edit().putString("heim_sms", JSONObject().put("wer", w).put("text", text.ifBlank { "Bin gleich da." })
+        prefs(ctx).edit().putString("heim_sms", JSONObject().put("wer", w).put("text", text.ifBlank { "Bin wieder da." })
             .put("until", System.currentTimeMillis() + 6 * 3_600_000L).toString()).apply()
-        return "Mach ich – kurz bevor du wieder zuhause bist, schreibe ich $w „${text.ifBlank { "Bin gleich da." }}“."
+        return "Mach ich – sobald du wieder am Haus bist, schreibe ich $w „${text.ifBlank { "Bin wieder da." }}“."
     }
 
     /** Protokoll (letzte 90 Einträge): [Uhrzeit, lat, lon, Genauigkeit m, Abstand m, zuhause 0/1, Notiz] */
@@ -74,6 +74,14 @@ object Gassi {
         val home = homeWifi || (fresh && d in 0.0..40.0)
         if (home) {
             if (c.has("start") || !prefs(ctx).getBoolean("gassi_wasHome", false)) log(ctx, loc, d, true, if (c.has("start")) "zuhause erkannt – Runde zu Ende" else "zuhause")
+            // Wunsch 17.11.: SMS erst, wenn du wirklich am Haus bist (Heim-WLAN oder unter 40 m) – nicht schon 80 m vorher
+            if (c.has("start") && !c.optBoolean("sms") && (((now - c.optLong("start")) >= 3 * 60_000L && c.optDouble("maxd") >= 120 && c.optBoolean("walk", true) && on(ctx) && smsOn(ctx)) || one != null)) {
+                c.put("sms", true)
+                val w = one?.optString("wer") ?: who(ctx); val t = one?.optString("text") ?: text(ctx)
+                if (one != null) prefs(ctx).edit().remove("heim_sms").apply()
+                Thread({ sendTo(ctx, w, t) }, "jarvis-gassi-sms").start()
+                log(ctx, loc, d, true, "am Haus → SMS")
+            }
             prefs(ctx).edit().putBoolean("gassi_wasHome", true).apply()
             if (c.has("start")) finish(ctx, c, now)
             put(ctx, JSONObject()); return
@@ -119,11 +127,11 @@ object Gassi {
             maxd < 120 && !byRound -> "noch nicht weit genug weg (max ${maxd.toInt()} m)"
             !near && !byRound -> "noch ${d.toInt()} m weg (SMS ab ${lim.toInt()} m)"
             !closer && !byRound -> "nicht näher gekommen (${prevD.toInt()} → ${d.toInt()} m)"
-            else -> "→ SMS"
+            else -> "SMS kommt, sobald du am Haus bist"
         }
         log(ctx, loc, d, false, "${min.toInt()} min, ${"%.1f".format(Locale.GERMANY, kmh)} km/h, max ${maxd.toInt()} m: $why")
         c.put("why", why)
-        if (want && !c.optBoolean("sms") && (byDist || byRound)) {
+        if (false && want && !c.optBoolean("sms") && (byDist || byRound)) {   // früher: schon kurz vorher – jetzt erst am Haus (oben)
             c.put("sms", true)
             val w = one?.optString("wer") ?: who(ctx); val t = one?.optString("text") ?: text(ctx)
             if (one != null) prefs(ctx).edit().remove("heim_sms").apply()
