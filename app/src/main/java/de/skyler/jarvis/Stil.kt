@@ -253,6 +253,21 @@ object Stil {
         val v = if (m == "selbst" && !prefs(ctx).getBoolean("stil_frei", false)) "bestaetigen" else m
         prefs(ctx).edit().putString("stil_modus", v).apply()
     }
+    /** Vom PC: eingelesener Chat-Export {chat, mine:[…], pairs:[{q,a,ctx}]} (in Stücken). */
+    fun fromPc(ctx: Context, c: JSONObject): String {
+        val chat = c.optString("chat"); val ck = Chats.norm(chat)
+        if (ck.isNotBlank()) prefs(ctx).edit().putString("stil_cn_$ck", chat).apply()
+        val mine = c.optJSONArray("mine")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
+        val ps = c.optJSONArray("pairs")?.let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map { pair(it.optString("q"), it.optString("a"), ck, it.optString("ctx"), "export") } } ?: emptyList()
+        val n = addAll(ctx, ck, mine, ps)
+        if (c.optBoolean("last")) Thread { try { profile(ctx, true) } catch (_: Exception) {} }.start()
+        return "ok $n"
+    }
+    fun setChats(ctx: Context, s: String) {
+        prefs(ctx).edit().putString("stil_chats", s.trim()).apply()
+        if (s.isNotBlank() && mode(ctx) == "aus") setMode(ctx, "bestaetigen")
+    }
+
     /** „Du darfst Tobi selbst antworten“ */
     fun grant(ctx: Context, name: String): String {
         val l = autoChats(ctx).filter { Chats.norm(it) != Chats.norm(name) } + name
