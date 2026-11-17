@@ -326,11 +326,13 @@
             <div class="sbtn" id="stil-a" style="display:none;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
             <div class="sbtn" id="stil-b" style="display:none;text-align:left;margin:4px 0;white-space:normal;padding:10px"></div>
             <div class="f" style="margin-top:6px"><label>Oder: so würde ich's schreiben</label><input id="stil-own" type="text" placeholder="deine Antwort …"></div>
-            <div style="display:flex;gap:8px;margin-top:6px"><div class="sbtn" id="stil-ownbtn">Meine nehmen</div><div class="sbtn" id="stil-next" style="margin-left:auto">Nächste ›</div></div>
+            <div style="display:flex;gap:8px;margin-top:6px"><div class="sbtn" id="stil-ownbtn">Meine nehmen</div><div class="sbtn" id="stil-bad">Ergibt keinen Sinn</div><div class="sbtn" id="stil-next" style="margin-left:auto">Nächste ›</div></div>
             <div class="note" id="stil-res" style="margin:6px 0 0"></div>
           </div>
           <div class="f"><label>Antworten in deinem Namen</label><select id="stil-modus"><option value="aus">Aus</option><option value="bestaetigen">Vorschlag – du tippst „Senden“</option><option value="selbst">Selbst schreiben (nach dem Quiz)</option></select></div>
           <div class="f"><label>Für diese Chats (Namen wie in WhatsApp, mit Komma)</label><input id="stil-chats" type="text" placeholder="z. B. Tobi, Marius"></div>
+          <div class="f"><label>Test-Chat (z. B. deine Zweitnummer – Name wie in WhatsApp)</label><input id="stil-test" type="text" placeholder="z. B. Ich 2"></div>
+          <div class="note" style="margin:0 0 6px">Nachrichten aus diesem Chat liest Jarvis am PC immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt – und du kannst sagen „antworte du“, „… als Sprachnachricht“ usw. Zum Ausprobieren.</div>
           <div class="srow"><div>Termine aus WhatsApp<small>Wird im Chat was fest ausgemacht, trag ich's ein (mit „Rückgängig“). Abgesagt oder verschoben – auch per Sprachnachricht – nehm ich's raus bzw. verschieb es.</small></div><div class="sw" id="stil-term"></div></div>
           <div class="note" id="stil-tl" style="margin:4px 0 0"></div>
           <div class="note" style="margin:6px 0 0">Geburtstag: morgens liegt eine Glückwunsch-Nachricht in deinem Stil bereit. „Friday, plan ein Treffen mit Tobi am Wochenende“ schlägt freie Zeiten vor.</div>
@@ -362,6 +364,7 @@
           <div class="note" style="margin:0 0 6px">Sag „Jarvis, Notfall“: Ich schicke sofort eine SMS mit deinem Standort und rufe dann an.</div>
           <div class="f"><label>Wen soll ich im Notfall benachrichtigen? (Name wie in deinen Kontakten)</label><input id="nf-wer" type="text" placeholder="Mama"></div>
           <div class="srow"><div id="nf-state" class="note" style="margin:0"></div><div class="sbtn" id="nf-save">Speichern</div></div>
+          <div class="srow"><div>Notfall testen<small>Schickt eine echte SMS mit Standort, klar als TEST markiert – ohne Anruf. Sag der Person vorher Bescheid.</small></div><div class="sbtn" id="nf-test">Testen</div></div>
         </div>
         <div class="sec" style="--c:#ffd678"><h3>ANRUF-BUTLER</h3>
           <div class="srow"><div>Anruf-Butler<small>„Nicht stören“ an: Anrufe aus deinen Kontakten wegdrücken und Bescheid geben. Sonst ein Knopf beim Klingeln. Unbekannte Nummern bleiben unberührt.</small></div><div class="sw" id="set-butler"></div></div>

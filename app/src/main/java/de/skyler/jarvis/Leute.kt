@@ -83,7 +83,7 @@ object Leute {
     /** Abends: aus den neuen Nachrichten lernen (Groq, kostenlos). */
     fun learn(ctx: Context, force: Boolean = false) {
         val key = prefs(ctx).getString("groq_key", "") ?: ""; if (key.isBlank()) return
-        val today = SimpleDateFormat("yyyy-MM-dd", de).format(Date())
+        val today = SimpleDateFormat("yyyy-MM-dd", de).format(Date()) + (if (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) < 17) "a" else "b")
         if (!force && prefs(ctx).getString("leute_gelernt", "") == today) return
         prefs(ctx).edit().putString("leute_gelernt", today).apply()
         val o = all(ctx); val all = prefs(ctx).all
@@ -124,7 +124,7 @@ object Leute {
     /** Geburtstage: 7 Tage, 1 Tag vorher und am Tag – mit Geschenkideen passend zur Person. */
     fun tick(ctx: Context, say: (String) -> Unit) {
         val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY)
-        if (h == 20) try { Thread { learn(ctx) }.start() } catch (_: Exception) {}
+        if (h == 13 || h == 20) try { Thread { learn(ctx) }.start() } catch (_: Exception) {}   // zweimal am Tag weiterlernen (nur Chats mit Neuem)
         if (h !in 9..19) return
         val today = SimpleDateFormat("yyyy-MM-dd", de).format(Date())
         val p = prefs(ctx)

@@ -106,16 +106,20 @@ object Stil {
     private fun fromScreenNow(ctx: Context, chat: String, rows: List<Pair<String, String>>) {
         val ck = Chats.norm(chat)
         val mine = mutableListOf<String>(); val ps = mutableListOf<JSONObject>()
-        for (i in rows.indices) {
-            val (von, t) = rows[i]
+        val clean = rows.map { (v, x) -> Triple(v, x.substringBefore('\u0000'), x.substringAfter('\u0000', "")) }   // (von, text, zitiert)
+        for (i in clean.indices) {
+            val (von, t, quote) = clean[i]
             if (von != "ich") continue
             mine.add(t)
-            val prev = (i - 1 downTo 0).firstOrNull { rows[it].first != "ich" }?.let { rows[it] }
-            if (prev != null && i - rows.indexOf(prev) <= 2 && good(prev.second)) {
-                val cx = rows.subList(maxOf(0, rows.indexOf(prev) - 3), rows.indexOf(prev)).joinToString("\n") { (v, x) -> "${if (v == "ich") "ICH" else v}: $x" }
-                ps.add(pair("${prev.first}: ${prev.second}", t, ck, cx, "bildschirm"))
-            }
+            // Worauf antwortest du? 1) zitierte Nachricht („Antworten“ in WhatsApp)  2) sonst NUR die direkt davor stehende fremde Nachricht
+            val cx = clean.subList(maxOf(0, i - 4), maxOf(0, i - 1)).joinToString("\n") { (v, x, _) -> "${if (v == "ich") "ICH" else v}: $x" }
+            if (quote.isNotBlank() && good(quote)) { ps.add(pair(quote, t, ck, cx, "bildschirm")); continue }
+            val prev = clean.getOrNull(i - 1) ?: continue
+            if (prev.first == "ich" || prev.third.isNotBlank() || !good(prev.second)) continue
+            ps.add(pair("${prev.first}: ${prev.second}", t, ck, cx, "bildschirm"))
         }
+        val rows2 = clean.map { it.first to it.second }
+        if (rows2.isEmpty()) return
         val names = prefs(ctx).getString("stil_names", "") ?: ""
         if (!names.split("|").contains(ck)) prefs(ctx).edit().putString("stil_names", "$names|$ck").putString("stil_cn_$ck", chat).apply()
         addAll(ctx, ck, mine, ps)
@@ -219,7 +223,19 @@ object Stil {
         val p = pairs(ctx).filter { it.optString("a").length >= 2 && it.optString("src") != "quiz" }
         if (p.size < 5) return JSONObject().put("error", "Ich hab noch zu wenig von dir gelesen. Öffne ein paar WhatsApp-Chats und scroll hoch (ich lese mit) oder lade einen Chat-Export.")
         val asked = (prefs(ctx).getString("stil_quiz_seen", "") ?: "").split("|").toSet()
-        val pick = p.filter { (it.optString("chat") + it.optString("a")).hashCode().toString() !in asked }.ifEmpty { p }.shuffled().first()
+        val key = prefs(ctx).getString("groq_key", "") ?: ""
+        val cand = p.filter { (it.optString("chat") + it.optString("a")).hashCode().toString() !in asked && !it.optBoolean("ok_false") }.ifEmpty { p }.shuffled()
+        var pick = cand.first()
+        for (c in cand.take(4)) {   // passt die Antwort wirklich zu der Nachricht? (sonst ergibt das Quiz keinen Sinn)
+            val ok = c.optBoolean("ok_true") || key.isBlank() || try {
+                val r = Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content",
+                    "Ist die Antwort eine direkte, sinnvolle Antwort auf die Nachricht (im Verlauf)? Antworte NUR mit JSON {\"passt\":true|false}."))
+                    .put(JSONObject().put("role", "user").put("content", "Verlauf:\n${c.optString("ctx")}\nNachricht: ${c.optString("q")}\nAntwort von ICH: ${c.optString("a")}")), 30, json = true)
+                JSONObject(Regex("\\{.*\\}", RegexOption.DOT_MATCHES_ALL).find(r)?.value ?: r).optBoolean("passt", true)
+            } catch (_: Exception) { true }
+            mark(ctx, c, ok)
+            if (ok) { pick = c; break }
+        }
         prefs(ctx).edit().putString("stil_quiz_seen", (asked.toList().takeLast(200) + (pick.optString("chat") + pick.optString("a")).hashCode().toString()).joinToString("|")).apply()
         val ck = pick.optString("chat")
         val who = prefs(ctx).getString("stil_cn_$ck", "")?.ifBlank { null } ?: ck.replaceFirstChar { it.uppercase() }
@@ -229,8 +245,16 @@ object Stil {
         val mineFirst = Math.random() < 0.5
         return JSONObject().put("chat", who).put("ck", ck).put("ctx", pick.optString("ctx")).put("q", pick.optString("q"))
             .put("a", if (mineFirst) pick.optString("a") else fake).put("b", if (mineFirst) fake else pick.optString("a"))
-            .put("mine", if (mineFirst) 0 else 1).put("fake", fake)
+            .put("mine", if (mineFirst) 0 else 1).put("fake", fake).put("real", pick.optString("a"))
     }
+
+    /** Stelle fürs Quiz als passend / unpassend merken (unpassend = kommt nicht mehr dran). */
+    @Synchronized fun mark(ctx: Context, c: JSONObject, ok: Boolean) {
+        val l = pairs(ctx).map { if (it.optString("chat") == c.optString("chat") && it.optString("a") == c.optString("a")) it.put(if (ok) "ok_true" else "ok_false", true) else it }
+        prefs(ctx).edit().putString("stil_paare", JSONArray(l).toString()).apply()
+    }
+    /** „Ergibt keinen Sinn“ im Quiz */
+    fun quizBad(ctx: Context, q: JSONObject) = mark(ctx, JSONObject().put("chat", q.optString("ck")).put("a", q.optString("real")), false)
 
     /**
      * pick: 0/1 = die gewählte Antwort, own = deine eigene Antwort (statt beiden).

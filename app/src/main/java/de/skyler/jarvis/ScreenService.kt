@@ -97,21 +97,22 @@ class ScreenService : AccessibilityService() {
         if (title.isBlank()) return
         val texts = byId(root, pkg, "message_text")
         if (texts.isEmpty()) return
-        val rows = mutableListOf<Triple<String, String, Int>>()   // (von, text, y)
+        val rows = mutableListOf<Triple<String, String, Int>>()   // (von, text, y) – von "ich" oder Name; Zitat als "zitat:…"
         for (t in texts) {
             val txt = t.text?.toString()?.trim() ?: continue
             if (txt.isBlank()) continue
             // die Sprechblase: nach oben gehen, bis ein Element mit Häkchen (= eigene) oder Absendername (Gruppe) auftaucht
-            var p: AccessibilityNodeInfo? = t.parent; var mine = false; var sender = ""
+            var p: AccessibilityNodeInfo? = t.parent; var mine = false; var sender = ""; var quote = ""
             var depth = 0
             while (p != null && depth < 4) {
                 if (byIdIn(p, pkg, "status").isNotEmpty()) mine = true
                 byIdIn(p, pkg, "name_in_group_tv").firstOrNull()?.text?.toString()?.let { sender = it }
+                if (quote.isBlank()) (byIdIn(p, pkg, "quoted_text") + byIdIn(p, pkg, "quoted_message_text")).firstOrNull()?.text?.toString()?.let { quote = it.trim() }
                 if (mine || sender.isNotBlank()) break
                 p = p.parent; depth++
             }
             val r = android.graphics.Rect(); t.getBoundsInScreen(r)
-            rows.add(Triple(if (mine) "ich" else sender.ifBlank { title }, txt, r.top))
+            rows.add(Triple(if (mine) "ich" else sender.ifBlank { title }, if (quote.isNotBlank() && quote != txt) "$txt\u0000$quote" else txt, r.top))
         }
         rows.sortBy { it.third }
         Stil.fromScreen(this, title, rows.map { it.first to it.second })

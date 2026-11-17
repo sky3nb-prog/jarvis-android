@@ -133,7 +133,8 @@ object Chats {
         }
 
         if (!group && !isVoice(text) && System.currentTimeMillis() - time < 10 * 60_000L) try { Stil.onIncoming(ctx, chat, text, verlauf(ctx, norm(chat))) } catch (_: Exception) {}
-        val wanted = matches(important(ctx), chat, sender) || matches(watched(ctx), chat, sender)
+        val test = (prefs(ctx).getString("test_chat", "") ?: "").trim().let { it.isNotBlank() && matches(listOf(norm(it)), chat, sender) }
+        val wanted = test || matches(important(ctx), chat, sender) || matches(watched(ctx), chat, sender)
         if (!wanted) return
         val ck = norm(chat)
         synchronized(seen) {

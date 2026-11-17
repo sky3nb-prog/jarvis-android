@@ -595,6 +595,14 @@ class MainActivity : ComponentActivity() {
         fun notfallSet(w: String) { prefs.edit().putString("notfall_wer", w.trim()).apply() }
 
         @JavascriptInterface
+        fun notfallTest() { Thread({ val r = try { Actions(this@MainActivity).notfallTest() } catch (e: Exception) { "Test ging nicht." }; send("nf_test", JSONObject().put("text", r)) }, "jarvis-nftest").start() }
+
+        @JavascriptInterface
+        fun testChatGet(): String = prefs.getString("test_chat", "") ?: ""
+        @JavascriptInterface
+        fun testChatSet(v: String) { prefs.edit().putString("test_chat", v.trim()).apply(); Thread { try { Link.pushSettings(this@MainActivity) } catch (_: Exception) {} }.start() }
+
+        @JavascriptInterface
         fun ausgabenGet(): String = JSONObject().put("limit", Ausgaben.limit(this@MainActivity)).put("text", Ausgaben.summary(this@MainActivity)).toString()
 
         @JavascriptInterface
@@ -933,6 +941,8 @@ class MainActivity : ComponentActivity() {
         fun stilQuiz() { Thread({ val q = try { Stil.quizNext(this@MainActivity) } catch (e: Exception) { JSONObject().put("error", "Ging gerade nicht.") }; send("stil_quiz", q) }, "jarvis-quiz").start() }
         @JavascriptInterface
         fun stilAnswer(q: String, pick: Int, own: String): String = try { Stil.quizAnswer(this@MainActivity, JSONObject(q), pick, own.trim()).toString() } catch (e: Exception) { "{}" }
+        @JavascriptInterface
+        fun stilBad(q: String) { try { Stil.quizBad(this@MainActivity, JSONObject(q)) } catch (_: Exception) {} }
         @JavascriptInterface
         fun stilMitlesen(on: Boolean) { prefs.edit().putBoolean("stil_mitlesen", on).apply() }
         @JavascriptInterface

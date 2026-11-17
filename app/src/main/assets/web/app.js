@@ -365,6 +365,8 @@
   const stilSave = () => { try { A.stilSet($("stil-modus").value, $("stil-chats").value, sw("stil-term")); } catch (e) {} setTimeout(stilShow, 100); };
   $("stil-modus").addEventListener("change", stilSave);
   $("stil-chats").addEventListener("change", stilSave);
+  try { $("stil-test").value = A.testChatGet(); } catch (e) {}
+  $("stil-test").addEventListener("change", () => { try { A.testChatSet($("stil-test").value); toast("Test-Chat gespeichert – auch am PC."); } catch (e) {} });
   $("stil-term").addEventListener("click", () => setTimeout(stilSave, 0));
   $("stil-mit").addEventListener("click", () => setTimeout(() => { try { A.stilMitlesen(sw("stil-mit")); } catch (e) {} stilShow(); }, 0));
   $("stil-acc").addEventListener("click", () => { try { A.accOpen(); } catch (e) {} });
@@ -376,6 +378,7 @@
   };
   $("stil-qbtn").addEventListener("click", stilAsk);
   $("stil-next").addEventListener("click", stilAsk);
+  $("stil-bad").addEventListener("click", () => { if (stilQ) { try { A.stilBad(JSON.stringify(stilQ)); } catch (e) {} toast("Weg damit – die Stelle kommt nicht mehr."); } stilAsk(); });
   const stilDone = (pick, own) => {
     if (!stilQ || stilQ.done) return; stilQ.done = true;
     let st = {}; try { st = JSON.parse(A.stilAnswer(JSON.stringify(stilQ), pick, own || "")); } catch (e) {}
@@ -704,6 +707,14 @@
   if (A && A.notfallGet) {
     try { $("nf-wer").value = A.notfallGet(); } catch (e) {}
     $("nf-save").onclick = () => { A.notfallSet($("nf-wer").value.trim()); $("nf-state").textContent = "✓ Gespeichert."; };
+    $("nf-test").onclick = () => {
+      const b = $("nf-test");
+      if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "Wirklich? Nochmal tippen"; setTimeout(() => { b.dataset.sure = ""; b.textContent = "Testen"; }, 6000); return; }
+      b.dataset.sure = ""; b.textContent = "Testen";
+      try { A.notfallSet($("nf-wer").value.trim()); A.notfallTest(); } catch (e) {} $("nf-state").textContent = "Schicke Test-SMS …";
+    };
+    { const pn = window.jarvis && window.jarvis.onEvent;
+      if (window.jarvis) window.jarvis.onEvent = function (type, data) { if (type === "nf_test") { $("nf-state").textContent = data.text || ""; return; } return pn && pn.call(window.jarvis, type, data); }; }
     try { const d = JSON.parse(A.ausgabenGet()); $("ag-lim").value = d.limit || ""; $("ag-state").textContent = d.text || ""; } catch (e) {}
     $("ag-lim").addEventListener("change", () => { A.ausgabenLimit(parseInt($("ag-lim").value, 10) || 0); toast("Grenze gespeichert."); });
   }

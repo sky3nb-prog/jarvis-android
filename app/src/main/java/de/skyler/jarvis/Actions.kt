@@ -235,6 +235,17 @@ class Actions(private val ctx: Context) {
         return (if (ok) "Notfall: $who hat eine SMS mit deinem Standort. " else "Die SMS ging nicht (SMS-Recht fehlt?). ") + c
     }
 
+    /** Test: echte SMS mit Standort, aber klar als Test markiert – ohne Anruf. */
+    fun notfallTest(): String {
+        val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        val who = (p.getString("notfall_wer", "") ?: "").ifBlank { "Mama" }
+        val nr = number(who) ?: return "Ich finde „$who“ nicht in deinen Kontakten."
+        val ll = Alltag.fix?.takeIf { System.currentTimeMillis() - it.time < 15 * 60_000L }?.let { it.latitude to it.longitude } ?: Here.latLon(ctx)
+        val where = if (ll != null) "Standort: https://maps.google.com/?q=%.5f,%.5f".format(java.util.Locale.US, ll.first, ll.second) else "(Standort gerade nicht da)"
+        val ok = Butler.sms(ctx, nr, "TEST – nur ein Test der Jarvis-Notfallfunktion, alles in Ordnung! So sähe es im Notfall aus. $where", who)
+        return if (ok) "Test-SMS an $who ist raus (ohne Anruf). Im echten Notfall ruf ich danach sofort an." else "Die Test-SMS ging nicht – fehlt das SMS-Recht?"
+    }
+
     private fun call(who: String): String {
         val nr = number(who) ?: return if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_CONTACTS) !=
             PackageManager.PERMISSION_GRANTED) "Ich darf deine Kontakte noch nicht lesen. Erlaube es in der App unter Einstellungen."
