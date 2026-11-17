@@ -72,6 +72,14 @@ class JarvisService : Service() {
     @Volatile private var paused = false
     @Volatile private var silentAt = 0L
     @Volatile private var silentVal = false
+    // Akku: nachts (du schläfst – Bildschirm 15 Min. aus, bis zum Wecker) ist das Mikro ganz aus. Alle 30 s neu geprüft.
+    @Volatile private var nightAt = 0L
+    @Volatile private var nightVal = false
+    private fun nightNow(): Boolean {
+        if (System.currentTimeMillis() - nightAt > 30_000) { nightVal = try { Melden.sleeping(this) } catch (_: Exception) { false }; nightAt = System.currentTimeMillis() }
+        return nightVal
+    }
+
     private fun quietNow(): Boolean {   // Schulmodus-Abfrage nur alle 5 s neu (läuft im Audio-Takt)
         if (System.currentTimeMillis() - silentAt > 5000) { silentVal = try { Modes.silent(this) } catch (_: Exception) { false }; silentAt = System.currentTimeMillis() }
         return micOff || silentVal
@@ -145,7 +153,7 @@ class JarvisService : Service() {
     private val alltagTask = object : Runnable {
         override fun run() {
             if (!alive) return
-            Thread({ try { Alltag.tick(this@JarvisService) { t -> announce(t) }; if (Alltag.wantFine != locFine) main.post { startLocation() } } catch (e: Exception) { Log.w(tag, "alltag: $e") } }, "jarvis-alltag").start()
+            Thread({ try { Alltag.tick(this@JarvisService) { t -> announce(t) }; if (Alltag.wantFine != locFine || (Alltag.atHomeWifi && !Alltag.wantFine) != locSlow) main.post { startLocation() } } catch (e: Exception) { Log.w(tag, "alltag: $e") } }, "jarvis-alltag").start()
             main.postDelayed(this, 60_000L)
         }
     }
@@ -161,6 +169,7 @@ class JarvisService : Service() {
 
     private val locListener = android.location.LocationListener { l -> Alltag.onFix(l) }
     @Volatile private var locFine = false
+    @Volatile private var locSlow = false
 
     @SuppressLint("MissingPermission")
     private fun startLocation() {
@@ -173,12 +182,13 @@ class JarvisService : Service() {
             val prov = if (Build.VERSION.SDK_INT >= 31 && lm.hasProvider(android.location.LocationManager.FUSED_PROVIDER))
                 android.location.LocationManager.FUSED_PROVIDER else android.location.LocationManager.NETWORK_PROVIDER
             locFine = Alltag.wantFine
+            locSlow = Alltag.atHomeWifi && !locFine
             if (locFine && Build.VERSION.SDK_INT >= 31)   // Gassi unterwegs: GPS-genau, alle 20 s
                 lm.requestLocationUpdates(prov, android.location.LocationRequest.Builder(20_000L).setQuality(android.location.LocationRequest.QUALITY_HIGH_ACCURACY)
                     .setMinUpdateIntervalMillis(10_000L).build(), mainExecutor, locListener)
             else if (locFine && lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER))
                 lm.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 20_000L, 0f, locListener, Looper.getMainLooper())
-            else lm.requestLocationUpdates(prov, 60_000L, 0f, locListener, Looper.getMainLooper())
+            else lm.requestLocationUpdates(prov, if (locSlow) 5 * 60_000L else 60_000L, 0f, locListener, Looper.getMainLooper())   // zuhause (Heim-WLAN): alle 5 Min. reicht
             listOf(android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.GPS_PROVIDER)
                 .mapNotNull { try { lm.getLastKnownLocation(it) } catch (_: Exception) { null } }.maxByOrNull { it.time }?.let { Alltag.onFix(it) }
         } catch (e: Exception) { Log.w(tag, "standort: $e") }
@@ -469,10 +479,11 @@ class JarvisService : Service() {
         var wakeSeen = false
         var micPaused = false
         val longQuiet = (getSharedPreferences("jarvis", MODE_PRIVATE).getFloat("pause_lang", 1.8f) * 10).toInt().coerceIn(10, 40)
+        val vpre = ArrayDeque<ByteArray>(); var vHang = 0; var vOpen = false
         while (alive) {
-            if (paused || (quietNow() && mode == Mode.IDLE)) {   // Mikro aus: nur hören, wenn du selbst ein Gespräch startest
+            if (paused || ((quietNow() || nightNow()) && mode == Mode.IDLE)) {   // Mikro aus / nachts: nur hören, wenn du selbst ein Gespräch startest
                 if (!micPaused) { try { ar.stop() } catch (_: Exception) {}; micPaused = true }
-                Thread.sleep(200); continue
+                Thread.sleep(if (paused) 200 else 1000); continue
             } else if (micPaused) { ar.startRecording(); micPaused = false }
             val n = ar.read(chunk, 0, chunk.size)
             if (n <= 0) continue
@@ -483,10 +494,21 @@ class JarvisService : Service() {
             if (speaking) { pre.clear(); utt = null; continue }   // nicht sich selbst zuhören
 
             val rms = rms(buf)
+            // Akku: Die Weckwort-Erkennung rechnet nur, wenn es laut genug ist (jemand spricht) – bei Stille schläft sie.
+            // Beim Aufwachen bekommt sie die letzte halbe Sekunde nachgereicht, damit der Anfang vom Wort nicht fehlt.
+            vpre.addLast(buf); if (vpre.size > 6) vpre.removeFirst()
+            val voiceLike = rms > maxOf(floor * 1.8, 220.0)
+            if (voiceLike) vHang = 15 else if (vHang > 0) vHang--
             if (mode == Mode.IDLE && rec != null) {
                 val r = rec!!
-                if (r.acceptWaveForm(buf, buf.size)) { if (voskHeardWake(r.result, "text")) wakeSeen = true }
-                else if (voskHeardWake(r.partialResult, "partial")) wakeSeen = true
+                if (vHang > 0) {
+                    val feed = if (!vOpen) vpre.toList() else listOf(buf)
+                    vOpen = true
+                    for (fb in feed) {
+                        if (r.acceptWaveForm(fb, fb.size)) { if (voskHeardWake(r.result, "text")) wakeSeen = true }
+                        else if (voskHeardWake(r.partialResult, "partial")) wakeSeen = true
+                    }
+                } else if (vOpen) { vOpen = false; try { r.reset() } catch (_: Exception) {} }
             }
             val thr = maxOf(floor * 2.8, 380.0)
             if (utt == null) {

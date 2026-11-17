@@ -180,6 +180,7 @@ object Link {
     /** Befehl an den PC schicken und bis zu 15 Sekunden auf die Antwort warten. Antwort: {ok, text, status} oder null. */
     fun command(ctx: Context, cmd: JSONObject, waitMs: Long = 15_000): JSONObject? {
         val c = code(ctx); if (!paired(ctx)) return null
+        poke()
         val id = java.util.UUID.randomUUID().toString().take(12)
         val sent = System.currentTimeMillis() / 1000
         val msg = JSONObject().put("kind", "cmd").put("from", "phone").put("id", id).put("ts", sent).put("cmd", cmd)
@@ -248,6 +249,13 @@ object Link {
     }
 
     /** Holt Nachrichten des PCs direkt über Tailscale ab (läuft neben listenPc). */
+    @Volatile private var dFails = 0
+    @Volatile var pcSeenAt = 0L          // letzte Nachricht vom PC (egal auf welchem Weg)
+    @Volatile private var wakeUp = false
+    /** Gleich wieder versuchen (z. B. du schickst etwas an den PC oder öffnest die Steuern-Seite). */
+    fun poke() { wakeUp = true; dFails = 0 }
+    private fun nap(ms: Long) { val end = System.currentTimeMillis() + ms; while (System.currentTimeMillis() < end && !wakeUp) Thread.sleep(1000); wakeUp = false }
+
     private fun directLoop(ctx: Context, alive: () -> Boolean, on: (JSONObject) -> Unit) {
         var after = 0L
         while (alive()) {
@@ -267,13 +275,19 @@ object Link {
                     val body = o.optString("body"); if (seen(body)) continue
                     val m = try { decrypt(body, c) } catch (_: Exception) { null } ?: continue
                     if (m.optString("from") != "pc") continue
+                    pcSeenAt = System.currentTimeMillis()
                     if (o.optString("t") == "remote") remember(m)
                     else if (Math.abs(System.currentTimeMillis() / 1000 - m.optLong("ts")) <= 120) try { on(m) } catch (e: Exception) { Log.w(TAG, "auftrag direkt: $e") }
                 }
             } catch (e: Exception) {
                 directAt = 0L
                 if (e !is RuntimeException || e.message?.startsWith("HTTP") != true) directErr = errText(e)
-                Thread.sleep(15_000)   // Tailscale aus oder PC aus: später nochmal, ntfy übernimmt solange
+                // Tailscale/PC aus: immer seltener versuchen (15 s … 5 Min.) – Akku; bei einem Befehl an den PC sofort wieder
+                dFails++
+                nap(minOf(300_000L, 15_000L * (1L shl minOf(dFails - 1, 5))))
+                continue
+            }
+            dFails = 0
             }
         }
     }
@@ -317,20 +331,43 @@ object Link {
     fun listenPc(ctx: Context, alive: () -> Boolean, on: (JSONObject) -> Unit) {
         Thread({ directLoop(ctx, alive, on) }, "jarvis-direkt").start()
         var wait = 5_000L
+        var pollSince = System.currentTimeMillis() / 1000
+        pcSeenAt = System.currentTimeMillis()   // die ersten 30 Min. normal verbunden
         while (alive()) {
             val c = code(ctx)
             if (!paired(ctx)) { Thread.sleep(60_000); continue }
+            // Akku: Seit über 30 Min. nichts vom PC (PC aus) und App nicht offen -> statt Dauerverbindung alle 3 Min. kurz nachsehen
+            if (System.currentTimeMillis() - pcSeenAt > 30 * 60_000L && !JarvisService.appVisible) {
+                try {
+                    http.newCall(Request.Builder().url(SERVER + handyTopic(c) + "/json?poll=1&since=$pollSince").build()).execute().use { resp ->
+                        pollSince = System.currentTimeMillis() / 1000 - 5
+                        (resp.body?.string() ?: "").lineSequence().forEach { line ->
+                            val ev = try { JSONObject(line) } catch (_: Exception) { return@forEach }
+                            if (ev.optString("event") != "message" || seen(ev.optString("message"))) return@forEach
+                            val m = try { decrypt(ev.optString("message"), c) } catch (_: Exception) { null } ?: return@forEach
+                            if (m.optString("from") != "pc") return@forEach
+                            pcSeenAt = System.currentTimeMillis()
+                            if (Math.abs(System.currentTimeMillis() / 1000 - m.optLong("ts")) <= 300) try { on(m) } catch (e: Exception) { Log.w(TAG, "auftrag: $e") }
+                        }
+                    }
+                } catch (e: Exception) { Log.w(TAG, "poll: $e") }
+                nap(3 * 60_000L)
+                continue
+            }
+            pollSince = System.currentTimeMillis() / 1000
             try {
                 stream.newCall(Request.Builder().url(SERVER + handyTopic(c) + "/json").build()).execute().use { resp ->
                     val src = resp.body?.source() ?: return@use
                     wait = 5_000L
                     while (alive() && !src.exhausted()) {
+                        if (System.currentTimeMillis() - pcSeenAt > 30 * 60_000L && !JarvisService.appVisible) break   // PC lange still -> sparsam nachsehen
                         val line = src.readUtf8Line() ?: break
                         val ev = try { JSONObject(line) } catch (_: Exception) { continue }
                         if (ev.optString("event") != "message") continue
                         if (seen(ev.optString("message"))) continue   // schon direkt bekommen
                         val m = try { decrypt(ev.optString("message"), c) } catch (_: Exception) { null } ?: continue
                         if (m.optString("from") != "pc") continue
+                        pcSeenAt = System.currentTimeMillis()
                         if (Math.abs(System.currentTimeMillis() / 1000 - m.optLong("ts")) > 120) continue   // alt
                         try { on(m) } catch (e: Exception) { Log.w(TAG, "auftrag: $e") }
                     }

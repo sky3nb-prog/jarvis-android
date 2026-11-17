@@ -225,12 +225,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        try { web.onResume() } catch (_: Exception) {}
         JarvisService.appVisible = true
+        try { Link.poke() } catch (_: Exception) {}
         try { Konto.tick(this) } catch (_: Exception) {}
         Bus.emit("app_visible", JSONObject().put("on", true))
     }
 
     override fun onPause() {
+        try { web.onPause() } catch (_: Exception) {}   // Akku: Animationen der Seite ruhen, solange die App im Hintergrund ist
         JarvisService.appVisible = false
         Bus.emit("app_visible", JSONObject().put("on", false))
         super.onPause()

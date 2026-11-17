@@ -76,6 +76,7 @@ object Alltag {
     fun onFix(loc: Location) { fix = loc }
     /** JarvisService schaut danach: genaue Ortung (GPS, 20 s) oder sparsam (1 Min.). */
     @Volatile var wantFine = false
+    @Volatile var atHomeWifi = false   // im Heim-WLAN: Standort seltener (Akku)
     private fun fixP(): Route.P? = fix?.takeIf { System.currentTimeMillis() - it.time < 10 * 60_000L }?.let { Route.P(it.latitude, it.longitude, "hier") }
 
     @Suppress("DEPRECATION")
@@ -650,6 +651,7 @@ object Alltag {
         try { Gassi.tick(ctx, fix, s.optBoolean("home_wifi")) } catch (e: Exception) { Log.w(TAG, "gassi: $e") }
         // Unterwegs mit Gassi/Einmal-SMS: genauer und öfter orten (GPS, alle 20 s), sonst sparsam
         wantFine = Gassi.active(ctx) && !(s.optBoolean("home_wifi"))
+        atHomeWifi = s.optBoolean("home_wifi")
         try { leaveInTime(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "losfahren: $e") }
         try { routines(ctx, s, say) } catch (e: Exception) { Log.w(TAG, "feste wege: $e") }
         try { alarms(ctx, s) } catch (_: Exception) {}
