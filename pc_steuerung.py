@@ -574,6 +574,20 @@ def handle_fixed(text: str):
     if r:
         return r
 
+    # Mails und Pakete: das Handy liest das Gmail-Postfach und die Paket-Meldungen, der PC fragt dort nach
+    if re.search(r"\b(neue|ungelesene)?\s*(e-?mails?|mails?)\b", low) and re.search(r"\b(hab|habe|gibt|neue|kam|was|zeig|lies)", low) and len(low.split()) <= 10:
+        import pc_handy
+        if not pc_handy.paired():
+            return "Dein Gmail-Postfach liest das Handy – das ist gerade nicht gekoppelt."
+        r = pc_handy.ask("ctl", wait=15, what="mails")
+        return (r or {}).get("text") or "Das Handy antwortet gerade nicht."
+    if re.search(r"\b(wo ist|kommt|wann kommt|status).{0,20}\bpaket|\bpakete?\b.{0,15}(heute|unterwegs|da)\b", low):
+        import pc_handy
+        if pc_handy.paired():
+            r = pc_handy.ask("ctl", wait=15, what="pakete")
+            if r and r.get("text"):
+                return r["text"]
+
     # Ideen-Sammler
     import pc_ideen
     r = pc_ideen.handle(t)
