@@ -30,7 +30,7 @@ DEFAULT = [
      "musik": "deezer", "discord": "", "apps": "", "pomo": False, "lern": 25, "pause": 5, "aus": False},
     {"id": "kino", "n": "Kino", "i": "◐", "h": 320, "d": "Alles leise, nichts stört", "handy": "lautlos", "sammeln": True, "still": True,
      "musik": "", "discord": "", "apps": "", "pomo": False, "lern": 25, "pause": 5, "aus": False},
-    {"id": "schule", "n": "Schule", "i": "▦", "h": 45, "d": "Handy leise", "handy": "lautlos", "sammeln": False, "still": False,
+    {"id": "schule", "n": "Schule", "i": "▦", "h": 45, "d": "Alles stumm, nur Uhr", "handy": "stumm", "sammeln": False, "still": True,
      "musik": "", "discord": "", "apps": "", "pomo": False, "lern": 25, "pause": 5, "aus": False},
     {"id": "nacht", "n": "Gute Nacht", "i": "☾", "h": 230, "d": "Handy still, PC aus", "handy": "dnd", "sammeln": True, "still": True,
      "musik": "", "discord": "", "apps": "", "pomo": False, "lern": 25, "pause": 5, "aus": True},
@@ -46,6 +46,12 @@ def modes(all_: bool = False) -> list:
     out = copy.deepcopy(DEFAULT)
     if isinstance(cfg, list) and cfg:
         by = {m.get("id"): m for m in cfg if isinstance(m, dict) and m.get("id")}
+        s = by.get("schule")   # Wunsch 16.11.: Schulmodus = Handy alles stumm, Jarvis still, nur Uhr (alte Einstellung „lautlos“ übernehmen)
+        if s and s.get("handy") == "lautlos" and not (SETTINGS() or {}).get("schule_stumm_v1"):
+            s.update(handy="stumm", still=True, d="Alles stumm, nur Uhr")
+            if SAVE:
+                SAVE("schule_stumm_v1", True)
+                SAVE("modi_cfg", [by.get(m.get("id"), m) for m in cfg])
         out = [dict(d, **by.pop(d["id"], {})) for d in out]
         out += [dict(DEFAULT[2], **m) for m in by.values()]   # eigene Modi
     return out if all_ else [m for m in out if not m.get("weg")]
@@ -208,8 +214,8 @@ def set_mode(mode: str, from_phone: bool = False, lofi=None) -> str:
         return txt
     parts = [f"{m['n']}-Modus an."]
     p = "" if from_phone else _phone(mode, m)
-    if p and m.get("handy") in ("dnd", "lautlos"):
-        parts.append("Handy ist " + ("auf Nicht stören." if m["handy"] == "dnd" else "lautlos."))
+    if p and m.get("handy") in ("dnd", "lautlos", "stumm"):
+        parts.append({"dnd": "Handy ist auf Nicht stören.", "lautlos": "Handy ist lautlos.", "stumm": "Handy ist komplett stumm, Jarvis meldet sich dort nur per Nachricht auf der Uhr."}[m["handy"]])
     if m.get("discord"):
         try:
             import pc_steuerung
