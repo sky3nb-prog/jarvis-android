@@ -447,6 +447,55 @@ def _speak_edge(text: str, voice: str, pitch: int, rate: int, idx=None) -> bool:
     return played  # schon etwas gesprochen: nicht noch einmal mit der Windows-Stimme von vorn
 
 
+# --- Schnelle Stimme (Piper, auf dem PC) ---------------------------------------------
+def _speak_piper(text: str, rate: int, idx=None) -> bool:
+    """Satzweise: der erste Satz wird sofort erzeugt und gespielt, die nächsten währenddessen."""
+    import queue
+    import pc_piper
+    gen = pc_cancel.GEN
+    chunks = _chunks(text, first_max=60)
+    q: "queue.Queue" = queue.Queue()
+    t0 = time.time()
+
+    def producer():
+        for c in chunks:
+            if pc_cancel.changed(gen):
+                break
+            try:
+                q.put((c, pc_piper.synth(c, rate)))
+            except Exception as e:
+                q.put((c, e))
+                return
+        q.put(None)
+    threading.Thread(target=producer, daemon=True, name="piper-gen").start()
+    played = False
+    while True:
+        it = q.get()
+        if it is None:
+            return True
+        ctext, val = it
+        if isinstance(val, Exception):
+            print(f"Schnelle Stimme: {val}")
+            return played
+        if pc_cancel.changed(gen):
+            return True
+        if not played:
+            print(f"Zeit: Stimme für den ersten Satz nach {time.time() - t0:.1f} s bereit (schnelle Stimme)")
+        played = True
+        if ON_CHUNK:
+            try:
+                ON_CHUNK(ctext)
+            except Exception:
+                pass
+        _mirror(val)
+        try:
+            data, sr = read_wav(val)
+            _play_array(data, sr, idx, True)
+        except Exception as e:
+            print("Abspielen ging nicht:", e)
+            return played
+
+
 # --- Windows-Stimme (offline) ----------------------------------------------------------
 _PS_SCRIPT = ";".join([
     "Add-Type -AssemblyName System.Speech",
@@ -588,6 +637,15 @@ def _speak_impl(text: str, engine=None, edge_voice=None, windows_voice=None, pit
     if engine == "windows":   # nur wenn ausdrücklich so eingestellt
         _speak_windows(text, windows_voice, pitch, rate, idx)
         return
+    # Schnelle Stimme (Piper, auf dem PC): Standard, wenn sie da ist – keine Wartezeit auf einen Online-Dienst
+    try:
+        import pc_piper
+        piper_ok = pc_piper.ready()
+    except Exception:
+        piper_ok = False
+    if engine in ("auto", "piper") and piper_ok:
+        if _speak_piper(text, rate, idx) or pc_cancel.changed(gen):
+            return
     # Online-Stimme – NIE auf die Windows-Stimme ausweichen. Klappt es nicht, noch einmal versuchen, sonst still (Text steht ja da).
     global _warned
     for attempt in range(2):

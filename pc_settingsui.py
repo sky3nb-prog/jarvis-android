@@ -33,8 +33,8 @@ HOVER = "#0a2a3c"
 LANGUAGES = [("Deutsch", "de-DE"), ("English (US)", "en-US"), ("English (UK)", "en-GB"),
              ("Français", "fr-FR"), ("Español", "es-ES"), ("Italiano", "it-IT")]
 STYLES = [("Kugel mit Nervenstrang (neu)", "neu"), ("Kleiner Kreis", "klein"), ("Leuchtrahmen + großes Textfeld", "gross")]
-ENGINES = [("ElevenLabs (sehr natürlich, braucht Schlüssel)", "eleven"),
-           ("Automatisch (Online-Stimme, sonst Windows)", "auto"), ("Nur Online-Stimme", "edge"),
+ENGINES = [("Schnell – Thorsten, auf dem PC, sofort (Standard)", "auto"), ("ElevenLabs (sehr natürlich, braucht Schlüssel)", "eleven"),
+           ("Online-Stimme (manchmal langsam)", "edge"),
            ("Nur Windows-Stimme (offline)", "windows")]
 AUTO_WINDOWS = "Automatisch (deutsche Männerstimme)"
 GLOBE_THEMES = ["Glut", "Jarvis", "Radar", "Violett"]

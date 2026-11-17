@@ -2043,7 +2043,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-17 13:10"
+VERSION = "2026-11-17 16:00"
 
 
 def main():
@@ -2063,6 +2063,17 @@ def main():
     except Exception:
         pass
     settings = pc_settings.load()
+    if not settings.get("piper_v1"):   # Skyler hat am 17.11. zugestimmt: schnelle Stimme auf dem PC statt der langsamen Online-Stimme
+        if settings.get("voice_engine") in ("edge", "auto", None):
+            settings["voice_engine"] = "auto"
+        settings["piper_v1"] = True
+        pc_settings.save(settings)
+    import pc_piper
+
+    def _piper_boot():   # einmal laden (Piper + Stimme Thorsten), dann vorwärmen
+        pc_piper.install()
+        pc_piper.warm()
+    threading.Thread(target=_piper_boot, daemon=True, name="piper").start()
     import pc_konto
     pc_konto.start_loop()   # Jarvis-Konto: alle 5 Minuten sichern (nur wenn einmal verbunden)
     if not settings.get("ntfy_topic") or not settings.get("loc_topic"):  # geheime Handy-Kanäle einmalig erzeugen
