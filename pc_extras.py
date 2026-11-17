@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 
-PENDING = {"bin": 0.0}
+PENDING = {"bin": 0.0, "voice": 0.0}
 
 
 def _size(p: str) -> int:
@@ -157,6 +157,20 @@ def handle(text: str):
         return "Den Papierkorb endgültig leeren? Sag ja."
     if re.search(r"\bdiscord\b", low) and re.search(r"\b(wer|online|on|da|drin|im call|im sprachkanal)\b", low) and len(low.split()) <= 10:
         return discord_online()
+    # Sprachnachricht schicken: macht das Handy (Jarvis-Stimme). Fragt es nach („an wen? was?“), geht die nächste Antwort auch dorthin.
+    if (time.time() - PENDING.get("voice", 0) < 90) or (re.search(r"\bsprach ?nachricht\b", low) and re.search(r"\b(schick|send|nimm|nehm|aufnehm|antworte|kannst du|könntest du)\w*", low)):
+        PENDING["voice"] = 0
+        try:
+            import pc_handy
+            if pc_handy.paired():
+                r = pc_handy.command(text)
+                t = (r or {}).get("text") or "Das Handy antwortet gerade nicht."
+                if t.endswith("?"):
+                    PENDING["voice"] = time.time()
+                return t
+            return "Sprachnachrichten schickt das Handy – das ist gerade nicht gekoppelt."
+        except Exception as e:
+            return f"Das ging nicht ({e})."
     # „Übernimm den Chat mit Tobi“ / „ich übernehme wieder“ – das macht das Handy (dort laufen die WhatsApp-Nachrichten)
     if len(low.split()) <= 9 and (re.match(r"^(übernimm|übernimmst du|übernehme du)\b", low) or re.match(r"^(ich übernehm\w*|hör auf zu antworten)\b", low)):
         try:
