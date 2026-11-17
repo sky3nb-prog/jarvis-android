@@ -157,6 +157,15 @@ def handle(text: str):
         return "Den Papierkorb endgültig leeren? Sag ja."
     if re.search(r"\bdiscord\b", low) and re.search(r"\b(wer|online|on|da|drin|im call|im sprachkanal)\b", low) and len(low.split()) <= 10:
         return discord_online()
+    # „Übernimm den Chat mit Tobi“ / „ich übernehme wieder“ – das macht das Handy (dort laufen die WhatsApp-Nachrichten)
+    if len(low.split()) <= 9 and (re.match(r"^(übernimm|übernimmst du|übernehme du)\b", low) or re.match(r"^(ich übernehm\w*|hör auf zu antworten)\b", low)):
+        try:
+            import pc_handy
+            if pc_handy.paired():
+                r = pc_handy.command(text)
+                return r.get("text") or "Okay."
+        except Exception:
+            pass
     # „Wo hab ich … hingelegt?“ / „… liegt in der Schublade“ – das merkt sich das Handy (eine Liste für beide)
     if len(low.split()) <= 14 and (re.match(r"^(wo (ist|sind|liegt|liegen|hab ich|habe ich) (mein|meine|meinen|die|der|das|den)\b)", low)
                                    or re.search(r"\b(liegt|liegen|steht|stehen|hängt|hängen)\b.*\b(in|im|auf|unter|neben|hinter|bei|beim|am|an)\b", low) and re.search(r"\b(mein\w*|schlüssel|kopfhörer|handy|geldbeutel|portemonnaie|brille|ausweis|fahrrad|controller|ladekabel)\b", low)
