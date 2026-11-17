@@ -288,7 +288,6 @@ object Link {
                 continue
             }
             dFails = 0
-            }
         }
     }
 
