@@ -621,7 +621,8 @@
     try { r.value = A.getMeldenOft(); } catch (e) {} show();
     r.addEventListener("input", show); r.addEventListener("change", () => { try { A.setMeldenOft(+r.value); } catch (e) {} });
     $("mo-test").onclick = () => { try { A.meldenTest(); toast("Ich melde mich gleich – ein paar Sekunden."); } catch (e) {} };
-    $("watch-test").onclick = () => { try { A.watchTest(); toast("Nachricht ist raus – schau auf deine Uhr."); } catch (e) {} }; }
+    $("watch-test").onclick = () => { try { A.watchTest(); toast("Nachricht ist raus – schau auf deine Uhr."); } catch (e) {} };
+    if ($("tst-uhr")) $("tst-uhr").onclick = () => { try { A.watchTest(); toast("Nachricht ist raus – schau auf deine Uhr."); } catch (e) {} }; }
   $("tst-boot").addEventListener("click", () => { closeSettings(); setTimeout(() => window.JBoot && JBoot.play(), 350); });
   $("tst-check").addEventListener("click", () => { closeSettings(); setTimeout(() => { let it = []; try { it = JSON.parse(A.sysCheck(false)).items || []; } catch (e) {} window.JCheck && JCheck.play(it); }, 350); });
   $("lern-btn").addEventListener("click", () => { try { $("lern-info").textContent = A.lernInfo(); } catch (e) {} });

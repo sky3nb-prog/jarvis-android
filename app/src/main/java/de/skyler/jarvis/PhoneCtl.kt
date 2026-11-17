@@ -141,6 +141,8 @@ object PhoneCtl {
                 Schule.setAll(ctx, a); Bus.emit("schule", JSONObject()); "Arbeiten und Hausaufgaben sind auf dem Handy."
             }
             "ideen_get" -> Ideen.all(ctx).toString()
+            "mails" -> Mail.summary(ctx)       // „Hab ich neue Mails?“ am PC – das Postfach liest das Handy
+            "pakete" -> Pakete.summary(ctx)
             "finden" -> { find(ctx); "Dein Handy klingelt jetzt 20 Sekunden lang." }
             "finden_stop" -> { stopFind(); "Klingeln gestoppt." }
             "modus" -> { Modes.fromPc = true; try { Modes.set(ctx, c.optString("name"), c.optString("handy").takeIf { c.has("handy") }) } finally { Modes.fromPc = false } }
