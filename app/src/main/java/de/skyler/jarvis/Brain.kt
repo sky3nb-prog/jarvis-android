@@ -52,7 +52,7 @@ ${Melden.schoolText(ctx)}
 ${Schule.prompt(ctx)}
 ${Humor.prompt(ctx)}
 Erwähnt er, dass er gerade isst oder gleich isst (Essen, Mittagessen, Frühstück, "ich ess grad"), wünsch ihm kurz und locker guten Appetit. Essens-Ideen nur leicht und freundlich, nie Kalorien, Diät oder Verbote.
-Steht im Gedächtnis, dass er ADHS hat: Erinnerungen konkret und mit Uhrzeit, große Aufgaben in kleine erste Schritte zerlegen, kurz und klar antworten, nie belehren oder vorwerfen, kleine Erfolge feiern.
+Steht im Gedächtnis, dass ihm Konzentration oder Ordnung schwerfällt oder er sich mehr Struktur wünscht: Erinnerungen konkret und mit Uhrzeit, große Aufgaben in kleine erste Schritte zerlegen, kurz und klar antworten, nie belehren oder vorwerfen, kleine Erfolge feiern.
 ${Memory.block(ctx)}
 ${Interests.block(ctx)}
 ${snap.optJSONObject("pc_media")?.let { pm -> val m = pm.optJSONArray("music"); if (m == null || m.length() == 0) "" else "Am PC hört er vor allem: " + (0 until m.length()).joinToString(", ") { m.optString(it) } + "." } ?: ""}
@@ -92,7 +92,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"erinnerung","text":"<woran, kurz, z. B. Brot holen>","datum":"yyyy-MM-dd oder null","zeit":"HH:mm oder null","in_minuten":<nur bei "in 20 Minuten", sonst 0>}   (IMMER für "erinnere mich um 12:30 an Brot", "erinnere mich in 20 Minuten an den Ofen", "morgen Brot holen", "denk dran, dass ich Montag das Formular abgeben muss" – NICHT in den Kalender. Ohne Uhrzeit: datum setzen, zeit null; Jarvis sucht die beste Gelegenheit. Zwischen 0 und 5 Uhr heißt "morgen" heute.)
 {"action":"modus","name":"fokus" | "gaming" | "chill" | "kino" | "schule" | "nacht" | "aus"}   ("Fokus-Modus", "ich muss lernen", "Gaming-Modus", "ich zock jetzt", "Chill-Modus", "Kino-Modus", "Schulmodus", "Gute Nacht", "Modus aus", "Guten Morgen, alles normal")
 {"action":"schule","art":"ha" | "arbeit" | "test","fach":"<Fach oder leer>","text":"<was genau, z. B. Seite 42 Nr. 3 oder Thema der Arbeit>","datum":"yyyy-MM-dd"}   ("Hausaufgabe Mathe Seite 42 bis Donnerstag", "nächsten Dienstag schreiben wir Englisch, Vokabeln Unit 3", "am 21.11. ist Bio-Test über Zellen" – Datum selbst ausrechnen)
-{"action":"person","wer":"<Name, wie er ihn nennt>","geschenk":true|false}   ("Geschenkidee für Janis", "was soll ich Mama schenken?" -> geschenk true; "was weißt du über Janis?", "wie heißt Janis auf Discord?" -> false)
+{"action":"person","wer":"<Name, wie er ihn nennt>","geschenk":true|false}   ("Geschenkidee für Alex", "was soll ich Mama schenken?" -> geschenk true; "was weißt du über Alex?", "wie heißt Alex auf Discord?" -> false)
 {"action":"pakete"}   ("wo ist mein Paket?", "kommt heute ein Paket?", "Paketstatus")
 {"action":"mails"}   ("hab ich neue Mails?", "was kam per Mail?", "neue E-Mails")
 {"action":"ausgaben"}   ("wie viel hab ich diesen Monat ausgegeben?", "meine Ausgaben", "was hab ich bei Amazon ausgegeben?")
@@ -105,7 +105,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"youtube","query":"<Suche>"}
 {"action":"youtube_neu","days":<Tage, Standard 7>}   (neue Videos der Kanäle, die der Nutzer gerade viel schaut, plus passende neue Kanäle – für "was kann ich auf YouTube schauen?", "gibt's was Neues von ...?")
 {"action":"musik"}   (seine Lieblingssongs und Musikrichtung gerade plus passende neue Songs von Deezer – für "was höre ich so?", "schlag mir Musik vor", "was passt dazu?")
-{"action":"lage","ort":"<leer = Welt und Wohnort; \"hier\" = wo das Handy gerade ist; sonst Stadt oder Land>"}   (Lagebericht mit Karte: "wie ist die Lage?", "was ist los in der Welt?", "was gibt es Neues in Leonberg?", "was ist in Seoul los?", Nachrichten)
+{"action":"lage","ort":"<leer = Welt und Wohnort; \"hier\" = wo das Handy gerade ist; sonst Stadt oder Land>"}   (Lagebericht mit Karte: "wie ist die Lage?", "was ist los in der Welt?", "was gibt es Neues in meiner Stadt?", "was ist in Seoul los?", Nachrichten)
 {"action":"fuerdich"}   (Neuigkeiten passend zu seinen Interessen: "was gibt's Neues für mich?", "was interessiert mich heute?", "Neuigkeiten zu meinen Themen")
 {"action":"vergleich","items":["<A>","<B>"],"frage":"<worauf es ihm ankommt>"}   ("Was ist besser, A oder B?", "Soll ich das Cube oder das Canyon nehmen?", Kaufberatung: recherchiert im Netz und empfiehlt klar; "say" dann leer lassen)
 {"action":"web","query":"<Suchanfrage>"}   (im Internet nachschauen: Nachrichten, Öffnungszeiten, Fakten, "schau mal nach ...", alles Aktuelle)

@@ -41,7 +41,7 @@
     <div class="sub">bereit · tipp auf die Kugel zum Reden</div>
     <div class="grid2">
       <div class="card">
-        <div class="ctitle">LEONBERG</div>
+        <div class="ctitle" id="w-ort">ZUHAUSE</div>
         <div class="big" id="w-temp">–°</div>
         <div class="row"><span>gefühlt</span><b id="w-feel">–</b></div>
         <div class="row"><span>Regen</span><b id="w-rain">–</b></div>
@@ -79,7 +79,7 @@
     </div>
     <div class="ltop" id="ltop">
       <div><div class="lnum" id="lnum">–</div><div class="lttl" id="lttl">BRENNPUNKTE WELTWEIT</div></div>
-      <div class="seg"><span class="on" data-m="welt">WELT</span><span data-m="stadt" id="seg-stadt">LEONBERG</span><span data-m="fuer">FÜR DICH</span><span data-m="orte">ORTE</span></div>
+      <div class="seg"><span class="on" data-m="welt">WELT</span><span data-m="stadt" id="seg-stadt">ZUHAUSE</span><span data-m="fuer">FÜR DICH</span><span data-m="orte">ORTE</span></div>
     </div>
     <div class="lorte" id="lorte"></div>
     <div class="ljar" id="ljar"><canvas id="lmini"></canvas><div><small>JARVIS</small><span id="ljartxt">holt die Lage …</span></div></div>
@@ -178,7 +178,7 @@
           <div class="f"><label>Das interessiert dich (lernt Jarvis von selbst – × zum Entfernen)</label><div class="tchips" id="set-themen"></div></div>
           <div class="f"><label>Eigene Themen dazu (mit Komma trennen)</label><input id="set-tselbst" type="text" placeholder="z. B. Euro Truck Simulator, VfB Stuttgart, KI"></div>
           <div class="srow"><div>Bei „Wie ist die Lage?“ zur Lage springen</div><div class="sw" id="set-ljump"></div></div>
-          <div class="srow"><div>Bei der Tour auf jeden Ort zoomen<small>z. B. Polizeirevier, Engelbergtunnel</small></div><div class="sw" id="set-lzoom"></div></div>
+          <div class="srow"><div>Bei der Tour auf jeden Ort zoomen<small>z. B. Polizeirevier, Tunnel, Bahnhof</small></div><div class="sw" id="set-lzoom"></div></div>
           <div class="srow"><div>Erde langsam drehen (echter Tag und Nacht)</div><div class="sw" id="set-lspin"></div></div>
           <div class="srow"><div>Satelliten-Bahnen um die Erde</div><div class="sw" id="set-lorbit"></div></div>
           <div class="srow"><div>Ortsnamen auf der Karte</div><div class="sw" id="set-llabels"></div></div>
@@ -254,7 +254,7 @@
         </div>
         <div class="sec" style="--c:#ffd678"><h3>MEINE WEGE</h3>
           <div class="note" style="margin:0 0 6px">Ein Punkt, über den der Weg führen soll: Name, Doppelpunkt, Ort oder Koordinaten (in Google Maps lange drücken, Zahlen kopieren). Dann geht „über den oberen Feldweg zu Opa“.</div>
-          <div class="f"><textarea id="set-mwege" rows="3" placeholder="oberer Feldweg: 48.8030, 8.9620&#10;unterer Feldweg: 48.7975, 8.9655"></textarea></div>
+          <div class="f"><textarea id="set-mwege" rows="3" placeholder="Feldweg am Fluss: 52.5200, 13.4050"></textarea></div>
         </div>
         <div class="sec" style="--c:#3cc8ff"><h3>ROUTEN SCHICKEN</h3>
           <div class="f"><label>Google-Maps-Link per WhatsApp an (Name aus den Kontakten, leer = an niemanden)</label><input id="set-routean" type="text" placeholder="z. B. Mama"></div>
@@ -300,7 +300,7 @@
           <div class="f"><label>Ticket</label><select id="set-ticket"><option value="erwachsen">Kein Abo – immer EinzelTicket kaufen</option><option value="kind">EinzelTicket Kind (bis 14)</option><option value="abo">Ich hab ein Abo (Deutschlandticket/Schülerabo)</option></select></div>
           <div class="f"><label>Ticket kaufen in</label><select id="ticket-app"><option value="auto">Automatisch (DB Navigator mit Verbindung, sonst VVS Mobil)</option><option value="db">DB Navigator – Verbindung + Ticket direkt</option><option value="vvs">VVS Mobil (nur App öffnen)</option></select></div>
           <div class="note">Fahrplan und Ticketpreis kommen vom VVS. „Ticket kaufen“ öffnet die VVS-App, bezahlen tust du dort selbst. Rad in S-Bahn/Regio: kostenlos, nur Mo–Fr 6–9 Uhr braucht es ein Kinderticket. Wird sofort gespeichert.</div>
-          <div class="f"><label>Bahn-Test – wohin?</label><input id="bahn-ziel" type="text" placeholder="leer = Oma und Opa · z. B. Ditzingen"></div>
+          <div class="f"><label>Bahn-Test – wohin?</label><input id="bahn-ziel" type="text" placeholder="leer = fester Weg · z. B. Hauptbahnhof"></div>
           <div class="srow"><div>Bahn-Test<small>Echte Verbindung ab jetzt, mit Ticket und „Ticket kaufen“ – kommt als Mitteilung</small></div><div class="sbtn" id="set-testbahn">Suchen</div></div>
           <div class="srow"><div>Gelernte Stopps<small id="set-halte">Wie lange du beim Rewe, Bäcker usw. hältst</small></div><div class="sbtn" id="set-haltebtn">Zeigen</div></div>
         </div>
@@ -441,7 +441,7 @@
           <div class="srow"><div>Melden testen<small>Ich melde mich jetzt einmal so wie sonst – laut, wenn ich darf, sonst als Nachricht</small></div><div class="sbtn" id="mo-test">Testen</div></div>
           <div class="srow"><div>Uhr testen<small>Schickt eine Nachricht, die auf deiner Galaxy Watch erscheinen sollte</small></div><div class="sbtn" id="watch-test">Testen</div></div>
           <div class="note" style="margin:0 0 6px">Laut nur zuhause oder mit deinen Kopfhörern. Sonst Nachricht. „Nicht stören“ = immer nur Nachricht. In der Schulstunde hebe ich alles für die Pause auf.</div>
-          <div class="f"><label>Name deiner Kopfhörer (Teil reicht)</label><input id="kopf-name" type="text" placeholder="JBL Tune Beam"></div>
+          <div class="f"><label>Name deiner Kopfhörer (Teil reicht)</label><input id="kopf-name" type="text" placeholder="z. B. Name deiner Bluetooth-Kopfhörer"></div>
           <div class="srow"><div>Jetzt gerade<small id="melden-info">Tippe auf Prüfen</small></div><div class="sbtn" id="melden-btn">Prüfen</div></div>
         </div>
         <div class="sec" style="--c:#ffd678"><h3>BERECHTIGUNGEN</h3>

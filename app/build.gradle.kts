@@ -45,6 +45,8 @@ android {
             manifestPlaceholders["appLabel"] = "Jarvis"
             buildConfigField("String", "RELEASE_TAG", "\"neueste\"")
             buildConfigField("String", "APK_NAME", "\"Jarvis.apk\"")
+            // Eigener Sprach-Agent (ElevenLabs) – kommt aus einem geheimen GitHub-Wert, steht nicht im Code
+            buildConfigField("String", "LIVE_AGENT", "\"" + (System.getenv("JARVIS_AGENT_ID") ?: "").trim() + "\"")
         }
         create("konto") {
             dimension = "art"
@@ -53,6 +55,7 @@ android {
             manifestPlaceholders["appLabel"] = "Jarvis Konto"
             buildConfigField("String", "RELEASE_TAG", "\"konto-neueste\"")
             buildConfigField("String", "APK_NAME", "\"Jarvis-Konto.apk\"")
+            buildConfigField("String", "LIVE_AGENT", "\"\"")   // für alle: ohne fremden Agenten (kostenlose Stimme)
         }
     }
 

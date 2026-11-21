@@ -77,7 +77,7 @@ object Lage {
 
     private const val GENAU = """   "genau" (wie genau der Ort ist: "punkt" = ein bestimmtes Gebäude, Platz, Tunnel, Brücke, Bahnhof, Kreuzung oder
    Autobahnabschnitt; "strasse"; "stadtteil"; "stadt"; "region"; "land") und "suche" (der genaueste Ort aus der Meldung
-   als Suchbegriff für eine Karte, immer mit Stadt, z. B. "Engelbergtunnel, Leonberg", "Hauptbahnhof, Stuttgart";
+   als Suchbegriff für eine Karte, immer mit Stadt, z. B. "Römerberg, Frankfurt", "Hauptbahnhof, Köln";
    bei Ländern nur das Land). Nimm den genauesten Ort, den die Meldung hergibt."""
 
     private fun prompt(city: String, themen: String = "") = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).

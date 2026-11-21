@@ -28,6 +28,8 @@ jobs:
           gradle-version: "8.11.1"
 
       - name: APK bauen
+        env:
+          JARVIS_AGENT_ID: ${{ secrets.JARVIS_AGENT_ID }}
         run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: APKs umbenennen

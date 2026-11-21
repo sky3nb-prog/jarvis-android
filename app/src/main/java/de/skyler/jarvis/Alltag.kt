@@ -442,7 +442,7 @@ object Alltag {
         return t
     }
 
-    /** Bahn-Test zu einem beliebigen Ziel ("Ditzingen"): echte Verbindung ab jetzt, mit Ticket und „Ticket kaufen“. */
+    /** Bahn-Test zu einem beliebigen Ziel ("Hauptbahnhof"): echte Verbindung ab jetzt, mit Ticket und „Ticket kaufen“. */
     fun bahnTest(ctx: Context, ziel: String): String {
         syncBahn(ctx)
         val home = Route.home(ctx) ?: return "Trag erst deine Adresse ein (Allgemein → Standort)."

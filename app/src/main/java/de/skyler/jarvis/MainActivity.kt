@@ -27,7 +27,7 @@ import org.json.JSONObject
 class MainActivity : ComponentActivity() {
 
     companion object {
-        const val AGENT_ID = "agent_4701m6c6964efypvmbjqf3e7ak9m"
+        val AGENT_ID: String = BuildConfig.LIVE_AGENT   // steht nicht im Code (geheimer GitHub-Wert), für alle leer
     }
 
     private lateinit var web: WebView
@@ -312,7 +312,7 @@ class MainActivity : ComponentActivity() {
         if (prefs.getString("groq_key", "").isNullOrBlank() && prefs.getString("voice_mode", "free") != "auto") {
             send("needkey", JSONObject()); return
         }
-        if (prefs.getString("voice_mode", "free") == "auto" &&
+        if (AGENT_ID.isNotBlank() && prefs.getString("voice_mode", "free") == "auto" &&
             prefs.getLong("eleven_off_until", 0L) < System.currentTimeMillis()) {
             // George (ElevenLabs): Mikrofon vom Hintergrund-Jarvis kurz freigeben
             JarvisService.start(this, JarvisService.ACTION_PAUSE)
@@ -707,7 +707,7 @@ class MainActivity : ComponentActivity() {
         fun setPlan(json: String) = Melden.setPlan(this@MainActivity, json)
 
         @JavascriptInterface
-        fun getKopf(): String = prefs.getString("kopfhoerer", "JBL Tune Beam") ?: ""
+        fun getKopf(): String = prefs.getString("kopfhoerer", "") ?: ""
 
         @JavascriptInterface
         fun setKopf(n: String) { prefs.edit().putString("kopfhoerer", n.trim()).apply() }

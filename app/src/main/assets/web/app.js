@@ -1044,7 +1044,7 @@
   // "Für dich" einmal im Hintergrund holen (für die Info-Seite; 15 Minuten zwischengespeichert)
   setTimeout(() => { try { if (A && A.hasGroqKey()) A.getLage("@fuerdich", false); } catch (e) {} }, 4000);
 
-  // --- Wetter (Open-Meteo, Leonberg) und Uhr ---
+  // --- Wetter (Open-Meteo, am eigenen Wohnort) und Uhr ---
   function clock() {
     const d = new Date();
     $("clock").textContent = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
@@ -1052,7 +1052,10 @@
   }
   clock(); setInterval(clock, 10000);
   function weather() {
-    fetch("https://api.open-meteo.com/v1/forecast?latitude=48.80&longitude=9.01&current=temperature_2m,apparent_temperature" +
+    let h = null; try { h = A ? JSON.parse(A.home()) : null; } catch (e) {}
+    if (!h || typeof h.lat !== "number") { setTimeout(weather, 60 * 1000); return; }   // Wohnort noch nicht bekannt
+    try { const c = A.city(); if (c && $("w-ort")) $("w-ort").textContent = c.toUpperCase(); } catch (e) {}
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + h.lat.toFixed(2) + "&longitude=" + h.lon.toFixed(2) + "&current=temperature_2m,apparent_temperature" +
           "&daily=precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=1")
       .then((r) => r.json()).then((j) => {
         $("w-temp").textContent = Math.round(j.current.temperature_2m) + "°";

@@ -148,7 +148,7 @@ object Leute {
         }
     }
 
-    /** "Geschenkidee für Janis" / "was weißt du über Janis?" */
+    /** "Geschenkidee für Alex" / "was weißt du über Alex?" */
     fun about(ctx: Context, who: String, gift: Boolean): String {
         val l = list(ctx); val w = Chats.norm(who)
         val x = (0 until l.length()).mapNotNull { l.optJSONObject(it) }.firstOrNull { p ->

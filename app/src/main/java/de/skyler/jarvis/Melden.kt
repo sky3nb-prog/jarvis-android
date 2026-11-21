@@ -15,7 +15,7 @@ import java.util.Calendar
 
 /**
  * Wann darf Jarvis am Handy reden – und wann nur eine Nachricht schicken?
- *  - Laut sprechen nur, wenn du zuhause bist ODER deine Kopfhörer verbunden sind (Name in den Einstellungen, z. B. "JBL Tune Beam 2").
+ *  - Laut sprechen nur, wenn du zuhause bist ODER deine Kopfhörer verbunden sind (Name in den Einstellungen).
  *  - "Nicht stören" an (oder Handy lautlos): nie sprechen, nur Nachricht.
  *  - In der Schule während einer Stunde: gar nichts – er hebt es auf und sagt es in der nächsten Pause (bzw. nach der Schule).
  * Dazu der Stundenplan (Einstellungen → Schule): Stunden mit Uhrzeit und Fach, Pausen sind die Lücken dazwischen.
@@ -26,11 +26,11 @@ object Melden {
     private val DAYS = listOf("mo", "di", "mi", "do", "fr")
 
     // --- Stundenplan --------------------------------------------------------------------------------------------
-    /** Standard (wie der Nutzer ihn beschrieben hat): Mo–Do bis 15:40, Fr bis 12:25. Fächer trägt er selbst ein. */
+    /** Neutraler Standard – Zeiten und Fächer trägt jeder selbst ein. */
     private fun defPlan(): JSONObject {
         fun l(v: String, b: String) = JSONObject().put("von", v).put("bis", b).put("fach", "")
-        val voll = listOf(l("08:00", "08:45"), l("08:45", "09:30"), l("09:50", "10:35"), l("10:40", "11:25"), l("11:40", "12:25"), l("12:25", "13:10"), l("14:10", "14:55"), l("14:55", "15:40"))
-        val mi = listOf(l("08:00", "08:45"), l("08:45", "09:30"), l("09:50", "10:35"), l("10:40", "11:25"), l("11:40", "12:25"))
+        val voll = listOf(l("08:00", "08:45"), l("08:50", "09:35"), l("09:55", "10:40"), l("10:45", "11:30"), l("11:45", "12:30"), l("12:35", "13:20"))
+        val mi = listOf(l("08:00", "08:45"), l("08:50", "09:35"), l("09:55", "10:40"), l("10:45", "11:30"), l("11:45", "12:30"))
         fun arr(x: List<JSONObject>) = JSONArray().apply { x.forEach { put(JSONObject(it.toString())) } }
         return JSONObject().put("v", 2).put("mo", arr(voll)).put("di", arr(voll)).put("mi", arr(voll)).put("do", arr(voll)).put("fr", arr(mi))
     }
@@ -126,7 +126,7 @@ object Melden {
 
     // --- Darf er reden? ----------------------------------------------------------------------------------------
     fun headphones(ctx: Context): Boolean = try {
-        val want = (prefs(ctx).getString("kopfhoerer", "JBL Tune Beam") ?: "").trim()
+        val want = (prefs(ctx).getString("kopfhoerer", "") ?: "").trim()
         val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { d ->
             val bt = d.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || d.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||

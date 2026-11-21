@@ -170,7 +170,7 @@
       e.addEventListener("click", (ev) => { ev.stopPropagation(); toggle(p.i); });
       markers.push(new maplibregl.Marker({ element: e }).setLngLat([p.lon, p.lat]).addTo(map));
     }
-    // weit draußen: alle lokalen Meldungen als ein Punkt "LEONBERG · 5"
+    // weit draußen: alle lokalen Meldungen als ein Punkt "ZUHAUSE · 5"
     const lok = list.filter((p) => p.art === "lokal"), h = home();
     if (mode === "welt" && lok.length && h) {
       const e = document.createElement("div"); e.className = "lclu" + (map.getZoom() < 8 ? " on" : "");
