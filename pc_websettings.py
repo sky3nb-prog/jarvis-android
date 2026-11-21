@@ -473,6 +473,16 @@ def run(ui, name: str, v: dict) -> dict:
         if eng == "eleven" and pc_eleven.LAST_ERROR:
             return {"ok": False, "text": pc_eleven.LAST_ERROR + " (Zu hören war die Ersatzstimme.)"}
         return {"ok": True, "text": "Stimme getestet."}
+    if name == "selbstzerstoerung":
+        import pc_weg
+
+        def _quit():
+            try:
+                import pc_steuerung
+                pc_steuerung.request_quit()
+            except Exception:
+                pass
+        return pc_weg.destroy(_quit)
     if name == "el_load":
         import pc_eleven
         key = _key(s, v, "eleven_key")
@@ -586,7 +596,11 @@ def _ordnen(tabs, card):
             kst = ""
         konto = {"id": "konto", "g": "KONTO", "n": "Jarvis-Konto", "i": "👤", "items": [card("Dein Konto", {"t": "note", "l": kst},
                  {"t": "btn", "a": "konto_open", "l": "Anmelden / Konto verwalten"},
-                 {"t": "note", "l": "Alles wird mit deinem Passwort verschlüsselt, bevor es ins Konto geht – auch der Server kann es nicht lesen."})]}
+                 {"t": "note", "l": "Alles wird mit deinem Passwort verschlüsselt, bevor es ins Konto geht – auch der Server kann es nicht lesen."}),
+                 card("Jarvis entfernen",
+                      {"t": "note", "l": "Löscht Jarvis komplett von diesem PC: Programm, Einstellungen, Gedächtnis, Stimmen, Autostart und die Sicherung "
+                                         "dieses PCs im Konto. Deine anderen Geräte und dein Konto bleiben. Nicht rückgängig zu machen."},
+                      {"t": "btn", "a": "selbstzerstoerung", "l": "Selbstzerstörung"})]}
     return ([konto] if konto else []) + [
         T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),
         T("wege", A, "Zuhause & Orte", "🗺️", [card("Zuhause", *ort)] + pick("Meine Orte", "Meine Wege", "Routen schicken")),

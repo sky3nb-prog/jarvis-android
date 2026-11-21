@@ -248,8 +248,19 @@
     return { load };
   })();
 
+  // Selbstzerstörung: erst nach zweimal Bestätigen (dreimal tippen); nach 6 s ohne Tippen wieder zurück
+  let wegStep = 0, wegT = null;
+  const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Jarvis von diesem PC"]];
   function run(a, btn) {
     if (a === "konto_open" && window.JKonto) { close(false); window.JKonto.open(); return; }
+    if (a === "selbstzerstoerung" && wegStep < 2) {
+      clearTimeout(wegT); wegStep++;
+      btn.textContent = WEG[wegStep][0]; btn.style.color = "#ff9a8a"; btn.style.borderColor = "#ff5a5a";
+      const st0 = $("ps-body").querySelector('[data-st="selbstzerstoerung"]'); if (st0) { st0.className = "ps-st bad"; st0.textContent = WEG[wegStep][1]; }
+      wegT = setTimeout(() => { wegStep = 0; btn.textContent = WEG[0][0]; btn.style.color = ""; btn.style.borderColor = ""; if (st0) st0.textContent = ""; }, 6000);
+      return;
+    }
+    if (a === "selbstzerstoerung") { clearTimeout(wegT); wegStep = 0; }
     const st = $("ps-body").querySelector(`[data-st="${a}"]`);
     btn.classList.add("busy"); if (st) { st.className = "ps-st"; st.textContent = "…"; }
     window.PC.post("settings_run", { name: a, values: vals }).then((r) => r && r.json()).then((r) => {
