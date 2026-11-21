@@ -318,6 +318,10 @@ def login(email: str, pw: str, neu: bool) -> dict:
             return {"ok": True, "text": "Verbunden – dein Jarvis ist jetzt in deinem Konto gesichert."}
         doc = _get_doc()
         if doc and doc.get("pc"):
+            if _decrypt_any(doc["pc"]) is None:   # z. B. nach „Passwort vergessen“: alte Sicherung ist mit dem alten Passwort verschlüsselt
+                push(force=True)
+                return {"ok": True, "text": "Angemeldet. Die alte Sicherung war mit deinem früheren Passwort verschlüsselt und lässt sich "
+                                            "nicht mehr öffnen – dieser PC ist jetzt der neue Stand im Konto."}
             pull(force=True, doc=doc)
             return {"ok": True, "restart": True, "text": "Angemeldet – deine Sachen sind geladen. Jarvis startet neu."}
         push(force=True)
@@ -325,6 +329,20 @@ def login(email: str, pw: str, neu: bool) -> dict:
     except Exception as e:
         STATUS["err"] = str(e)
         return {"ok": False, "text": str(e)}
+
+
+def reset_password(email: str) -> dict:
+    """„Passwort vergessen“: Firebase schickt eine Mail zum Zurücksetzen."""
+    email = (email or "").strip()
+    if not configured():
+        return {"ok": False, "text": "Das Konto ist noch nicht eingerichtet."}
+    if "@" not in email:
+        return {"ok": False, "text": "Bitte zuerst deine E-Mail eintragen."}
+    code, j = _http(f"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={cfg()['apiKey']}",
+                    {"requestType": "PASSWORD_RESET", "email": email})
+    if code != 200:
+        return {"ok": False, "text": _fb_error((j.get("error") or {}).get("message", f"HTTP {code}"))}
+    return {"ok": True, "text": "Mail ist unterwegs – schau auch im Spam-Ordner. Danach mit dem neuen Passwort anmelden."}
 
 
 def forget_device():

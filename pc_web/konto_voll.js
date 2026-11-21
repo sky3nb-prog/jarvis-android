@@ -28,7 +28,8 @@
     <div class="ko-in" id="ko-form"><input id="ko-mail" type="email" placeholder="E-Mail"><input id="ko-pw" type="password" placeholder="Passwort (mind. 6 Zeichen)">
     <div class="ko-msg" id="ko-msg"></div><div class="ko-row"><button id="ko-in">Anmelden</button><button class="alt" id="ko-neu">Neues Konto</button></div></div>
     <div class="ko-in" id="ko-acc" hidden><div class="ko-msg ok" id="ko-st"></div><div class="ko-row"><button id="ko-sync">Jetzt abgleichen</button><button class="alt" id="ko-out">Abmelden</button></div></div>
-    <div class="ko-skip" id="ko-skip">Schließen</div></div>`;
+    <div class="ko-skip" id="ko-forgot">Passwort vergessen?</div>
+    <div class="ko-skip" id="ko-skip" style="margin-top:8px">Schließen</div></div>`;
   document.body.appendChild(ov);
   const msg = (t, ok) => { $("ko-msg").textContent = t || ""; $("ko-msg").classList.toggle("ok", !!ok); };
   const when = (t) => t ? new Date(t).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "noch nie";
@@ -52,6 +53,12 @@
     msg(r.text, r.ok);
     if (r.ok) { $("ko-pw").value = ""; setTimeout(() => paint(r.info, r.text), 900); }
   }
+  $("ko-forgot").onclick = async () => {
+    const m = $("ko-mail").value.trim();
+    if (!m.includes("@")) return msg("Trag oben deine E-Mail ein, dann klick nochmal auf „Passwort vergessen?“.");
+    msg("Schicke dir eine Mail …", true);
+    const r = await call("konto_reset", { email: m }); msg(r.text, r.ok);
+  };
   $("ko-in").onclick = () => go(false);
   $("ko-neu").onclick = () => go(true);
   $("ko-pw").addEventListener("keydown", (e) => { if (e.key === "Enter") go(false); });
