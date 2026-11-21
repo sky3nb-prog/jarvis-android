@@ -16,6 +16,7 @@ Feste Befehle (funktionieren ohne API-Key):
     komplettes stummschalten umschalten -> einfach umschalten, falls der Zustand nicht stimmt
     mikrofon aus / mikrofon an          -> in Discord nur das Mikrofon
     <kanal>                -> in Discord in einen Sprachkanal aus den Einstellungen gehen
+    geh aus dem Discord-Call / verlass den Sprachkanal -> legt in Discord auf
     zeig die oberfläche / hud  -> großes HUD-Fenster öffnen (schließen: hud schließen)
     öffne deine einstellungen  -> Einstellungen von Jarvis (Weckwort, Stimme, Anzeige ...)
     wie wird das wetter (morgen) / wie geht's dir / wie spät ist es / erzähl einen witz  -> Unterhaltung
@@ -265,6 +266,76 @@ def discord_join_voice(channel: str, server: str = "") -> str:
         return f"Konnte dem Sprachkanal nicht beitreten: {e}"
 
 
+DISCORD_LEAVE_NAMES = ("disconnect", "verbindung trennen", "trennen", "auflegen", "leave call", "anruf verlassen")
+DISCORD_LEAVE_WORDS = ("verlass", "geh aus", "gehe aus", "geh raus", "gehe raus", "raus aus", "trenn", "disconnect",
+                       "leave", "beende den", "beende das", "beende meinen", "call beenden", "auflegen", "leg auf",
+                       "rausgehen", "rausschmeißen", "raus gehen")
+DISCORD_LEAVE_TARGETS = ("call", "anruf", "sprachkanal", "voice", "channel", "kanal", "discord", "gespräch", "talk")
+
+
+def wants_discord_leave(low: str) -> bool:
+    """'Geh aus dem Discord-Call', 'verlass den Sprachkanal', 'raus aus dem Call' ... – aber nicht das Handy-Telefonat."""
+    if any(k in low for k in ("handy", "telefon", "whatsapp", "anruf annehmen")):
+        return False
+    if "discord" not in low and not any(k in low for k in ("call", "sprachkanal", "voice", "channel")):
+        return False
+    return any(k in low for k in DISCORD_LEAVE_WORDS) and any(k in low for k in DISCORD_LEAVE_TARGETS)
+
+
+def _uia_click_disconnect(hwnd) -> bool:
+    """Sucht im Discord-Fenster den Knopf 'Verbindung trennen' (Windows-Bedienungshilfe UI Automation) und drückt ihn."""
+    import clr  # pythonnet, ist schon im Programm (für das HUD-Fenster)
+
+    clr.AddReference("UIAutomationClient")
+    clr.AddReference("UIAutomationTypes")
+    from System import IntPtr
+    from System.Windows.Automation import (AutomationElement, ControlType, InvokePattern, PropertyCondition,
+                                           TreeScope)
+
+    root = AutomationElement.FromHandle(IntPtr(int(hwnd)))
+    cond = PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button)
+    for _ in range(3):  # Discord baut seine Bedienungshilfe erst auf, wenn jemand fragt -> kurz nachfassen
+        for el in root.FindAll(TreeScope.Descendants, cond):
+            try:
+                name = (el.Current.Name or "").strip().lower()
+            except Exception:
+                continue
+            if name in DISCORD_LEAVE_NAMES:
+                el.GetCurrentPattern(InvokePattern.Pattern).Invoke()
+                return True
+        time.sleep(0.6)
+    return False
+
+
+def discord_leave_voice() -> str:
+    """Verlässt den Discord-Sprachkanal/Call, in dem du gerade bist."""
+    try:
+        import pc_windows
+
+        hwnd = pc_windows.find_main_window(PROCESS_NAMES["discord"])
+        if not hwnd:
+            return "Discord ist gar nicht offen, also bist du auch in keinem Call."
+        previous = pc_windows.foreground_window()
+        pc_windows.bring_to_front(hwnd)
+        time.sleep(0.4)
+        ok = False
+        try:
+            ok = _uia_click_disconnect(hwnd)
+        except Exception as e:
+            print("[discord] Verlassen über Bedienungshilfe ging nicht:", e)
+        if not ok and DISCORD_KEYS.get("leave"):  # Notlösung: eigenes Tastenkürzel aus den Discord-Tastenbelegungen
+            pyautogui.hotkey(*DISCORD_KEYS["leave"])
+            ok = True
+        if previous and previous != hwnd:
+            time.sleep(0.25)
+            pc_windows.bring_to_front(previous)
+        if ok:
+            return "Erledigt, du bist raus aus dem Call."
+        return "Ich finde keinen Knopf zum Auflegen. Bist du gerade überhaupt in einem Discord-Call?"
+    except Exception as e:
+        return f"Konnte den Discord-Call nicht verlassen: {e}"
+
+
 def set_full_mute(on) -> str:
     """on=True: Full Mute an, on=False: aus, on=None: einfach umschalten."""
     global FULL_MUTE_ON
@@ -504,6 +575,8 @@ def run_action(a: dict) -> str:
             return set_full_mute(True)
         if what == "full_mute_off":
             return set_full_mute(False)
+        if what == "leave":
+            return discord_leave_voice()
     if kind == "discord_voice" and str(a.get("name", "")).strip():
         name = str(a["name"]).strip().lower()
         return discord_join_voice(*DISCORD_VOICE.get(name, (str(a["name"]).strip(), "")))
@@ -561,6 +634,10 @@ def handle_fixed(text: str):
     if _NIGHT is not None and _NIGHT.is_alive() and re.search(r"abbrech|stopp|nicht (aus|herunter)|lass (ihn )?an", low):
         _NIGHT.cancel()
         return "Okay, der PC bleibt an."
+
+    # „Geh aus dem Discord-Call, in dem ich gerade bin“ – ganz früh, damit nichts anderes den Satz schnappt
+    if wants_discord_leave(low):
+        return discord_leave_voice()
 
     # PC aufräumen, Discord „wer ist online“, Warenkorb, „wo hab ich … hingelegt“
     try:
@@ -826,7 +903,7 @@ Erlaubte Aktionen:
 {{"action":"youtube","query":"<Suchbegriff>"}}
 {{"action":"media","key":"<{'|'.join(sorted(set(MEDIA_KEYS.values())))}>"}}
 {{"action":"url","url":"<adresse>"}}
-{{"action":"discord","what":"<mic_off|mic_on|full_mute_on|full_mute_off>"}}   (mic = nur Mikrofon, full_mute = komplettes Stummschalten: Mikrofon und Ton)
+{{"action":"discord","what":"<mic_off|mic_on|full_mute_on|full_mute_off|leave>"}}   (mic = nur Mikrofon, full_mute = komplettes Stummschalten: Mikrofon und Ton, leave = aus dem Discord-Call/Sprachkanal rausgehen, in dem er gerade ist)
 {{"action":"discord_voice","name":"<{'|'.join(DISCORD_VOICE)} oder ein anderer Kanalname>"}}   (in einen Discord-Sprachkanal gehen)
 {{"action":"power","what":"<shutdown|restart|sleep|lock|logoff>"}}   (der PC fragt selbst nach, bevor er etwas Folgenreiches tut)
 {{"action":"wavelink","target":"<musik|discord|system|game|browser|sfx|mic|gesamt oder Name eines Wave-Link-Kanals>","what":"<up|down|set|mute|unmute>","value":<0-100 bei set>}}   (Lautstärke einzelner Kanäle im Elgato-Wave-Link-Mixer; "mich"/"mein Mikro" = mic, "alles"/"insgesamt" = gesamt)
