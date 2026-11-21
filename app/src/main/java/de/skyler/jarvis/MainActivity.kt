@@ -589,6 +589,25 @@ class MainActivity : ComponentActivity() {
         fun watchTest() { Thread({ Thread.sleep(10_000); Alltag.watchTest(this@MainActivity) }, "jarvis-uhrtest").start() }   // 10 s Zeit zum Sperren (Uhr zeigt nur bei gesperrtem Handy)
 
         @JavascriptInterface
+        fun schuleGet(): String {
+            val p = Melden.schoolPlace(this@MainActivity)
+            return JSONObject().put("ort", p?.let { "%.4f, %.4f".format(java.util.Locale.US, it.lat, it.lon) } ?: "").put("auto", prefs.getBoolean("schule_auto", true))
+                .put("da", try { Melden.reallyAtSchool(this@MainActivity) } catch (_: Exception) { false }).toString()
+        }
+        @JavascriptInterface
+        fun schuleHier() { Thread({
+            val fx = Alltag.fix?.takeIf { System.currentTimeMillis() - it.time < 10 * 60_000L } ?: run { try { Here.refresh(this@MainActivity, force = true) } catch (_: Exception) {}; null }
+            val ll = fx?.let { it.latitude to it.longitude } ?: Here.latLon(this@MainActivity)
+            val r = if (ll == null) "Ich weiß gerade nicht, wo du bist – Standort an?" else { prefs.edit().putString("schule_ort", "%.5f,%.5f".format(java.util.Locale.US, ll.first, ll.second)).apply(); "Gemerkt: Hier ist deine Schule." }
+            send("t_res", JSONObject().put("id", "sch-st").put("text", r)) }, "jarvis-schule").start() }
+        @JavascriptInterface
+        fun schuleAdresse(a: String) { Thread({
+            val p = try { Route.place(this@MainActivity, a) } catch (_: Exception) { null }
+            val r = if (p == null) "Die Adresse finde ich nicht." else { prefs.edit().putString("schule_ort", "%.5f,%.5f".format(java.util.Locale.US, p.lat, p.lon)).apply(); "Gemerkt: ${a.trim()}." }
+            send("t_res", JSONObject().put("id", "sch-st").put("text", r)) }, "jarvis-schule").start() }
+        @JavascriptInterface
+        fun schuleAuto(on: Boolean) { prefs.edit().putBoolean("schule_auto", on).apply() }
+        @JavascriptInterface
         fun notfallGet(): String = prefs.getString("notfall_wer", "") ?: ""
 
         @JavascriptInterface

@@ -8,6 +8,8 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BasalMetabolicRateRecord
+import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -36,7 +38,17 @@ object Health {
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
         HealthPermission.getReadPermission(NutritionRecord::class),
+        HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),   // Grundumsatz: für die Gesamtkalorien wie in Samsung Health
     )
+
+    /** Grundumsatz (kcal pro Tag) – letzter Wert aus Samsung Health, oder null. */
+    private fun bmr(c: HealthConnectClient, to: Long): Double? = try {
+        runBlocking {
+            c.readRecords(ReadRecordsRequest(BasalMetabolicRateRecord::class,
+                TimeRangeFilter.between(Instant.ofEpochMilli(to - 400L * 86_400_000L), Instant.ofEpochMilli(to)), ascendingOrder = false, pageSize = 1))
+                .records.firstOrNull()?.basalMetabolicRate?.inKilocaloriesPerDay
+        }
+    } catch (e: Exception) { Log.w(TAG, "bmr: $e"); null }
 
     fun status(ctx: Context): Int = try { HealthConnectClient.getSdkStatus(ctx) } catch (_: Exception) { HealthConnectClient.SDK_UNAVAILABLE }
     fun available(ctx: Context) = status(ctx) == HealthConnectClient.SDK_AVAILABLE
@@ -94,6 +106,13 @@ object Health {
             agg(c, ExerciseSessionRecord.EXERCISE_DURATION_TOTAL, from, to)?.let { o.put("sport_min", it.toMinutes()) }
         if (HealthPermission.getReadPermission(NutritionRecord::class) in g)
             agg(c, NutritionRecord.ENERGY_TOTAL, from, to)?.let { val e = Math.round(it.inKilocalories); if (e > 0) o.put("gegessen", e) }
+        // Gesamtkalorien wie in Samsung Health = Grundumsatz (bis jetzt) + Bewegung. Liefert Health Connect weniger, nehmen wir das.
+        if (HealthPermission.getReadPermission(BasalMetabolicRateRecord::class) in g) bmr(c, to)?.let { perDay ->
+            val ruhe = Math.round(perDay * (to - from) / 86_400_000.0)
+            o.put("ruhe", ruhe)
+            val sum = ruhe + o.optLong("aktiv", 0L)
+            if (sum > o.optLong("kcal", 0L)) o.put("kcal", sum).put("kcal_quelle", "grundumsatz+aktiv")
+        }
         if (o.has("kcal") && o.has("gegessen")) o.put("defizit", o.optLong("kcal") - o.optLong("gegessen"))
         return if (o.has("kcal") || o.has("schritte")) o else null
     }
@@ -107,7 +126,8 @@ object Health {
     fun text(d: JSONObject?): String {
         if (d == null) return "Ich komme nicht an deine Gesundheitsdaten. Verbinde mich in den Einstellungen unter Gesundheit mit Health Connect."
         val p = mutableListOf<String>()
-        if (d.has("kcal")) p.add("${n(d.optLong("kcal"))} Kalorien verbraucht" + (if (d.has("aktiv")) ", davon ${n(d.optLong("aktiv"))} durch Bewegung" else ""))
+        if (d.has("kcal")) p.add("${n(d.optLong("kcal"))} Kalorien verbraucht (gesamt)" + (if (d.has("aktiv")) ", davon ${n(d.optLong("aktiv"))} durch Bewegung" else "") +
+            (if (d.has("ruhe")) " und ${n(d.optLong("ruhe"))} Grundumsatz" else ""))
         if (d.has("schritte")) p.add("${n(d.optLong("schritte"))} Schritte")
         if (d.optLong("sport_min") > 0) p.add("${d.optLong("sport_min")} Minuten Sport")
         var t = p.joinToString(", ") + "."

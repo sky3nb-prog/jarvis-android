@@ -714,6 +714,14 @@
       if (type === "gmail_test") { const d = typeof data === "string" ? JSON.parse(data) : (data || {}); $("gm-state").textContent = (d.ok ? "✓ " : "✕ ") + (d.text || ""); toast(d.text || ""); return; }
       return pg && pg.call(window.jarvis, type, data);
     }; }
+  if (A && A.schuleGet) {
+    const schShow = () => { try { const d = JSON.parse(A.schuleGet()); $("sch-st").textContent = d.ort ? (d.da ? "✓ Du bist gerade in der Schule." : "Schule gemerkt (" + d.ort + ").") : "Noch kein Ort – tipp in der Schule auf „Hier“ oder trag die Adresse ein."; sw("sch-auto", d.auto); } catch (e) {} };
+    schShow();
+    $("sch-here").addEventListener("click", () => { $("sch-st").textContent = "Suche deinen Standort …"; try { A.schuleHier(); } catch (e) {} });
+    $("sch-adr").addEventListener("change", () => { const v = $("sch-adr").value.trim(); if (v) { $("sch-st").textContent = "Suche …"; try { A.schuleAdresse(v); } catch (e) {} } });
+    $("sch-auto").addEventListener("click", () => setTimeout(() => { try { A.schuleAuto(sw("sch-auto")); } catch (e) {} }, 0));
+    document.querySelectorAll('.sitem[data-go="schule"], #stabs span[data-p="schule"]').forEach((e) => e.addEventListener("click", () => setTimeout(schShow, 120)));
+  }
   if (A && A.notfallGet) {
     try { $("nf-wer").value = A.notfallGet(); } catch (e) {}
     $("nf-save").onclick = () => { A.notfallSet($("nf-wer").value.trim()); $("nf-state").textContent = "✓ Gespeichert."; };

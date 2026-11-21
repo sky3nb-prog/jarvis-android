@@ -68,13 +68,38 @@ object Melden {
     /** Schultag heute? (Stunden im Plan, nicht frei) */
     fun schoolDay(ctx: Context): Boolean = lessons(ctx).isNotEmpty() && !frei(ctx)
 
+    /** Wo ist die Schule? Einstellung „schule_ort“ (lat,lon – „Ich bin gerade in der Schule“) oder „Schule“ in Meine Orte. */
+    fun schoolPlace(ctx: Context): Route.P? {
+        (prefs(ctx).getString("schule_ort", "") ?: "").split(",").mapNotNull { it.trim().toDoubleOrNull() }.takeIf { it.size == 2 }?.let { return Route.P(it[0], it[1], "Schule") }
+        return try { if (Route.placeNames(ctx).any { it.equals("Schule", true) }) Route.place(ctx, "Schule") else null } catch (_: Exception) { null }
+    }
+
+    /** Wirklich gerade AN der Schule (Ort bekannt und du bist da, zur Schulzeit)? Ohne Ort: false. */
+    fun reallyAtSchool(ctx: Context): Boolean {
+        if (!schoolDay(ctx)) return false
+        val now = Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
+        val l = lessons(ctx); val from = mins(l.first().optString("von")) - 20; val to = mins(l.last().optString("bis")) + 15
+        if (now !in from..to) return false
+        val sp = schoolPlace(ctx) ?: return false
+        val fx = Alltag.fix?.takeIf { System.currentTimeMillis() - it.time < 20 * 60_000L } ?: return false
+        return Route.distKm(sp, Route.P(fx.latitude, fx.longitude, "")) < 0.35
+    }
+
+    /** Ist gerade Schulzeit (heute Schultag, zwischen erster und letzter Stunde)? */
+    fun schoolHours(ctx: Context): Boolean {
+        if (!schoolDay(ctx)) return false
+        val now = Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
+        val l = lessons(ctx)
+        return now in (mins(l.first().optString("von")) - 20)..(mins(l.last().optString("bis")) + 15)
+    }
+
     /** Bist du gerade an der Schule? Ort "Schule" aus Meine Orte (bis 400 m) – oder, ohne Ort: unterwegs während der Schulzeit. */
     fun atSchool(ctx: Context): Boolean {
         if (!schoolDay(ctx)) return false
         val now = Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
         val l = lessons(ctx); val from = mins(l.first().optString("von")) - 15; val to = mins(l.last().optString("bis")) + 10
         if (now !in from..to) return false
-        val sp = try { if (Route.placeNames(ctx).any { it.equals("Schule", true) }) Route.place(ctx, "Schule") else null } catch (_: Exception) { null }
+        val sp = schoolPlace(ctx)
         val fx = Alltag.fix?.takeIf { System.currentTimeMillis() - it.time < 20 * 60_000L }
         if (sp != null && fx != null) return Route.distKm(sp, Route.P(fx.latitude, fx.longitude, "")) < 0.4
         return !Alltag.isHome(ctx)

@@ -106,6 +106,56 @@ object Alltag {
      * Nachts noch am Handy (ab 22:30): "Wenn du jetzt schläfst, sind es noch X Stunden bis zum Aufstehen."
      * Einmal, sobald es unter 8½ Stunden sind, und noch einmal unter 6 Stunden. Nur Benachrichtigung, leise.
      */
+    /**
+     * Schulmodus von selbst: Bist du zur Schulzeit an der Schule (Ort unter Einstellungen → Schule), geht der Schulmodus an,
+     * nach der Schule / wenn du gehst wieder aus. Schaltest du ihn in der Schule selbst aus, bleibt er für heute aus.
+     */
+    private fun schoolAuto(ctx: Context, s: JSONObject) {
+        if (!prefs(ctx).getBoolean("schule_auto", true) || Melden.schoolPlace(ctx) == null) return
+        val day = today(); val cur = Modes.current(ctx)
+        val auto = s.optString("schule_auto_tag") == day
+        if (Melden.reallyAtSchool(ctx)) {
+            if (cur == "schule" || s.optString("schule_auto_aus") == day) return
+            if (auto) { s.put("schule_auto_aus", day); return }   // war schon mal an, du hast ihn ausgemacht -> heute nicht wieder
+            Modes.set(ctx, "schule"); s.put("schule_auto_tag", day)
+            Melden.note(ctx, "Schulmodus an", "Du bist in der Schule – ich bin still, Nachrichten kommen nur noch auf die Uhr. Nach der Schule schalte ich ihn wieder aus.")
+        } else if (auto && cur == "schule" && !Melden.schoolHours(ctx)) {
+            Modes.set(ctx, "aus"); s.put("schule_auto_tag", "")
+            Melden.note(ctx, "Schulmodus aus", "Schule ist vorbei – alles wieder normal.")
+        }
+    }
+
+    /** Morgens nach dem Aufwachen: kurz, wie die Nacht war (einmal am Tag, sobald du das Handy zum ersten Mal benutzt). */
+    private fun sleepMorning(ctx: Context, s: JSONObject) {
+        if (!on(ctx, "schlaf_morgen")) return
+        val key = "schlafmorgen|${today()}"
+        if (done(s, key)) return
+        val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY)
+        if (h < 4 || h >= 13) return
+        val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        if (!pm.isInteractive) return
+        val n = Sleep.night(ctx, 0) ?: return
+        val now = System.currentTimeMillis()
+        if (now - n.optLong("end") > 3 * 3_600_000L || now - n.optLong("end") < 60_000L) return
+        mark(s, key)
+        val min = n.optLong("min")
+        val avg = (1..6).mapNotNull { Sleep.night(ctx, it)?.optLong("min") }.let { if (it.isEmpty()) 0L else it.sum() / it.size }
+        val hm = { t: Long -> SimpleDateFormat("H:mm", de).format(Date(t)) }
+        val urteil = when {
+            min >= 8 * 60 -> "richtig gut geschlafen 💪"
+            min >= 7 * 60 -> "passt"
+            min >= 6 * 60 -> "etwas knapp"
+            else -> "zu wenig – heute lieber ruhig angehen"
+        }
+        val vgl = if (avg > 0 && Math.abs(min - avg) >= 30) (if (min > avg) " Mehr als sonst (${Sleep.dur(avg)})." else " Weniger als sonst (${Sleep.dur(avg)}).") else ""
+        // heute Abend: wann ins Bett für 8 Std.?
+        val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        val bett = Wecker.upFor(ctx, tomorrow)?.let { " Für 8 Stunden heute um ${hm(it - 8 * 3_600_000L - 15 * 60_000L)} ins Bett." } ?: ""
+        val t = "${Sleep.dur(min)} geschlafen (${hm(n.optLong("start"))}–${hm(n.optLong("end"))}) – $urteil.$vgl" +
+            (if (min < 7 * 60) bett else "") + (if (n.optLong("wach") >= 20) " Du warst ${n.optLong("wach")} Min. zwischendurch wach." else "")
+        Melden.deliver(ctx, "Deine Nacht", t, Feed.add(ctx, "schlaf", "Deine Nacht", t, t))
+    }
+
     private fun sleepNudge(ctx: Context, s: JSONObject) {
         if (!on(ctx, "schlaf_tipp")) return
         val pmx = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
@@ -114,7 +164,8 @@ object Alltag {
             else if (System.currentTimeMillis() - tt >= 30 * 60_000L) s.remove("schlaf_tipp_t") }
         if (!Vorschlag.allowed(ctx, "schlaf_tipp")) return
         val c = Calendar.getInstance(); val h = c.get(Calendar.HOUR_OF_DAY); val mi = c.get(Calendar.MINUTE)
-        if (!((h == 22 && mi >= 30) || h == 23 || h < 4)) return
+        if (!(h == 22 || h == 23 || h < 4)) return
+        if (h == 22 && mi < 30 && (Sleep.night(ctx, 0)?.optLong("min") ?: 9999L) >= 7 * 60) return   // ab 22:00 nur, wenn die letzte Nacht kurz war
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         if (!pm.isInteractive) return
         val now = System.currentTimeMillis()
@@ -126,8 +177,15 @@ object Alltag {
         val stage = if (left < 6 * 60) 2 else if (left < 8 * 60 + 30) 1 else 0
         if (stage == 0 || s.optInt("schlaf_tipp_$key") >= stage) return
         s.put("schlaf_tipp_$key", stage)
-        val t = "Wenn du jetzt schläfst, sind es noch ${Sleep.dur(left)} bis zum Aufstehen um ${SimpleDateFormat("H:mm", de).format(Date(up))}." +
-            (if (stage == 2) " Das wird knapp – leg das Handy weg." else "")
+        val last = Sleep.night(ctx, 0)?.optLong("min") ?: 0L
+        val wake = SimpleDateFormat("H:mm", de).format(Date(up))
+        val lines1 = listOf("Wenn du jetzt pennst, sind's noch ${Sleep.dur(left)} bis $wake. Langsam Handy weg?",
+            "Noch ${Sleep.dur(left)} bis zum Wecker um $wake – guter Moment, Schluss zu machen.")
+        val lines2 = listOf("Du Pitsch, geh mal schlafen! Nur noch ${Sleep.dur(left)} bis $wake.",
+            "Ey, ab ins Bett – sonst sind's nur ${Sleep.dur(left)} bis $wake. Das merkst du morgen.",
+            "Handy weg, Licht aus: nur noch ${Sleep.dur(left)} bis zum Wecker um $wake.")
+        var t = (if (stage == 2) lines2 else lines1)[(System.currentTimeMillis() / 60_000L % (if (stage == 2) lines2.size else lines1.size)).toInt()]
+        if (last in 1 until 7 * 60) t += " Letzte Nacht waren's schon nur ${Sleep.dur(last)}."
         notify(ctx, 346, "Schlafenszeit", t)
         Vorschlag.shown(ctx, "schlaf_tipp"); s.put("schlaf_tipp_t", now)
     }
@@ -159,6 +217,11 @@ object Alltag {
         val now = System.currentTimeMillis()
         val dayStart = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
         val obs = mutableListOf<String>()
+        // Was passt gerade? Schule, Uhrzeit, Wetter – damit er nichts Unpassendes vorschlägt (keine Radtour in der Schule)
+        val inSchool = Melden.schoolHours(ctx) || Melden.reallyAtSchool(ctx)
+        val fxW = fix?.takeIf { now - it.time < 60 * 60_000L }
+        val wetNow = try { fxW?.let { rainAt(it.latitude, it.longitude, now) } ?: false } catch (_: Exception) { false }
+        val outdoorOk = !inSchool && !wetNow && h in 9..19
         if (Melden.atSchool(ctx) && Melden.lessonNow(ctx) == null) {   // Pause in der Schule: kurz, wie es läuft
             val st = try { Stimmung.read(ctx) } catch (_: Exception) { null }
             obs.add("Er hat gerade Pause in der Schule (${Melden.schoolText(ctx)}). Stimmung: ${st?.optString("label") ?: "?"}. Sag ganz kurz etwas Aufmunterndes oder Lockeres zur Pause und was noch kommt")
@@ -170,11 +233,15 @@ object Alltag {
             ?.let { obs.add("Bald ist etwas Wichtiges: $it (vielleicht an ein Geschenk oder eine Nachricht denken)") }
         festeWege(ctx).firstOrNull()?.let { f ->
             val last = list(trips(ctx)).filter { near(it.optString("to"), f.label) || near(it.optString("to"), f.to) }.maxOfOrNull { it.optLong("start") } ?: 0L
-            if (last > 0 && now - last > 12 * 86_400_000L) obs.add("Er war seit ${(now - last) / 86_400_000L} Tagen nicht mehr bei ${f.label}")
+            if (outdoorOk && h in 15..19 && last > 0 && now - last > 12 * 86_400_000L) obs.add("Er war seit ${(now - last) / 86_400_000L} Tagen nicht mehr bei ${f.label}")
         }
         val tripsToday = list(trips(ctx)).count { it.optLong("start") >= dayStart } + Gassi.walks(ctx).let { a -> (0 until a.length()).count { a.optJSONObject(it)?.optLong("start") ?: 0L >= dayStart } }
-        if (h >= 17 && tripsToday == 0 && s.optBoolean("is_home")) obs.add("Er war heute noch gar nicht draußen")
-        if (h >= 18 && Gassi.on(ctx)) {
+        // „noch nicht draußen“: nicht an Schultagen (Schulweg zählt), nicht bei Regen, nicht zu spät
+        if (outdoorOk && h in 17..19 && !Melden.schoolDay(ctx) && tripsToday == 0 && s.optBoolean("is_home")) {
+            val st = try { if (Health.connected(ctx)) Health.stepsSince(ctx, dayStart) else -1L } catch (_: Exception) { -1L }
+            obs.add("Er war heute noch gar nicht draußen" + (if (st >= 0) " (erst $st Schritte heute)" else ""))
+        }
+        if (h >= 18 && !inSchool && Gassi.on(ctx)) {
             val wk = Gassi.walks(ctx).let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }
             val todayW = wk.count { it.optLong("start") >= dayStart }; val week = wk.count { it.optLong("start") >= now - 7 * 86_400_000L }
             if (todayW == 0 && week >= 5) obs.add("Heute war noch keine Hunderunde, sonst geht er fast jeden Tag")
@@ -196,7 +263,7 @@ object Alltag {
                 what.contains("nicht mehr bei") -> "Sag mal, du warst schon eine Weile nicht mehr bei ${festeWege(ctx).firstOrNull()?.label ?: "Oma und Opa"}. Lust, mal wieder vorbeizuschauen?"
                 what.startsWith("Er scheint") -> "Hey, alles okay bei dir? Klang nach einem langen Tag. Wenn du reden willst, ich bin da."
                 what.startsWith("Gestern war") -> "Sag mal, gestern war ${what.substringAfter("„").substringBefore("“")} – wie ist es gelaufen?"
-                what.contains("draußen") -> "Du warst heute noch gar nicht draußen. Kurz an die frische Luft?"
+                what.contains("draußen") -> "Du warst heute noch nicht draußen" + (Regex("erst (\\d+) Schritte").find(what)?.let { " – erst ${it.groupValues[1]} Schritte" } ?: "") + ". Kurz an die frische Luft?"
                 what.startsWith("Er testet") -> "Hey, kurzer Test von mir – wie läuft dein Tag so?"
                 else -> "Heute war noch keine Hunderunde – der Hund freut sich bestimmt."
             }
@@ -205,6 +272,9 @@ object Alltag {
                 val out = Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content",
                     "Du bist Jarvis, der persönliche KI-Butler des Nutzers (wie aus Iron Man, aber wie ein guter Freund). Du meldest dich von selbst, weil dir etwas aufgefallen ist. " +
                         "Schreib 1 bis 2 kurze, warme, persönliche Sätze auf Deutsch (du-Form), ohne Vorwurf, ohne Emojis, gern mit einer kleinen Frage oder einem Vorschlag. " +
+                        "Lage gerade: ${SimpleDateFormat("EEEE HH:mm", de).format(Date())} Uhr" + (if (inSchool) ", er ist IN DER SCHULE (kann nicht weg – schlag nichts vor, was er dort nicht machen kann, keine Ausflüge/Touren)" else "") +
+                        (if (wetNow) ", es regnet" else "") + (if (h >= 20) ", es ist Abend (keine Ausflüge mehr vorschlagen)" else "") + ". " +
+                        "Schlag nur vor, was JETZT wirklich passt. Bleib konkret (echte Zahlen/Fakten aus dem Hinweis), keine leeren Floskeln. " +
                         "Was du über ihn weißt:\n" + Memory.facts(ctx).takeLast(40).joinToString("\n") { "- $it" }))
                     .put(JSONObject().put("role", "user").put("content", "Dir ist aufgefallen: $what. Nur der Text.")), 160).trim().trim('"')
                 if (out.length in 10..300) text = out
@@ -677,6 +747,8 @@ object Alltag {
         try { appUpdate(ctx, s) } catch (_: Exception) {}
         try { Konto.tick(ctx) } catch (_: Exception) {}   // Jarvis-Konto: alle 5 Minuten sichern (wenn verbunden)
         try { sleepNudge(ctx, s) } catch (_: Exception) {}
+        try { sleepMorning(ctx, s) } catch (e: Exception) { Log.w(TAG, "schlaf-morgen: $e") }
+        try { schoolAuto(ctx, s) } catch (e: Exception) { Log.w(TAG, "schule-auto: $e") }
         try { checkIn(ctx, s) } catch (e: Exception) { Log.w(TAG, "melden: $e") }
         try { Melden.flush(ctx) } catch (_: Exception) {}
         try { stillInBed(ctx, s) } catch (e: Exception) { Log.w(TAG, "aufstehen: $e") }

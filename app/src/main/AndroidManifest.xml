@@ -48,6 +48,7 @@
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_NUTRITION" />
+    <uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />
 
     <!-- Android 11+: Spracherkennung und Sprachausgabe des Handys sichtbar machen -->
     <queries>
