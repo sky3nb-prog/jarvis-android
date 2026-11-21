@@ -894,6 +894,21 @@
   document.querySelector('[data-p="sys"]').addEventListener("click", () => setTimeout(updShow, 60));
   $("upd-auto").addEventListener("click", () => setTimeout(() => { try { A.updSet(sw("upd-auto")); } catch (e) {} updShow(); }, 0));
   $("upd-allow").addEventListener("click", () => { try { A.updAllow(); } catch (e) {} setTimeout(updShow, 4000); });
+  // Selbstzerstörung (nur Ausgabe für alle): dreimal tippen, sonst nichts
+  try {
+    if (A && A.canDestroy && A.canDestroy()) {
+      $("sec-weg").style.display = "";
+      const B = $("weg-btn"), I = $("weg-info"); let step = 0, tmr = null;
+      const TXT = [["Löschen", "Zum Bestätigen noch zweimal tippen"], ["Wirklich?", "Noch einmal tippen – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt tippen löscht Jarvis"]];
+      const show = () => { B.textContent = TXT[step][0]; I.textContent = TXT[step][1]; };
+      B.addEventListener("click", () => {
+        clearTimeout(tmr);
+        if (step < 2) { step++; show(); tmr = setTimeout(() => { step = 0; show(); }, 6000); return; }
+        B.textContent = "Lösche …"; I.textContent = "Jarvis räumt auf – nicht schließen."; B.style.pointerEvents = "none";
+        A.selfDestruct();
+      });
+    }
+  } catch (e) {}
   $("upd-now").addEventListener("click", () => { try { A.updNow(); } catch (e) {} toast("Schaue nach …"); setTimeout(updShow, 8000); setTimeout(updShow, 30000); });
   window.addEventListener("focus", updShow);
   const closeSettings = () => { $("settings").classList.remove("on"); newDots(); if (window.show) try { show("fokus"); } catch (e) {} };

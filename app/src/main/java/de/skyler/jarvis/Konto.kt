@@ -156,6 +156,16 @@ object Konto {
 
     fun signOut(ctx: Context) { kp(ctx).edit().clear().commit() }
 
+    /** Selbstzerstörung: die Sicherung dieses Handys aus dem Konto löschen (andere Geräte bleiben), danach abmelden. */
+    fun forgetDevice(ctx: Context) {
+        if (loggedIn(ctx)) {
+            // Felder, die in updateMask stehen, aber nicht im Inhalt, löscht Firestore
+            val mask = listOf("android", "android_t").joinToString("&") { "updateMask.fieldPaths=$it" }
+            post(docUrl(ctx) + "?" + mask, JSONObject().put("fields", JSONObject()).toString(), token(ctx), "PATCH")
+        }
+        signOut(ctx)
+    }
+
     private fun token(ctx: Context): String {
         val p = kp(ctx)
         upgradeTresor(ctx)

@@ -680,6 +680,13 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun kontoInfo(): String = Konto.info(this@MainActivity).toString()
 
+        // --- Selbstzerstörung (nur Ausgabe für alle) ---
+        @JavascriptInterface
+        fun canDestroy(): Boolean = Weg.allowed(this@MainActivity)
+
+        @JavascriptInterface
+        fun selfDestruct() = runOnUiThread { Weg.destroy(this@MainActivity) { t -> send("weg", JSONObject().put("text", t)) } }
+
         @JavascriptInterface
         fun kontoLogin(email: String, pw: String, neu: Boolean) {
             Thread({ val r = Konto.signIn(this@MainActivity, email, pw, neu); send("konto", r.put("info", Konto.info(this@MainActivity))) }, "konto-login").start()
