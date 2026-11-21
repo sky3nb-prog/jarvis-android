@@ -85,7 +85,7 @@
           <b>Kopplung</b><span id="st-link">–</span>
         </div>
         <div class="msg" id="msg2"></div>
-        <div class="row"><button class="btn ghost small" id="b-out">Abmelden</button><button class="btn ghost small" id="b-del">Konto löschen …</button></div>
+        <div class="row"><button class="btn ghost small" id="b-out">Abmelden</button><button class="btn ghost small" id="b-pwr">Passwort zurücksetzen</button><button class="btn ghost small" id="b-del">Konto löschen …</button></div>
         <div class="row" id="del-ask" hidden><button class="btn ghost small danger" id="b-del-ok">Ja, Konto und alle Daten löschen</button></div>
       </div>
       <div class="card">
@@ -205,6 +205,13 @@
   $("b-neu").onclick = () => login(true);
   $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") login(false); });
   $("b-out").onclick = () => { S.set(null); show(); };
+  $("b-pwr").onclick = async () => {
+    const s = S.get(); if (!s || !C) return;
+    msg("msg2", "Schicke dir eine Mail …", true);
+    try { await j("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=" + C.apiKey, { requestType: "PASSWORD_RESET", email: s.email });
+      msg("msg2", "Mail an " + s.email + " ist unterwegs (auch im Spam schauen). Danach auf deinen Geräten mit dem neuen Passwort anmelden.", true);
+    } catch (e) { msg("msg2", e.message); }
+  };
   $("b-del").onclick = () => { $("del-ask").hidden = !$("del-ask").hidden; };
   $("b-del-ok").onclick = async () => {
     const s = S.get(); if (!s) return;
