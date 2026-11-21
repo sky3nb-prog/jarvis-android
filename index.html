@@ -74,7 +74,7 @@
         <input id="pw" type="password" placeholder="Passwort (mindestens 6 Zeichen)" autocomplete="current-password">
         <div class="msg" id="msg"></div>
         <div class="row"><button class="btn" id="b-in">Anmelden</button><button class="btn ghost" id="b-neu">Neues Konto</button></div>
-        <p class="note">Mit dem Anlegen eines Kontos gilt unsere <a href="datenschutz.html">Datenschutzerklärung</a>.</p>
+        <p class="note"><a href="#" id="b-reset">Passwort vergessen?</a> · Mit dem Anlegen eines Kontos gilt unsere <a href="datenschutz.html">Datenschutzerklärung</a>.</p>
       </div>
       <div class="card" id="c-acc" hidden>
         <div class="kicker">Angemeldet</div>
@@ -92,7 +92,7 @@
         <div class="kicker">Sicher</div>
         <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg> Nur du kannst es lesen</h3>
         <p>Einstellungen, Gedächtnis und Kopplung werden <b>auf deinem Gerät</b> mit deinem Passwort verschlüsselt, bevor sie ins Konto gehen. Der Server sieht nur Zeichensalat – auch diese Seite kann den Inhalt nicht lesen.</p>
-        <p class="note">Darum gilt: Passwort vergessen heißt neu anfangen. Mehrere Konten sind möglich.</p>
+        <p class="note">Passwort vergessen? Kein Problem: Über „Passwort vergessen?“ bekommst du eine Mail zum Zurücksetzen. Deine Geräte behalten alles – nur die alte Sicherung im Konto lässt sich mit dem neuen Passwort nicht mehr öffnen, das erste Gerät lädt dann seinen Stand neu hoch.</p>
       </div>
     </div>
   </section>
@@ -190,6 +190,17 @@
       if (neu) msg("msg2", "Konto angelegt. Jetzt App bzw. PC-Programm herunterladen und dort mit derselben E-Mail anmelden.", true);
     } catch (e) { msg("msg", e.message); }
   }
+  $("b-reset").onclick = async (e) => {
+    e.preventDefault();
+    if (!C) return msg("msg", "Die Seite ist noch nicht fertig eingerichtet.");
+    const email = $("mail").value.trim();
+    if (!email.includes("@")) return msg("msg", "Trag oben deine E-Mail ein und klick dann nochmal auf „Passwort vergessen?“.");
+    msg("msg", "Schicke dir eine Mail …", true);
+    try {
+      await j("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=" + C.apiKey, { requestType: "PASSWORD_RESET", email });
+      msg("msg", "Mail ist unterwegs – schau auch im Spam-Ordner. Wichtig: Alte Sicherungen waren mit dem alten Passwort verschlüsselt. Nach dem Zurücksetzen lädt das erste Gerät, auf dem du dich neu anmeldest, seinen Stand neu hoch.", true);
+    } catch (err) { msg("msg", err.message); }
+  };
   $("b-in").onclick = () => login(false);
   $("b-neu").onclick = () => login(true);
   $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") login(false); });
