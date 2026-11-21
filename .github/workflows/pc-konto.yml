@@ -21,7 +21,7 @@ jobs:
       - name: Pakete
         shell: cmd
         run: |
-          py -m pip install pyinstaller pystray pillow pyautogui sounddevice numpy SpeechRecognition tzdata psutil edge-tts soundfile pywebview opencv-python-headless
+          py -m pip install --prefer-binary pyinstaller pystray pillow pyautogui sounddevice numpy SpeechRecognition tzdata psutil edge-tts soundfile pywebview
           py -m pip install winsdk || echo winsdk fehlt
           py -m pip install winrt-runtime winrt-Windows.Media.Control winrt-Windows.Foundation || echo winrt fehlt
       - name: Ausgabe „Konto“ markieren
