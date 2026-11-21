@@ -344,6 +344,46 @@
   $("piper-test").addEventListener("click", () => { try { A.piperTest(); } catch (e) {} setTimeout(piperShow, 300); });
   setInterval(() => { const h = document.getElementById("sp-hoer"); if (h && h.classList.contains("on")) piperShow(); }, 1500);
 
+  // --- Suche in den Einstellungen (wie am Handy): findet Bereiche und einzelne Punkte, Tippen springt hin ---
+  (function () {
+    const inp = $("set-search"), out = $("set-results"); if (!inp || !out) return;
+    const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    function index() {
+      const items = [];
+      document.querySelectorAll(".spane[id^='sp-']").forEach((p) => {
+        const pid = p.id.slice(3); if (pid === "home") return;
+        const item = document.querySelector(`.sitem[data-go="${pid}"] b`); const area = item ? item.textContent : pid;
+        p.querySelectorAll(".sec").forEach((sec) => {
+          const h = sec.querySelector("h3"); const title = h ? h.textContent : "";
+          items.push({ pid, el: sec, label: title, area, text: norm(title + " " + sec.textContent) });
+          sec.querySelectorAll(".srow, .f").forEach((row) => {
+            const l = row.querySelector("label, .srow > div:first-child"); const t = (l ? l.childNodes[0] && l.childNodes[0].textContent || l.textContent : "").trim();
+            if (t && t.length > 2) items.push({ pid, el: row, label: t, area: area + " › " + title, text: norm(t + " " + row.textContent) });
+          });
+        });
+      });
+      return items;
+    }
+    let idx = null;
+    function go(it) {
+      inp.value = ""; out.style.display = "none"; out.innerHTML = "";
+      const si = document.querySelector(`.sitem[data-go="${it.pid}"]`); if (si) si.click();
+      setTimeout(() => { try { it.el.scrollIntoView({ behavior: "smooth", block: "center" }); it.el.style.transition = "background .6s"; it.el.style.background = "#ffd67822"; setTimeout(() => { it.el.style.background = ""; }, 1600); } catch (e) {} }, 250);
+    }
+    inp.addEventListener("input", () => {
+      const q = norm(inp.value.trim()); if (!q) { out.style.display = "none"; out.innerHTML = ""; return; }
+      idx = idx || index();
+      const words = q.split(/\s+/);
+      const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      const hits = idx.filter((it) => words.every((w) => it.text.includes(w)))
+        .sort((x, y) => (norm(y.label).includes(q) ? 1 : 0) - (norm(x.label).includes(q) ? 1 : 0)).slice(0, 12);
+      out.style.display = "";
+      out.innerHTML = hits.length ? hits.map((h, i) => `<div class="sitem" data-hit="${i}"><div><b>${esc(h.label)}</b><small>${esc(h.area)}</small></div><span>›</span></div>`).join("")
+        : '<div class="note">Nichts gefunden.</div>';
+      out.querySelectorAll("[data-hit]").forEach((d) => d.addEventListener("click", () => go(hits[+d.dataset.hit])));
+    });
+  })();
+
   // --- Schreibstil, Stil-Training (Quiz), Termine aus WhatsApp ---
   let stilQ = null;
   function stilShow() {
