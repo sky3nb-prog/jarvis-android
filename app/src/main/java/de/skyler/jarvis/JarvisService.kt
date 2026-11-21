@@ -565,10 +565,14 @@ class JarvisService : Service() {
         return if (c > 0) sqrt(s / c) else 0.0
     }
 
+    private var lastNeedKey = 0L
     private fun onUtterance(pcm: ByteArray, seconds: Double, voskWake: Boolean) {
         val key = prefs.getString("groq_key", "") ?: ""
-        if (key.isBlank()) { Bus.emit("needkey"); return }
         val now = System.currentTimeMillis()
+        if (key.isBlank()) {   // ohne Schlüssel höchstens alle 30 Minuten fragen, nicht bei jedem Geräusch
+            if (now - lastNeedKey > 30 * 60_000L) { lastNeedKey = now; Bus.emit("needkey") }
+            return
+        }
         if (mode == Mode.IDLE && Melden.sleeping(this)) return   // er schläft: nicht aufs Weckwort anspringen
         if (mode == Mode.IDLE) {
             // Ohne Vosk-Treffer nur im "genauen Modus" (oder solange das Modell noch lädt) kurze Sätze prüfen lassen

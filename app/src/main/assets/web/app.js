@@ -148,6 +148,7 @@
       if (type === "state") setState(data.state);
       else if (type === "user" || type === "partial") $("last-you").textContent = data.text;
       else if (type === "needkey") askKey();
+      else if (type === "konto" && data && data.reset) toast(data.text || "");
       else if (type === "agent") $("last-jar").textContent = data.text;
       else if (type === "level") { if (data.kind === "out" || !talking) target = data.value; else target = Math.max(target * 0.8, data.value * 0.6); }
       else if (type === "error") { toast(data.text); setState("ended"); }
@@ -894,21 +895,68 @@
   document.querySelector('[data-p="sys"]').addEventListener("click", () => setTimeout(updShow, 60));
   $("upd-auto").addEventListener("click", () => setTimeout(() => { try { A.updSet(sw("upd-auto")); } catch (e) {} updShow(); }, 0));
   $("upd-allow").addEventListener("click", () => { try { A.updAllow(); } catch (e) {} setTimeout(updShow, 4000); });
-  // Selbstzerstörung (nur Ausgabe für alle): dreimal tippen, sonst nichts
+  // Selbstzerstörung + Konto (nur Ausgabe für alle): dreimal tippen, dann Animation, dann löschen
   try {
     if (A && A.canDestroy && A.canDestroy()) {
-      $("sec-weg").style.display = "";
+      $("sec-weg").style.display = ""; $("si-weg").style.display = ""; $("sec-konto").style.display = "";
+      $("si-weg").addEventListener("click", () => setTimeout(() => { try { $("sec-weg").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }, 350));
+      const kInfo = () => { try { const i = JSON.parse(A.kontoInfo()); $("kt-info").textContent = i.loggedIn ? "Angemeldet als " + i.email : "Nicht angemeldet."; return i; } catch (e) { return {}; } };
+      kInfo();
+      $("kt-reset").addEventListener("click", () => {
+        const i = kInfo(); let m = i.email || "";
+        if (!m) m = (window.prompt("An welche E-Mail soll die Mail gehen?", "") || "").trim();
+        if (!m.includes("@")) return toast("Ohne E-Mail geht es nicht.");
+        A.kontoReset(m); toast("Schicke dir eine Mail …");
+      });
       const B = $("weg-btn"), I = $("weg-info"); let step = 0, tmr = null;
-      const TXT = [["Löschen", "Zum Bestätigen noch zweimal tippen"], ["Wirklich?", "Noch einmal tippen – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt tippen löscht Jarvis"]];
+      const TXT = [["Selbstzerstörung", "Zum Bestätigen noch zweimal tippen"], ["Wirklich?", "Noch einmal tippen – dann ist alles weg"], ["JA, ZERSTÖREN", "Letzte Chance: jetzt tippen löscht Jarvis"]];
       const show = () => { B.textContent = TXT[step][0]; I.textContent = TXT[step][1]; };
       B.addEventListener("click", () => {
         clearTimeout(tmr);
         if (step < 2) { step++; show(); tmr = setTimeout(() => { step = 0; show(); }, 6000); return; }
-        B.textContent = "Lösche …"; I.textContent = "Jarvis räumt auf – nicht schließen."; B.style.pointerEvents = "none";
-        A.selfDestruct();
+        B.style.pointerEvents = "none"; boom(() => A.selfDestruct());
       });
     }
   } catch (e) {}
+  // Die Animation: Countdown, alles zerfällt und wird in die Mitte gesaugt, roter Blitz, „GELÖSCHT“
+  function boom(after) {
+    const st = document.createElement("style");
+    st.textContent = `
+    .zf{transition:transform 1.1s cubic-bezier(.6,0,.9,.4),opacity 1.1s ease-in,filter 1.1s ease-in!important;transform:translate(var(--dx),var(--dy)) scale(.05) rotate(var(--rot))!important;opacity:0!important;filter:blur(6px) hue-rotate(-40deg)!important}
+    #boom{position:fixed;inset:0;z-index:99999;pointer-events:all;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:inherit;color:#ff6a5a;
+      background:radial-gradient(circle at 50% 50%,rgba(255,40,20,.0),rgba(0,0,0,.0));transition:background .6s}
+    #boom.dark{background:radial-gradient(circle at 50% 50%,rgba(60,0,0,.85),#000 70%)}
+    #boom .cnt{font-size:110px;font-weight:800;letter-spacing:4px;text-shadow:0 0 30px #ff2a1a,0 0 80px #ff2a1a;animation:bpulse .5s ease-in-out infinite alternate}
+    #boom .lbl{margin-top:6px;font-size:13px;letter-spacing:6px;color:#ffb0a0}
+    #boom .scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,40,20,.10) 0 2px,transparent 2px 5px);mix-blend-mode:screen;animation:bscan 1.2s linear infinite;pointer-events:none}
+    #boom .core{position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 0 40px 20px #ff5a2a,0 0 120px 60px #ff2a1a;opacity:0;transform:scale(.2)}
+    #boom.flash .core{animation:bcore 1s ease-out forwards}
+    #boom .done{font-size:22px;letter-spacing:8px;color:#fff;opacity:0;transition:opacity .6s;text-shadow:0 0 20px #ff4a2a}
+    @keyframes bpulse{to{transform:scale(1.08)}} @keyframes bscan{to{background-position:0 40px}}
+    @keyframes bcore{0%{opacity:0;transform:scale(.2)}20%{opacity:1;transform:scale(3)}100%{opacity:0;transform:scale(60)}}`;
+    document.head.appendChild(st);
+    const ov = document.createElement("div"); ov.id = "boom";
+    ov.innerHTML = '<div class="scan"></div><div class="core"></div><div class="cnt">3</div><div class="lbl">SELBSTZERSTÖRUNG</div><div class="done">GELÖSCHT</div>';
+    document.body.appendChild(ov);
+    try { navigator.vibrate && navigator.vibrate([80, 920, 80, 920, 80, 920, 400]); } catch (e) {}
+    setTimeout(() => ov.classList.add("dark"), 100);
+    let n = 3; const c = ov.querySelector(".cnt");
+    const tick = setInterval(() => {
+      n--; if (n > 0) { c.textContent = n; return; }
+      clearInterval(tick); c.style.display = "none"; ov.querySelector(".lbl").style.display = "none";
+      // alles Sichtbare zerfällt und wird in die Mitte gesaugt
+      const cx = innerWidth / 2, cy = innerHeight / 2;
+      document.querySelectorAll(".sec, .sitem, .srow, h3, canvas, .card, .note, .sgrp, header, nav, button, .sbtn, input").forEach((el, i) => {
+        const r = el.getBoundingClientRect(); if (r.width === 0 || r.bottom < 0 || r.top > innerHeight) return;
+        el.style.setProperty("--dx", (cx - (r.left + r.width / 2)) + "px"); el.style.setProperty("--dy", (cy - (r.top + r.height / 2)) + "px");
+        el.style.setProperty("--rot", ((Math.random() * 2 - 1) * 180).toFixed(0) + "deg");
+        setTimeout(() => el.classList.add("zf"), Math.min(900, i * 18));
+      });
+      setTimeout(() => ov.classList.add("flash"), 1100);
+      setTimeout(() => { ov.querySelector(".done").style.opacity = "1"; }, 1700);
+      setTimeout(after, 2600);
+    }, 1000);
+  }
   $("upd-now").addEventListener("click", () => { try { A.updNow(); } catch (e) {} toast("Schaue nach …"); setTimeout(updShow, 8000); setTimeout(updShow, 30000); });
   window.addEventListener("focus", updShow);
   const closeSettings = () => { $("settings").classList.remove("on"); newDots(); if (window.show) try { show("fokus"); } catch (e) {} };

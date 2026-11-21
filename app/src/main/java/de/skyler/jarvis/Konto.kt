@@ -170,15 +170,9 @@ object Konto {
         JSONObject().put("ok", true).put("text", "Mail ist unterwegs – schau auch im Spam-Ordner. Danach mit dem neuen Passwort anmelden.")
     } catch (e: Exception) { JSONObject().put("ok", false).put("text", e.message ?: "Ging nicht.") }
 
-    /** Selbstzerstörung: die Sicherung dieses Handys aus dem Konto löschen (andere Geräte bleiben), danach abmelden. */
-    fun forgetDevice(ctx: Context) {
-        if (loggedIn(ctx)) {
-            // Felder, die in updateMask stehen, aber nicht im Inhalt, löscht Firestore
-            val mask = listOf("android", "android_t").joinToString("&") { "updateMask.fieldPaths=$it" }
-            post(docUrl(ctx) + "?" + mask, JSONObject().put("fields", JSONObject()).toString(), token(ctx), "PATCH")
-        }
-        signOut(ctx)
-    }
+    /** Selbstzerstörung: auf diesem Handy abmelden. Die Sicherung im Konto bleibt – nach einer Neuinstallation
+     *  und Anmeldung ist alles wieder da. */
+    fun forgetDevice(ctx: Context) { signOut(ctx) }
 
     private fun token(ctx: Context): String {
         val p = kp(ctx)

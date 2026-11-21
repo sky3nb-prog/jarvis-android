@@ -11,7 +11,7 @@ import java.security.KeyStore
 /**
  * Selbstzerstörung (nur in der Ausgabe für alle von der Website): Jarvis räumt auf diesem Handy alles weg
  * und deinstalliert sich danach.
- *  1. Dieses Handy aus dem Konto austragen (seine Sicherung im Konto wird gelöscht – andere Geräte bleiben)
+ *  1. Auf diesem Handy abmelden (das Konto und seine Sicherung bleiben – neu installieren + anmelden = alles wieder da)
  *  2. Modus zurück auf normal (Lautstärken, Nicht stören), von Jarvis gestellte Wecker aus
  *  3. Hintergrund-Dienst beenden, Tresor-Schlüssel löschen
  *  4. Alle Daten der App löschen (Einstellungen, Gedächtnis, Stimmen, Modelle, Zwischenspeicher)
