@@ -14,6 +14,11 @@ body{background:radial-gradient(90% 60% at 50% -5%,#3a2608 0%,#140d04 35%,var(--
 .wrap{max-width:980px;margin:0 auto;padding:28px 16px 60px}
 header{display:flex;flex-direction:column;align-items:center;text-align:center;padding:26px 0 30px}
 .orb{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#fff6d8 0%,#ffcf6a 28%,#d68a10 58%,rgba(120,60,0,0) 72%);box-shadow:0 0 80px rgba(255,180,60,.55),0 0 0 1px rgba(255,214,120,.15);animation:pulse 4s ease-in-out infinite}
+.kugel{position:relative;width:360px;max-width:100%;height:260px;margin:-24px 0 -16px;cursor:pointer}
+.kugel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.kugel .orb{position:absolute;left:50%;top:70px;margin-left:-60px}
+.kugel.gl .orb{display:none}
+@media (max-width:480px){.kugel{height:220px}.kugel .orb{top:50px}}
 @keyframes pulse{50%{box-shadow:0 0 110px rgba(255,180,60,.75),0 0 0 1px rgba(255,214,120,.25)}}
 h1{margin:20px 0 6px;font-size:34px;letter-spacing:9px;color:var(--gold);font-weight:700}
 header p{margin:0;max-width:520px;color:var(--dim);font-size:16px;line-height:1.5}
@@ -48,7 +53,7 @@ footer{margin-top:40px;text-align:center;color:#5d666b;font-size:12px}
 <body>
 <div class="wrap">
   <header>
-    <div class="orb"></div>
+    <div class="kugel" id="kugel" title="Hallo!"><canvas id="kugel-c" aria-hidden="true"></canvas><div class="orb"></div></div>
     <h1>JARVIS</h1>
     <p>Dein Assistent für Handy und PC. Herunterladen, mit deinem Konto anmelden – und er ist überall gleich.</p>
     <span class="tag" id="ver-tag">NEUESTE VERSION</span>
@@ -211,6 +216,30 @@ footer{margin-top:40px;text-align:center;color:#5d666b;font-size:12px}
   };
   fetch("konto_config.json", { cache: "no-store" }).then((r) => r.json()).then((c) => { if (c.apiKey) C = c; else msg("msg", "Die Seite ist noch nicht fertig eingerichtet."); show(); })
     .catch(() => { msg("msg", "Die Seite ist noch nicht fertig eingerichtet."); show(); });
+})();
+</script>
+<script src="kugel3d.js"></script>
+<script>
+// Unsere Kugel – dieselbe wie in der App und am PC. Ohne WebGL bleibt die einfache leuchtende Kugel.
+(function () {
+  const box = document.getElementById("kugel"), cv = document.getElementById("kugel-c");
+  let s = null;
+  try { s = new Sphere3D(cv, 3); box.classList.add("gl"); } catch (e) { return; }
+  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let last = performance.now(), talk = 0, next = 2.5, hover = false;
+  box.addEventListener("mouseenter", () => { hover = true; });
+  box.addEventListener("mouseleave", () => { hover = false; });
+  box.addEventListener("click", () => { talk = 2.2; });
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    next -= dt; if (next <= 0) { talk = 1.6 + Math.random(); next = 7 + Math.random() * 6; }   // ab und zu „spricht“ er kurz
+    talk = Math.max(0, talk - dt);
+    s.state = talk > 0 ? "speaking" : hover ? "listening" : "idle";
+    s.level = talk > 0 ? 0.35 + 0.35 * Math.abs(Math.sin(now / 90)) : 0;
+    s.draw(still ? dt * 0.3 : dt);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
