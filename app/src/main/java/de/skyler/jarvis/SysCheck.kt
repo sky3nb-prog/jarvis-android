@@ -60,7 +60,7 @@ object SysCheck {
             a.put(if (Health.connected(ctx)) item("health", "Samsung Health", true, "verbunden") else item("health", "Samsung Health", null, "nicht verbunden", "Einstellungen → Gesundheit: Verbinden."))
         } catch (_: Exception) {}
         a.put(if (ScreenService.enabled()) item("screen", "Bedienungshilfe", true, "an (Schlaf genau, „Schau mal hier“)") else item("screen", "Bedienungshilfe", null, "aus"))
-        val wx = get("https://api.open-meteo.com/v1/forecast?latitude=48.8&longitude=9.0&current=temperature_2m")
+        val wx = get("https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.40&current=temperature_2m")
         a.put(if (wx == 200) item("wx", "Wetter", true, "erreichbar") else item("wx", "Wetter", false, "nicht erreichbar", "Internet prüfen."))
         last = a; lastT = System.currentTimeMillis()
         return a
@@ -84,8 +84,8 @@ object SysCheck {
             "svc" -> { JarvisService.say(ctx, "Test. Ich laufe im Hintergrund."); "Ich sage gleich einen Testsatz." }
             "health" -> Health.text(Health.day(ctx, 0))
             "screen" -> Sleep.text(Sleep.night(ctx, 0))
-            "wx" -> { val js = JSONObject(http.newCall(Request.Builder().url("https://api.open-meteo.com/v1/forecast?latitude=48.8&longitude=9.0&current=temperature_2m,apparent_temperature").build()).execute().use { it.body?.string() ?: "{}" }).optJSONObject("current")
-                "${Lage.city(ctx)} gerade ${js?.optDouble("temperature_2m")} °C, gefühlt ${js?.optDouble("apparent_temperature")} °C." }
+            "wx" -> { val js = JSONObject(http.newCall(Request.Builder().url("https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.40&current=temperature_2m,apparent_temperature").build()).execute().use { it.body?.string() ?: "{}" }).optJSONObject("current")
+                "Wetterdienst antwortet: ${js?.optDouble("temperature_2m")} °C, gefühlt ${js?.optDouble("apparent_temperature")} °C." }
             else -> "Für diesen Punkt gibt es keinen Test."
         }
     } catch (e: Exception) { "Test ging nicht: ${e.message}" }

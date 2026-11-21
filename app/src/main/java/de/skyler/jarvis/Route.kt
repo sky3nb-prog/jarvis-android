@@ -211,7 +211,7 @@ Antworte NUR mit dem JSON."""
         val near = home?.let { it.lat to it.lon }
 
         fun resolve0(s: String, label: String): P? {
-            // Koordinaten mit Punkt oder Komma: "48.79, 8.97", "48,7969, 8,9759", "48,7969 8,9759"
+            // Koordinaten mit Punkt oder Komma: "52.50, 13.40", "52,5000, 13,4000", "52,5 13,4"
             Regex("^(-?\\d{1,3})[.,](\\d+)\\s*[,;\\s]\\s*(-?\\d{1,3})[.,](\\d+)$").find(s.trim())?.let {
                 val g = it.groupValues
                 return P("${g[1]}.${g[2]}".toDouble(), "${g[3]}.${g[4]}".toDouble(), label)
