@@ -3,116 +3,106 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jarvis Konto</title>
-<meta name="description" content="Jarvis herunterladen – Handy-App und PC-Programm – und mit deinem Konto anmelden.">
+<title>Jarvis – dein Assistent für Handy und PC</title>
+<meta name="description" content="Jarvis herunterladen – Android-App und Windows-Programm. Ein Konto für alle Geräte, Updates kommen von selbst.">
+<meta name="theme-color" content="#07090b">
 <link rel="icon" href="kugel.png">
-<style>
-:root{--bg:#05080b;--card:rgba(10,16,21,.86);--line:#3a2c14;--gold:#ffd678;--gold2:#ffb43c;--txt:#f3e6c8;--dim:#a7987a;--ok:#6effcd;--bad:#ff9a8a;--cyan:#3cc8ff}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
-body{background:radial-gradient(90% 60% at 50% -5%,#3a2608 0%,#140d04 35%,var(--bg) 70%) fixed}
-.wrap{max-width:980px;margin:0 auto;padding:28px 16px 60px}
-header{display:flex;flex-direction:column;align-items:center;text-align:center;padding:26px 0 30px}
-.orb{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#fff6d8 0%,#ffcf6a 28%,#d68a10 58%,rgba(120,60,0,0) 72%);box-shadow:0 0 80px rgba(255,180,60,.55),0 0 0 1px rgba(255,214,120,.15);animation:pulse 4s ease-in-out infinite}
-.kugel{position:relative;width:360px;max-width:100%;height:260px;margin:-24px 0 -16px;cursor:pointer}
-.kugel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.kugel .orb{position:absolute;left:50%;top:70px;margin-left:-60px}
-.kugel.gl .orb{display:none}
-@media (max-width:480px){.kugel{height:220px}.kugel .orb{top:50px}}
-@keyframes pulse{50%{box-shadow:0 0 110px rgba(255,180,60,.75),0 0 0 1px rgba(255,214,120,.25)}}
-h1{margin:20px 0 6px;font-size:34px;letter-spacing:9px;color:var(--gold);font-weight:700}
-header p{margin:0;max-width:520px;color:var(--dim);font-size:16px;line-height:1.5}
-.tag{display:inline-block;margin-top:14px;padding:4px 12px;border-radius:999px;border:1px solid #6b4a12;color:#e8c98a;font-size:12px;letter-spacing:1px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.card{position:relative;border:1px solid rgba(255,180,60,.28);border-radius:22px;background:var(--card);padding:22px 20px 20px}
-.card::before{content:"";position:absolute;top:-1px;left:20px;width:50px;height:3px;border-radius:2px;background:var(--c,var(--gold))}
-.card h2{margin:0 0 4px;font-size:12px;letter-spacing:2px;color:var(--c,var(--gold))}
-.card h3{margin:2px 0 8px;font-size:21px}
-.card p,.card li{color:var(--dim);font-size:14px;line-height:1.5}
-.card ol{margin:10px 0 0;padding-left:20px}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:14px;border:1px solid var(--gold2);background:linear-gradient(#3a2608,#1d1405);color:var(--gold);font-weight:700;font-size:16px;text-decoration:none;cursor:pointer;margin-top:12px}
-.btn:hover{filter:brightness(1.15)}
-.btn.alt{border-color:#3a4a55;background:#0d1217;color:#cfd8dd;font-weight:600}
-.btn.small{width:auto;padding:9px 14px;font-size:13.5px;margin-top:0}
-.btn[disabled]{opacity:.45;pointer-events:none}
-.ic{font-size:34px;line-height:1}
-section{margin-top:26px}
-.sh{font-size:12px;letter-spacing:2.4px;color:#9a7a3c;margin:0 4px 10px;font-weight:700}
-input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid #5a4318;background:#0d1217;color:var(--txt);font-size:15px;margin-top:10px}
-.msg{min-height:20px;margin-top:10px;font-size:13.5px;color:var(--bad)}
-.msg.ok{color:var(--ok)}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.row .btn{flex:1;min-width:130px}
-.stat{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0 4px;font-size:14px}
-.stat b{color:var(--txt);font-weight:600}.stat span{color:var(--dim)}
-.note{font-size:12.5px;color:#7f8b92;line-height:1.5;margin-top:12px}
-footer{margin-top:40px;text-align:center;color:#5d666b;font-size:12px}
-[hidden]{display:none!important}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="kugel" id="kugel" title="Hallo!"><canvas id="kugel-c" aria-hidden="true"></canvas><div class="orb"></div></div>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="./"><i></i>JARVIS</a>
+  <nav><a href="#download">Download</a><a href="#kann" class="opt">Was er kann</a><a href="#konto">Konto</a></nav>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <div class="kugel" id="kugel" title="Tipp mich an"><canvas id="kugel-c" aria-hidden="true"></canvas><div class="orb"></div></div>
+    <div class="eyebrow">Assistent für Handy &amp; PC</div>
     <h1>JARVIS</h1>
-    <p>Dein Assistent für Handy und PC. Herunterladen, mit deinem Konto anmelden – und er ist überall gleich.</p>
-    <span class="tag" id="ver-tag">NEUESTE VERSION</span>
-  </header>
-
-  <div class="sh">1 · HERUNTERLADEN</div>
-  <div class="grid">
-    <div class="card" style="--c:#6effcd">
-      <h2>HANDY</h2><h3><span class="ic">📱</span> Android-App</h3>
-      <p>Für Android-Handys (z. B. Samsung). Updates kommen danach von selbst.</p>
-      <div class="ver" id="ver-apk">Neueste Version wird geladen …</div>
-      <a class="btn" id="dl-apk" href="https://github.com/sky3nb-prog/jarvis-android/releases/download/konto-neueste/Jarvis-Konto.apk">⬇ App herunterladen</a>
-      <ol><li>Datei öffnen, „Installieren“ tippen.</li><li>Fragt das Handy nach „Unbekannte Apps“: für den Browser erlauben.</li><li>App öffnen und anmelden.</li></ol>
+    <p class="lead">Ruf „Jarvis“ und rede ganz normal mit ihm – am Handy und am PC. Er erinnert dich, plant deine Wege, steuert deinen PC und kennt dich auf jedem Gerät gleich gut.</p>
+    <div class="cta">
+      <a class="btn" href="#download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg> Kostenlos herunterladen</a>
+      <a class="btn ghost" href="#kann">Was er kann</a>
     </div>
-    <div class="card" style="--c:#3cc8ff">
-      <h2>PC</h2><h3><span class="ic">🖥️</span> Windows-Programm</h3>
-      <p>Für Windows 10 und 11. Einfach entpacken und starten – keine Installation nötig. Updates kommen von selbst.</p>
-      <div class="ver" id="ver-pc">Neueste Version wird geladen …</div>
-      <a class="btn" id="dl-pc" href="https://github.com/sky3nb-prog/jarvis-android/releases/download/konto-neueste/Jarvis-Konto-PC.zip">⬇ PC-Programm herunterladen</a>
-      <ol><li>ZIP entpacken, z. B. nach Dokumente.</li><li><b>Jarvis-Konto.exe</b> starten. Warnt Windows: „Weitere Informationen“ → „Trotzdem ausführen“.</li><li>Im Fenster anmelden.</li></ol>
-    </div>
+    <span class="chip" id="ver-tag">Neueste Version</span>
   </div>
 
-  <p class="upd">Du hast Jarvis schon? Dann musst du nichts tun – Handy und PC holen sich neue Versionen selbst.
-  Nur wer die ganz alte Testversion hat (vor dem 21.11.), lädt hier einmal neu herunter.</p>
-
-  <section>
-  <div class="sh">2 · DEIN KONTO</div>
-  <div class="grid">
-    <div class="card" id="c-login">
-      <h2>ANMELDEN</h2><h3>Konto</h3>
-      <p>Ein Konto für alle Geräte. Du kannst es hier oder direkt in der App anlegen.</p>
-      <input id="mail" type="email" placeholder="E-Mail" autocomplete="email">
-      <input id="pw" type="password" placeholder="Passwort (mind. 6 Zeichen)" autocomplete="current-password">
-      <div class="msg" id="msg"></div>
-      <div class="row"><button class="btn" id="b-in">Anmelden</button><button class="btn alt" id="b-neu">Neues Konto</button></div>
-    </div>
-    <div class="card" id="c-acc" hidden>
-      <h2>ANGEMELDET</h2><h3 id="acc-mail">–</h3>
-      <div class="stat">
-        <b>📱 Handy</b><span id="st-and">–</span>
-        <b>🖥️ PC</b><span id="st-pc">–</span>
-        <b>🔗 Kopplung</b><span id="st-link">–</span>
+  <section id="download">
+    <div class="sh"><h2>Herunterladen</h2><span>immer die neueste Version</span></div>
+    <div class="grid">
+      <div class="card">
+        <div class="kicker">Android</div>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg> Handy-App</h3>
+        <p>Für Android-Handys, zum Beispiel Samsung. Die App hält sich danach selbst aktuell.</p>
+        <div class="ver" id="ver-apk">Neueste Version wird geladen …</div>
+        <a class="btn block" id="dl-apk" href="https://github.com/sky3nb-prog/jarvis-android/releases/download/konto-neueste/Jarvis-Konto.apk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg> App herunterladen</a>
+        <ol class="steps"><li>Datei öffnen und <b>Installieren</b> tippen.</li><li>Fragt das Handy nach „Unbekannte Apps“: für den Browser erlauben.</li><li>App öffnen und anmelden.</li></ol>
       </div>
-      <div class="msg" id="msg2"></div>
-      <div class="row"><button class="btn alt small" id="b-out">Abmelden</button><button class="btn alt small" id="b-del">Konto löschen …</button></div>
-      <div class="row" id="del-ask" hidden style="margin-top:10px"><button class="btn small" id="b-del-ok" style="border-color:#ff7a5a;color:#ff9a8a">Ja, Konto und alle Daten löschen</button></div>
+      <div class="card">
+        <div class="kicker">Windows 10 / 11</div>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg> PC-Programm</h3>
+        <p>Entpacken, starten, fertig – keine Installation. Neue Versionen spielt es selbst ein.</p>
+        <div class="ver" id="ver-pc">Neueste Version wird geladen …</div>
+        <a class="btn block" id="dl-pc" href="https://github.com/sky3nb-prog/jarvis-android/releases/download/konto-neueste/Jarvis-Konto-PC.zip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg> PC-Programm herunterladen</a>
+        <ol class="steps"><li>ZIP entpacken, zum Beispiel nach <b>Dokumente</b>.</li><li><b>Jarvis-Konto.exe</b> starten. Warnt Windows: „Weitere Informationen“ → „Trotzdem ausführen“.</li><li>Im Fenster anmelden.</li></ol>
+      </div>
     </div>
-    <div class="card" style="--c:#d7a8ff">
-      <h2>SICHER</h2><h3>🔒 Nur du kannst es lesen</h3>
-      <p>Deine Einstellungen, dein Gedächtnis und die Kopplung werden <b>auf deinem Gerät</b> mit deinem Passwort verschlüsselt, bevor sie ins Konto gehen. Der Server sieht nur Zeichensalat – auch diese Seite kann den Inhalt nicht lesen.</p>
-      <p class="note">Darum gilt: Passwort vergessen heißt neu anfangen. Jeder bekommt sein eigenes Konto – mehrere Konten gehen.</p>
-    </div>
-  </div>
+    <p class="upd">Schon installiert? Dann musst du nichts tun – Handy und PC holen sich neue Versionen von selbst.</p>
   </section>
 
-  <footer>Jarvis · Kein offizielles Produkt</footer>
-</div>
-<style>.ver{font-size:12.5px;color:#9fb6c2;margin:-4px 0 10px}.ver b{color:#ffd678}.upd{margin:14px auto 0;max-width:760px;font-size:13px;color:#b9a77f;text-align:center;line-height:1.5}</style>
+  <section id="kann">
+    <div class="sh"><h2>Was er kann</h2><span>eine Auswahl</span></div>
+    <div class="feat">
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3"/></svg><b>Einfach reden</b><p>Weckwort sagen und lossprechen. Oder schreiben, wenn es leise sein muss.</p></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg><b>Denkt mit</b><p>Briefing am Morgen, Wetter für deinen Weg, was du anziehen solltest und woran du denken musst.</p></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg><b>Steuert deinen PC</b><p>Programme, Musik, Lautstärke, Discord, Timer – per Stimme, auch mitten im Spiel.</p></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><b>Handy und PC gekoppelt</b><p>Gleiches Gedächtnis auf beiden Geräten. Vom PC aus am Handy anrufen oder Wecker stellen.</p></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><b>Deine Daten bleiben deine</b><p>Kein Tracking, keine Werbung. Was ins Konto geht, ist mit deinem Passwort verschlüsselt.</p></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.6L4 8.5M4 13a8 8 0 0 0 14.3 4.6L20 15.5"/><path d="M4 4v4.5h4.5M20 20v-4.5h-4.5"/></svg><b>Immer aktuell</b><p>Neue Funktionen kommen automatisch auf Handy und PC.</p></div>
+    </div>
+  </section>
+
+  <section id="konto">
+    <div class="sh"><h2>Dein Konto</h2><span>ein Konto für alle Geräte</span></div>
+    <div class="grid">
+      <div class="card" id="c-login">
+        <div class="kicker">Anmelden</div>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></svg> Konto</h3>
+        <p>Hier oder direkt in der App anlegen – danach auf jedem Gerät mit derselben E-Mail anmelden.</p>
+        <input id="mail" type="email" placeholder="E-Mail" autocomplete="email">
+        <input id="pw" type="password" placeholder="Passwort (mindestens 6 Zeichen)" autocomplete="current-password">
+        <div class="msg" id="msg"></div>
+        <div class="row"><button class="btn" id="b-in">Anmelden</button><button class="btn ghost" id="b-neu">Neues Konto</button></div>
+        <p class="note">Mit dem Anlegen eines Kontos gilt unsere <a href="datenschutz.html">Datenschutzerklärung</a>.</p>
+      </div>
+      <div class="card" id="c-acc" hidden>
+        <div class="kicker">Angemeldet</div>
+        <h3 id="acc-mail">–</h3>
+        <div class="stat">
+          <b>Handy</b><span id="st-and">–</span>
+          <b>PC</b><span id="st-pc">–</span>
+          <b>Kopplung</b><span id="st-link">–</span>
+        </div>
+        <div class="msg" id="msg2"></div>
+        <div class="row"><button class="btn ghost small" id="b-out">Abmelden</button><button class="btn ghost small" id="b-del">Konto löschen …</button></div>
+        <div class="row" id="del-ask" hidden><button class="btn ghost small danger" id="b-del-ok">Ja, Konto und alle Daten löschen</button></div>
+      </div>
+      <div class="card">
+        <div class="kicker">Sicher</div>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg> Nur du kannst es lesen</h3>
+        <p>Einstellungen, Gedächtnis und Kopplung werden <b>auf deinem Gerät</b> mit deinem Passwort verschlüsselt, bevor sie ins Konto gehen. Der Server sieht nur Zeichensalat – auch diese Seite kann den Inhalt nicht lesen.</p>
+        <p class="note">Darum gilt: Passwort vergessen heißt neu anfangen. Mehrere Konten sind möglich.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <span>© 2026 Jarvis · privates Projekt</span>
+  <nav><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></nav>
+  <span class="ai">Texte und Teile des Programms wurden mit Unterstützung von KI erstellt.</span>
+</div></footer>
 <script>
 // Download: immer die neueste Version (direkt von den fertigen Builds), mit Datum und Größe
 (function () {
@@ -130,7 +120,7 @@ footer{margin-top:40px;text-align:center;color:#5d666b;font-size:12px}
     };
     set("ver-apk", "dl-apk", a["Jarvis-Konto.apk"], build ? "Version 0.3." + build[1] : "Neueste Version");
     set("ver-pc", "dl-pc", a["Jarvis-Konto-PC.zip"], "Neueste Version");
-    const t = document.getElementById("ver-tag"); if (t && build) t.textContent = "VERSION 0.3." + build[1];
+    const t = document.getElementById("ver-tag"); if (t && build) t.textContent = "Version 0.3." + build[1] + " · " + fmt(((a["Jarvis-Konto.apk"] || {}).updated_at) || rel.published_at);
   }).catch(() => {
     ["ver-apk", "ver-pc"].forEach((id) => { const e = document.getElementById(id); if (e) e.textContent = "Neueste Version"; });
   });
