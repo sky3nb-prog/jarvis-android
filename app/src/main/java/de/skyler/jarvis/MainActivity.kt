@@ -688,6 +688,11 @@ class MainActivity : ComponentActivity() {
         fun selfDestruct() = runOnUiThread { Weg.destroy(this@MainActivity) { t -> send("weg", JSONObject().put("text", t)) } }
 
         @JavascriptInterface
+        fun kontoReset(email: String) {
+            Thread({ send("konto", Konto.resetPassword(this@MainActivity, email).put("reset", true)) }, "konto-reset").start()
+        }
+
+        @JavascriptInterface
         fun kontoLogin(email: String, pw: String, neu: Boolean) {
             Thread({ val r = Konto.signIn(this@MainActivity, email, pw, neu); send("konto", r.put("info", Konto.info(this@MainActivity))) }, "konto-login").start()
         }

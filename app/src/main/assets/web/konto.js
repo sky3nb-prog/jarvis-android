@@ -27,7 +27,8 @@
     <p>Einmal verbinden: Dann ist dein Jarvis in deinem Konto gesichert. Hier musst du dich danach nie wieder anmelden.</p>
     <div class="ko-box"><input id="ko-mail" type="email" placeholder="E-Mail" autocapitalize="none"><input id="ko-pw" type="password" placeholder="Passwort (mind. 6 Zeichen)">
     <div class="ko-msg" id="ko-msg"></div><div class="ko-btn" id="ko-in">Anmelden</div><div class="ko-btn alt" id="ko-neu">Neues Konto anlegen</div></div>
-    <div class="ko-skip" id="ko-skip">Später</div>`;
+    <div class="ko-skip" id="ko-forgot">Passwort vergessen?</div>
+    <div class="ko-skip" id="ko-skip" style="margin-top:8px">Später</div>`;
   const msg = (t, ok) => { $("ko-msg").textContent = t || ""; $("ko-msg").classList.toggle("ok", !!ok); };
   function go(neu) {
     const m = $("ko-mail").value.trim(), p = $("ko-pw").value;
@@ -41,7 +42,7 @@
     if (type === "konto") {
       const d = typeof data === "string" ? JSON.parse(data) : (data || {});
       ov.classList.remove("busy"); msg(d.text, d.ok);
-      if (d.ok) { $("ko-pw").value = ""; setTimeout(() => ov.remove(), 2000); }
+      if (d.ok && !d.reset) { $("ko-pw").value = ""; setTimeout(() => ov.remove(), 2500); }
       return;
     }
     return prev && prev.call(window.jarvis, type, data);
@@ -50,5 +51,11 @@
     document.body.appendChild(ov);
     $("ko-in").onclick = () => go(false); $("ko-neu").onclick = () => go(true);
     $("ko-skip").onclick = () => ov.remove();
+    $("ko-forgot").onclick = () => {
+      const m = $("ko-mail").value.trim();
+      if (!m.includes("@")) return msg("Trag oben deine E-Mail ein, dann tipp nochmal auf „Passwort vergessen?“.");
+      if (!A.kontoReset) return msg("Geht in dieser Version noch nicht.");
+      ov.classList.add("busy"); msg("Schicke dir eine Mail …", true); A.kontoReset(m);
+    };
   }, 1500);
 })();

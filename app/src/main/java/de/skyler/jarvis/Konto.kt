@@ -148,13 +148,27 @@ object Konto {
             if (backup(ctx)) { push(ctx, force = true); return JSONObject().put("ok", true).put("text", "Verbunden – dein Jarvis ist jetzt in deinem Konto gesichert.") }
             val doc = getDoc(ctx)
             val txt = if (doc != null && doc.has("android")) {
-                if (pull(ctx, doc, force = true)) "Angemeldet – deine Sachen sind geladen." else "Angemeldet, aber die Daten ließen sich nicht entschlüsseln (anderes Passwort?)."
+                val ok = try { pull(ctx, doc, force = true); true } catch (e: Exception) { false }
+                if (ok) "Angemeldet – deine Sachen sind geladen."
+                else {   // z. B. nach „Passwort vergessen“: alte Sicherung war mit dem alten Passwort verschlüsselt
+                    push(ctx, force = true)
+                    "Angemeldet. Die alte Sicherung war mit deinem früheren Passwort verschlüsselt und lässt sich nicht mehr öffnen – dieses Handy ist jetzt der neue Stand im Konto."
+                }
             } else { push(ctx, force = true); if (neu) "Konto angelegt – dieses Handy ist jetzt im Konto." else "Angemeldet – dieses Handy ist jetzt im Konto." }
             JSONObject().put("ok", true).put("text", txt)
         } catch (e: Exception) { Log.w(TAG, "signIn: $e"); JSONObject().put("ok", false).put("text", e.message ?: "Ging nicht.") }
     }
 
     fun signOut(ctx: Context) { kp(ctx).edit().clear().commit() }
+
+    /** „Passwort vergessen“: Firebase schickt eine Mail zum Zurücksetzen. */
+    fun resetPassword(ctx: Context, email: String): JSONObject = try {
+        if (!configured(ctx)) throw RuntimeException("Das Konto ist noch nicht eingerichtet.")
+        if (!email.contains("@")) throw RuntimeException("Bitte zuerst deine E-Mail eintragen.")
+        post("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${cfg(ctx).optString("apiKey")}",
+            JSONObject().put("requestType", "PASSWORD_RESET").put("email", email.trim()).toString())
+        JSONObject().put("ok", true).put("text", "Mail ist unterwegs – schau auch im Spam-Ordner. Danach mit dem neuen Passwort anmelden.")
+    } catch (e: Exception) { JSONObject().put("ok", false).put("text", e.message ?: "Ging nicht.") }
 
     /** Selbstzerstörung: die Sicherung dieses Handys aus dem Konto löschen (andere Geräte bleiben), danach abmelden. */
     fun forgetDevice(ctx: Context) {
