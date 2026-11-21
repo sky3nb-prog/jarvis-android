@@ -261,8 +261,8 @@
     #boom .lbl{margin-top:6px;font-size:14px;letter-spacing:8px;color:#ffb0a0}
     #boom .scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,40,20,.10) 0 2px,transparent 2px 5px);mix-blend-mode:screen;animation:bscan 1.2s linear infinite;pointer-events:none}
     #boom .core{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 0 40px 20px #ff5a2a,0 0 120px 60px #ff2a1a;opacity:0;transform:scale(.2)}
-    #boom.flash .core{animation:bcore 1s ease-out forwards}
-    #boom .done{font-size:26px;letter-spacing:10px;color:#fff;opacity:0;transition:opacity .6s;text-shadow:0 0 20px #ff4a2a}
+    #boom.flash .core{animation:bcore .7s ease-out forwards}
+    #boom .done{font-size:26px;letter-spacing:10px;color:#fff;opacity:0;transition:opacity .6s;text-shadow:0 0 20px #ff4a2a;position:relative;z-index:2}
     @keyframes bpulse{to{transform:scale(1.08)}} @keyframes bscan{to{background-position:0 40px}}
     @keyframes bcore{0%{opacity:0;transform:scale(.2)}20%{opacity:1;transform:scale(3)}100%{opacity:0;transform:scale(80)}}`;
     document.head.appendChild(st);
@@ -282,9 +282,10 @@
         el.style.setProperty("--rot", ((Math.random() * 2 - 1) * 180).toFixed(0) + "deg");
         setTimeout(() => el.classList.add("zf"), Math.min(900, i * 12));
       });
-      setTimeout(() => ov.classList.add("flash"), 1100);
-      setTimeout(() => { ov.querySelector(".done").style.opacity = "1"; }, 1700);
-      setTimeout(after, 2400);
+      setTimeout(() => { ov.classList.add("flash"); Array.from(document.body.children).forEach((el) => { if (el !== ov) { el.style.transition = "opacity .5s"; el.style.opacity = "0"; } }); }, 1100);
+      setTimeout(() => { ov.style.background = "#000"; }, 1800);
+      setTimeout(() => { ov.querySelector(".done").style.opacity = "1"; }, 1900);
+      setTimeout(after, 3000);
     }, 1000);
   }
   const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Jarvis von diesem PC"]];
