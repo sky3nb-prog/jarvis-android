@@ -98,11 +98,11 @@ DEFAULTS = {
     "globe_style": "Hologramm",  # (alt) Stil des früheren Globus
     "map_style": "Satellit",  # Weltlage-Karte: Satellit (echte Bilder) oder Dunkel (in deiner Farbe)
     "map_labels": True,  # Ortsnamen auf der Karte
-    "home_city": "Leonberg",  # dein Standort: Mitte der Karte und lokale Nachrichten
+    "home_city": "",  # dein Standort: Mitte der Karte und lokale Nachrichten
     "hud_mode": "info",  # HUD: "info" (Kugel mit allen Infos) oder "fokus" (nur die Kugel)
     "hud_style": "neu",  # "neu" = wie am Handy (eigenes Fenster, 3D, Satelliten-Globus), "klassisch" = bisheriges HUD
     "meine_orte": "",   # "Oma: Musterstraße 5, Musterstadt" je Zeile (gleich wie am Handy)
-    "meine_wege": "",   # "oberer Feldweg: 48.80, 8.96" je Zeile
+    "meine_wege": "",   # "Waldweg: 52.50, 13.40" je Zeile
     "route_an": "",     # Google-Maps-Link per WhatsApp an diesen Kontakt
     "wichtige_leute": "",   # Namen wie in WhatsApp, mit Komma: deren Nachrichten sagt Jarvis an
     "ets2_quicksave": "f5",

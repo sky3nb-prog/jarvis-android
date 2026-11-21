@@ -27,15 +27,6 @@ FEEDS = [
     ("Google Top", "https://news.google.com/rss?hl=de&gl=DE&ceid=DE:de"),  # die großen Themen des Tages
     ("Google Welt", "https://news.google.com/rss/headlines/section/topic/WORLD?hl=de&gl=DE&ceid=DE:de"),
 ]
-# Lokale Suchen für Leonberg: Leonberger Kreiszeitung (heute bei der Stuttgarter Zeitung), Verkehr, Blaulicht, Umland
-LOCAL_LEONBERG = [
-    ("Lokal Leonberg", "Leonberg"),
-    ("Lokal Kreiszeitung", "site:stuttgarter-zeitung.de Leonberg"),
-    ("Lokal Verkehr", "Engelbergtunnel OR \"Leonberger Dreieck\" OR \"A8 Leonberg\" OR \"A81 Leonberg\" OR \"Leonberg Sperrung\""),
-    ("Lokal Blaulicht", "Leonberg Polizei OR Feuerwehr OR Unfall"),
-    ("Lokal Umland", "Renningen OR Rutesheim OR Ditzingen OR Gerlingen OR \"Weil der Stadt\" OR Weissach"),
-    ("Lokal Landkreis", "\"Landkreis Böblingen\""),
-]
 MAX_AGE = 60 * 60  # Nachrichten höchstens stündlich neu zusammenfassen (schont das kostenlose Kontingent)
 _last_fail = {"t": 0.0}
 _last_try = {"t": 0.0}
@@ -45,14 +36,6 @@ _busy = threading.Lock()
 
 # Eingebaute Orte für die Erkennung ohne KI: Name (klein, Wortanfang) -> (Breite, Länge, Anzeigename)
 PLACES = {
-    "leonberg": (48.8003, 9.0144, "Leonberg"), "eltingen": (48.7976, 9.0021, "Leonberg-Eltingen"),
-    "höfingen": (48.8235, 8.9913, "Leonberg-Höfingen"), "warmbronn": (48.7712, 8.9738, "Leonberg-Warmbronn"),
-    "gebersheim": (48.8297, 8.9655, "Leonberg-Gebersheim"), "renningen": (48.7656, 8.9381, "Renningen"),
-    "rutesheim": (48.8085, 8.9452, "Rutesheim"), "ditzingen": (48.8264, 9.0668, "Ditzingen"),
-    "gerlingen": (48.7999, 9.0631, "Gerlingen"), "weil der stadt": (48.7509, 8.8706, "Weil der Stadt"),
-    "sindelfingen": (48.7133, 9.0028, "Sindelfingen"), "böblingen": (48.6856, 9.0153, "Böblingen"),
-    "weissach": (48.8460, 8.9283, "Weissach"), "heimsheim": (48.8059, 8.8640, "Heimsheim"),
-    "magstadt": (48.7428, 8.9653, "Magstadt"), "korntal": (48.8318, 9.1210, "Korntal-Münchingen"),
     "deutschland": (51.2, 10.4, "Deutschland"), "bundesregierung": (52.52, 13.40, "Berlin"),
     "berlin": (52.52, 13.40, "Berlin"), "hamburg": (53.55, 9.99, "Hamburg"), "münchen": (48.14, 11.58, "München"),
     "köln": (50.94, 6.96, "Köln"), "frankfurt": (50.11, 8.68, "Frankfurt"), "stuttgart": (48.78, 9.18, "Stuttgart"),
@@ -111,7 +94,7 @@ PLACES = {
 
 GENAU_TEXT = """   "genau" (wie genau der Ort ist: "punkt" = ein bestimmtes Gebäude, Platz, Tunnel, Brücke, Bahnhof, Kreuzung oder
    Autobahnabschnitt; "strasse"; "stadtteil"; "stadt"; "region"; "land") und "suche" (der genaueste Ort aus der Meldung
-   als Suchbegriff für eine Karte, immer mit Stadt, z. B. "Römerberg, Frankfurt am Main", "Engelbergtunnel, Leonberg",
+   als Suchbegriff für eine Karte, immer mit Stadt, z. B. "Römerberg, Frankfurt am Main", "Marienplatz, München",
    "Hauptbahnhof, Stuttgart"; bei Ländern nur das Land). Nimm den genauesten Ort, den die Meldung hergibt."""
 
 PROMPT = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).
@@ -198,10 +181,9 @@ def fetch_headlines() -> list:
     found, seen = [], set()
     feeds = list(FEEDS)
     if CITY:
-        if CITY.lower() == "leonberg":
-            searches = list(LOCAL_LEONBERG) + [("Lokal Stuttgart", "Stuttgart")]
-        else:
-            searches = [(f"Lokal {CITY}", f'"{CITY}"' if " " in CITY else CITY)]
+        c = f'"{CITY}"' if " " in CITY else CITY
+        searches = [(f"Lokal {CITY}", c), (f"Lokal {CITY} Verkehr", f"{c} Verkehr OR Sperrung OR Unfall"),
+                    (f"Lokal {CITY} Blaulicht", f"{c} Polizei OR Feuerwehr")]
         for source, query in searches:
             q = urllib.parse.quote(query)
             feeds.append((source, f"https://news.google.com/rss/search?q={q}+when:2d&hl=de&gl=DE&ceid=DE:de"))
@@ -303,7 +285,7 @@ def _parse(raw: str, use: list) -> dict:
     return {"briefing": str(data.get("briefing", "")).strip(), "brennpunkte": points}
 
 
-# --- Genaue Orte: "Engelbergtunnel, Leonberg" -> genaue Koordinaten (OpenStreetMap, kostenlos) ----------------
+# --- Genaue Orte: "Marienplatz, München" -> genaue Koordinaten (OpenStreetMap, kostenlos) ----------------
 _GEO_FILE = "orte_genau.json"
 _geo_mem: dict = {}
 _geo_lock = threading.Lock()

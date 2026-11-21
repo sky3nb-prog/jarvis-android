@@ -264,9 +264,9 @@ def test(id_: str) -> str:
             ip = pc_fern.tailscale_ip()
             return f"Tailscale-Adresse: {ip} – am Handy unter Fernzugriff öffnen." if ip else "Tailscale ist nicht verbunden."
         if id_ == "wx":
-            st, body = _get("https://api.open-meteo.com/v1/forecast?latitude=48.8&longitude=9.0&current=temperature_2m,apparent_temperature")
+            st, body = _get("https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.40&current=temperature_2m,apparent_temperature")
             c = json.loads(body).get("current", {})
-            return f"Leonberg gerade {c.get('temperature_2m')} °C, gefühlt {c.get('apparent_temperature')} °C."
+            return f"Wetterdienst antwortet: {c.get('temperature_2m')} °C (Testort)."
         if id_ == "cal":
             import pc_calendar
             return pc_calendar.today_text() or "Heute keine Termine."

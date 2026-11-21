@@ -129,7 +129,7 @@ def handle(text: str, settings: dict):
     m = CITY_SET.search(low)
     if m:
         w = _clean_word(m.group("w") or m.group("w2") or "")
-        # Füllwörter raus: "für alle Nachrichten Leonberg" -> "Leonberg"
+        # Füllwörter raus: "für alle Nachrichten München" -> "München"
         w = " ".join(x for x in w.split() if x.lower() not in _CITY_FILLER)
         if 2 <= len(w) <= 30:
             _set("weather_city", w.title())

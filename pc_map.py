@@ -52,11 +52,11 @@ THEMES = {
                     dim=(172, 152, 212), panel=(17, 11, 31), tint=(170, 130, 255)),
 }
 THEME_NAMES = list(THEMES)
-VIEWS = [("leonberg", "Leonberg"), ("deutschland", "Deutschland"), ("welt", "Welt"), ("luftraum", "Luftraum")]
+VIEWS = [("leonberg", "Zuhause"), ("deutschland", "Deutschland"), ("welt", "Welt"), ("luftraum", "Luftraum")]
 KIND_COLORS = {"konflikt": (255, 80, 64), "katastrophe": (255, 120, 50), "wetter": (100, 196, 255),
                "wirtschaft": (255, 210, 90), "sport": (120, 230, 140), "wissenschaft": (176, 156, 255),
                "lokal": (110, 255, 205)}
-HOME_DEFAULT = (48.8003, 9.0144, "Leonberg")
+HOME_DEFAULT = (52.52, 13.40, "Berlin")
 
 
 def hexc(rgb) -> str:
@@ -877,7 +877,7 @@ class GlobeWindow:
         threading.Thread(target=self._data_loop, daemon=True).start()
 
     def _data_loop(self):
-        city = (self.get_settings().get("home_city") or "Leonberg").strip()
+        city = (self.get_settings().get("home_city") or "Berlin").strip()
         if city.lower() != "leonberg":
             try:
                 import pc_info

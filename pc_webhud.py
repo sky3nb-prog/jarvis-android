@@ -340,7 +340,7 @@ class WebHud:
                        lage_labels=s.get("map_labels", True), strand=True, background=True)
             return out
         if name == "home":
-            hit = (geocode(f"{s.get('home_address')}, {s.get('home_city')}") if s.get("home_address") else None) or geocode(s.get("home_city") or "Leonberg")
+            hit = (geocode(f"{s.get('home_address')}, {s.get('home_city')}") if s.get("home_address") else None) or geocode(s.get("home_city") or "Berlin")
             return {"lat": hit[0], "lon": hit[1]} if hit else None
         if name == "tle":
             return {"text": tle_text()}
@@ -381,7 +381,7 @@ class WebHud:
         if name == "favorites":
             return s.get("lage_places") or []
         if name == "city":
-            return s.get("home_city") or "Leonberg"
+            return s.get("home_city") or "Berlin"
         if name == "sys":
             return self._sys()
         if name == "termine":
@@ -545,10 +545,17 @@ class WebHud:
                 pc_sticker.RUN["stop"] = True
                 return {"ok": True}
             return pc_sticker.open_folder()
-        if name == "konto_login":   # Jarvis-Konto einmal verbinden (Haupt-PC: nur sichern)
+        if name in ("konto_login", "konto_sync", "konto_logout"):   # Jarvis-Konto (dein PC: nur sichern; Konto-Ausgabe: voll)
             import pc_konto
-            r = pc_konto.login(str(body.get("email") or ""), str(body.get("pw") or ""), bool(body.get("neu")))
+            if name == "konto_logout":
+                if pc_konto.BACKUP:
+                    return pc_konto.info()
+                pc_konto.logout()
+                return pc_konto.info()
+            r = pc_konto.login(str(body.get("email") or ""), str(body.get("pw") or ""), bool(body.get("neu"))) if name == "konto_login" else pc_konto.sync_now()
             r["info"] = pc_konto.info()
+            if r.get("restart") and not pc_konto.BACKUP:
+                threading.Timer(2.5, pc_konto.restart_self).start()
             return r
         if name == "settings_run":
             import pc_websettings
@@ -598,11 +605,11 @@ class WebHud:
                 data = dict(pc_news.get(max_age=0 if force else pc_news.MAX_AGE) or {})
                 if not data:
                     return self.push("lage_error", {"text": "Ich komme gerade an keine Nachrichten.", "ort": place})
-                data["ort"] = s.get("home_city") or "Leonberg"
+                data["ort"] = s.get("home_city") or "Berlin"
                 hit = geocode(data["ort"])
                 if hit:
                     data["lat"], data["lon"] = hit
-            data["stadt"] = s.get("home_city") or "Leonberg"
+            data["stadt"] = s.get("home_city") or "Berlin"
             data.pop("schlagzeilen", None)
             if not place:
                 self.lage = data
@@ -617,7 +624,7 @@ class WebHud:
         if not data:
             return
         data = dict(data)
-        data.setdefault("stadt", self.ui.settings.get("home_city") or "Leonberg")
+        data.setdefault("stadt", self.ui.settings.get("home_city") or "Berlin")
         data.pop("schlagzeilen", None)
         self.lage = data
         self.push("lage", {"data": data, "tour": True})

@@ -54,7 +54,29 @@ def _save(d: dict):
         pass
 
 
+def _neu_dir() -> str:
+    """Wohin das fertige Update kommt (dein PC: dist_neu neben dem Code; Konto-Ausgabe: _neu neben dem Programm)."""
+    import pc_variante
+    return os.path.join(_dist(), "_neu") if pc_variante.KONTO else os.path.join(_src(), "dist_neu")
+
+
+def _asset():
+    """Konto-Ausgabe: das fertige Paket auf der Download-Seite -> (Kennung, Download-Link)."""
+    import pc_variante
+    req = urllib.request.Request(f"https://api.github.com/repos/{pc_variante.DOWNLOAD_REPO}/releases/tags/{pc_variante.DOWNLOAD_TAG}",
+                                 headers={"Accept": "application/vnd.github+json", "User-Agent": "Jarvis-PC"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        rel = json.loads(r.read().decode("utf-8"))
+    for a in rel.get("assets") or []:
+        if a.get("name") == pc_variante.DOWNLOAD_ASSET:
+            return f"{a.get('id')}:{a.get('updated_at')}", a.get("browser_download_url")
+    raise RuntimeError("Paket nicht gefunden")
+
+
 def latest() -> str:
+    import pc_variante
+    if pc_variante.KONTO:
+        return _asset()[0]
     req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/commits/{BRANCH}",
                                  headers={"Accept": "application/vnd.github+json", "User-Agent": "Jarvis-PC"})
     with urllib.request.urlopen(req, timeout=15) as r:
@@ -62,7 +84,44 @@ def latest() -> str:
 
 
 def possible() -> bool:
+    import pc_variante
+    if pc_variante.KONTO:   # Konto-Ausgabe: fertige Pakete von der Download-Seite, kein Bauen nötig
+        return getattr(sys, "frozen", False)
     return getattr(sys, "frozen", False) and os.path.exists(os.path.join(_src(), "build.bat"))
+
+
+def _download(sha: str, ask):
+    """Konto-Ausgabe: fertiges Paket laden und auspacken (statt selbst zu bauen)."""
+    import shutil
+    import zipfile
+    import pc_variante
+    try:
+        _, url = _asset()
+        neu = _neu_dir()
+        shutil.rmtree(neu, ignore_errors=True)
+        os.makedirs(neu, exist_ok=True)
+        z = os.path.join(neu, "paket.zip")
+        req = urllib.request.Request(url, headers={"User-Agent": "Jarvis-PC"})
+        with urllib.request.urlopen(req, timeout=120) as r, open(z, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 20)
+        with zipfile.ZipFile(z) as zf:
+            for n in zf.namelist():
+                b = os.path.basename(n)
+                if b.lower() in (pc_variante.EXE.lower(), pc_variante.EXE_DEBUG.lower()):
+                    with zf.open(n) as src, open(os.path.join(neu, b), "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+        os.remove(z)
+        if os.path.exists(os.path.join(neu, pc_variante.EXE)):
+            _state["ready"] = sha
+            print("Update geladen.")
+            ask()
+        else:
+            raise RuntimeError("im Paket fehlt " + pc_variante.EXE)
+    except Exception as e:
+        print("Update laden ging nicht:", e)
+        d = _load(); d["failed"] = sha; _save(d)
+    finally:
+        _state["busy"] = False
 
 
 BUILD = r"""@echo off
@@ -135,7 +194,7 @@ def _build(sha: str, ask):
 def check_now(ask) -> str:
     """Einmal nachsehen (auch auf Zuruf). ask() wird aufgerufen, sobald ein Update fertig gebaut ist."""
     if not possible():
-        return "Selbst-Update geht nur mit der fertigen PC-Assistent.exe und build.bat im Ordner darüber."
+        return "Selbst-Update geht nur mit der fertigen .exe (bei deinem PC: und build.bat im Ordner darüber)."
     if _state["ready"]:
         ask()
         return "Das Update ist schon fertig."
@@ -152,7 +211,7 @@ def check_now(ask) -> str:
     if sha == d.get("sha") or sha == d.get("failed"):
         return "Du hast die neueste Version."
     _state["busy"] = True
-    threading.Thread(target=_build, args=(sha, ask), daemon=True).start()
+    threading.Thread(target=_download if __import__("pc_variante").KONTO else _build, args=(sha, ask), daemon=True).start()
     return "Es gibt ein Update. Ich baue es im Hintergrund und sag Bescheid, wenn es fertig ist."
 
 
@@ -161,14 +220,15 @@ def restart(quit_app) -> str:
     sha = _state.get("ready")
     if not sha:
         return "Es liegt kein fertiges Update bereit."
-    src = _src()
-    neu = os.path.join(src, "dist_neu", "PC-Assistent.exe")
-    helper = os.path.join(src, "dist_neu", "Jarvis-Update.exe")
+    import pc_variante
+    nd = _neu_dir()
+    neu = os.path.join(nd, pc_variante.EXE)
+    helper = os.path.join(nd, "Jarvis-Update.exe")
     try:
         import shutil
-        shutil.copy2(neu, helper)   # anderer Name: der Helfer kann PC-Assistent.exe beenden, ohne sich selbst zu treffen
+        shutil.copy2(neu, helper)   # anderer Name: der Helfer kann die alte .exe beenden, ohne sich selbst zu treffen
         d = _load(); d["sha"] = sha; d.pop("failed", None); _save(d)
-        subprocess.Popen([helper, "--swap", _dist(), os.path.join(src, "dist_neu")], cwd=src,
+        subprocess.Popen([helper, "--swap", _dist(), nd], cwd=_dist(),
                          creationflags=NO_WINDOW | 0x00000200, close_fds=True)   # NEW_PROCESS_GROUP: überlebt das Beenden
         threading.Timer(1.5, quit_app).start()
         return "Ich starte kurz neu – bin gleich wieder da."
@@ -181,6 +241,9 @@ def swap_main():
     import shutil
     a = sys.argv[sys.argv.index("--swap") + 1:]
     dist, neu = a[0], a[1]
+    # welche Ausgabe? (der Helfer heißt Jarvis-Update.exe – darum am Inhalt von dist erkennen)
+    konto = os.path.exists(os.path.join(dist, "Jarvis-Konto.exe"))
+    EXE, EXE_DEBUG = ("Jarvis-Konto.exe", "Jarvis-Konto-Debug.exe") if konto else ("PC-Assistent.exe", "PC-Assistent-Debug.exe")
     log = os.path.join(dist, "update_log.txt")
 
     def note(t):
@@ -192,9 +255,9 @@ def swap_main():
 
     def running() -> bool:
         try:
-            out = subprocess.run(["tasklist", "/fi", "imagename eq PC-Assistent.exe", "/fo", "csv", "/nh"], capture_output=True, text=True,
+            out = subprocess.run(["tasklist", "/fi", f"imagename eq {EXE}", "/fo", "csv", "/nh"], capture_output=True, text=True,
                                  creationflags=NO_WINDOW, timeout=10).stdout
-            return "PC-Assistent.exe" in out
+            return EXE in out
         except Exception:
             return False
     note("Tausch startet")
@@ -202,25 +265,25 @@ def swap_main():
         if not running():
             break
         time.sleep(1)
-    for img in ("PC-Assistent.exe", "PC-Assistent-Debug.exe"):   # HUD-Fenster, Start-Animation, Reste
+    for img in (EXE, EXE_DEBUG):   # HUD-Fenster, Start-Animation, Reste
         subprocess.run(["taskkill", "/f", "/im", img], capture_output=True, creationflags=NO_WINDOW)
     time.sleep(1.5)
     ok = False
     for _ in range(20):
         try:
-            shutil.copy2(os.path.join(neu, "PC-Assistent.exe"), os.path.join(dist, "PC-Assistent.exe"))
+            shutil.copy2(os.path.join(neu, EXE), os.path.join(dist, EXE))
             ok = True
             break
         except Exception as e:
             note(f"kopieren wartet: {e}")
             time.sleep(1)
     try:
-        if os.path.exists(os.path.join(neu, "PC-Assistent-Debug.exe")):
-            shutil.copy2(os.path.join(neu, "PC-Assistent-Debug.exe"), os.path.join(dist, "PC-Assistent-Debug.exe"))
+        if os.path.exists(os.path.join(neu, EXE_DEBUG)):
+            shutil.copy2(os.path.join(neu, EXE_DEBUG), os.path.join(dist, EXE_DEBUG))
     except Exception:
         pass
     note("neue Version eingesetzt" if ok else "Kopieren ging nicht – alte Version wird gestartet")
-    subprocess.Popen([os.path.join(dist, "PC-Assistent.exe")] + (["--nach-update"] if ok else []), cwd=dist, close_fds=True,
+    subprocess.Popen([os.path.join(dist, EXE)] + (["--nach-update"] if ok else []), cwd=dist, close_fds=True,
                      creationflags=0x00000008 | 0x00000200)   # eigenständig weiterlaufen
 
 

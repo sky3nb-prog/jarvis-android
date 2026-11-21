@@ -1,5 +1,5 @@
 """
-Routen für Jarvis: "Wie lange brauche ich mit dem Fahrrad nach Rutesheim?"
+Routen für Jarvis: "Wie lange brauche ich mit dem Fahrrad nach Musterstadt?"
 
 - Start: dein aktueller Standort vom Handy (siehe pc_phone.py), sonst deine Adresse aus den Einstellungen, sonst dein Ort.
   "von meiner Adresse nach ...", "von Stuttgart nach ..." geht auch.
@@ -22,7 +22,7 @@ PROFILES = {"bike": ("routed-bike", "mit dem Fahrrad", "bicycling"),
             "foot": ("routed-foot", "zu Fuß", "walking"),
             "car": ("routed-car", "mit dem Auto", "driving")}
 HOME_ADDRESS = ""  # aus den Einstellungen
-HOME_CITY = "Leonberg"
+HOME_CITY = ""
 _pending = {"routes": None, "until": 0.0, "dest": "", "mode": "car"}
 SEND_ENABLED = False  # "aufs Handy schicken" ist vorerst aus (kommt mit dem Telefon-Projekt zurück)
 ON_SHOW = None  # Programm setzt das: ON_SHOW(routes, index) zeigt die Wege auf der Karte
@@ -55,7 +55,7 @@ def geocode(text: str, near=None):
             return float(r["lat"]), float(r["lon"]), r.get("display_name", q).split(",")[0]
     except Exception as e:
         print(f"Ort {q} nicht gefunden: {e}")
-    try:  # verhört? ("Rotesheim" -> Rutesheim): mit bekannten Orten vergleichen
+    try:  # verhört? ("Musterstat" -> Musterstadt): mit bekannten Orten vergleichen
         import pc_news
 
         hit = difflib.get_close_matches(q.lower(), list(pc_news.PLACES), n=1, cutoff=0.75)
@@ -84,8 +84,8 @@ def home():
                 return hit[0], hit[1], "deiner Adresse"
     except Exception:
         pass
-    hit = geocode(HOME_CITY or "Leonberg")
-    return (hit[0], hit[1], HOME_CITY) if hit else (48.8003, 9.0144, "Leonberg")
+    hit = geocode(HOME_CITY or "Berlin")
+    return (hit[0], hit[1], HOME_CITY) if hit else (52.52, 13.40, "Berlin")
 
 
 def here():

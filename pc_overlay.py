@@ -213,7 +213,7 @@ def apply_settings(s: dict):
     pc_talk.NAME = s.get("assistant_name") or "J.A.R.V.I.S."
     pc_talk.ADDRESS = (s.get("address_as") or "").strip()
     pc_talk.CITY = s.get("weather_city") or "Karlsruhe"
-    pc_news.CITY = (s.get("home_city") or "Leonberg").strip().title()
+    pc_news.CITY = (s.get("home_city") or "Berlin").strip().title()
     pc_steuerung.PERSONA = s.get("persona") or "sarkastisch"
     pc_steuerung.set_voice_channels(s.get("discord_channels") or [])
     pc_phone.PUSH_TOPIC = (s.get("ntfy_topic") or "").strip()
@@ -230,7 +230,7 @@ def apply_settings(s: dict):
         pc_telegram.stop()
     pc_phone.LOC_TOPIC = (s.get("loc_topic") or "").strip()
     pc_route.HOME_ADDRESS = (s.get("home_address") or "").strip()
-    pc_route.HOME_CITY = (s.get("home_city") or "Leonberg").strip()
+    pc_route.HOME_CITY = (s.get("home_city") or "Berlin").strip()
 
 
 def state_for(role: str, text: str) -> str:
@@ -1216,7 +1216,7 @@ class UI:
                 elif item[0] == "globe" and self.web and item[1] not in ("luftraum", "close"):
                     # neues HUD: alle Karten-Wünsche landen auf der Lage-Seite
                     v = item[1]
-                    self._show_lage(self.settings.get("home_city") or "Leonberg" if v == "leonberg" else None)
+                    self._show_lage(self.settings.get("home_city") or "Berlin" if v == "leonberg" else None)
                 elif item[0] == "globe":
                     if item[1] == "close" and self.web:
                         self.web.push("mode", {"mode": "info"})
@@ -1250,7 +1250,7 @@ class UI:
                     if self.web:
                         d = dict(data or {})
                         d.pop("schlagzeilen", None)
-                        d.setdefault("stadt", self.settings.get("home_city") or "Leonberg")
+                        d.setdefault("stadt", self.settings.get("home_city") or "Berlin")
                         self.web.push("lage", {"data": d, "tour": True})
                     else:
                         self.root.after(300, lambda: self.hud.show_place(place, data))
@@ -1345,7 +1345,7 @@ def start_tray(ui: UI, stop: threading.Event):
     icon = pystray.Icon(
         "pc_assistent",
         img,
-        "PC-Assistent",
+        __import__("pc_variante").NAME,
         menu=pystray.Menu(
             pystray.MenuItem("HUD anzeigen", on_show, default=True),
             pystray.MenuItem("Einstellungen", on_settings),
@@ -1382,8 +1382,8 @@ _HOME = {}
 
 
 def home_position():
-    """Breite, Länge und Name des Standorts (Einstellung "home_city", Standard Leonberg), einmal ermittelt."""
-    city = pc_news.CITY or "Leonberg"
+    """Breite, Länge und Name des Standorts (Einstellung "home_city", Standard Berlin), einmal ermittelt."""
+    city = pc_news.CITY or "Berlin"
     if city.lower() == "leonberg":
         return pc_globe.HOME_DEFAULT
     if _HOME.get("city") != city:
@@ -1412,7 +1412,7 @@ def world_command(command: str, ui: "UI"):
             return pc_flights.summary(pc_flights.around(lat, lon, 250), lat, lon)
         except Exception:
             return "Die Flugdaten sind gerade nicht erreichbar. Der Globus zeigt, was ich bekomme."
-    city = (ui.settings.get("home_city") or "Leonberg").lower()
+    city = (ui.settings.get("home_city") or "Berlin").lower()
     if city in low and re.search(r"lage|los|neu|passiert|nachrichten|news|zeig|karte", low):
         ui.show_globe("leonberg")
         data = pc_news.get() or {}
@@ -1943,7 +1943,8 @@ def assistant_runner(ui: UI, stop: threading.Event, shutdown):
 _MUTEX = None
 
 
-SHOW_EVENT = "Jarvis.PCAssistent.ShowHud"
+_MUTEX2 = None
+SHOW_EVENT = __import__("pc_variante").APP_ID + ".ShowHud"
 
 
 def signal_show():
@@ -1980,7 +1981,7 @@ def make_start_shortcut():
         return
     try:
         folder = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs")
-        lnk = os.path.join(folder, "Jarvis.lnk")
+        lnk = os.path.join(folder, "Jarvis Konto.lnk" if __import__("pc_variante").KONTO else "Jarvis.lnk")
         if os.path.isdir(folder) and not os.path.exists(lnk):
             import subprocess
             ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');$s.TargetPath='{sys.executable}';"
@@ -1999,8 +2000,20 @@ def already_running() -> bool:
         k32 = ctypes.WinDLL("kernel32", use_last_error=True)
         k32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_wchar_p]
         k32.CreateMutexW.restype = ctypes.c_void_p
-        _MUTEX = k32.CreateMutexW(None, False, "Jarvis.PCAssistent.SingleInstance")
-        return ctypes.get_last_error() == 183  # ERROR_ALREADY_EXISTS
+        import pc_variante
+        _MUTEX = k32.CreateMutexW(None, False, pc_variante.APP_ID + ".SingleInstance")
+        if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
+            return True
+        if pc_variante.KONTO:   # der normale Jarvis darf nicht gleichzeitig laufen (zwei Mikrofon-Hörer)
+            global _MUTEX2
+            _MUTEX2 = k32.CreateMutexW(None, False, "Jarvis.PCAssistent.SingleInstance")
+            if ctypes.get_last_error() == 183:
+                if "--autostart" not in sys.argv:
+                    ctypes.windll.user32.MessageBoxW(None, "Der normale Jarvis läuft gerade.\n\nBitte erst den normalen Jarvis beenden "
+                                                     "(unten rechts beim Jarvis-Symbol: Rechtsklick → Beenden) und Jarvis Konto dann noch mal starten.",
+                                                     "Jarvis Konto", 0x40)
+                sys.exit(0)
+        return False
     except Exception:
         return False
 
@@ -2051,7 +2064,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-17 20:45"
+VERSION = "2026-11-21 18:30"
 
 
 def main():
@@ -2067,11 +2080,16 @@ def main():
     except Exception:
         pass
     try:  # eigene Kennung, damit das Anheften an die Taskleiste sauber funktioniert
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Jarvis.PCAssistent")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(__import__("pc_variante").APP_ID)
     except Exception:
         pass
+    import pc_konto
+    if __import__("pc_variante").KONTO:
+        if "--restart" in sys.argv:   # Neustart nach dem Laden aus dem Konto: kurz warten, bis der alte Jarvis zu ist
+            time.sleep(3)
+        pc_konto.pull_at_start()   # Jarvis-Konto: neueren Stand holen, bevor die Einstellungen geladen werden
     settings = pc_settings.load()
-    if not settings.get("piper_v1"):   # Skyler hat am 17.11. zugestimmt: schnelle Stimme auf dem PC statt der langsamen Online-Stimme
+    if not settings.get("piper_v1"):   # vom Nutzer am 17.11. zugestimmt: schnelle Stimme auf dem PC statt der langsamen Online-Stimme
         if settings.get("voice_engine") in ("edge", "auto", None):
             settings["voice_engine"] = "auto"
         settings["piper_v1"] = True

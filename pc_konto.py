@@ -22,7 +22,7 @@ from pc_apps import base_dir
 
 # Dein Haupt-PC: nur hochladen (Sicherung fürs Konto), nie etwas aus dem Konto über deine Dateien schreiben.
 # Einmal verbinden, danach kein Abmelden. Andere PCs nehmen „Jarvis Konto“ von der Download-Seite.
-BACKUP = True
+BACKUP = not __import__("pc_variante").KONTO   # Konto-Ausgabe (Website): richtiges Konto mit Laden; dein PC: nur Sicherung
 FILE = "konto.json"
 SKIP = {FILE, "jarvis_log.txt"}
 _lock = threading.Lock()

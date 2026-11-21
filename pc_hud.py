@@ -705,7 +705,7 @@ class HudWindow(FlugMixin):
             pass
 
     # --- Lage-Modus (Vorschaubild 3): Kugel links, Datenstrang, Hologramm-Globus rechts -------------
-    LAGE_HOME = (48.8003, 9.0144)
+    LAGE_HOME = (52.52, 13.40)
 
     def _build_lage(self, W, H, X, Y, S, reveal):
         import pc_lage
@@ -1151,7 +1151,7 @@ class HudWindow(FlugMixin):
         self._lage_overlay()
 
     def _home_name(self):
-        return (self.get_settings().get("home_city") or "Leonberg").strip().title()
+        return (self.get_settings().get("home_city") or "Berlin").strip().title()
 
     def _lage_overlay(self):
         """Punkte, Bögen von Zuhause, Beschriftungen mit Linie nach außen (nur bei Änderungen neu)."""

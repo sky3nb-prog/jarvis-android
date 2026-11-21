@@ -210,7 +210,7 @@ def snapshot() -> dict:
         "moods": (data.get("moods") or [])[-10:],
         "profile": prof,
         "home": (s.get("home_address") or "").strip(),
-        "city": (s.get("home_city") or "Leonberg").strip(),
+        "city": (s.get("home_city") or "Berlin").strip(),
         "places": s.get("lage_places") or [],
         "settings": shared_settings(s),
         "settings_ts": _settings_ts(s),

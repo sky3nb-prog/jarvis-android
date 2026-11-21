@@ -110,13 +110,13 @@ def set_voice_channels(names):
             continue
         import unicodedata
 
-        plain = unicodedata.normalize("NFKC", full)  # Zierschrift (𝙶𝚞𝚛𝚔𝚎𝚗) -> normale Buchstaben (Gurken)
+        plain = unicodedata.normalize("NFKC", full)  # Zierschrift (𝙺𝚊𝚗𝚊𝚕) -> normale Buchstaben (Kanal)
         word = re.sub(r"[^\wäöüß ]+", " ", plain.lower(), flags=re.UNICODE)
         word = " ".join(w for w in word.split() if w.isalpha() or any(c.isalpha() for c in w)).strip()
         if not word:
             continue
         keys = {word}
-        for suf in ("n", "en", "e", "s"):  # Gurken/Gurke, Kartoffeln/Kartoffel, Möhren/Möhre
+        for suf in ("n", "en", "e", "s"):  # Kanäle/Kanal, Kartoffeln/Kartoffel
             if word.endswith(suf) and len(word) > len(suf) + 3:
                 keys.add(word[: -len(suf)])
         for k in keys:

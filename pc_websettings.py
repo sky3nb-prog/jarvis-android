@@ -204,7 +204,7 @@ def schema(s: dict) -> dict:
             card("Meine Wege",
                  note("Ein Punkt, über den der Weg führen soll: Name, Doppelpunkt, Ort oder Koordinaten (in Google Maps rechts klicken, Zahlen kopieren). "
                       "Dann geht „über den oberen Feldweg zu Opa“."),
-                 {"k": "meine_wege", "t": "area", "l": "Wege", "ph": "oberer Feldweg: 48.8030, 8.9620"}),
+                 {"k": "meine_wege", "t": "area", "l": "Wege", "ph": "Waldweg: 52.5000, 13.4000"}),
             card("Routen schicken",
                  tx("route_an", "Google-Maps-Link per WhatsApp an", "Name aus deinen Kontakten, leer = an niemanden. Gilt auch am Handy."),
                  note("Fragst du am PC, öffnet sich die Route am PC und auf dem Handy, und der PC schickt den Link per WhatsApp.")),
@@ -343,7 +343,7 @@ def schema(s: dict) -> dict:
         "voice_volume": s.get("voice_volume", 100), "voice_pitch": g("voice_pitch"), "voice_rate": g("voice_rate"),
         "eleven_voice": g("eleven_voice"), "eleven_model": g("eleven_model"), "edge_voice": g("edge_voice"),
         "windows_voice": g("windows_voice") or "", "chime_volume": g("chime_volume"), "early_chime": bool(g("early_chime")),
-        "home_city": g("home_city") or "Leonberg", "home_address": g("home_address") or "",
+        "home_city": g("home_city") or "", "home_address": g("home_address") or "",
         "lage_spin": bool(s.get("lage_spin", True)), "lage_orbits": bool(s.get("lage_orbits", True)),
         "map_labels": bool(g("map_labels")), "lage_sat_tour": bool(g("lage_sat_tour")),
         "globe_auto_open": bool(g("globe_auto_open")), "briefing_on_start": bool(g("briefing_on_start")),
@@ -407,7 +407,7 @@ def save(s: dict, v: dict) -> dict:
     if "weather_city" in v:
         new["weather_city"] = text("weather_city") or d["weather_city"]
     if "home_city" in v:
-        new["home_city"] = text("home_city") or "Leonberg"
+        new["home_city"] = text("home_city") or ""
     if "wake_words" in v:
         new["wake_words"] = [w.lower() for w in _csv(v["wake_words"], 12)] or list(d["wake_words"])
     for k, n in LISTS.items():
@@ -576,7 +576,18 @@ def _ordnen(tabs, card):
         c["Kalender"]["l"] = "Kalender"
     T = lambda i, g, n, ic, items: {"id": i, "g": g, "n": n, "i": ic, "items": [x for x in items if x and x.get("items")]}  # noqa: E731
     A, J, W = "DEIN ALLTAG", "JARVIS", "PC & WELT"
-    return [
+    konto = None
+    if __import__("pc_variante").KONTO:   # Jarvis von der Website: eigener Bereich fürs Konto
+        try:
+            import pc_konto
+            ki_ = pc_konto.info()
+            kst = (f"Angemeldet als {ki_['email']}." if ki_["loggedIn"] else ("Nicht angemeldet." if ki_["configured"] else "Noch nicht eingerichtet."))
+        except Exception:
+            kst = ""
+        konto = {"id": "konto", "g": "KONTO", "n": "Jarvis-Konto", "i": "👤", "items": [card("Dein Konto", {"t": "note", "l": kst},
+                 {"t": "btn", "a": "konto_open", "l": "Anmelden / Konto verwalten"},
+                 {"t": "note", "l": "Alles wird mit deinem Passwort verschlüsselt, bevor es ins Konto geht – auch der Server kann es nicht lesen."})]}
+    return ([konto] if konto else []) + [
         T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),
         T("wege", A, "Zuhause & Orte", "🗺️", [card("Zuhause", *ort)] + pick("Meine Orte", "Meine Wege", "Routen schicken")),
         T("leute", A, "Leute & Anrufe", "👥", pick("Schreibstil & Antworten", "Wichtige Leute") + [card("Nachrichten", *nachr)] + pick("Sticker", "Anruf-Butler")),

@@ -1,7 +1,7 @@
 """
 Flugverkehr-Modus im HUD: derselbe Globus wie im Lage-Screen (Globus oder Satellit), darauf die Flugzeuge live.
 
-Oben links wählst du, was du sehen willst: über dir (Leonberg), Deutschland, Europa, USA, die ganze Welt oder eigene
+Oben links wählst du, was du sehen willst: über dir (dein Wohnort), Deutschland, Europa, USA, die ganze Welt oder eigene
 Orte (Einstellungen > Weltlage > "Flugverkehr: eigene Orte"). Klick auf ein Flugzeug = Airline, Typ, Route, Höhe.
 Zwischen zwei Abfragen fliegen die Flugzeuge rechnerisch weiter, dadurch bewegen sie sich flüssig.
 

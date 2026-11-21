@@ -497,12 +497,12 @@ class SettingsDialog:
         self._tab("Weltlage")
         ttk.Label(self.frm, text="Jarvis holt Nachrichten von tagesschau, Deutscher Welle, BBC und aus deiner Gegend und fasst "
                   "sie zusammen (mit Gemini-Schlüssel besonders gut). Sag „Jarvis, wie ist die Lage?“, „Was ist los in "
-                  "Leonberg?“, „Was fliegt gerade über uns?“ oder „Wie ist die Lage in Deutschland?“. Die Karte öffnest du "
+                  "München?“, „Was fliegt gerade über uns?“ oder „Wie ist die Lage in Deutschland?“. Die Karte öffnest du "
                   "auch mit dem Knopf „Lage“ oben im HUD. Ziehen = verschieben, Mausrad = zoomen, Klick auf einen Punkt = Details.",
                   style="Hint.TLabel", wraplength=self.wrap, justify="left").grid(
             row=self.row, column=0, columnspan=2, sticky="w", pady=(0, 6))
         self.row += 1
-        self._entry("Standort", self.v_home, "Mitte der Karte und Ort für lokale Nachrichten, z. B. Leonberg.")
+        self._entry("Standort", self.v_home, "Mitte der Karte und Ort für lokale Nachrichten, z. B. Musterstadt.")
         self._entry("Lieblingsorte", self.v_places,
                     "Mit Komma trennen, z. B. Seoul, New York, Hamburg. Stehen oben im Lage-Screen zum Anklicken. "
                     "Oder einfach fragen: „Wie ist die Lage in Tokio?“")
@@ -695,7 +695,7 @@ class SettingsDialog:
         self.row += 1
 
         self._tab("Handy")
-        ttk.Label(self.frm, text="Frag z. B. „Wie lange brauche ich mit dem Fahrrad nach Rutesheim?“. Jarvis nennt dir bis zu "
+        ttk.Label(self.frm, text="Frag z. B. „Wie lange brauche ich mit dem Fahrrad nach Musterstadt?“. Jarvis nennt dir bis zu "
                   "drei Wege (schnellster, flachster, kürzester) und schickt dir den gewünschten aufs Handy.\n\n"
                   "Am einfachsten mit Telegram (Nachrichten UND Standort, keine zweite SIM nötig):\n"
                   "1. Telegram aufs Handy, dort @BotFather suchen, /newbot schreiben, einen Namen (z. B. Jarvis) und einen "
@@ -711,7 +711,7 @@ class SettingsDialog:
             row=self.row, column=0, columnspan=2, sticky="w", pady=(0, 6))
         self.row += 1
         self._entry("Meine Adresse", self.v_homeaddr, "Startpunkt für Routen, wenn das Handy gerade keinen Standort "
-                    "schickt, z. B. Musterstraße 5, 71229 Leonberg.")
+                    "schickt, z. B. Musterstraße 5, 12345 Musterstadt.")
         self._combo("Aufs Handy schicken über", self.v_pchan, [n for n, _ in PHONE_CHANNELS])
         self._field("Telegram-Bot-Schlüssel",
                     lambda p: ttk.Entry(p, textvariable=self.v_tg, style="J.TEntry", show="•"),
@@ -780,7 +780,7 @@ class SettingsDialog:
         self.v_gstyle.set(g("globe_style") if g("globe_style") in ("Hologramm", "Satellit") else "Hologramm")
         self.v_mstyle.set(g("map_style") if g("map_style") in MAP_STYLES else "Satellit")
         self.v_mlabels.set(bool(g("map_labels")))
-        self.v_home.set(str(g("home_city") or "Leonberg"))
+        self.v_home.set(str(g("home_city") or ""))
         self.v_places.set(", ".join(g("lage_places") or []))
         self.v_homeaddr.set(str(g("home_address") or ""))
         self.v_ntfy.set(str(g("ntfy_topic") or ""))
@@ -916,7 +916,7 @@ class SettingsDialog:
             globe_style=self.v_gstyle.get() if self.v_gstyle.get() in ("Hologramm", "Satellit") else "Hologramm",
             map_style=self.v_mstyle.get() if self.v_mstyle.get() in MAP_STYLES else "Satellit",
             map_labels=bool(self.v_mlabels.get()),
-            home_city=self.v_home.get().strip() or "Leonberg",
+            home_city=self.v_home.get().strip() or "",
             lage_places=[p.strip() for p in self.v_places.get().replace(";", ",").split(",") if p.strip()][:8],
             lage_sat_tour=bool(self.v_sattour.get()),
             lage_spin=bool(self.v_spin.get()),

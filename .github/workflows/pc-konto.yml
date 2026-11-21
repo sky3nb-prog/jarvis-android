@@ -1,0 +1,59 @@
+name: Jarvis PC (für alle) bauen
+
+# Bei jedem PC-Update: die Ausgabe „Jarvis Konto“ als fertiges Paket bauen und auf die Download-Seite stellen.
+# Wer Jarvis von der Website hat, bekommt das Update dann automatisch (holt sich das Paket, kein Code nötig).
+on:
+  push:
+    branches: [pc]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pakete
+        shell: cmd
+        run: |
+          py -m pip install pyinstaller pystray pillow pyautogui sounddevice numpy SpeechRecognition tzdata psutil edge-tts soundfile pywebview opencv-python-headless
+          py -m pip install winsdk || echo winsdk fehlt
+          py -m pip install winrt-runtime winrt-Windows.Media.Control winrt-Windows.Foundation || echo winrt fehlt
+      - name: Ausgabe „Konto“ markieren
+        shell: pwsh
+        run: |
+          Set-Content pc_web/variante.txt "konto"
+          Copy-Item pc_web/konto_voll.js pc_web/konto.js -Force
+      - name: Symbol
+        run: py -c "from PIL import Image; Image.open('pc_web/orb_frames/kugel.png').convert('RGBA').save('jarvis.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+      - name: Programm bauen
+        shell: cmd
+        run: |
+          set EXTRA=--add-data "pc_web;pc_web" --collect-all webview --hidden-import clr --collect-all edge_tts
+          py -c "import clr_loader" && set EXTRA=%EXTRA% --collect-all clr_loader
+          py -c "import pythonnet" && set EXTRA=%EXTRA% --collect-all pythonnet
+          py -c "import winsdk" && set EXTRA=%EXTRA% --collect-all winsdk
+          py -c "import winrt.windows.media.control" && set EXTRA=%EXTRA% --collect-all winrt
+          py -m PyInstaller --clean --noconfirm --onefile --noconsole --icon jarvis.ico --name Jarvis-Konto --collect-all speech_recognition %EXTRA% pc_overlay.py
+          if errorlevel 1 exit /b 1
+          py -m PyInstaller --noconfirm --onefile --icon jarvis.ico --name Jarvis-Konto-Debug --collect-all speech_recognition %EXTRA% pc_overlay.py
+      - name: Paket packen
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out/Jarvis | Out-Null
+          Copy-Item dist/Jarvis-Konto.exe out/Jarvis/
+          Copy-Item dist/Jarvis-Konto-Debug.exe out/Jarvis/
+          Set-Content out/Jarvis/LIESMICH.txt "Jarvis für den PC`r`n`r`nDiesen Ordner irgendwohin entpacken (z. B. Dokumente\Jarvis) und Jarvis-Konto.exe starten.`r`nBeim ersten Start: anmelden oder neues Konto anlegen – oder erst mal ohne.`r`nUpdates kommen von selbst.`r`nJarvis-Konto-Debug.exe zeigt ein Fenster mit Meldungen, falls etwas nicht klappt."
+          Compress-Archive -Path out/Jarvis -DestinationPath Jarvis-Konto-PC.zip
+      - name: Auf die Download-Seite
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: konto-neueste
+          files: Jarvis-Konto-PC.zip
+          make_latest: false
+          prerelease: true
