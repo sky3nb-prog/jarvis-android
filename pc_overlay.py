@@ -1216,7 +1216,7 @@ class UI:
                 elif item[0] == "globe" and self.web and item[1] not in ("luftraum", "close"):
                     # neues HUD: alle Karten-Wünsche landen auf der Lage-Seite
                     v = item[1]
-                    self._show_lage(self.settings.get("home_city") or "Berlin" if v == "leonberg" else None)
+                    self._show_lage(self.settings.get("home_city") or "Berlin" if v == "zuhause" else None)
                 elif item[0] == "globe":
                     if item[1] == "close" and self.web:
                         self.web.push("mode", {"mode": "info"})
@@ -1384,8 +1384,6 @@ _HOME = {}
 def home_position():
     """Breite, Länge und Name des Standorts (Einstellung "home_city", Standard Berlin), einmal ermittelt."""
     city = pc_news.CITY or "Berlin"
-    if city.lower() == "leonberg":
-        return pc_globe.HOME_DEFAULT
     if _HOME.get("city") != city:
         try:
             import pc_info
@@ -1414,7 +1412,7 @@ def world_command(command: str, ui: "UI"):
             return "Die Flugdaten sind gerade nicht erreichbar. Der Globus zeigt, was ich bekomme."
     city = (ui.settings.get("home_city") or "Berlin").lower()
     if city in low and re.search(r"lage|los|neu|passiert|nachrichten|news|zeig|karte", low):
-        ui.show_globe("leonberg")
+        ui.show_globe("zuhause")
         data = pc_news.get() or {}
         pts = [q for q in data.get("brennpunkte") or [] if q.get("art") == "lokal"]
         if not pts:
@@ -2064,7 +2062,7 @@ def setup_log():
         pass
 
 
-VERSION = "2026-11-21 19:05"
+VERSION = "2026-11-21 19:30"
 
 
 def main():

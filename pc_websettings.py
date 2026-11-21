@@ -214,7 +214,7 @@ def schema(s: dict) -> dict:
                  note("Wie am Handy unter Leute → Schreibstil – alles hier gilt auf beiden Geräten."),
                  sel("stil_modus", "Darf Jarvis in deinem Namen antworten?", [["Aus", "aus"], ["Vorschlag – du sagst/tippst ja", "bestaetigen"], ["Selbst schreiben (erst nach dem Stil-Training am Handy)", "selbst"]],
                      "Gilt nur für die Chats darunter."),
-                 tx("stil_chats", "Für diese Chats", "Namen wie in WhatsApp, mit Komma. Per Sprache: „Du darfst Tobi selbst antworten“ / „Antworte Tobi nicht mehr“.", "z. B. Tobi, Marius"),
+                 tx("stil_chats", "Für diese Chats", "Namen wie in WhatsApp, mit Komma. Per Sprache: „Du darfst Alex selbst antworten“ / „Antworte Alex nicht mehr“.", "z. B. Tobi, Marius"),
                  tx("wa_name", "Dein Name in WhatsApp-Exporten", "So stehst du in exportierten Chats (z. B. „Sky“). Leer = ich erkenne es selbst – bei Gruppen brauch ich ihn.", "z. B. Sky"),
                  tx("test_chat", "Test-Chat (z. B. deine Zweitnummer)", "Nachrichten aus diesem Chat liest Jarvis immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt. Kleine Tippfehler im Kontaktnamen sind egal.", "Name wie in WhatsApp"),
                  btn("stil_import", "WhatsApp-Chat-Export wählen (ZIP direkt, nicht entpacken)"),

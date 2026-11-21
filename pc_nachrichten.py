@@ -150,7 +150,7 @@ def _is_test(msg: dict) -> bool:
             v = re.sub(r"[^\w ]", " ", str(msg.get(k) or "").lower()).strip()
             if v and (v == t or v.startswith(t + " ")):
                 return True
-            import difflib   # Tippfehler im Kontaktnamen (z. B. „Tohmas“ statt „Thomas“)
+            import difflib   # Tippfehler im Kontaktnamen (z. B. „Aelx“ statt „Alex“)
             if v and len(t) >= 4 and difflib.SequenceMatcher(None, v.split(" ")[0], t.split(" ")[0]).ratio() >= 0.8:
                 return True
     except Exception:
@@ -191,7 +191,7 @@ def _gaming() -> bool:
         return False
 
 
-TAKEOVER = {}   # Chat (klein) -> bis wann Jarvis das Gespräch selbst führt („Übernimm den Chat mit Tohmas“)
+TAKEOVER = {}   # Chat (klein) -> bis wann Jarvis das Gespräch selbst führt („Übernimm den Chat mit Alex“)
 
 
 def _norm_name(x) -> str:
@@ -318,7 +318,7 @@ def announce_text() -> str:
         PENDING = None
         return m.get("text") or "…"
     PENDING = m
-    if m.get("kind") == "held":   # gesammelt: "Du hast Nachrichten von Janis und Mama bekommen."
+    if m.get("kind") == "held":   # gesammelt: "Du hast Nachrichten von Alex und Mama bekommen."
         m["stage"] = "held"
         n = m.get("names") or []
         wer = n[0] if len(n) == 1 else ", ".join(n[:-1]) + " und " + n[-1]

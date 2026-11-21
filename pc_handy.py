@@ -269,7 +269,7 @@ def plan_route(text: str):
     who = who.group(1) if who and who.group(1).lower() not in ("mein", "meine", "mich", "handy", "telefon", "google", "dem", "den", "der") else None
     r = ask("route", wait=45, text=text)
     if r is not None and who:
-        r["send_to"] = who   # „… an Thomas schicken“ gilt vor der Einstellung
+        r["send_to"] = who   # „… an Alex schicken“ gilt vor der Einstellung
     if r is None:
         return None
     if r.get("url"):

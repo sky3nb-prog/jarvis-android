@@ -20,8 +20,8 @@ def _file() -> str:
 
 def _default() -> dict:
     l = lambda v, b: {"von": v, "bis": b, "fach": ""}  # noqa: E731
-    voll = [l("08:00", "08:45"), l("08:45", "09:30"), l("09:50", "10:35"), l("10:40", "11:25"), l("11:40", "12:25"),
-            l("12:25", "13:10"), l("14:10", "14:55"), l("14:55", "15:40")]
+    voll = [l("08:00", "08:45"), l("08:50", "09:35"), l("09:55", "10:40"), l("10:45", "11:30"), l("11:45", "12:30"),
+            l("12:35", "13:20")]   # neutraler Standard – jeder trägt seine eigenen Zeiten ein
     fr = voll[:5]
     cp = lambda x: [dict(i) for i in x]  # noqa: E731
     return {"v": 2, "mo": cp(voll), "di": cp(voll), "mi": cp(voll), "do": cp(voll), "fr": cp(fr)}

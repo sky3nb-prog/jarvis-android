@@ -8,7 +8,7 @@
   window.PC = { get: (n, q) => { try { return JSON.parse(get(n, q)); } catch (e) { return null; } }, post };
   window.Android = {
     lageFavorites: () => get("favorites"),
-    city: () => { try { return JSON.parse(get("city")); } catch (e) { return "Leonberg"; } },
+    city: () => { try { return JSON.parse(get("city")); } catch (e) { return ""; } },
     home: () => get("home"),
     here: () => "null",
     tle: () => { try { return JSON.parse(get("tle")).text || ""; } catch (e) { return ""; } },

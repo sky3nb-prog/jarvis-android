@@ -165,7 +165,7 @@ def handle(text: str):
             return r
     except Exception as e:
         return f"Die Sprachnachricht ging nicht ({e})."
-    # „Übernimm den Chat mit Tohmas“ / „ich übernehme wieder“ – Jarvis antwortet hier am PC selbst (WhatsApp am PC)
+    # „Übernimm den Chat mit Alex“ / „ich übernehme wieder“ – Jarvis antwortet hier am PC selbst (WhatsApp am PC)
     m = re.match(r"^(?:übernimm|übernimmst du|übernehme du)\s+(?:mal\s+|jetzt\s+)?(?:den chat (?:mit|von)\s+|das gespräch mit\s+|für mich\s+)?([a-zäöüß-]+)$", low)
     if m and m.group(1) not in ("das", "den", "es", "du"):
         import pc_nachrichten

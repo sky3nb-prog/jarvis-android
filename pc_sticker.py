@@ -272,7 +272,7 @@ def handle(command: str):
     to = raw[m.start(2):m.end(2)] if len(raw) == len(low) else m.group(2)   # Groß-/Kleinschreibung wie gesagt
     to = re.sub(r"^(die|den|der)\s+", "", to, flags=re.I).strip(" .")
     to = re.sub(r"\s+(?:auf|über|per|bei)\s+whats\s?app$", "", to, flags=re.I)
-    to = re.sub(r"\b([A-Za-zÄÖÜäöü]{1,4})\s+(\d{2,6})\b", r"\1\2", to)   # „TR 9000“ (so hört es die Spracherkennung) -> „TR9000“
+    to = re.sub(r"\b([A-Za-zÄÖÜäöü]{1,4})\s+(\d{2,6})\b", r"\1\2", to)   # „AB 1234“ (so hört es die Spracherkennung) -> „AB1234“
     if not n or not to:
         return None
     from_phone = "vom handy" in low

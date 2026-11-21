@@ -19,7 +19,20 @@ import time
 
 import numpy as np
 
-AGENT_ID = "agent_4701m6c6964efypvmbjqf3e7ak9m"  # aus den Einstellungen überschreibbar
+AGENT_ID = ""  # steht nicht im Code: Einstellung "live_agent_id" oder Datei live_agent.txt neben dem Programm
+
+
+def _agent(settings) -> str:
+    a = (settings.get("live_agent_id") or AGENT_ID or "").strip()
+    if a:
+        return a
+    try:
+        import os
+        import pc_apps
+        with open(os.path.join(pc_apps.base_dir(), "live_agent.txt"), encoding="utf-8") as f:
+            return f.read().strip()
+    except Exception:
+        return ""
 URL = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id={}"
 START = re.compile(r"lass uns (?:reden|quatschen|plaudern|sprechen|unterhalten)|gesprächsmodus|live[- ]?(?:modus|gespräch)|"
                    r"unterhalt(?:en wir|e dich) (?:uns|mit mir)|ich will (?:mit dir )?reden", re.I)
@@ -207,7 +220,9 @@ class LiveSession:
         import pc_steuerung
         import pc_talk
 
-        agent = (self.settings.get("live_agent_id") or AGENT_ID).strip()
+        agent = _agent(self.settings)
+        if not agent:
+            raise RuntimeError("Kein eigener Sprach-Agent eingetragen")
         self.ws = websocket.create_connection(URL.format(agent), timeout=15)
         self.ws.settimeout(None)
         init = {"type": "conversation_initiation_client_data"}

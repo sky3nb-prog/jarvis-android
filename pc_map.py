@@ -2,7 +2,7 @@
 Weltlage-Karte für Jarvis: echte Satellitenbilder (wie Google Earth) oder ein dunkler Stil in deiner Farbe.
 
 Bedienung:
-- Ansichten oben: LEONBERG (lokal), DEUTSCHLAND, WELT, LUFTRAUM (oder Tasten 1-4, oder per Sprache)
+- Ansichten oben: ZUHAUSE (lokal), DEUTSCHLAND, WELT, LUFTRAUM (oder Tasten 1-4, oder per Sprache)
 - Maus ziehen = verschieben, Mausrad = zoomen (bis auf Straßenebene), Doppelklick = näher heran, + / − unten rechts
 - Klick auf einen Punkt, ein Flugzeug oder einen Eintrag rechts = Details links, die Karte fliegt hin
 - Oben rechts: SATELLIT / DUNKEL, ABC = Ortsnamen ein/aus, ◐ = Farben, ⛶ (oder F11) = Vollbild, Esc = zurück
@@ -52,7 +52,7 @@ THEMES = {
                     dim=(172, 152, 212), panel=(17, 11, 31), tint=(170, 130, 255)),
 }
 THEME_NAMES = list(THEMES)
-VIEWS = [("leonberg", "Zuhause"), ("deutschland", "Deutschland"), ("welt", "Welt"), ("luftraum", "Luftraum")]
+VIEWS = [("zuhause", "Zuhause"), ("deutschland", "Deutschland"), ("welt", "Welt"), ("luftraum", "Luftraum")]
 KIND_COLORS = {"konflikt": (255, 80, 64), "katastrophe": (255, 120, 50), "wetter": (100, 196, 255),
                "wirtschaft": (255, 210, 90), "sport": (120, 230, 140), "wissenschaft": (176, 156, 255),
                "lokal": (110, 255, 205)}
@@ -195,7 +195,7 @@ class GlobeWindow:
         self.style = s.get("map_style", "Satellit") if s.get("map_style") in SOURCES else "Satellit"
         self.show_labels = bool(s.get("map_labels", True))
         self.win = None
-        self.view = "leonberg"
+        self.view = "zuhause"
         self.z = 13
         self.cx = self.cy = 0.0  # Mitte in Weltpixeln der aktuellen Zoomstufe
         self.home = HOME_DEFAULT
@@ -226,7 +226,7 @@ class GlobeWindow:
         self.size = (1280, 760)
         self.top_h = 56
         self.panel_w = 0
-        self._set_view_center("leonberg")
+        self._set_view_center("zuhause")
 
     @property
     def theme(self):
@@ -400,7 +400,7 @@ class GlobeWindow:
 
     # --- Kamera ---
     def _view_target(self, view):
-        if view == "leonberg":
+        if view == "zuhause":
             return self.home[0], self.home[1], 13
         if view == "deutschland":
             return 51.1, 10.4, 6
@@ -484,7 +484,7 @@ class GlobeWindow:
         self.selected = (kind, obj)
         self._card_sig = self._panel_sig = None
         if fly:
-            z = {"leonberg": 14, "deutschland": 9, "welt": 6, "luftraum": 10}[self.view]
+            z = {"zuhause": 14, "deutschland": 9, "welt": 6, "luftraum": 10}[self.view]
             if kind == "punkt" and obj.get("art") == "lokal":
                 z = max(z, 14)
             self.fly_to(obj["lat"], obj["lon"], max(self.z, z) if self.view != "welt" else z)
@@ -878,7 +878,7 @@ class GlobeWindow:
 
     def _data_loop(self):
         city = (self.get_settings().get("home_city") or "Berlin").strip()
-        if city.lower() != "leonberg":
+        if city:
             try:
                 import pc_info
 
@@ -899,7 +899,7 @@ class GlobeWindow:
                     self.news = data
                     self._panel_sig = None
                     self._ready_q.put("overlays")
-            if self.view in ("luftraum", "leonberg", "deutschland") and now - self.planes_ts > 12:
+            if self.view in ("luftraum", "zuhause", "deutschland") and now - self.planes_ts > 12:
                 self.planes_ts = now
                 try:
                     near = pc_flights.around(self.home[0], self.home[1], 250)
@@ -938,7 +938,7 @@ class GlobeWindow:
         hl, ho = self.home[0], self.home[1]
         if self.view == "deutschland":
             pts.sort(key=lambda q: (not q.get("deutschland"), -int(q.get("wichtig", 2))))
-        elif self.view in ("leonberg", "luftraum"):
+        elif self.view in ("zuhause", "luftraum"):
             pts.sort(key=lambda q: (not (q.get("art") == "lokal" or
                                          pc_flights.distance_km(hl, ho, q["lat"], q["lon"]) < 40), -int(q.get("wichtig", 2))))
         else:
@@ -1105,7 +1105,7 @@ class GlobeWindow:
         c = self.c
         news = self.news or {}
         pts = self._points()
-        if self.view == "leonberg":
+        if self.view == "zuhause":
             big, sub = f"{len(pts)}", f"MELDUNGEN AUS {self.home[2].upper()} UND UMGEBUNG"
         elif self.view == "deutschland":
             big, sub = f"{len(pts)}", "MELDUNGEN AUS DEUTSCHLAND"
@@ -1115,7 +1115,7 @@ class GlobeWindow:
             big, sub = f"{len(self._all_planes())}", "FLUGZEUGE IN DER LUFT"
         st = time.strftime("%H:%M", time.localtime(news.get("zeit", time.time()))) if news else "--:--"
         status = f"Nachrichten von {st} Uhr · Zoom {self.z}"
-        if self.view in ("luftraum", "leonberg") and self.status:
+        if self.view in ("luftraum", "zuhause") and self.status:
             status += " · " + self.status
         c.itemconfigure(self.t_big, text=big)
         c.itemconfigure(self.t_sub, text=sub)
@@ -1140,7 +1140,7 @@ class GlobeWindow:
         for q in self._points():
             col = KIND_COLORS.get(q.get("art")) or t["accent"]
             out.append(("punkt", q, q.get("titel", ""), f"{q.get('ort', '')} · {q.get('text', '')}", col))
-        if self.view == "leonberg":  # lokale Schlagzeilen ohne Ort zusätzlich
+        if self.view == "zuhause":  # lokale Schlagzeilen ohne Ort zusätzlich
             for it in (news.get("schlagzeilen") or []):
                 if it.get("quelle", "").startswith("Lokal"):
                     out.append(("text", it, it["titel"], it.get("quelle", "").replace("Lokal", "Lokal ·").strip(" ·"),
@@ -1174,7 +1174,7 @@ class GlobeWindow:
 
         if self.view == "welt":
             heads = [("LAGEBERICHT", news.get("briefing") or "Lade Nachrichten …"), ("BRENNPUNKTE", None)]
-        elif self.view == "leonberg":
+        elif self.view == "zuhause":
             heads = [(f"{self.home[2].upper()} & UMGEBUNG", None)]
         elif self.view == "deutschland":
             heads = [("DEUTSCHLAND", None)]
