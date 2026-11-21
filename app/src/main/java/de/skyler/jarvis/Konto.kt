@@ -11,7 +11,15 @@ import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.PBEKeySpec
 
 /**
@@ -44,12 +52,60 @@ object Konto {
     fun configured(ctx: Context) = cfg(ctx).optString("apiKey").length > 10 && cfg(ctx).optString("projectId").isNotBlank()
     fun loggedIn(ctx: Context) = kp(ctx).getString("uid", "").orEmpty().isNotBlank() && kp(ctx).getString("secret", "").orEmpty().isNotBlank()
 
+    // ---- Tresor: Schlüssel und Anmelde-Tickets liegen verschlüsselt mit dem Android-Schlüsselspeicher (Keystore) ------
+    // Der Tresor-Schlüssel steckt in der Hardware des Handys und lässt sich nicht herauskopieren.
+    private const val KS_ALIAS = "jarvis_konto_tresor"
+    private fun tresorKey(): SecretKey {
+        val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        (ks.getEntry(KS_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        val g = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+        g.init(KeyGenParameterSpec.Builder(KS_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).setKeySize(256).build())
+        return g.generateKey()
+    }
+    private fun seal(plain: String): String {
+        if (plain.isEmpty()) return ""
+        val c = Cipher.getInstance("AES/GCM/NoPadding"); c.init(Cipher.ENCRYPT_MODE, tresorKey())
+        val out = c.iv + c.doFinal(plain.toByteArray())
+        return "K:" + Base64.encodeToString(out, Base64.NO_WRAP)
+    }
+    private fun unseal(v: String?): String {
+        val t = v.orEmpty()
+        if (!t.startsWith("K:")) return t   // alter Stand (vor dem Tresor): wird beim nächsten Speichern verschlüsselt
+        return try {
+            val b = Base64.decode(t.substring(2), Base64.NO_WRAP)
+            val c = Cipher.getInstance("AES/GCM/NoPadding")
+            c.init(Cipher.DECRYPT_MODE, tresorKey(), GCMParameterSpec(128, b, 0, 12))
+            String(c.doFinal(b, 12, b.size - 12))
+        } catch (e: Exception) { Log.w(TAG, "Tresor: $e"); "" }
+    }
+    /** Alte, noch unverschlüsselte Werte einmal in den Tresor legen. */
+    private fun upgradeTresor(ctx: Context) {
+        val p = kp(ctx); val e = p.edit(); var any = false
+        for (k in listOf("secret", "secret_old", "id", "refresh")) {
+            val v = p.getString(k, "").orEmpty()
+            if (v.isNotEmpty() && !v.startsWith("K:")) try { e.putString(k, seal(v)); any = true } catch (x: Exception) { Log.w(TAG, "Tresor: $x") }
+        }
+        if (any) e.apply()
+    }
+    private fun secrets(ctx: Context): List<String> {
+        upgradeTresor(ctx)
+        return listOf(unseal(kp(ctx).getString("secret", "")), unseal(kp(ctx).getString("secret_old", ""))).filter { it.isNotBlank() }.distinct()
+    }
+    /** Mit dem aktuellen Schlüssel entschlüsseln, sonst mit dem alten (Daten von Geräten, die noch die alte Verschlüsselung nutzen). */
+    private fun decryptAny(ctx: Context, data: String): JSONObject? {
+        for (k in secrets(ctx)) Link.decrypt(data, k)?.let { return it }
+        return null
+    }
+
     fun info(ctx: Context): JSONObject = JSONObject().put("configured", configured(ctx)).put("loggedIn", loggedIn(ctx))
         .put("email", kp(ctx).getString("email", "")).put("lastPush", kp(ctx).getLong("last_push", 0)).put("lastPull", kp(ctx).getLong("last_pull", 0))
         .put("err", kp(ctx).getString("err", "")).put("parallel", parallel(ctx))
 
-    private fun secretOf(email: String, pw: String): String {
-        val spec = PBEKeySpec(pw.toCharArray(), ("jarvis-konto:" + email.trim().lowercase()).toByteArray(), 60000, 256)
+    /** v2: 600.000 Durchgänge (heutige Empfehlung). v1: alte 60.000 – nur noch zum Lesen alter Daten. */
+    private fun secretOf(email: String, pw: String, v: Int = 2): String {
+        val salt = (if (v >= 2) "jarvis-konto2:" else "jarvis-konto:") + email.trim().lowercase()
+        val spec = PBEKeySpec(pw.toCharArray(), salt.toByteArray(), if (v >= 2) 600_000 else 60_000, 256)
         val k = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
         return k.joinToString("") { "%02x".format(it) }
     }
@@ -85,9 +141,10 @@ object Konto {
             val r = post("https://identitytoolkit.googleapis.com/v1/accounts:$ep?key=$key",
                 JSONObject().put("email", email.trim()).put("password", pw).put("returnSecureToken", true).toString())
             kp(ctx).edit().putString("email", email.trim()).putString("uid", r.optString("localId"))
-                .putString("id", r.optString("idToken")).putString("refresh", r.optString("refreshToken"))
+                .putString("id", seal(r.optString("idToken"))).putString("refresh", seal(r.optString("refreshToken")))
                 .putLong("exp", System.currentTimeMillis() + (r.optString("expiresIn", "3600").toLongOrNull() ?: 3600) * 1000 - 60_000)
-                .putString("secret", secretOf(email, pw)).putString("err", "").commit()
+                .putString("secret", seal(secretOf(email, pw, 2))).putString("secret_old", seal(secretOf(email, pw, 1)))
+                .putString("err", "").commit()
             if (backup(ctx)) { push(ctx, force = true); return JSONObject().put("ok", true).put("text", "Verbunden – dein Jarvis ist jetzt in deinem Konto gesichert.") }
             val doc = getDoc(ctx)
             val txt = if (doc != null && doc.has("android")) {
@@ -101,14 +158,15 @@ object Konto {
 
     private fun token(ctx: Context): String {
         val p = kp(ctx)
-        if (System.currentTimeMillis() < p.getLong("exp", 0)) return p.getString("id", "").orEmpty()
+        upgradeTresor(ctx)
+        if (System.currentTimeMillis() < p.getLong("exp", 0)) return unseal(p.getString("id", ""))
         val key = cfg(ctx).optString("apiKey")
         val req = Request.Builder().url("https://securetoken.googleapis.com/v1/token?key=$key")
-            .post("grant_type=refresh_token&refresh_token=${p.getString("refresh", "")}".toRequestBody("application/x-www-form-urlencoded".toMediaType())).build()
+            .post("grant_type=refresh_token&refresh_token=${unseal(p.getString("refresh", ""))}".toRequestBody("application/x-www-form-urlencoded".toMediaType())).build()
         http.newCall(req).execute().use { r ->
             val j = JSONObject(r.body?.string() ?: "{}")
             if (!r.isSuccessful) throw RuntimeException("Anmeldung abgelaufen – bitte neu anmelden.")
-            p.edit().putString("id", j.optString("id_token")).putString("refresh", j.optString("refresh_token"))
+            p.edit().putString("id", seal(j.optString("id_token"))).putString("refresh", seal(j.optString("refresh_token")))
                 .putLong("exp", System.currentTimeMillis() + (j.optString("expires_in", "3600").toLongOrNull() ?: 3600) * 1000 - 60_000).apply()
             return j.optString("id_token")
         }
@@ -187,9 +245,10 @@ object Konto {
         val p = kp(ctx)
         if (!force && h == p.getString("hash", "")) return false
         val now = System.currentTimeMillis()
-        val fields = mutableMapOf<String, Any>("android" to Link.encrypt(snap, p.getString("secret", "")!!), "android_t" to now)
+        val sec = secrets(ctx).firstOrNull() ?: return false
+        val fields = mutableMapOf<String, Any>("android" to Link.encrypt(snap, sec), "android_t" to now)
         val code = Link.code(ctx)
-        if (code.isNotBlank()) { fields["link"] = Link.encrypt(JSONObject().put("code", code), p.getString("secret", "")!!); fields["link_t"] = now }
+        if (code.isNotBlank()) { fields["link"] = Link.encrypt(JSONObject().put("code", code), sec); fields["link_t"] = now }
         patch(ctx, fields)
         p.edit().putString("hash", h).putLong("last_push", now).putLong("remote_t", now).putString("err", "").apply()
         return true
@@ -199,17 +258,18 @@ object Konto {
     fun pull(ctx: Context, docIn: JSONObject? = null, force: Boolean = false): Boolean {
         if (!loggedIn(ctx) || backup(ctx)) return false
         val doc = docIn ?: getDoc(ctx) ?: return false
-        val p = kp(ctx); val sec = p.getString("secret", "")!!
+        val p = kp(ctx)
         var changed = false
         val lt = doc.optLong("link_t")
         if (doc.optString("link").isNotBlank() && (force || lt > p.getLong("link_t", 0))) {
-            val c = Link.decrypt(doc.optString("link"), sec)?.optString("code").orEmpty()
+            val c = decryptAny(ctx, doc.optString("link"))?.optString("code").orEmpty()
             if (c.isNotBlank() && c != Link.code(ctx)) { jp(ctx).edit().putString("link_code", c).commit(); changed = true }
             p.edit().putLong("link_t", lt).apply()
         }
         val t = doc.optLong("android_t")
         if (doc.optString("android").isNotBlank() && (force || t > p.getLong("remote_t", 0))) {
-            val o = Link.decrypt(doc.optString("android"), sec) ?: return changed
+            val o = decryptAny(ctx, doc.optString("android"))
+                ?: throw RuntimeException("Daten im Konto passen nicht zu deinem Schlüssel – bitte einmal ab- und wieder anmelden.")
             apply(ctx, o)
             val snap = snapshot(ctx)
             p.edit().putLong("remote_t", t).putLong("last_pull", System.currentTimeMillis())
