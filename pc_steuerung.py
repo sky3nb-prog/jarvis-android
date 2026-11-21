@@ -282,29 +282,48 @@ def wants_discord_leave(low: str) -> bool:
     return any(k in low for k in DISCORD_LEAVE_WORDS) and any(k in low for k in DISCORD_LEAVE_TARGETS)
 
 
+_UIA_PS = r"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+$A = [System.Windows.Automation.AutomationElement]
+$root = $A::FromHandle([IntPtr]__HWND__)
+$want = @(__NAMES__)
+$cond = New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
+$seen = @()
+for ($i = 0; $i -lt 6; $i++) {
+  $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
+  foreach ($e in $all) {
+    $n = [string]$e.Current.Name
+    if (-not $n) { continue }
+    $l = $n.Trim().ToLower()
+    if ($want -contains $l) {
+      $p = $e.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+      $p.Invoke()
+      Write-Output ('OK ' + $n)
+      exit 0
+    }
+  }
+  Start-Sleep -Milliseconds 600
+}
+$names = @($all | ForEach-Object { $_.Current.Name } | Where-Object { $_ } | Select-Object -First 60)
+Write-Output ('NICHT GEFUNDEN (' + $all.Count + ' Knoepfe): ' + ($names -join ' | '))
+"""
+
+
 def _uia_click_disconnect(hwnd) -> bool:
-    """Sucht im Discord-Fenster den Knopf 'Verbindung trennen' (Windows-Bedienungshilfe UI Automation) und drückt ihn."""
-    import clr  # pythonnet, ist schon im Programm (für das HUD-Fenster)
+    """Sucht im Discord-Fenster den Knopf 'Verbindung trennen' (Windows-Bedienungshilfe UI Automation) und drückt ihn.
+    Läuft über Windows PowerShell, weil die Bedienungshilfe dort immer dabei ist (im fertigen Programm fehlt sie)."""
+    import base64
+    import subprocess
 
-    clr.AddReference("UIAutomationClient")
-    clr.AddReference("UIAutomationTypes")
-    from System import IntPtr
-    from System.Windows.Automation import (AutomationElement, ControlType, InvokePattern, PropertyCondition,
-                                           TreeScope)
-
-    root = AutomationElement.FromHandle(IntPtr(int(hwnd)))
-    cond = PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button)
-    for _ in range(3):  # Discord baut seine Bedienungshilfe erst auf, wenn jemand fragt -> kurz nachfassen
-        for el in root.FindAll(TreeScope.Descendants, cond):
-            try:
-                name = (el.Current.Name or "").strip().lower()
-            except Exception:
-                continue
-            if name in DISCORD_LEAVE_NAMES:
-                el.GetCurrentPattern(InvokePattern.Pattern).Invoke()
-                return True
-        time.sleep(0.6)
-    return False
+    names = ", ".join("'" + n.replace("'", "''") + "'" for n in DISCORD_LEAVE_NAMES)
+    script = _UIA_PS.replace("__HWND__", str(int(hwnd))).replace("__NAMES__", names)
+    enc = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc],
+                       capture_output=True, text=True, timeout=25, creationflags=0x08000000)  # ohne schwarzes Fenster
+    out = ((r.stdout or "") + (r.stderr or "")).strip()
+    print("[discord]", out[:1500] or f"keine Antwort (Code {r.returncode})")
+    return out.startswith("OK")
 
 
 def discord_leave_voice() -> str:
