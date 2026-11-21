@@ -346,14 +346,8 @@ def reset_password(email: str) -> dict:
 
 
 def forget_device():
-    """Selbstzerstörung: die Sicherung dieses PCs aus dem Konto löschen (andere Geräte bleiben), danach abmelden."""
-    try:
-        if logged_in():
-            # Felder, die in updateMask stehen, aber nicht im Inhalt, löscht Firestore
-            mask = "&".join("updateMask.fieldPaths=" + f for f in ("pc", "pc_t"))
-            _http(_doc_url() + "?" + mask, {"fields": {}}, method="PATCH", token=_token())
-    finally:
-        logout()
+    """Selbstzerstörung: auf diesem PC abmelden. Die Sicherung im Konto bleibt – neu laden + anmelden = alles wieder da."""
+    logout()
 
 
 def logout():

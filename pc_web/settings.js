@@ -250,17 +250,57 @@
 
   // Selbstzerstörung: erst nach zweimal Bestätigen (dreimal tippen); nach 6 s ohne Tippen wieder zurück
   let wegStep = 0, wegT = null;
+  // Countdown, alles zerfällt und wird in die Mitte gesaugt, roter Blitz, „GELÖSCHT“
+  function boom(after) {
+    const st = document.createElement("style");
+    st.textContent = `
+    .zf{transition:transform 1.1s cubic-bezier(.6,0,.9,.4),opacity 1.1s ease-in,filter 1.1s ease-in!important;transform:translate(var(--dx),var(--dy)) scale(.05) rotate(var(--rot))!important;opacity:0!important;filter:blur(6px) hue-rotate(-40deg)!important}
+    #boom{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ff6a5a;transition:background .6s}
+    #boom.dark{background:radial-gradient(circle at 50% 50%,rgba(60,0,0,.85),#000 70%)}
+    #boom .cnt{font-size:140px;font-weight:800;letter-spacing:4px;text-shadow:0 0 30px #ff2a1a,0 0 80px #ff2a1a;animation:bpulse .5s ease-in-out infinite alternate}
+    #boom .lbl{margin-top:6px;font-size:14px;letter-spacing:8px;color:#ffb0a0}
+    #boom .scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,40,20,.10) 0 2px,transparent 2px 5px);mix-blend-mode:screen;animation:bscan 1.2s linear infinite;pointer-events:none}
+    #boom .core{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 0 40px 20px #ff5a2a,0 0 120px 60px #ff2a1a;opacity:0;transform:scale(.2)}
+    #boom.flash .core{animation:bcore 1s ease-out forwards}
+    #boom .done{font-size:26px;letter-spacing:10px;color:#fff;opacity:0;transition:opacity .6s;text-shadow:0 0 20px #ff4a2a}
+    @keyframes bpulse{to{transform:scale(1.08)}} @keyframes bscan{to{background-position:0 40px}}
+    @keyframes bcore{0%{opacity:0;transform:scale(.2)}20%{opacity:1;transform:scale(3)}100%{opacity:0;transform:scale(80)}}`;
+    document.head.appendChild(st);
+    const ov = document.createElement("div"); ov.id = "boom";
+    ov.innerHTML = '<div class="scan"></div><div class="core"></div><div class="cnt">3</div><div class="lbl">SELBSTZERSTÖRUNG</div><div class="done">GELÖSCHT</div>';
+    document.body.appendChild(ov);
+    setTimeout(() => ov.classList.add("dark"), 100);
+    let n = 3; const c = ov.querySelector(".cnt");
+    const tick = setInterval(() => {
+      n--; if (n > 0) { c.textContent = n; return; }
+      clearInterval(tick); c.style.display = "none"; ov.querySelector(".lbl").style.display = "none";
+      const cx = innerWidth / 2, cy = innerHeight / 2;
+      document.querySelectorAll(".ps-card, .ps-row, .ps-btnrow, .ps-note, h2, h3, canvas, .ps-side a, .ps-tab, input, button, select").forEach((el, i) => {
+        if (ov.contains(el)) return;
+        const r = el.getBoundingClientRect(); if (r.width === 0 || r.bottom < 0 || r.top > innerHeight) return;
+        el.style.setProperty("--dx", (cx - (r.left + r.width / 2)) + "px"); el.style.setProperty("--dy", (cy - (r.top + r.height / 2)) + "px");
+        el.style.setProperty("--rot", ((Math.random() * 2 - 1) * 180).toFixed(0) + "deg");
+        setTimeout(() => el.classList.add("zf"), Math.min(900, i * 12));
+      });
+      setTimeout(() => ov.classList.add("flash"), 1100);
+      setTimeout(() => { ov.querySelector(".done").style.opacity = "1"; }, 1700);
+      setTimeout(after, 2400);
+    }, 1000);
+  }
   const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Jarvis von diesem PC"]];
   function run(a, btn) {
     if (a === "konto_open" && window.JKonto) { close(false); window.JKonto.open(); return; }
-    if (a === "selbstzerstoerung" && wegStep < 2) {
+    if (a === "selbstzerstoerung" && wegStep < 2 && !btn.dataset.boom) {
       clearTimeout(wegT); wegStep++;
       btn.textContent = WEG[wegStep][0]; btn.style.color = "#ff9a8a"; btn.style.borderColor = "#ff5a5a";
       const st0 = $("ps-body").querySelector('[data-st="selbstzerstoerung"]'); if (st0) { st0.className = "ps-st bad"; st0.textContent = WEG[wegStep][1]; }
       wegT = setTimeout(() => { wegStep = 0; btn.textContent = WEG[0][0]; btn.style.color = ""; btn.style.borderColor = ""; if (st0) st0.textContent = ""; }, 6000);
       return;
     }
-    if (a === "selbstzerstoerung") { clearTimeout(wegT); wegStep = 0; }
+    if (a === "selbstzerstoerung" && !btn.dataset.boom) {   // dritter Klick: erst die Animation, dann wirklich löschen
+      clearTimeout(wegT); wegStep = 0; btn.dataset.boom = "1";
+      boom(() => run(a, btn)); return;
+    }
     const st = $("ps-body").querySelector(`[data-st="${a}"]`);
     btn.classList.add("busy"); if (st) { st.className = "ps-st"; st.textContent = "…"; }
     window.PC.post("settings_run", { name: a, values: vals }).then((r) => r && r.json()).then((r) => {

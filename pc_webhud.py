@@ -547,7 +547,10 @@ class WebHud:
             return pc_sticker.open_folder()
         if name == "konto_reset":
             import pc_konto
-            return pc_konto.reset_password(str(body.get("email") or ""))
+            return pc_konto.reset_password(str(body.get("email") or "") or pc_konto.info().get("email", ""))
+        if name == "konto_info":
+            import pc_konto
+            return pc_konto.info()
         if name in ("konto_login", "konto_sync", "konto_logout"):   # Jarvis-Konto (dein PC: nur sichern; Konto-Ausgabe: voll)
             import pc_konto
             if name == "konto_logout":

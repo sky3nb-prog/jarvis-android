@@ -27,7 +27,8 @@
     <p id="ko-p">Melde dich an – dann ist dein Jarvis auf jedem PC und Handy gleich.</p>
     <div class="ko-in" id="ko-form"><input id="ko-mail" type="email" placeholder="E-Mail"><input id="ko-pw" type="password" placeholder="Passwort (mind. 6 Zeichen)">
     <div class="ko-msg" id="ko-msg"></div><div class="ko-row"><button id="ko-in">Anmelden</button><button class="alt" id="ko-neu">Neues Konto</button></div></div>
-    <div class="ko-in" id="ko-acc" hidden><div class="ko-msg ok" id="ko-st"></div><div class="ko-row"><button id="ko-sync">Jetzt abgleichen</button><button class="alt" id="ko-out">Abmelden</button></div></div>
+    <div class="ko-in" id="ko-acc" hidden><div class="ko-msg ok" id="ko-st"></div><div class="ko-row"><button id="ko-sync">Jetzt abgleichen</button><button class="alt" id="ko-out">Abmelden</button></div>
+    <div class="ko-skip" id="ko-pwreset">Passwort zurücksetzen</div></div>
     <div class="ko-skip" id="ko-forgot">Passwort vergessen?</div>
     <div class="ko-skip" id="ko-skip" style="margin-top:8px">Schließen</div></div>`;
   document.body.appendChild(ov);
@@ -53,6 +54,13 @@
     msg(r.text, r.ok);
     if (r.ok) { $("ko-pw").value = ""; setTimeout(() => paint(r.info, r.text), 900); }
   }
+  $("ko-pwreset").onclick = async () => {
+    const i = await call("konto_info", {}).catch(() => ({}));
+    const m = (i && i.email) || "";
+    $("ko-st").textContent = "Schicke dir eine Mail …";
+    const r = await call("konto_reset", { email: m || ($("ko-mail").value || "").trim() });
+    $("ko-st").textContent = r.text || "";
+  };
   $("ko-forgot").onclick = async () => {
     const m = $("ko-mail").value.trim();
     if (!m.includes("@")) return msg("Trag oben deine E-Mail ein, dann klick nochmal auf „Passwort vergessen?“.");

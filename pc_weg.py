@@ -2,7 +2,7 @@
 Selbstzerstörung – nur in der Ausgabe für alle (Jarvis Konto von der Website).
 
 Was passiert:
-  1. Dieser PC wird aus dem Konto ausgetragen (seine Sicherung im Konto wird gelöscht – andere Geräte bleiben) und abgemeldet
+  1. Dieser PC wird abgemeldet (das Konto und seine Sicherung bleiben – neu laden + anmelden = alles wieder da)
   2. Autostart-Eintrag und Startmenü-Verknüpfung werden entfernt
   3. Jarvis beendet sich; ein kleines Aufräum-Skript wartet, bis er wirklich zu ist, und löscht dann
      das Programm, alle seine Dateien (Einstellungen, Gedächtnis, Protokolle, Stimmen) und seinen Ordner
@@ -56,7 +56,7 @@ def destroy(quit_cb=None) -> dict:
     steps = []
     try:
         pc_konto.forget_device()
-        steps.append("aus dem Konto ausgetragen")
+        steps.append("abgemeldet")
     except Exception as e:
         print("Selbstzerstörung – Konto:", e)
     try:

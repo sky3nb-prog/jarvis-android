@@ -597,9 +597,9 @@ def _ordnen(tabs, card):
         konto = {"id": "konto", "g": "KONTO", "n": "Jarvis-Konto", "i": "👤", "items": [card("Dein Konto", {"t": "note", "l": kst},
                  {"t": "btn", "a": "konto_open", "l": "Anmelden / Konto verwalten"},
                  {"t": "note", "l": "Alles wird mit deinem Passwort verschlüsselt, bevor es ins Konto geht – auch der Server kann es nicht lesen."}),
-                 card("Jarvis entfernen",
-                      {"t": "note", "l": "Löscht Jarvis komplett von diesem PC: Programm, Einstellungen, Gedächtnis, Stimmen, Autostart und die Sicherung "
-                                         "dieses PCs im Konto. Deine anderen Geräte und dein Konto bleiben. Nicht rückgängig zu machen."},
+                 card("Selbstzerstörung",
+                      {"t": "note", "l": "Löscht Jarvis komplett von diesem PC: Programm, Einstellungen, Gedächtnis, Stimmen und Autostart. "
+                                         "Dein Konto bleibt – lädst du Jarvis neu und meldest dich an, ist alles wieder da."},
                       {"t": "btn", "a": "selbstzerstoerung", "l": "Selbstzerstörung"})]}
     return ([konto] if konto else []) + [
         T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),
