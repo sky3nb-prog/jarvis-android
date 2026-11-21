@@ -443,7 +443,7 @@ Antworte NUR mit dem JSON."""
             else {
                 sb.append(" Für $to ist die WhatsApp mit dem Link fertig, tipp nur auf Senden.")
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    try { Actions(ctx).run(JSONObject().put("action", "whatsapp").put("to", to).put("text", "$what: $url")) } catch (_: Exception) {}
+                    try { Actions(ctx).run(JSONObject().put("action", "whatsapp").put("to", to).put("text", "$what: $url").put("confirmed", true)) } catch (_: Exception) {}
                 }, 2500)
             }
         }

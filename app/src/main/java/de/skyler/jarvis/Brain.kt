@@ -140,8 +140,17 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
 
     private fun run(key: String, text: String): String {
         termin = null
+        Actions.skipConfirm = fromPc
         // „Ich bin jetzt weg“: PC bleibt an und hält sich selbst aktuell (Weg-Modus am PC)
         val lowW = text.lowercase().trim().trim('.', '!', '?')
+        // wartet eine Nachricht auf dein Ja? (vorher vorgelesen, damit nichts zu früh rausgeht)
+        if (Actions.pending != null) {
+            if (Regex("^(?:ja|jo|jap|yes|klar|passt|genau|schick(?:'s| es| ab)?|senden|abschicken|ok(?:ay)?|mach)\\b").containsMatchIn(lowW) && lowW.split(" ").size <= 5)
+                actions.confirmPending(true)?.let { return it }
+            else if (Regex("^(?:nein|nee|ne|nö|stopp|abbrechen|lass(?: es)?|doch nicht|nicht schicken)\\b").containsMatchIn(lowW))
+                actions.confirmPending(false)?.let { return it }
+            else Actions.pending = null   // etwas anderes gesagt: Nachricht verwerfen, normal weiter
+        }
         if (!fromPc && lowW.split(" ").size <= 8 && Regex("\\bich bin (jetzt |mal |kurz |dann )*(weg|unterwegs|los)\\b|\\bich (geh|gehe|muss) (jetzt |mal )*(los|weg)\\b|\\bweg-?modus\\b").containsMatchIn(lowW)
             && !Regex("\\b(aus|herunter|runter)\\b").containsMatchIn(lowW) && Link.paired(ctx)) {
             val r = try { Link.command(ctx, JSONObject().put("type", "weg_modus").put("on", true), 12_000) } catch (_: Exception) { null }

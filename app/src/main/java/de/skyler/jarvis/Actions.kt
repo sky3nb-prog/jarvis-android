@@ -18,6 +18,21 @@ import org.json.JSONObject
 
 /** Was Jarvis auf dem Handy tun kann. Jede Aktion gibt einen kurzen Text zurück (für die Antwort). */
 class Actions(private val ctx: Context) {
+    companion object {
+        /** Nachricht, die auf dein „Ja“ wartet: (an, text, jarvis, seit) – damit nichts zu früh rausgeht. */
+        @Volatile var pending: Array<Any>? = null
+        /** Auftrag vom PC: der PC hat schon nachgefragt -> hier nicht noch mal */
+        @Volatile var skipConfirm = false
+    }
+
+    /** „ja“ -> abschicken, „nein“ -> verwerfen. null = es wartet nichts. */
+    fun confirmPending(yes: Boolean): String? {
+        val p = pending ?: return null
+        pending = null
+        if (System.currentTimeMillis() - (p[3] as Long) > 120_000L) return null
+        return if (yes) whatsapp(p[0] as String, p[1] as String, p[2] as Boolean, confirmed = true) else "Okay, ich schicke nichts."
+    }
+
 
     fun run(a: JSONObject): String? = try {
         when (a.optString("action")) {
@@ -40,7 +55,7 @@ class Actions(private val ctx: Context) {
             "call" -> call(a.optString("who"))
             "pc" -> pc(a.optString("text"))
             "sticker" -> sticker(a.optString("to"), a.optInt("anzahl", 0))
-            "whatsapp" -> whatsapp(a.optString("to"), a.optString("text"), a.optBoolean("jarvis"))
+            "whatsapp" -> whatsapp(a.optString("to"), a.optString("text"), a.optBoolean("jarvis"), a.optBoolean("confirmed") || skipConfirm)
             "youtube" -> start(Intent(Intent.ACTION_SEARCH).setPackage("com.google.android.youtube")
                 .putExtra("query", a.optString("query")), "YouTube sucht nach ${a.optString("query")}.")
                 ?: url("https://www.youtube.com/results?search_query=" + Uri.encode(a.optString("query")))
@@ -260,8 +275,13 @@ class Actions(private val ctx: Context) {
      * Sonst: PC läuft -> WhatsApp über den PC. Unterwegs -> SMS (Nummer aus den Kontakten).
      * jarvis = "unter deinem Namen": beginnt mit "Hier ist Jarvis.", Antworten aus dem Chat werden angesagt.
      */
-    private fun whatsapp(to: String, text0: String, jarvis: Boolean = false): String {
+    private fun whatsapp(to: String, text0: String, jarvis: Boolean = false, confirmed: Boolean = false): String {
         val text = if (jarvis) "Hier ist Jarvis. " + text0.replace(Regex("^hier ist jarvis[.,!]?\\s*", RegexOption.IGNORE_CASE), "") else text0
+        // Erst vorlesen, dann senden (Einstellung „Nachrichten vorher bestätigen“, Standard an) – nichts geht zu früh raus
+        if (!confirmed && ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getBoolean("wa_bestaetigen", true)) {
+            pending = arrayOf(to, text0, jarvis, System.currentTimeMillis())
+            return "An $to: „${Chats.waStyle(text)}“ – soll ich das so schicken?"
+        }
         if (jarvis) Chats.watch(ctx, to, 24)
         if (Chats.reply(ctx, to, to, text)) return "Geschickt an $to: $text"
         try {

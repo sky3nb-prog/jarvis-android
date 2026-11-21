@@ -619,6 +619,10 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun testChatGet(): String = prefs.getString("test_chat", "") ?: ""
         @JavascriptInterface
+        fun waConfGet(): Boolean = prefs.getBoolean("wa_bestaetigen", true)
+        @JavascriptInterface
+        fun waConfSet(on: Boolean) { prefs.edit().putBoolean("wa_bestaetigen", on).apply() }
+        @JavascriptInterface
         fun ansageGet(): String = JSONObject().put("immer", prefs.getString("wa_immer", "") ?: "").put("zocken", prefs.getString("wa_beim_zocken", "ansagen") ?: "ansagen").toString()
         @JavascriptInterface
         fun ansageSet(immer: String, zocken: String) { prefs.edit().putString("wa_immer", immer.trim()).putString("wa_beim_zocken", zocken).apply(); Thread { try { Link.pushSettings(this@MainActivity) } catch (_: Exception) {} }.start() }

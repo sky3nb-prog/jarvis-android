@@ -66,13 +66,13 @@ class ScreenService : AccessibilityService() {
         val pkg = event?.packageName?.toString() ?: return
         if (pkg !in WA) return
         if (System.currentTimeMillis() < sendUntil) try { if (pressSend()) sendUntil = 0L } catch (_: Exception) {}
-        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED || event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-            event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+        // Akku: nur beim Scrollen / Chat-Wechsel lesen (nicht bei jeder kleinen Änderung wie „schreibt …“)
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED || event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // Beim schnellen Hochscrollen jede neue Bildschirmseite mitnehmen: höchstens alle 0,4 s lesen,
             // und nach dem letzten Scrollen noch einmal (falls er mitten im Wischen stehen blieb)
             val now = System.currentTimeMillis()
             handler.removeCallbacks(late); handler.postDelayed(late, 600)
-            if (now - lastRead < 400) return
+            if (now - lastRead < 700) return
             lastRead = now
             try { readChat(pkg) } catch (_: Exception) {}
         }

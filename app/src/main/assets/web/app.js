@@ -371,6 +371,8 @@
   try { $("stil-test").value = A.testChatGet(); } catch (e) {}
   try { const a = JSON.parse(A.ansageGet()); $("wa-immer").value = a.immer || ""; $("wa-zocken").value = a.zocken || "ansagen"; } catch (e) {}
   const ansSave = () => { try { A.ansageSet($("wa-immer").value, $("wa-zocken").value); toast("Gespeichert – auch am PC."); } catch (e) {} };
+  try { sw("wa-conf", A.waConfGet()); } catch (e) {}
+  $("wa-conf").addEventListener("click", () => setTimeout(() => { try { A.waConfSet(sw("wa-conf")); } catch (e) {} }, 0));
   $("wa-immer").addEventListener("change", ansSave); $("wa-zocken").addEventListener("change", ansSave);
   [["tb-wapc", "testWaPc", "t-wapc"], ["tb-voice", "testVoice", "t-voice"], ["tb-take", "testTakeover", "t-take"]].forEach(([b, fn, out]) =>
     $(b).addEventListener("click", () => { $(out).textContent = "läuft …"; try { A[fn](); } catch (e) { $(out).textContent = "Ging nicht."; } }));
