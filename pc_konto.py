@@ -65,15 +65,31 @@ def _save(st: dict):
 
 
 def _prot(t: str) -> str:
-    """Mit Windows verschlüsseln (DPAPI); klappt das nicht, im Klartext (nur in konto.json auf diesem PC)."""
+    """Mit Windows verschlüsseln (DPAPI) – nur dein Windows-Benutzer auf diesem PC kann es wieder lesen.
+    Klappt das nicht, wird NICHT im Klartext gespeichert (dann schlägt das Anmelden fehl)."""
+    if not t:
+        return ""
+    import pc_secret
+    r = pc_secret.protect(t)
+    if r and pc_secret.unprotect(r) == t:
+        return "P:" + r
+    raise RuntimeError("Windows konnte die Anmeldedaten nicht sicher speichern.")
+
+
+def _upgrade_store():
+    """Alte, im Klartext gespeicherte Werte („R:“) einmal mit Windows verschlüsseln."""
     try:
-        import pc_secret
-        r = pc_secret.protect(t)
-        if r and pc_secret.unprotect(r) == t:
-            return "P:" + r
-    except Exception:
-        pass
-    return "R:" + t
+        st = _st()
+        changed = False
+        for k in ("id", "refresh", "secret", "secret_old"):
+            v = st.get(k) or ""
+            if v.startswith("R:"):
+                st[k] = _prot(v[2:])
+                changed = True
+        if changed:
+            _save(st)
+    except Exception as e:
+        print("Konto: konnte alte Daten nicht verschlüsseln:", e)
 
 
 def _unprot(t: str) -> str:
@@ -100,8 +116,10 @@ def info() -> dict:
             "lastPush": st.get("last_push", 0), "lastPull": st.get("last_pull", 0), "err": STATUS.get("err", "")}
 
 
-def _secret(email: str, pw: str) -> str:
-    return hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), ("jarvis-konto:" + email.strip().lower()).encode("utf-8"), 60000).hex()
+def _secret(email: str, pw: str, v: int = 2) -> str:
+    """v2: 600.000 Durchgänge (heutige Empfehlung). v1: alte 60.000 – nur noch zum Lesen alter Daten."""
+    salt = ("jarvis-konto2:" if v >= 2 else "jarvis-konto:") + email.strip().lower()
+    return hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), salt.encode("utf-8"), 600000 if v >= 2 else 60000).hex()
 
 
 def _fb_error(m: str) -> str:
@@ -183,7 +201,20 @@ def _patch(fields: dict):
 
 
 def _secret_now() -> str:
+    _upgrade_store()
     return _unprot(_st().get("secret", ""))
+
+
+def _decrypt_any(data: str):
+    """Mit dem aktuellen Schlüssel entschlüsseln, sonst mit dem alten (Daten von Geräten mit der alten Verschlüsselung)."""
+    import pc_link
+    st = _st()
+    for k in (_secret_now(), _unprot(st.get("secret_old", ""))):
+        if k:
+            o = pc_link.decrypt(data, k)
+            if o:
+                return o
+    return None
 
 
 # --- was ins Konto kommt: alle Jarvis-Dateien (.json) im Programmordner -------------------------------------------
@@ -254,9 +285,9 @@ def pull(force: bool = False, doc=None) -> bool:
     t = int(doc.get("pc_t") or 0)
     if not force and t <= st.get("remote_t", 0):
         return False
-    o = pc_link.decrypt(doc["pc"], _secret_now())
+    o = _decrypt_any(doc["pc"])
     if not o:
-        raise RuntimeError("Die Daten im Konto ließen sich nicht entschlüsseln (anderes Passwort?).")
+        raise RuntimeError("Die Daten im Konto passen nicht zu deinem Schlüssel – bitte einmal ab- und wieder anmelden.")
     with _lock:
         _apply(o)
         st = _st()
@@ -275,8 +306,12 @@ def login(email: str, pw: str, neu: bool) -> dict:
                     {"email": email, "password": pw, "returnSecureToken": True})
     if code != 200:
         return {"ok": False, "text": _fb_error((j.get("error") or {}).get("message", f"HTTP {code}"))}
-    _save({"email": email, "uid": j.get("localId", ""), "id": _prot(j.get("idToken", "")), "refresh": _prot(j.get("refreshToken", "")),
-           "exp": time.time() + int(j.get("expiresIn", 3600)) - 60, "secret": _prot(_secret(email, pw))})
+    try:
+        _save({"email": email, "uid": j.get("localId", ""), "id": _prot(j.get("idToken", "")), "refresh": _prot(j.get("refreshToken", "")),
+               "exp": time.time() + int(j.get("expiresIn", 3600)) - 60, "secret": _prot(_secret(email, pw, 2)),
+               "secret_old": _prot(_secret(email, pw, 1))})
+    except Exception as e:
+        return {"ok": False, "text": str(e)}
     try:
         if BACKUP:   # Haupt-PC: dieser Stand ist das Original
             push(force=True)
