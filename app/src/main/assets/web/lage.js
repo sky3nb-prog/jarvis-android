@@ -139,7 +139,7 @@
   }
   function render() {
     if (!data) return;
-    const city = (A && A.city && A.city()) || data.stadt || "Leonberg";
+    const city = (A && A.city && A.city()) || data.stadt || "";
     $("seg-stadt").textContent = city.toUpperCase();
     const list = shown();
     $("lnum").textContent = list.length;

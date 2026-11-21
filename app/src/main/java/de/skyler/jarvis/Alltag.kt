@@ -1562,7 +1562,7 @@ object Alltag {
         val wecker = if (label == 1) (ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager).nextAlarmClock?.triggerTime?.takeIf { it - dayStart in 0..86_400_000L } else null
         val wege = if (label == 0) todayWege(ctx).map { "${it.label} um %d:%02d".format(it.h, it.m) } else emptyList()
         val parts = mutableListOf<String>()
-        if (wx != null) parts.add("Wetter Leonberg: $wx")
+        if (wx != null) parts.add("Wetter ${Lage.city(ctx)}: $wx")
         val pick = dayPick(ctx, wx)
         parts.add(pick?.let { Wardrobe.line(it) } ?: ("Seine Anzieh-Regeln:\n" + (p.getString("anzieh", "") ?: "").ifBlank { ANZIEH_DEFAULT }))
         parts.add("Termine:\n" + (Cal.describe(evs).ifBlank { "keine" }))
@@ -1646,7 +1646,7 @@ object Alltag {
         if (up != null) parts.add("Für 8 Stunden Schlaf müsste er um ${SimpleDateFormat("H:mm", de).format(Date(up - 8 * 3_600_000L))} Uhr schlafen.")
         parts.add("MORGEN – " + (if (up != null) "Aufstehen um ${clock(up)}" + (if (wecker.isNotEmpty()) ", Wecker ${wecker.joinToString(", ")}" else "")
             else if (firstAlarm != null) "erster Wecker ${clock(firstAlarm)}" else "kein Wecker, er kann ausschlafen"))
-        if (wx != null) parts.add("MORGEN – Wetter Leonberg: $wx")
+        if (wx != null) parts.add("MORGEN – Wetter ${Lage.city(ctx)}: $wx")
         val epick = dayPick(ctx, wx)
         try { Wardrobe.today(ctx).takeIf { it.optBoolean("done") }?.let { w ->   // was er heute anhatte (wenn schon eingetragen)
             parts.add("HEUTE – angehabt: ${(0 until w.getJSONArray("names").length()).joinToString(", ") { w.getJSONArray("names").getString(it).substringAfter(" ") }} – " +

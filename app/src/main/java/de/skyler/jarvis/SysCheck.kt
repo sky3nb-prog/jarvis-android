@@ -85,7 +85,7 @@ object SysCheck {
             "health" -> Health.text(Health.day(ctx, 0))
             "screen" -> Sleep.text(Sleep.night(ctx, 0))
             "wx" -> { val js = JSONObject(http.newCall(Request.Builder().url("https://api.open-meteo.com/v1/forecast?latitude=48.8&longitude=9.0&current=temperature_2m,apparent_temperature").build()).execute().use { it.body?.string() ?: "{}" }).optJSONObject("current")
-                "Leonberg gerade ${js?.optDouble("temperature_2m")} °C, gefühlt ${js?.optDouble("apparent_temperature")} °C." }
+                "${Lage.city(ctx)} gerade ${js?.optDouble("temperature_2m")} °C, gefühlt ${js?.optDouble("apparent_temperature")} °C." }
             else -> "Für diesen Punkt gibt es keinen Test."
         }
     } catch (e: Exception) { "Test ging nicht: ${e.message}" }

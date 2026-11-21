@@ -155,7 +155,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             val name = m.groupValues[1].replaceFirstChar { it.uppercase() }
             return try { Stil.meet(ctx, name, m.groupValues[2]) } catch (e: Exception) { "Das ging gerade nicht (${e.message})." }
         }
-        // „Übernimm den Chat mit Tobi“ / „ich übernehme wieder“
+        // „Übernimm den Chat mit Max“ / „ich übernehme wieder“
         Regex("^(?:übernimm|übernehme du|übernimmst du)\\s+(?:mal\\s+|jetzt\\s+)?(?:den chat (?:mit|von)\\s+|das gespräch mit\\s+|für mich\\s+)?([\\p{L}-]+)$").find(lowW)?.let { m ->
             if (m.groupValues[1] !in setOf("das", "den", "es", "du")) return Stil.takeover(ctx, m.groupValues[1].replaceFirstChar { it.uppercase() })
         }
@@ -165,7 +165,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         // WhatsApp-Anruf läuft: „drück weg“
         if (Butler.waCall != null && lowW.split(" ").size <= 6 && Regex("\\b(drück\\w* (ihn |sie )?weg|wegdrück\\w*|ablehn\\w*|leg auf|auflegen|kann (jetzt |gerade )?nicht)\\b").containsMatchIn(lowW))
             return Butler.waDecline(ctx)
-        // „Schick Tobi eine Sprachnachricht: ich komm später“ / „Nimm eine Sprachnachricht für Tobi auf und sag …“
+        // „Schick Max eine Sprachnachricht: ich komm später“ / „Nimm eine Sprachnachricht für Max auf und sag …“
         (Regex("^(?:schick|sende|schicke)\\s+([\\p{L}-]+)\\s+(?:eine |ne )?sprachnachricht\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW)
             ?: Regex("^antworte\\s+([\\p{L}-]+)\\s+(?:als|per|mit (?:einer )?)\\s*sprachnachricht\\s*(?:und sag(?:e)?|dass|:|,)?\\s*(.+)$").find(lowW)
             ?: Regex("^(?:nimm|nehm|nehme)\\s+(?:mal\\s+)?(?:eine |ne )?sprachnachricht\\s+(?:für|an)\\s+([\\p{L}-]+)\\s+auf\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW))?.let { m ->

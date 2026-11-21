@@ -321,7 +321,7 @@ object Stil {
         if (s.isNotBlank() && mode(ctx) == "aus") setMode(ctx, "bestaetigen")
     }
 
-    /** „Du darfst Tobi selbst antworten“ */
+    /** „Du darfst Max selbst antworten“ */
     fun grant(ctx: Context, name: String): String {
         val l = autoChats(ctx).filter { Chats.norm(it) != Chats.norm(name) } + name
         prefs(ctx).edit().putString("stil_chats", l.joinToString(", ")).apply()
@@ -341,7 +341,7 @@ object Stil {
     private val seenIn = LinkedHashSet<String>()
 
     /** Aus Chats.onPosted (Einzelchat, neue Nachricht von jemand anderem). */
-    // --- „Übernimm den Chat mit Tobi“: Jarvis führt das Gespräch selbst (bis du „ich übernehme wieder“ sagst, höchstens 3 Stunden)
+    // --- „Übernimm den Chat mit Max“: Jarvis führt das Gespräch selbst (bis du „ich übernehme wieder“ sagst, höchstens 3 Stunden)
     private fun takeoverKey(ck: String) = "stil_ueber_$ck"
     fun takeover(ctx: Context, name: String): String {
         val ck = Chats.norm(name); if (ck.isBlank()) return "Welchen Chat soll ich übernehmen?"

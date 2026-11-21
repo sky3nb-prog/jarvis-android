@@ -55,7 +55,7 @@ object Chats {
         prefs(ctx).edit().putString("watch", o.toString()).apply()
     }
 
-    /** Test-Chat (Zweitnummer) – auch bei kleinem Tippfehler im Kontaktnamen („Tohmas“ = „Thomas“). */
+    /** Test-Chat (Zweitnummer) – auch bei kleinem Tippfehler im Kontaktnamen („Mxa“ = „Max“). */
     fun isTest(ctx: Context, name: String): Boolean {
         val t = norm(prefs(ctx).getString("test_chat", "") ?: "").substringBefore(" ")
         val n = norm(name).substringBefore(" ")

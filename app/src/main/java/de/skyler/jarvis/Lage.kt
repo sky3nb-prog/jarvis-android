@@ -32,13 +32,8 @@ object Lage {
     )
 
     private fun localFeeds(city: String): List<Pair<String, String>> {
-        val q = if (city.equals("Leonberg", true)) listOf(
-            "Lokal Leonberg" to "Leonberg",
-            "Lokal Kreiszeitung" to "site:stuttgarter-zeitung.de Leonberg",
-            "Lokal Verkehr" to "Engelbergtunnel OR \"Leonberger Dreieck\" OR \"A8 Leonberg\" OR \"A81 Leonberg\" OR \"Leonberg Sperrung\"",
-            "Lokal Blaulicht" to "Leonberg Polizei OR Feuerwehr OR Unfall",
-            "Lokal Umland" to "Renningen OR Rutesheim OR Ditzingen OR Gerlingen OR \"Weil der Stadt\" OR Weissach",
-        ) else listOf("Lokal $city" to city, "Lokal $city Verkehr" to "$city Verkehr OR Sperrung OR Unfall")
+        val q = listOf("Lokal $city" to city, "Lokal $city Verkehr" to "$city Verkehr OR Sperrung OR Unfall",
+            "Lokal $city Blaulicht" to "$city Polizei OR Feuerwehr OR Unfall")
         return q.map { (n, s) -> n to "https://news.google.com/rss/search?q=${enc("$s when:3d")}&hl=de&gl=DE&ceid=DE:de" }
     }
 
@@ -220,7 +215,7 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
     private fun cacheFile(ctx: Context, key: String) = File(ctx.cacheDir, "lage_" + key.replace(Regex("[^a-z0-9]"), "_") + ".json")
 
     fun city(ctx: Context): String = (ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("city", "") ?: "")
-        .ifBlank { Memory.snap(ctx).optString("city").takeUnless { it.lowercase() in setOf("deutschland", "germany", "de") } ?: "" }.ifBlank { "Leonberg" }
+        .ifBlank { Memory.snap(ctx).optString("city").takeUnless { it.lowercase() in setOf("deutschland", "germany", "de") } ?: "" }.ifBlank { try { Here.name(ctx).substringBefore("-").trim() } catch (_: Exception) { "" } }.ifBlank { "Berlin" }
 
     /** Lage (ort leer = Welt + Wohnort). Liefert {briefing, brennpunkte, zeit, ort, lat, lon}. */
     fun get(ctx: Context, key: String, ort: String = "", maxAge: Long = MAX_AGE): JSONObject {

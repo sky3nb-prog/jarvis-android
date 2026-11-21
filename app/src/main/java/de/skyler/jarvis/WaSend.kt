@@ -41,7 +41,7 @@ object WaSend {
         } catch (e: Exception) { Log.w(TAG, "text: $e"); false }
     }
 
-    /** „Schick Tobi eine Sprachnachricht: ich komm 10 Minuten später“ */
+    /** „Schick Max eine Sprachnachricht: ich komm 10 Minuten später“ */
     fun voice(ctx: Context, name: String, wish: String, raw: Boolean = false): String {
         if (!PiperPhone.active(ctx)) return "Dafür brauch ich meine Stimme: Einstellungen → Zuhören & Stimme → „Jarvis-Stimme“ wählen und einmal laden."
         val j = jid(ctx, name) ?: return "Ich finde $name nicht in deinen Kontakten."

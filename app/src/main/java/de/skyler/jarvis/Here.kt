@@ -20,7 +20,7 @@ object Here {
         (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
 
-    /** Ortsname wie "Leonberg-Eltingen" (leer, wenn aus oder unbekannt) */
+    /** Ortsname wie "Musterstadt-Mitte" (leer, wenn aus oder unbekannt) */
     fun name(ctx: Context): String = if (enabled(ctx)) prefs(ctx).getString("here_name", "") ?: "" else ""
 
     fun latLon(ctx: Context): Pair<Double, Double>? {
