@@ -384,7 +384,7 @@ class MainActivity : ComponentActivity() {
             .put("wake_words", prefs.getString("wake_words", "jarvis"))
             .put("wake_level", prefs.getInt("wake_level", 1))
             .put("wake_cloud", prefs.getBoolean("wake_cloud", false))
-            .put("background", prefs.getBoolean("background", true))
+            .put("background", prefs.getBoolean("background", !Konto.parallel(this@MainActivity)))
             .put("overlay", android.provider.Settings.canDrawOverlays(this@MainActivity))
             .put("usage", ScreenColors.hasUsageAccess(this@MainActivity))
             .put("media", Interests.summaryForSettings(this@MainActivity))

@@ -268,7 +268,7 @@ object Alltag {
     }
 
     /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
-    private const val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/neueste/Jarvis.apk"
+    private val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/" + BuildConfig.RELEASE_TAG + "/" + BuildConfig.APK_NAME
     fun updateNow(ctx: Context) { val s = state(ctx); s.put("upd_check", 0L); prefs(ctx).edit().remove("upd_told").apply(); appUpdate(ctx, s); save(ctx, s) }
     private fun appUpdate(ctx: Context, s: JSONObject) {
         val now = System.currentTimeMillis()
@@ -276,7 +276,7 @@ object Alltag {
         s.put("upd_check", now)
         Thread({
             try {
-                val js = JSONObject(http.newCall(Request.Builder().url("https://api.github.com/repos/sky3nb-prog/jarvis-android/releases/tags/neueste")
+                val js = JSONObject(http.newCall(Request.Builder().url("https://api.github.com/repos/sky3nb-prog/jarvis-android/releases/tags/" + BuildConfig.RELEASE_TAG)
                     .header("Accept", "application/vnd.github+json").build()).execute().use { it.body?.string() ?: "{}" })
                 val build = Regex("Build (\\d+)").find(js.optString("name"))?.groupValues?.get(1)?.toLongOrNull() ?: return@Thread
                 val pi = ctx.packageManager.getPackageInfo(ctx.packageName, 0)

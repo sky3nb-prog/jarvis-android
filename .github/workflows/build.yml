@@ -30,8 +30,10 @@ jobs:
       - name: APK bauen
         run: gradle assembleRelease --no-daemon --stacktrace
 
-      - name: APK umbenennen
-        run: cp app/build/outputs/apk/release/app-release.apk Jarvis.apk
+      - name: APKs umbenennen
+        run: |
+          cp app/build/outputs/apk/privat/release/app-privat-release.apk Jarvis.apk
+          cp app/build/outputs/apk/konto/release/app-konto-release.apk Jarvis-Konto.apk
 
       - name: Als Download bereitstellen (immer der neueste Stand)
         uses: softprops/action-gh-release@v2
@@ -43,3 +45,15 @@ jobs:
             Build ${{ github.run_number }} · ${{ github.event.head_commit.message }}
           files: Jarvis.apk
           make_latest: true
+
+      # Die App für alle (von der Website): gleicher Stand, eigene App, aktualisiert sich selbst
+      - name: Konto-App bereitstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: konto-neueste
+          name: "Jarvis (Build ${{ github.run_number }})"
+          body: |
+            Jarvis fürs Handy. Build ${{ github.run_number }} · ${{ github.event.head_commit.message }}
+          files: Jarvis-Konto.apk
+          make_latest: false
+          prerelease: true

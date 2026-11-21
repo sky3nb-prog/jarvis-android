@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
  */
 object Updater {
     private const val TAG = "JarvisUpd"
-    const val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/neueste/Jarvis.apk"
+    val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/" + BuildConfig.RELEASE_TAG + "/" + BuildConfig.APK_NAME
     private const val CH = "jarvis_update"
     private val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).build()
     @Volatile private var busy = false

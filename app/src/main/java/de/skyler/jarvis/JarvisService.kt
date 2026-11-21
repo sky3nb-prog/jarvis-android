@@ -112,7 +112,7 @@ class JarvisService : Service() {
                 setShowBadge(false); description = "Damit Jarvis im Hintergrund auf sein Aktivierungswort hören kann."
             })
         }
-        micOff = !prefs.getBoolean("background", true)
+        micOff = !prefs.getBoolean("background", !Konto.parallel(this))   // Konto-App neben der normalen: Mikro erst mal aus (sonst antworten beide)
         reload()
         // Mikrofon + Standort (Standort nur, wenn erlaubt: für Zuhause/weg, Losfahren, Ankunft)
         if (Build.VERSION.SDK_INT >= 29) {

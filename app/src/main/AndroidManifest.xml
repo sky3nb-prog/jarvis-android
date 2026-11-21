@@ -51,6 +51,7 @@
 
     <!-- Android 11+: Spracherkennung und Sprachausgabe des Handys sichtbar machen -->
     <queries>
+        <package android:name="de.skyler.jarvis" />
         <package android:name="com.google.android.apps.healthdata" />
         <package android:name="com.mentz.vvsmobile" />
         <package android:name="de.hafas.android.db" />
@@ -80,7 +81,7 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
-        android:label="Jarvis"
+        android:label="${appLabel}"
         android:theme="@style/Theme.Jarvis"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true">
@@ -124,14 +125,14 @@
             </intent-filter>
         </service>
         <service android:name=".ScreenService" android:exported="false"
-            android:label="Jarvis – Schau mal hier"
+            android:label="${appLabel} – Schau mal hier"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/screen_service" />
         </service>
-        <receiver android:name=".JarvisWidget" android:exported="true" android:label="Jarvis">
+        <receiver android:name=".JarvisWidget" android:exported="true" android:label="${appLabel}">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

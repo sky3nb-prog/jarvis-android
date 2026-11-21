@@ -35,6 +35,27 @@ android {
         }
     }
 
+    // Zwei Apps aus demselben Code: „privat“ (Jarvis, de.skyler.jarvis) und „konto“ (Jarvis Konto, für alle von der Website).
+    // Beide werden bei jedem Update gebaut, beide aktualisieren sich selbst über ihren eigenen Download.
+    buildFeatures { buildConfig = true }
+    flavorDimensions += "art"
+    productFlavors {
+        create("privat") {
+            dimension = "art"
+            manifestPlaceholders["appLabel"] = "Jarvis"
+            buildConfigField("String", "RELEASE_TAG", "\"neueste\"")
+            buildConfigField("String", "APK_NAME", "\"Jarvis.apk\"")
+        }
+        create("konto") {
+            dimension = "art"
+            applicationIdSuffix = ".konto"
+            versionNameSuffix = "-konto"
+            manifestPlaceholders["appLabel"] = "Jarvis Konto"
+            buildConfigField("String", "RELEASE_TAG", "\"konto-neueste\"")
+            buildConfigField("String", "APK_NAME", "\"Jarvis-Konto.apk\"")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
