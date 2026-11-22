@@ -30,7 +30,7 @@ jobs:
           Set-Content pc_web/variante.txt "konto"
           Copy-Item pc_web/konto_voll.js pc_web/konto.js -Force
       - name: Symbol
-        run: py -c "from PIL import Image; Image.open('pc_web/orb_frames/kugel.png').convert('RGBA').save('jarvis.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+        run: copy jarvis_konto.ico jarvis.ico
       - name: Programm bauen
         shell: cmd
         run: |
