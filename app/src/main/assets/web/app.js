@@ -908,6 +908,7 @@
     return true;
   }
   document.querySelector('[data-p="sys"]').addEventListener("click", () => setTimeout(updShow, 60));
+  { const b = $("anl-open"); if (b) b.addEventListener("click", () => window.JAnleitung && window.JAnleitung.open()); }
   $("upd-auto").addEventListener("click", () => setTimeout(() => { try { A.updSet(sw("upd-auto")); } catch (e) {} updShow(); }, 0));
   $("upd-allow").addEventListener("click", () => { try { A.updAllow(); } catch (e) {} setTimeout(updShow, 4000); });
   // Selbstzerstörung + Konto (nur Ausgabe für alle): dreimal tippen, dann Animation, dann löschen
