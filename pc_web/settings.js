@@ -326,6 +326,53 @@
   }
   function toast(t) { const e = $("toast"); if (!e) return; e.textContent = t; e.classList.add("ok"); e.style.display = "block"; clearTimeout(toast.j); toast.j = setTimeout(() => (e.style.display = "none"), 2500); }
 
+  // --- Suche in den Einstellungen (wie am Handy): durchsucht alle Tabs, Tippen springt hin -----------------
+  (function () {
+    const inp = $("ps-search"), out = $("ps-results"); if (!inp || !out) return;
+    const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    function index() {
+      const items = [];
+      if (!data) return items;
+      data.tabs.forEach((t) => {
+        t.items.forEach((c, n) => {
+          const cardText = (c.items || []).map((i) => (i.l || "") + " " + (i.h || "")).join(" ");
+          items.push({ tid: t.id, n, label: c.l, area: t.n, text: norm(c.l + " " + cardText) });
+          (c.items || []).forEach((i) => {
+            if (!i.l || i.l.length < 2) return;
+            items.push({ tid: t.id, n, label: i.l, area: t.n + " › " + c.l, text: norm(i.l + " " + (i.h || "")) });
+          });
+        });
+      });
+      return items;
+    }
+    let idx = null;
+    function go(it) {
+      inp.value = ""; out.style.display = "none"; out.innerHTML = "";
+      tab = it.tid; OPEN[it.tid] = OPEN[it.tid] || {}; OPEN[it.tid][it.n] = true;
+      render();
+      setTimeout(() => {
+        const el = $("ps-body").querySelector(`.ps-card[data-n="${it.n}"]`); if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.style.transition = "background .6s"; el.style.background = "#ffd67822";
+        setTimeout(() => { el.style.background = ""; }, 1600);
+      }, 60);
+    }
+    inp.addEventListener("input", () => {
+      const q = norm(inp.value.trim());
+      if (!q) { out.style.display = "none"; out.innerHTML = ""; return; }
+      idx = idx || index();
+      const words = q.split(/\s+/);
+      const hits = idx.filter((it) => words.every((w) => it.text.includes(w))).slice(0, 10);
+      out.innerHTML = hits.length ? hits.map((it, i) => `<div class="psr" data-i="${i}"><b>${esc(it.label)}</b><small>${esc(it.area)}</small></div>`).join("")
+        : '<div class="psr-none">Nichts gefunden.</div>';
+      out.style.display = "block";
+      out.querySelectorAll(".psr[data-i]").forEach((e) => e.addEventListener("click", () => go(hits[+e.dataset.i])));
+    });
+    inp.addEventListener("focus", () => { idx = null; });
+    document.addEventListener("click", (e) => { if (e.target !== inp && !out.contains(e.target)) { out.style.display = "none"; } });
+  })();
+
   $("ps-close").addEventListener("click", () => close(true));
   $("ps-save").addEventListener("click", save);
   $("ps-ask-no").addEventListener("click", () => $("ps-ask").classList.remove("on"));
