@@ -1486,6 +1486,15 @@ def run_command(command: str, ui: UI, ai_available: bool, shutdown, quiet_unknow
         import pc_sticker
         result = pc_sticker.handle(command)  # „Schick 500 Sticker in die Gruppe …“
     if result is None:
+        import pc_gruppe
+        result = pc_gruppe.handle(command)  # „Die Gruppe heißt TR9000“ – merkt sich, was „die Gruppe“ ist
+    if result is None:
+        import pc_vorlesen
+        result = pc_vorlesen.handle(command)  # „Lies mir Faust vor und schick das an TR9000“
+    if result is None:
+        import pc_singen
+        result = pc_singen.handle(command)  # „Sing mal Happy Birthday für Mika in der Gruppe“
+    if result is None:
         result = pc_messages.handle(command)  # WhatsApp- und Discord-Nachrichten schreiben
     if result is None:
         result = pc_download.handle(command)  # Dateien und Programme herunterladen
@@ -2187,6 +2196,10 @@ def main():
     pc_sticker.SETTINGS = lambda: ui.settings
     pc_sticker.SAVE = ui.post_setting
     pc_sticker.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})
+    import pc_vorlesen
+    pc_vorlesen.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})
+    import pc_singen
+    pc_singen.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})
     pc_modi.SAVE = ui.post_setting
     pc_modi.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})   # auch wenn du nicht am PC sitzt (lernst)
     pc_kommentar.start(stop)

@@ -121,6 +121,11 @@ def parse(command: str):
         text = TRAILING.sub("", groups["text"]).strip(" ,:")
         text = re.sub(r"^dass\s+", "", text, flags=re.I)
         to = to[0].upper() + to[1:]
+        try:
+            import pc_gruppe
+            to = pc_gruppe.resolve(to)
+        except Exception:
+            pass
         if to and text and len(to.split()) <= 4:
             return app, to, text[0].upper() + text[1:]
     return None

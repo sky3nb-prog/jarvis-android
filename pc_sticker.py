@@ -282,6 +282,11 @@ def handle(command: str):
     to = re.sub(r"^(die|den|der)\s+", "", to, flags=re.I).strip(" .")
     to = re.sub(r"\s+(?:auf|über|per|bei)\s+whats\s?app$", "", to, flags=re.I)
     to = re.sub(r"\b([A-Za-zÄÖÜäöü]{1,4})\s+(\d{2,6})\b", r"\1\2", to)   # „AB 1234“ (so hört es die Spracherkennung) -> „AB1234“
+    try:
+        import pc_gruppe
+        to = pc_gruppe.resolve(to)
+    except Exception:
+        pass
     if not n or not to:
         return None
     from_phone = "vom handy" in low

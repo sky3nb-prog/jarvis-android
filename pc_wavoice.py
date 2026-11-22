@@ -1,13 +1,14 @@
 """
 Sprachnachrichten direkt vom PC (WhatsApp am PC, kein Handy nötig):
 
-  „Schick Jannis eine Sprachnachricht: wie geht's dir“
-  „Kannst du eine Sprachnachricht schicken?“ -> „An wen?“ -> „An Jannis, und zwar: …“
-  „Kannst du an Jannis eine Sprachnachricht schicken mit dem Inhalt, dass ich später komme“
+  „Nimm eine Sprachnachricht auf und sag Jannis Hallo“ -> spricht WORTWÖRTLICH nur „Hallo“, sonst nichts.
+  „Kannst du eine Sprachnachricht schicken?“ -> „An wen?“ -> „An Jannis, und zwar: …“ (auch wortwörtlich)
+  „Antworte Jannis als Sprachnachricht“ (einzige Ausnahme) -> Jarvis überlegt sich selbst eine kurze Antwort
 
-Jarvis spricht die Nachricht mit der schnellen Stimme (Piper/Thorsten), wandelt sie in Ogg/Opus um (das Format,
-das WhatsApp als echte Sprachnachricht mit Wellenform/Play-Knopf anzeigt statt als Audio-Dateianhang) und schickt
-sie über WhatsApp am PC (Chat öffnen, Datei einfügen, Enter). Fehlt etwas, fragt er nach.
+Normalfall = Diktat: genau das sagen, was gesagt wird, keine „Hey X, hier ist Jarvis“-Umrahmung, nichts dazuerfunden.
+Nur bei „Antworte …“ formuliert Jarvis selbst etwas. Spricht mit der schnellen Stimme (Piper/Thorsten), wandelt sie
+in Ogg/Opus um (das Format, das WhatsApp als echte Sprachnachricht mit Wellenform/Play-Knopf anzeigt statt als
+Audio-Dateianhang) und schickt sie über WhatsApp am PC (Chat öffnen, Datei einfügen, Enter). Fehlt etwas, fragt er nach.
 """
 
 import json
@@ -16,9 +17,13 @@ import re
 import shutil
 import time
 
-PENDING = {"t": 0.0, "an": "", "inhalt": ""}
+PENDING = {"t": 0.0, "an": "", "inhalt": "", "raw": True, "modus": "antwort"}
 VOICE = re.compile(r"\bsprach ?nachricht\w*\b", re.I)
 VERB = re.compile(r"\b(schick|send|nimm|nehm|aufnehm|mach|antworte|kannst du|könntest du|würdest du)\w*", re.I)
+# "Antworte ..." / "frag ..., ob ..." = Jarvis soll selbst formulieren (einzige Ausnahmen, z. B. "frag, ob Ben
+# Jarvis hat" -> "Ben, hast du Jarvis?"). Alles andere (vor allem "sag/sage …") wird WORTWÖRTLICH gesprochen –
+# keine „Hey X, hier ist Jarvis“-Umrahmung, kein Dazuerfinden.
+REPLY = re.compile(r"\bantworte\w*\b|\bfrag\w*\b", re.I)
 
 
 def _extract(text: str) -> dict:
@@ -38,9 +43,21 @@ def _extract(text: str) -> dict:
         return {"an": m.group(1) if m else "", "inhalt": c.group(1).strip() if c else ""}
 
 
-def _spoken(an: str, inhalt: str) -> str:
-    """Was Jarvis sagt (kurz, locker, als Jarvis)."""
+def _spoken(an: str, inhalt: str, modus: str = "antwort") -> str:
+    """Was Jarvis sagt (kurz, locker, als Jarvis). modus="frage": direkte kurze Frage an `an` formulieren
+    (z. B. Inhalt "ob Ben Jarvis hat" -> "Ben, hast du Jarvis?"), kein Jarvis-Gerede drumherum.
+    modus="antwort": wie bisher, 3rd-Person-Ausrichtung mit kurzer Jarvis-Anmoderation."""
     import pc_ai
+    if modus == "frage":
+        try:
+            t = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": inhalt}]}],
+                                      f"Formuliere daraus EINE kurze, direkte WhatsApp-Sprachnachricht an {an}, die genau das fragt – als ob "
+                                      f"der Nutzer selbst fragt, nicht Jarvis. Nur die Frage, 1 Satz, keine Anmoderation, keine Emojis, kein "
+                                      f"„Jarvis hier“. Beispiel: Eingabe „ob Ben Jarvis hat“ -> „Ben, hast du Jarvis?“",
+                                      json_mode=False, max_tokens=60, timeout=12, fast=True).strip().strip('"')
+            return t or inhalt
+        except Exception:
+            return inhalt
     try:
         t = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": inhalt}]}],
                                   f"Du bist Jarvis, der KI-Assistent des Nutzers, und sprichst eine kurze WhatsApp-Sprachnachricht an {an}. "
@@ -137,12 +154,19 @@ def _open_chat(to: str) -> bool:
     return True
 
 
-def send(to: str, inhalt: str, raw: bool = False) -> str:
-    """Sprachnachricht über WhatsApp am PC. raw=True: genau diesen Text sprechen (z. B. eine Antwort in deinem Namen)."""
+def send(to: str, inhalt: str, raw: bool = True, modus: str = "antwort") -> str:
+    """Sprachnachricht über WhatsApp am PC.
+    raw=True (Normalfall/Diktat): spricht GENAU diesen Text, Wort für Wort – keine „Hey X, hier ist Jarvis“-Umrahmung.
+    raw=False: Jarvis formuliert selbst – modus="antwort" (bei „Antworte …“) oder modus="frage" (bei „frag, ob …“)."""
     import pyautogui
+    try:
+        import pc_gruppe
+        to = pc_gruppe.resolve(to)
+    except Exception:
+        pass
     if not to:
         return "An wen soll die Sprachnachricht gehen?"
-    spoken = inhalt.strip() if raw else _spoken(to, inhalt)
+    spoken = inhalt.strip() if raw else _spoken(to, inhalt, modus)
     try:
         path = _audio(spoken)
     except Exception as e:
@@ -169,22 +193,26 @@ def handle(text: str):
             return "Okay, keine Sprachnachricht."
         d = _extract(("An " + PENDING["an"] + ": " if PENDING["an"] else "") + text)
         an, inhalt = PENDING["an"] or d["an"], PENDING["inhalt"] or d["inhalt"]
-        return _next(an, inhalt)
+        return _next(an, inhalt, PENDING["raw"], PENDING["modus"])
     if not (VOICE.search(low) and VERB.search(low)):
         return None
+    raw = not REPLY.search(low)   # "antworte"/"frag ... ob" = Jarvis formuliert selbst; sonst wortwörtlich
+    modus = "frage" if re.search(r"\bfrag\w*\b", low) and not re.search(r"\bantworte\w*\b", low) else "antwort"
     d = _extract(text)
-    return _next(d["an"], d["inhalt"])
+    return _next(d["an"], d["inhalt"], raw, modus)
 
 
-def _next(an: str, inhalt: str) -> str:
+def _next(an: str, inhalt: str, raw: bool = True, modus: str = "antwort") -> str:
     if not an:
-        PENDING.update(t=time.time(), an="", inhalt=inhalt)
+        PENDING.update(t=time.time(), an="", inhalt=inhalt, raw=raw, modus=modus)
         return "Klar. An wen soll die Sprachnachricht gehen?" + ("" if inhalt else " Und was soll ich sagen?")
     if not inhalt:
-        PENDING.update(t=time.time(), an=an, inhalt="")
-        return f"Was soll ich {an} sagen?"
+        PENDING.update(t=time.time(), an=an, inhalt="", raw=raw, modus=modus)
+        if raw:
+            return f"Was soll ich {an} sagen?"
+        return f"Was soll ich {an} fragen?" if modus == "frage" else f"Worauf soll ich {an} antworten – was ist das Thema?"
     PENDING["t"] = 0
-    return send(an, inhalt)
+    return send(an, inhalt, raw=raw, modus=modus)
 
 
 def test() -> str:
@@ -193,4 +221,4 @@ def test() -> str:
     t = str(pc_settings.load().get("test_chat") or "").strip()
     if not t:
         return "Trag zuerst einen Test-Chat ein (Leute & Anrufe → Schreibstil & Antworten)."
-    return send(t, "Das ist ein Test. Wenn du das hörst, klappen Sprachnachrichten vom PC.")
+    return send(t, "Das ist ein Test. Wenn du das hörst, klappen Sprachnachrichten vom PC.", raw=True)
