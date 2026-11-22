@@ -146,7 +146,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
     }
 
     /** Kalender-Wünsche laufen über einen festen Ablauf (rechnen, eintragen, nachprüfen), nicht über die freie KI. */
-    private var voicePending: Triple<String?, String?, Long>? = null   // (an wen, –, seit wann)
+    private var voicePending: Triple<String?, Boolean, Long>? = null   // (an wen, raw=wörtlich diktiert?, seit wann)
     var termin: Termin.R? = null
     var fromPc = false
 
@@ -187,12 +187,14 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         if (Butler.waCall != null && lowW.split(" ").size <= 6 && Regex("\\b(drück\\w* (ihn |sie )?weg|wegdrück\\w*|ablehn\\w*|leg auf|auflegen|kann (jetzt |gerade )?nicht)\\b").containsMatchIn(lowW))
             return Butler.waDecline(ctx)
         // „Schick Max eine Sprachnachricht: ich komm später“ / „Nimm eine Sprachnachricht für Max auf und sag …“
+        // (beide: WORTWÖRTLICH) / „Antworte Max als Sprachnachricht …“ (einzige Ausnahme: Jarvis formuliert selbst)
         (Regex("^(?:schick|sende|schicke)\\s+([\\p{L}-]+)\\s+(?:eine |ne )?sprachnachricht\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW)
             ?: Regex("^antworte\\s+([\\p{L}-]+)\\s+(?:als|per|mit (?:einer )?)\\s*sprachnachricht\\s*(?:und sag(?:e)?|dass|:|,)?\\s*(.+)$").find(lowW)
             ?: Regex("^(?:nimm|nehm|nehme)\\s+(?:mal\\s+)?(?:eine |ne )?sprachnachricht\\s+(?:für|an)\\s+([\\p{L}-]+)\\s+auf\\s*(?:und sag(?:e)?|mit|dass|:|,)?\\s*(.+)$").find(lowW))?.let { m ->
             val name = m.groupValues[1].replaceFirstChar { it.uppercase() }
             val inhalt = text.trim().let { t -> t.substring(minOf(t.length, (t.lowercase().indexOf(m.groupValues[2].take(12)).takeIf { it >= 0 } ?: 0))) }.ifBlank { m.groupValues[2] }
-            return try { WaSend.voice(ctx, name, inhalt) } catch (e: Exception) { "Die Sprachnachricht ging nicht (${e.message})." }
+            val raw = !m.value.startsWith("antworte")
+            return try { WaSend.voice(ctx, name, inhalt, raw = raw) } catch (e: Exception) { "Die Sprachnachricht ging nicht (${e.message})." }
         }
         // Sprachnachricht ohne vollständige Angaben: nachfragen (an wen? was?) und die nächste Antwort dafür nehmen
         voicePending?.let { vp ->
@@ -200,16 +202,18 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
             if (System.currentTimeMillis() - vp.third < 90_000L && !Regex("^(?:nein|nee|abbrechen|stopp|lass)\\b").containsMatchIn(lowW)) {
                 val name = vp.first ?: Regex("^(?:an\\s+)?([\\p{L}-]+)").find(lowW)?.groupValues?.get(1)?.replaceFirstChar { it.uppercase() }
                 val inhalt = if (vp.first == null) text.trim().replaceFirst(Regex("^(?:an\\s+)?[\\p{L}-]+[,:]?\\s*", RegexOption.IGNORE_CASE), "") else text.trim()
-                if (name != null && inhalt.isNotBlank()) return try { WaSend.voice(ctx, name, inhalt) } catch (e: Exception) { "Die Sprachnachricht ging nicht (${e.message})." }
-                if (name != null) { voicePending = Triple(name, null, System.currentTimeMillis()); return "Was soll ich $name sagen?" }
+                if (name != null && inhalt.isNotBlank()) return try { WaSend.voice(ctx, name, inhalt, raw = vp.second) } catch (e: Exception) { "Die Sprachnachricht ging nicht (${e.message})." }
+                if (name != null) { voicePending = Triple(name, vp.second, System.currentTimeMillis()); return if (vp.second) "Was soll ich $name sagen?" else "Worauf soll ich $name antworten – was ist das Thema?" }
             }
         }
         if (Regex("\\bsprach ?nachricht\\b").containsMatchIn(lowW) && Regex("\\b(?:schick|send|nimm|nehm|aufnehm|mach|kannst du|könntest du)\\w*").containsMatchIn(lowW)) {
+            val raw = !Regex("\\bantworte\\w*\\b").containsMatchIn(lowW)
             val name = Regex("\\b(?:an|für)\\s+([\\p{L}-]+)").find(lowW)?.groupValues?.get(1)
                 ?: Regex("\\b(?:schick|sende)\\w*\\s+(?:bitte\\s+|mal\\s+)*([\\p{L}-]+)\\s+(?:eine|ne)\\s+sprach").find(lowW)?.groupValues?.get(1)
             val n = name?.takeIf { it !in setOf("mir", "dir", "uns", "eine", "ne", "bitte", "mal", "du") }?.replaceFirstChar { it.uppercase() }
-            voicePending = Triple(n, null, System.currentTimeMillis())
-            return if (n == null) "Klar. An wen soll die Sprachnachricht gehen – und was soll ich sagen?" else "Klar. Was soll ich $n sagen?"
+            voicePending = Triple(n, raw, System.currentTimeMillis())
+            return if (n == null) "Klar. An wen soll die Sprachnachricht gehen – und was soll ich sagen?"
+                   else if (raw) "Klar. Was soll ich $n sagen?" else "Klar. Worauf soll ich $n antworten – was ist das Thema?"
         }
         (Regex("^(?:du darfst|darfst du|du kannst) (?:jetzt |ab jetzt |auch )?([\\p{L}-]+) (?:selbst |alleine |allein |für mich )*(?:antworten|schreiben|zurückschreiben)$").find(lowW)
             ?: Regex("^antworte (?:ab jetzt |jetzt )?(?:selbst |du |für mich |alleine )+(?:auf |an |bei )?([\\p{L}-]+)$").find(lowW))?.let { m ->

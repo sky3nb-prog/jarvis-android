@@ -630,7 +630,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun testWaPc() { Thread({ val r = try { Chats.testToPc(this@MainActivity) } catch (e: Exception) { "Ging nicht." }; send("t_res", JSONObject().put("id", "t-wapc").put("text", r)) }, "jt").start() }
         @JavascriptInterface
-        fun testVoice() { Thread({ val t = prefs.getString("test_chat", "") ?: ""; val r = if (t.isBlank()) "Trag zuerst einen Test-Chat ein." else try { WaSend.voice(this@MainActivity, t, "Das ist ein Test. Wenn du das hörst, klappen Sprachnachrichten vom Handy.") } catch (e: Exception) { "Ging nicht (${e.message})." }; send("t_res", JSONObject().put("id", "t-voice").put("text", r)) }, "jt").start() }
+        fun testVoice() { Thread({ val t = prefs.getString("test_chat", "") ?: ""; val r = if (t.isBlank()) "Trag zuerst einen Test-Chat ein." else try { WaSend.voice(this@MainActivity, t, "Das ist ein Test. Wenn du das hörst, klappen Sprachnachrichten vom Handy.", raw = true) } catch (e: Exception) { "Ging nicht (${e.message})." }; send("t_res", JSONObject().put("id", "t-voice").put("text", r)) }, "jt").start() }
         @JavascriptInterface
         fun testTakeover() { val t = prefs.getString("test_chat", "") ?: ""; val r = if (t.isBlank()) "Trag zuerst einen Test-Chat ein." else Stil.takeover(this@MainActivity, t); send("t_res", JSONObject().put("id", "t-take").put("text", r)) }
         @JavascriptInterface

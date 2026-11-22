@@ -41,8 +41,10 @@ object WaSend {
         } catch (e: Exception) { Log.w(TAG, "text: $e"); false }
     }
 
-    /** „Schick Max eine Sprachnachricht: ich komm 10 Minuten später“ */
-    fun voice(ctx: Context, name: String, wish: String, raw: Boolean = false): String {
+    /** „Schick Max eine Sprachnachricht: ich komm 10 Minuten später“.
+     *  raw=true (Normalfall/Diktat): spricht GENAU `wish`, Wort für Wort - keine Umrahmung, nichts dazuerfunden.
+     *  raw=false (nur bei „Antworte …“): Jarvis formuliert selbst eine kurze Antwort zum Thema `wish`. */
+    fun voice(ctx: Context, name: String, wish: String, raw: Boolean = true): String {
         if (!PiperPhone.active(ctx)) return "Dafür brauch ich meine Stimme: Einstellungen → Zuhören & Stimme → „Jarvis-Stimme“ wählen und einmal laden."
         val j = jid(ctx, name) ?: return "Ich finde $name nicht in deinen Kontakten."
         val key = prefs(ctx).getString("groq_key", "") ?: ""
