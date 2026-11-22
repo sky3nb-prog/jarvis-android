@@ -577,7 +577,8 @@ def _ordnen(tabs, card):
         return out
     nachr = split("Start", {"confirm_messages", "msg_ask_first"})
     ort = split("Orte", {"home_city", "home_address"})
-    c["Orte"]["l"] = "Lieblingsorte & Themen"
+    if "Orte" in c:
+        c["Orte"]["l"] = "Lieblingsorte & Themen"
     befehle = split("Discord", {"custom"})
     ki = card("KI & Schlüssel", *[i for n in ("Gemini", "Groq (kostenloser Ersatz)", "Hinweis") for i in (c.get(n) or {"items": []})["items"]])
     infos = card("Infos im HUD", *[i for n in ("Wetter", "PC") for i in (c.get(n) or {"items": []})["items"]])

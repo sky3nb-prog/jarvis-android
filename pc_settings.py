@@ -185,6 +185,8 @@ def load() -> dict:
         data["overlay_style"], data["overlay_v2"] = "neu", True
     if not isinstance(data["wake_words"], list) or not data["wake_words"]:
         data["wake_words"] = list(DEFAULTS["wake_words"])
+    if not isinstance(data.get("hud_buttons"), list):   # z. B. nach einem Konto-Abgleich mit älterem/kaputtem Stand
+        data["hud_buttons"] = list(DEFAULTS["hud_buttons"])
     return data
 
 

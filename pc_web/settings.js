@@ -12,7 +12,8 @@
     data = window.PC.get("settings_full");
     if (!data) { toast("Einstellungen konnten nicht geladen werden."); return; }
     vals = JSON.parse(JSON.stringify(data.values)); dirty = false;
-    render(); root.classList.add("on");
+    root.classList.add("on");   // Fenster schon zeigen, bevor gerendert wird – ein kaputtes Feld soll es nicht verstecken
+    try { render(); } catch (e) { toast("Einstellungen: ein Feld war fehlerhaft, der Rest ist trotzdem da."); console.error(e); }
   }
   function close(ask) {
     if (ask && dirty && !confirmBox()) return;
@@ -44,10 +45,15 @@
   }
 
   function card(c, col, n, op) {
-    return `<div class="ps-card coll${op ? " open" : ""}${c.items.some((i) => ["buttons", "plan", "schulkal", "ideen", "sticker"].includes(i.t)) ? " wide" : ""}" data-n="${n}" style="--c:${col}"><h3>${esc(c.l.toUpperCase())}</h3>${c.items.map(item).join("")}</div>`;
+    try {
+      return `<div class="ps-card coll${op ? " open" : ""}${(c.items || []).some((i) => ["buttons", "plan", "schulkal", "ideen", "sticker"].includes(i.t)) ? " wide" : ""}" data-n="${n}" style="--c:${col}"><h3>${esc((c.l || "").toUpperCase())}</h3>${(c.items || []).map(item).join("")}</div>`;
+    } catch (e) { console.error(e); return ""; }   // eine kaputte Karte soll nicht die ganze Seite leer lassen
   }
   function hint(i) { return i.h ? `<small>${esc(i.h)}</small>` : ""; }
   function item(i) {
+    try { return itemRaw(i); } catch (e) { console.error(e); return ""; }   // ein kaputtes Feld soll nicht die ganze Karte/Seite mitreißen
+  }
+  function itemRaw(i) {
     const v = vals[i.k];
     switch (i.t) {
       case "sw": return `<div class="ps-row" data-k="${i.k}" data-t="sw"><div>${esc(i.l)}${hint(i)}</div><div class="sw${v ? " on" : ""}"></div></div>`;
@@ -70,10 +76,10 @@
       case "note": return i.l ? `<div class="ps-note">${esc(i.l)}</div>` : "";
       case "code": return `<div class="ps-f"><label>${esc(i.l)}</label><div class="ps-code" id="ps-code">${esc(i.v)}</div></div>`;
       case "buttons": {
-        const rows = (vals.hud_buttons || []).slice();
+        const rows = (Array.isArray(vals.hud_buttons) ? vals.hud_buttons : []).slice();
         while (rows.length < i.n) rows.push(["", "", ""]);
         return `<div class="ps-bt"><div class="h"><span></span><span>Name</span><span>Befehl</span></div>${rows.map((r, n) =>
-          `<div class="r" data-n="${n}"><input value="${esc(r[0])}" maxlength="2"><input value="${esc(r[1])}" placeholder="z. B. Musik"><input value="${esc(r[2])}" placeholder="z. B. musik an"></div>`).join("")}</div>
+          `<div class="r" data-n="${n}"><input value="${esc((r || [])[0])}" maxlength="2"><input value="${esc((r || [])[1])}" placeholder="z. B. Musik"><input value="${esc((r || [])[2])}" placeholder="z. B. musik an"></div>`).join("")}</div>
           <div class="ps-note">Symbole zum Kopieren: ♪ ▶ ⏸ « » ◍ ☀ ✉ ☎ ⚙ ★ ♥ ⌂ ✎ ☾ ⏻ D S C W</div>`;
       }
     }

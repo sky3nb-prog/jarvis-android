@@ -419,6 +419,7 @@ def wa_style(text: str) -> str:
     t = re.sub(r"(?<!\d)[.,;:](?!\d)", " ", t)       # Satzzeichen, aber nicht in 12:30 oder 2,5
     t = re.sub(r"(?<=\d)[.,;:](?=\s|$)", " ", t)     # "um 5." am Ende
     t = re.sub(r"\.{2,}|…", " ", t)
+    t = re.sub(r"\s*\n\s*", " ", t)          # eine durchgehende Nachricht, keine Zeilenumbrüche/"Häppchen"
     t = re.sub(r"[ \t]{2,}", " ", t)
     t = re.sub(r" +([?!])", r"\1", t)
     return t.strip()
@@ -469,12 +470,18 @@ def _draft(m: dict, wish: str = "") -> str:
     sys_ = ("Du schreibst für den Nutzer eine kurze WhatsApp-Antwort in seinem Namen, so dass niemand merkt, dass "
             "sie nicht von ihm ist. Ich-Form, locker. Lies den bisherigen Verlauf: die Antwort muss zum Gespräch passen "
             "(worauf bezieht sich die neue Nachricht? auf seine letzte Nachricht oder Sprachnachricht?). "
-            "Erfinde nichts über ihn (keine Pläne, Orte, Gefühle oder Erlebnisse). Ist unklar, worauf sich die Nachricht bezieht, "
-            "antworte kurz und neutral (z. B. 'Ok 👍', 'Alles klar') statt etwas Falsches zu schreiben. "
+            "Erfinde nichts über IHN (keine Pläne, Orte, Gefühle oder Erlebnisse von ihm). "
+            "Ist eine Sachfrage dabei (Schule, Wissen, Fakten – z. B. 'wie geht die pq-Formel'), beantworte sie WIRKLICH RICHTIG, "
+            "kurz und in seinem Ton – erfinde dort NICHTS und rate nicht, eine echte Sachfrage ist etwas anderes als Erfinden über sein Leben. "
+            "Nur wenn wirklich unklar ist, worauf sich die Nachricht überhaupt bezieht, antworte kurz und neutral (z. B. 'Ok 👍', 'Alles klar') "
+            "statt zu raten. "
             + ("Schreib GENAU in seinem Stil – Länge, Ton, Groß-/Kleinschreibung, Abkürzungen, Satzzeichen, Emojis wie in diesen echten "
                "Nachrichten von ihm: " + " | ".join(stil) + ". " if stil else "Wie ein Jugendlicher an Familie und Freunde, höchstens ein Emoji, meist 1 bis 2 Sätze. ")
             + (f"Was du über diese Person weißt (nutze es für Ton und Inhalt): {m.get('person')}. " if m.get("person") else "")
             + "WICHTIG: Er schreibt OHNE Punkt, Komma, Doppelpunkt und Bindestrich/Gedankenstrich – höchstens ? oder !. "
+            + "GENAU EINE zusammenhängende Nachricht, EINE Zeile, KEIN Zeilenumbruch, keine Leerzeile, nicht mehrere kurze Häppchen "
+            "hintereinander (nicht 'ja ja' dann neue Zeile 'haha' dann neue Zeile ein Emoji – das ist EINE Nachricht, kurz). "
+            "Höchstens EIN Emoji, und auch das nur wenn's zu ihm passt – lieber keins als zu viele. "
             + "Wenn ein Wunsch angegeben ist, setze ihn genau um (Sprache, Stil, Länge, Inhalt). Gib nur den Antworttext zurück, sonst nichts.")
     prompt = ""
     if verlauf:
