@@ -1,6 +1,7 @@
 """
 Sticker-Regen: „Schick 500 Sticker in die Gruppe TR9000“ / „… an Max“ – Jarvis fragt einmal nach und schickt dann
-den ausgewählten Sticker so oft über WhatsApp Desktop (höchstens 1000 auf einmal).
+den ausgewählten Sticker so oft über WhatsApp Desktop (höchstens 1000 auf einmal). Kommen in Gruppen von je bis zu
+BATCH Stück gleichzeitig raus (ein Einfügen, ein Absenden für die ganze Gruppe) statt einzeln nacheinander.
 Auswahl: HUD → Einstellungen → Leute & Anrufe → Sticker (Bilder liegen im Ordner „Sticker“ neben dem Programm;
 eigene .png/.webp/.gif reinlegen – er macht daraus WhatsApp-Sticker 512×512).
 Stopp: „Stopp“ / „hör auf mit den Stickern“ – oder einfach ein anderes Fenster anklicken: er schickt nur, solange
@@ -18,7 +19,10 @@ import time
 from pc_apps import base_dir
 
 MAX = 1000
-PAUSE = 0.55          # Sekunden zwischen zwei Stickern (schneller wirkt wie ein Bot)
+BATCH = 24            # WhatsApp nimmt mehrere Bilder in einem Einfügen zusammen an – so kommen bis zu so viele
+                      # auf einen Schlag raus statt einzeln nacheinander. (Falls WhatsApp bei dir weniger/mehr
+                      # auf einmal annimmt, hier anpassen – das ist eine vorsichtige Hausnummer.)
+PAUSE = 0.9           # Sekunden zwischen zwei Batches (statt zwischen jedem einzelnen Sticker)
 EXT = (".png", ".webp", ".gif", ".jpg", ".jpeg")
 SETTINGS = None       # vom Programm gesetzt: () -> Einstellungen
 SAVE = None           # vom Programm gesetzt: (key, value)
@@ -127,8 +131,10 @@ def _sticker_file(name: str) -> str:
         return src
 
 
-def _clip_file(path: str):
-    """Datei in die Zwischenablage legen (wie im Explorer „Kopieren“), damit Strg+V sie in WhatsApp einfügt."""
+def _clip_files(paths: list):
+    """Mehrere Dateien auf einmal in die Zwischenablage (wie im Explorer mehrere Dateien markieren + Kopieren),
+    damit Strg+V sie alle zusammen in WhatsApp einfügt – WhatsApp zeigt sie dann als eine Gruppe mit
+    Vorschaubildern und schickt sie mit einem Enter alle zusammen ab, statt einzeln nacheinander."""
     u, k = ctypes.windll.user32, ctypes.windll.kernel32
     k.GlobalAlloc.restype = ctypes.c_void_p
     k.GlobalAlloc.argtypes = [ctypes.c_uint, ctypes.c_size_t]
@@ -137,7 +143,7 @@ def _clip_file(path: str):
     k.GlobalUnlock.argtypes = [ctypes.c_void_p]
     u.SetClipboardData.argtypes = [ctypes.c_uint, ctypes.c_void_p]
     import struct
-    names = (os.path.abspath(path) + "\0\0").encode("utf-16-le")
+    names = ("\0".join(os.path.abspath(p) for p in paths) + "\0\0").encode("utf-16-le")
     head = struct.pack("Iiiii", 20, 0, 0, 0, 1)   # DROPFILES: pFiles=20, pt, fNC, fWide=1
     data = head + names
     h = k.GlobalAlloc(0x42, len(data))
@@ -155,6 +161,33 @@ def _clip_file(path: str):
         u.SetClipboardData(15, h)   # CF_HDROP
     finally:
         u.CloseClipboard()
+
+
+def _clip_file(path: str):
+    _clip_files([path])
+
+
+def _batch_dir() -> str:
+    d = os.path.join(folder(), ".batch")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _make_batch(src_path: str, count: int) -> list:
+    """count Kopien des gewählten Stickers mit eigenem Namen (WhatsApp braucht pro Bild einen eigenen Dateinamen,
+    sonst wirft es doppelte Pfade wieder raus)."""
+    d = _batch_dir()
+    ext = os.path.splitext(src_path)[1]
+    out = []
+    for i in range(count):
+        p = os.path.join(d, f"s{i}{ext}")
+        try:
+            import shutil
+            shutil.copyfile(src_path, p)
+        except Exception:
+            continue
+        out.append(p)
+    return out
 
 
 def _wa_front() -> bool:
@@ -205,26 +238,39 @@ def _run(to: str, n: int, name: str):
         if not _open_chat(to):
             _say("WhatsApp ließ sich nicht öffnen – keine Sticker geschickt.")
             return
-        for i in range(n):
-            if RUN["stop"]:
-                break
+        rest = n
+        first = True
+        while rest > 0 and not RUN["stop"]:
             if not _wa_front():   # anderes Fenster vorne: sofort aufhören, nie woanders einfügen
                 _say(f"Du hast ein anderes Fenster geöffnet – ich höre auf. {RUN['sent']} Sticker sind raus.")
                 return
-            _clip_file(path)
-            time.sleep(0.12)
+            cnt = min(BATCH, rest)
+            paths = _make_batch(path, cnt)
+            if not paths:
+                _say(f"Sticker-Kopien gingen nicht mehr – {RUN['sent']} sind raus.")
+                return
+            _clip_files(paths)
+            time.sleep(0.15)
             pyautogui.hotkey("ctrl", "v")
-            time.sleep(0.75 if i == 0 else 0.45)   # Vorschau abwarten
+            # mehr Bilder auf einmal brauchen etwas länger, bis WhatsApp alle Vorschaubilder geladen hat
+            time.sleep((1.1 if first else 0.6) + len(paths) * 0.05)
+            first = False
             if not _wa_front():
                 continue
             pyautogui.press("enter")
-            RUN["sent"] += 1
-            time.sleep(PAUSE + (0.6 if (i + 1) % 25 == 0 else 0))
+            RUN["sent"] += len(paths)
+            rest -= len(paths)
+            time.sleep(PAUSE)
         _say(f"Fertig: {RUN['sent']} Sticker an {to}." if not RUN["stop"] else f"Gestoppt. {RUN['sent']} Sticker sind raus.")
     except Exception as e:
         _say(f"Sticker gingen nicht weiter: {e}")
     finally:
         RUN["on"] = False
+        try:
+            import shutil
+            shutil.rmtree(_batch_dir(), ignore_errors=True)
+        except Exception:
+            pass
 
 
 def start(to: str, n: int) -> str:
