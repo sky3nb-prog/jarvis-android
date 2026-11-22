@@ -540,9 +540,7 @@ class WebHud:
             return {"ok": True}
         if name == "mode":
             m = body.get("mode")
-            if m == "flug":
-                self.ui.q.put(("globe", "luftraum"))   # Flug-Modus gibt es (noch) im klassischen HUD
-            elif m in ("fokus", "info", "lage", "steuern"):
+            if m in ("fokus", "info", "lage", "steuern"):
                 self.ui.post_setting("hud_mode", m)
             return {"ok": True}
         if name == "phone":   # Seite "Steuern": Handy fernsteuern

@@ -17,7 +17,7 @@ import pc_settings
 
 # Felder vom Typ "secret": Schlüssel in der Seite -> gespeichertes Feld
 SECRETS = {"steam_api_key": "steam_api_key_enc", "eleven_key": "eleven_key_enc", "groq_key": "groq_key_enc", "telegram_token": "telegram_token_enc"}
-LISTS = {"lage_places": 8, "themen_selbst": 12, "flug_places": 6, "discord_channels": 30}
+LISTS = {"lage_places": 8, "themen_selbst": 12, "discord_channels": 30}
 
 
 def _opts(pairs):
@@ -194,8 +194,7 @@ def schema(s: dict) -> dict:
                  sw("lage_sat_tour", "Beim Briefing zu den Orten fliegen")),
             card("Briefing",
                  sw("globe_auto_open", "Bei „Wie ist die Lage?“ zur Lage springen"),
-                 sw("briefing_on_start", "Beim Start ein kurzes Briefing sprechen"),
-                 tx("flug_places", "Flugverkehr: eigene Orte", "Mit Komma, z. B. Stuttgart, London.")),
+                 sw("briefing_on_start", "Beim Start ein kurzes Briefing sprechen")),
         ]},
         {"id": "wege", "n": "Wege", "i": "➜", "items": [
             card("Meine Orte",

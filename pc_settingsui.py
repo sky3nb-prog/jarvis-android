@@ -59,7 +59,7 @@ SECTIONS = {
 # Neue Einstellungen (bekommen beim ersten Anschauen einen roten Punkt). Bei jedem Update hier ergänzen.
 NEW_ITEMS = {
     "Stimme": ["Lautstärke von Jarvis' Stimme", "Stimmenart", "ElevenLabs-Schlüssel", "ElevenLabs-Stimme", "ElevenLabs-Modell"],
-    "Weltlage": ["Erde langsam drehen (mit echtem Tag und Nacht)", "Flugverkehr: eigene Orte", "Beim Start ein kurzes Lage-Briefing sprechen",
+    "Weltlage": ["Erde langsam drehen (mit echtem Tag und Nacht)", "Beim Start ein kurzes Lage-Briefing sprechen",
                  "Bei „Wie ist die Lage?“ die Karte öffnen", "Karte im Vollbild öffnen", "Farben der Karte",
                  "Kartenstil", "Ortsnamen auf der Karte", "Standort", "Lieblingsorte",
                  "Beim Briefing ins Satellitenbild zoomen", "Eigene Themen (Für dich)", "Echte Satelliten um die Erde (ISS, Hubble …)"],
@@ -80,7 +80,7 @@ SPHERE_COLORS = ["Gold", "Cyan", "Rot", "Grün", "Violett", "Weiß"]
 MAP_STYLES = ["Satellit", "Dunkel"]
 HUD_STYLES = [("Neu – wie am Handy (3D-Kugel, Satelliten-Globus)", "neu"), ("Klassisch", "klassisch")]
 HUD_MODES = [("Info – Kugel mit allen Infos", "info"), ("Fokus – nur die Kugel", "fokus"),
-             ("Lage – Kugel mit Weltlage-Globus", "lage"), ("Flug – Flugverkehr auf dem Globus", "flug")]
+             ("Lage – Kugel mit Weltlage-Globus", "lage")]
 BUTTON_SLOTS = 12
 
 
@@ -433,7 +433,7 @@ class SettingsDialog:
         self.v_mstyle, self.v_home, self.v_hmode, self.v_sphere = (tk.StringVar() for _ in range(4))
         self.v_places, self.v_persona = tk.StringVar(), tk.StringVar()
         self.v_sattour = tk.BooleanVar()
-        self.v_spin, self.v_flplaces = tk.BooleanVar(), tk.StringVar()
+        self.v_spin = tk.BooleanVar()
         self.v_dchan = tk.StringVar()
         self.v_homeaddr, self.v_ntfy, self.v_loc = tk.StringVar(), tk.StringVar(), tk.StringVar()
         self.v_pchan, self.v_mynum, self.v_tg = tk.StringVar(), tk.StringVar(), tk.StringVar()
@@ -517,8 +517,6 @@ class SettingsDialog:
         self._check("Beim Briefing ins Satellitenbild zoomen", self.v_sattour)
         self._check("Erde langsam drehen (mit echtem Tag und Nacht)", self.v_spin)
         self._check("Echte Satelliten um die Erde (ISS, Hubble …)", self.v_orbits)
-        self._entry("Flugverkehr: eigene Orte", self.v_flplaces,
-                    "Zusätzliche Knöpfe im Flug-Modus, mit Komma getrennt, z. B. Stuttgart, London, Seoul.")
         self._check("Beim Start ein kurzes Lage-Briefing sprechen", self.v_brief)
         self._check("Bei „Wie ist die Lage?“ die Karte öffnen", self.v_gauto)
         self._check("Karte im Vollbild öffnen", self.v_gfull)
@@ -792,7 +790,6 @@ class SettingsDialog:
         self.v_spin.set(bool(s.get("lage_spin", True)))
         self.v_orbits.set(bool(s.get("lage_orbits", True)))
         self.v_themen.set(", ".join(s.get("themen_selbst") or []))
-        self.v_flplaces.set(", ".join(s.get("flug_places") or []))
         self.v_dchan.set(", ".join(s.get("discord_channels") or pc_settings.DEFAULTS["discord_channels"]))
         self.v_persona.set(self._label_for(PERSONAS, g("persona")))
         self.v_hmode.set(self._label_for(HUD_MODES, g("hud_mode")))
@@ -922,7 +919,6 @@ class SettingsDialog:
             lage_spin=bool(self.v_spin.get()),
             lage_orbits=bool(self.v_orbits.get()),
             themen_selbst=[p.strip() for p in self.v_themen.get().replace(";", ",").split(",") if p.strip()][:12],
-            flug_places=[p.strip() for p in self.v_flplaces.get().replace(";", ",").split(",") if p.strip()][:6],
             discord_channels=[p.strip() for p in self.v_dchan.get().replace(";", ",").split(",") if p.strip()][:30],
             home_address=self.v_homeaddr.get().strip(),
             ntfy_topic=self.v_ntfy.get().strip() or self.settings.get("ntfy_topic", ""),

@@ -565,8 +565,6 @@ LAGE = re.compile(r"wie ist (?:so )?die lage|lagebericht|lagebild|briefing|weltl
                   r"was (?:gibt.?s|gibt es) neues in der welt|was ist (?:heute )?(?:so )?passiert|"
                   r"^(?:die |aktuelle |neueste |neuesten )?(?:nachrichten|news)$|(?:sag|erzähl|lies)\w* mir die (?:nachrichten|news)|"
                   r"was (?:gibt.?s|gibt es) für nachrichten|brennpunkte")
-LUFT = re.compile(r"luftraum|was fliegt|welche[sn]? flugzeug|flugzeuge? (?:über|in der nähe|um mich|da oben|gerade)"
-                  r"|flugverkehr|\bflüge\b.*(?:über|gerade)|über (?:mir|uns) fliegt|fliegt (?:da|gerade) (?:über|oben)")
 DEUTSCHLAND = re.compile(r"(?:lage|karte|nachrichten) (?:in |von |für )?deutschland|deutschland ?karte")
 CLOSE = re.compile(r"(?:schließ|schliess|mach|blend)\w*\s+(?:den |die )?(?:globus|weltlage|lage|karte)\w*\s*(?:zu|aus|weg)?|"
                    r"globus (?:zu|aus|weg|schließen)")

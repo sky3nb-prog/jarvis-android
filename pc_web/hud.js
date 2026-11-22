@@ -37,7 +37,6 @@
   window.JHudMode = (m, save) => setMode(m, save);   // für ets2map.js (Fahrt-Seite)
   window.JHudCur = () => mode;
   function setMode(m, save) {
-    if (m === "flug") { window.PC.post("mode", { mode: "flug" }); return; }
     const from = PORDER.indexOf(mode), to = PORDER.indexOf(m);
     pageDir = to >= from ? 1 : -1; if (to >= 0) strandTarget = to;
     document.body.style.setProperty("--pdir", pageDir);

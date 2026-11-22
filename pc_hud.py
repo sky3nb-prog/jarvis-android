@@ -36,7 +36,6 @@ import pc_sphere
 from pc_info import InfoWorker
 from pc_perf import PerfWorker
 from pc_settingsui import SettingsDialog
-from pc_flugmode import FlugMixin
 
 try:  # optional: für die Netzwerk-Anzeige (pip install psutil)
     import psutil
@@ -246,7 +245,7 @@ def make_dark_background(W, H, glows):
     return img
 
 
-class HudWindow(FlugMixin):
+class HudWindow:
     def __init__(self, root: tk.Tk, k: float, on_command, get_settings, on_save_settings, on_width):
         self.root, self.k = root, k
         self.on_command, self.get_settings = on_command, get_settings
@@ -364,7 +363,7 @@ class HudWindow(FlugMixin):
         self.worker.refresh_weather()
 
     def set_mode(self, mode: str):
-        if mode in ("fokus", "info", "lage", "flug") and mode != self.get_settings().get("hud_mode", "info"):
+        if mode in ("fokus", "info", "lage") and mode != self.get_settings().get("hud_mode", "info"):
             s = dict(self.get_settings())
             s["hud_mode"] = mode
             self.on_save_settings(s)
@@ -403,7 +402,7 @@ class HudWindow(FlugMixin):
         self.update_new_dot()
 
     def _color_bar(self):
-        bg = "#000000" if self.mode in ("fokus", "lage", "flug") else "#02080e"
+        bg = "#000000" if self.mode in ("fokus", "lage") else "#02080e"
         pc_frameless.color_titlebar(self.win, bg, "#7fb3c8")
 
     def _buttons(self):
@@ -478,9 +477,9 @@ class HudWindow(FlugMixin):
         self._build_sig = self._signature()
         s_ = self.get_settings()
         prev_mode = getattr(self, "mode", None)
-        self.mode = s_.get("hud_mode", "info") if s_.get("hud_mode") in ("info", "fokus", "lage", "flug") else "info"
+        self.mode = s_.get("hud_mode", "info") if s_.get("hud_mode") in ("info", "fokus", "lage") else "info"
         fokus = self.mode == "fokus"
-        lage = self.mode in ("lage", "flug")  # Flugverkehr nutzt denselben Globus
+        lage = self.mode == "lage"
         if not lage and self.map is not None and self.map.is_open() and self.map.region:
             self.map.on_close = None  # Lage-Screen verlassen: Satellitenbild rechts schließen
             self.map.close()
@@ -506,8 +505,7 @@ class HudWindow(FlugMixin):
         GOLD = hexc(self.hot)
         TXT, DIM = "#c8e6f5", hexc(tuple(int(v * 0.75) for v in self.cyan))
         self.colors = dict(cyan=CY, cyand=CYD, gold=GOLD, txt=TXT, dim=DIM)
-        flug = self.mode == "flug"
-        self.cx, self.cy = (W / 2, H * 0.45) if fokus else (X(230), Y(390)) if flug else (X(380), Y(470)) if lage \
+        self.cx, self.cy = (W / 2, H * 0.45) if fokus else (X(380), Y(470)) if lage \
             else (X(800), Y(450))
 
         # Hintergrund
@@ -517,12 +515,7 @@ class HudWindow(FlugMixin):
             c.configure(bg="#000000")
             self.win.configure(bg="#000000")
             glows = [(self.cx, self.cy, (min(W, H) * 0.42) if fokus else S(240), (60, 28, 0), 125)]
-            if flug:
-                glows[0] = (self.cx, self.cy, S(170), (60, 28, 0), 125)
-                glows.append((X(800), Y(480), S(280), (60, 26, 0), 80))
-                glows.append((X(800), Y(480), S(360), (0, 22, 38), 45))
-                glows.append((X(1370), Y(490), S(260), (0, 18, 30), 60))
-            elif lage:
+            if lage:
                 glows.append((X(1060), Y(470), S(300), (70, 30, 0), 95))
                 glows.append((X(230), Y(740), S(240), (0, 26, 44), 110))  # kühles Blau unten links (Karte)
                 glows.append((X(1060), Y(470), S(380), (0, 22, 38), 40))
@@ -551,7 +544,7 @@ class HudWindow(FlugMixin):
             self.phase = 0.0
 
         # Kugel
-        D = int(min(W, H) * 0.80) if fokus else int(S(300)) if flug else int(S(470)) if lage else int(S(560))
+        D = int(min(W, H) * 0.80) if fokus else int(S(470)) if lage else int(S(560))
         if D != self._sph_size or self.sphere.color != s_.get("sphere_color", "Gold"):
             self._sph_photos, self._halo_photos, self._sph_size = [], [], D
         self.sphere.start(s_.get("sphere_color", "Gold"))
@@ -630,10 +623,10 @@ class HudWindow(FlugMixin):
             self._hand(tag)
         # Modus-Umschalter oben rechts: FOKUS · INFO · LAGE
         accent = "#ffb446" if dark else CY
-        for i, (icon, label, mode) in enumerate((("◉", "FOKUS", "fokus"), ("▦", "INFO", "info"), ("◍", "LAGE", "lage"),
-                                                 ("✈", "FLUG", "flug"))):
+        mode_buttons = (("◉", "FOKUS", "fokus"), ("▦", "INFO", "info"), ("◍", "LAGE", "lage"))
+        for i, (icon, label, mode) in enumerate(mode_buttons):
             on = mode == self.mode
-            x1 = W - S(20) - (3 - i) * S(118)
+            x1 = W - S(20) - (len(mode_buttons) - 1 - i) * S(118)
             x0, y0, y1 = x1 - S(108), (S(22) if dark else Y(38)), (S(22) if dark else Y(38)) + S(32)
             tag = f"mode_{mode}"
             self._pill(x0, y0, x1, y1, ("#3a2608" if dark else "#0a3348") if on else ("#0c0c10" if dark else "#03101a"),
@@ -647,9 +640,7 @@ class HudWindow(FlugMixin):
         # Karten (nur Info)
         self.cards = {}
         if lage:
-            if prev_mode != self.mode:
-                self._flug_entered = False
-            self._build_lage(W, H, X, Y, S, prev_mode not in ("lage", "flug"))
+            self._build_lage(W, H, X, Y, S, prev_mode != "lage")
         if not dark:
             for key, (x0, y0, x1, y1), title in (("zeit", cards_l[0], "ZEIT"), ("wetter", cards_l[1], "WETTER"),
                                                   ("system", cards_l[2], "SYSTEM"), ("termine", cards_r[0], "TERMINE"),
@@ -684,7 +675,7 @@ class HudWindow(FlugMixin):
         c.create_polygon(pts, fill=fill, outline=outline, width=1, smooth=False, tags=tag)
 
     def _raise_top(self):
-        for tag in ("gear", "mode_fokus", "mode_info", "mode_lage", "mode_flug", "lagecard", "lagetog", "lagechip", "lagezoom"):
+        for tag in ("gear", "mode_fokus", "mode_info", "mode_lage", "lagecard", "lagetog", "lagechip", "lagezoom"):
             self.c.tag_raise(tag)
 
     def _toggle_topmost(self):
@@ -711,9 +702,8 @@ class HudWindow(FlugMixin):
         import pc_lage
 
         c = self.c
-        flug = self.mode == "flug"
-        G = int(S(600 if flug else 640))
-        self.lg = dict(cx=X(800 if flug else 1060), cy=Y(480 if flug else 470), size=G, R=G * 0.42, X=X, Y=Y, S=S)
+        G = int(S(640))
+        self.lg = dict(cx=X(1060), cy=Y(470), size=G, R=G * 0.42, X=X, Y=Y, S=S)
         if not hasattr(self, "lage_cam"):
             self.lage_cam = [45.0, 12.0]
             self.lage_sel = None
@@ -771,10 +761,7 @@ class HudWindow(FlugMixin):
         self._globe_items = [self.lage_item] + self.lage_end + [b[3] for b in self.lage_brackets] + \
             [b[4] for b in self.lage_brackets]
         self._lage_toggle()
-        if self.mode == "flug":
-            self._flug_build()
-        else:
-            self._lage_chips()
+        self._lage_chips()
         # Drehen mit der Maus
         c.tag_bind(self.lage_item, "<ButtonPress-1>", self._lage_press)
         c.tag_bind(self.lage_item, "<B1-Motion>", self._lage_motion)
@@ -790,8 +777,6 @@ class HudWindow(FlugMixin):
         self._lage_sig = None
         self._lage_render(full=True)
         self._lage_data()
-        if self.mode == "flug":  # Flugverkehr: keine Meldungs-Punkte
-            self.c.itemconfigure(self.lage_big, text="…")
 
     # --- Zoom ---
     ZOOM_MAX = 60000.0  # etwa Straßenebene
@@ -804,7 +789,7 @@ class HudWindow(FlugMixin):
         def go():
             self._tile_job = None
             self._tile_gen = getattr(self, "_tile_gen", 0) + 1
-            if self.mode in ("lage", "flug") and not self._lage_anim and not self._lage_drag:
+            if self.mode == "lage" and not self._lage_anim and not self._lage_drag:
                 self._lage_render(full=True)
         try:
             self._tile_job = self.win.after(250, go)
@@ -844,7 +829,7 @@ class HudWindow(FlugMixin):
         return self._zoom_goal is not None
 
     def _lage_wheel(self, e):
-        if self.mode not in ("lage", "flug") or not hasattr(self, "lg") or not self._lage_inside(e.x, e.y):
+        if self.mode != "lage" or not hasattr(self, "lg") or not self._lage_inside(e.x, e.y):
             return
         self._lage_zoom_to((self._zoom_goal or self.lage_zoom) * (1.45 if e.delta > 0 else 1 / 1.45), anchor=(e.x, e.y))
 
@@ -954,7 +939,7 @@ class HudWindow(FlugMixin):
         self.lage_view = view
         if view == "satellit":
             pc_lage.sat_texture()
-        if self.mode not in ("lage", "flug"):
+        if self.mode != "lage":
             return
         self._lage_toggle()
         if view == "satellit" and not pc_lage.sat_ready():  # Bild lädt noch (nur beim allerersten Mal)
@@ -988,7 +973,7 @@ class HudWindow(FlugMixin):
 
         c, S = self.c, self.lg["S"]
         c.delete("lagewait")
-        if self.mode not in ("lage", "flug") or self.lage_view != "satellit":
+        if self.mode != "lage" or self.lage_view != "satellit":
             return
         if pc_lage.sat_ready():
             self._lage_key = None
@@ -1032,7 +1017,7 @@ class HudWindow(FlugMixin):
             target, z = (data.get("lat"), data.get("lon")), 10
         self.lage_sel = None
         self._lage_sig = None
-        if self.mode not in ("lage", "flug"):
+        if self.mode != "lage":
             return
         self._lage_chips()
         self._lage_data()
@@ -1107,7 +1092,7 @@ class HudWindow(FlugMixin):
                 pass
 
     def _lage_set(self, img, seq, full, key):
-        if self._lage_anim or self.mode not in ("lage", "flug") or seq < getattr(self, "_lage_shown", 0):
+        if self._lage_anim or self.mode != "lage" or seq < getattr(self, "_lage_shown", 0):
             return  # inzwischen ein Flug oder schon ein neueres Bild
         self._lage_shown = seq
         self._lage_show(img)
@@ -1125,9 +1110,6 @@ class HudWindow(FlugMixin):
         return (data.get("brennpunkte") or [])[:24]
 
     def _lage_data(self):
-        if self.mode == "flug":
-            self._flug_data()
-            return
         try:
             import pc_news
 
@@ -1158,9 +1140,6 @@ class HudWindow(FlugMixin):
         import pc_lage
 
         if self._lage_anim or self._lage_drag:  # erst zeichnen, wenn der Globus steht
-            return
-        if self.mode == "flug":
-            self._flug_overlay()
             return
         if self._lage_sat():
             self.c.delete("lagegeo")
@@ -1269,7 +1248,7 @@ class HudWindow(FlugMixin):
             c.create_text(x + S(7), y, text=ct[0], anchor="w", fill="#eaf6ff", font=self.f["city"], tags="lagegeo")
 
     def _lage_select(self, q, fly=True):
-        if self.mode not in ("lage", "flug"):
+        if self.mode != "lage":
             return
         self.lage_sel = q
         self._lage_sig = None
@@ -1588,11 +1567,11 @@ class HudWindow(FlugMixin):
                     c.itemconfigure(item, start=(off + self.phase * sp) % 360)
             self._tick_sphere(dt)
             self._tick_launch(now)
-            if self.mode in ("lage", "flug"):
+            if self.mode == "lage":
                 self._tick_lage(now)
         except Exception as e:  # noqa: BLE001
             print(f"HUD: {e}")
-        flying = self.mode in ("lage", "flug") and (getattr(self, "_lage_anim", None) or getattr(self, "_zoom_goal", None))
+        flying = self.mode == "lage" and (getattr(self, "_lage_anim", None) or getattr(self, "_zoom_goal", None))
         self._tick_job = self.win.after(15 if flying else 40 if self.animate else 200, self._tick)  # Flüge flüssig
 
     def _tick_sphere(self, dt):
@@ -1677,7 +1656,7 @@ class HudWindow(FlugMixin):
                 self._slow_job = None
                 return
             self._slow_job = self.win.after(1000, self._slow)
-        if self.mode in ("lage", "flug"):
+        if self.mode == "lage":
             self._lage_data()
             if not (self._lage_anim or self._lage_drag or self._zoom_goal or self._lage_spinning):
                 self._lage_render(full=True)  # alle 2 Minuten neu (Tag-Nacht-Grenze wandert), sonst nichts zu tun

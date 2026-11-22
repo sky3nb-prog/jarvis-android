@@ -94,7 +94,6 @@ import pc_timetree
 import pc_input
 import pc_messages
 import pc_eleven
-import pc_flights
 import pc_map as pc_globe  # die Weltlage ist jetzt eine Satellitenkarte
 import pc_news
 import pc_handy
@@ -974,7 +973,7 @@ class UI:
         except Exception as e:
             print(f"Neues HUD nicht verfügbar ({e}), nehme das klassische.")
             self.web = None
-        self._allow_old = False   # nur für Dinge, die es im neuen HUD noch nicht gibt (Flug-Modus, Routen-Karte)
+        self._allow_old = False   # nur für Dinge, die es im neuen HUD noch nicht gibt (Routen-Karte)
         if self.web:
             old_show = self.hud.show
 
@@ -1146,7 +1145,7 @@ class UI:
         self.hud.show()
 
     def _old_only(self):
-        """Etwas, das es nur im alten HUD gibt (Flug, Routen): altes zeigen, neues zu."""
+        """Etwas, das es nur im alten HUD gibt (Routen): altes zeigen, neues zu."""
         self.compact.hide()
         if self.big:
             self.big.hide()
@@ -1217,7 +1216,7 @@ class UI:
                         threading.Thread(target=self.web.tour, args=(secs,), daemon=True).start()
                     else:
                         self.root.after(400, lambda secs=secs: self.hud.lage_tour(secs))
-                elif item[0] == "globe" and self.web and item[1] not in ("luftraum", "close"):
+                elif item[0] == "globe" and self.web and item[1] != "close":
                     # neues HUD: alle Karten-Wünsche landen auf der Lage-Seite
                     v = item[1]
                     self._show_lage(self.settings.get("home_city") or "Berlin" if v == "zuhause" else None)
@@ -1229,11 +1228,6 @@ class UI:
                         self.globe.close()
                         if self.hud.mode == "lage":
                             self.hud.set_mode(getattr(self, "_mode_before_lage", "info"))
-                    elif item[1] == "luftraum":  # Flugverkehr = Flug-Modus im HUD (gleicher Globus)
-                        self._old_only() if self.web else self._show_hud_only()
-                        if self.hud.mode != "flug":
-                            self._mode_before_lage = self.hud.mode
-                            self.hud.set_mode("flug")
                     elif item[1] in ("weltlage", "welt"):  # Weltlage = Hologramm-Globus im HUD (Vorschaubild 3)
                         self._show_lage()
                         if not self.web:
@@ -1406,14 +1400,6 @@ def world_command(command: str, ui: "UI"):
     if pc_news.CLOSE.search(low):
         ui.close_globe()
         return "Globus geschlossen."
-    if pc_news.LUFT.search(low):
-        ui.show_globe("luftraum")
-        ui.post("Assistent", "Ich schaue in den Luftraum …", glow=True)
-        lat, lon, _ = home_position()
-        try:
-            return pc_flights.summary(pc_flights.around(lat, lon, 250), lat, lon)
-        except Exception:
-            return "Die Flugdaten sind gerade nicht erreichbar. Der Globus zeigt, was ich bekomme."
     city = (ui.settings.get("home_city") or "Berlin").lower()
     if city in low and re.search(r"lage|los|neu|passiert|nachrichten|news|zeig|karte", low):
         ui.show_globe("zuhause")

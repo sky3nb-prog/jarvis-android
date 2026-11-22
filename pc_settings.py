@@ -115,8 +115,6 @@ DEFAULTS = {
     "lage_spin": True,  # Erde im Lage-Screen langsam drehen (mit echtem Tag und Nacht)
     "lage_orbits": True,  # echte Satelliten (ISS, Hubble ...) um die Erde, wenn man sie ganz sieht
     "themen_selbst": [],  # eigene Interessen für "Für dich" (gelernte kommen von selbst dazu)
-    "flug_region": "home",  # Flug-Modus: home, de, eu, us, welt oder ort:<Name>
-    "flug_places": [],  # eigene Orte für den Flug-Modus
     "lage_sat_tour": True,  # beim Briefing im Lage-Screen ins Satellitenbild umschalten und nah an die Orte zoomen
     "persona": "sarkastisch",  # Persönlichkeit: sarkastisch, butler, locker
     "home_address": "",  # deine Adresse (Start für Routen, wenn das Handy keinen Standort schickt)
