@@ -5,8 +5,9 @@ Sprachnachrichten direkt vom PC (WhatsApp am PC, kein Handy nötig):
   „Kannst du eine Sprachnachricht schicken?“ -> „An wen?“ -> „An Jannis, und zwar: …“
   „Kannst du an Jannis eine Sprachnachricht schicken mit dem Inhalt, dass ich später komme“
 
-Jarvis spricht die Nachricht mit der schnellen Stimme (Piper/Thorsten) als Audiodatei und schickt sie über
-WhatsApp am PC (Chat öffnen, Datei einfügen, Enter). Fehlt etwas, fragt er nach.
+Jarvis spricht die Nachricht mit der schnellen Stimme (Piper/Thorsten), wandelt sie in Ogg/Opus um (das Format,
+das WhatsApp als echte Sprachnachricht mit Wellenform/Play-Knopf anzeigt statt als Audio-Dateianhang) und schickt
+sie über WhatsApp am PC (Chat öffnen, Datei einfügen, Enter). Fehlt etwas, fragt er nach.
 """
 
 import json
@@ -70,7 +71,8 @@ def _audio(text: str) -> str:
         o.setparams(params)
         for f in frames:
             o.writeframes(f)
-    return out
+    import pc_ffmpeg
+    return pc_ffmpeg.to_voice_note(out)   # .ogg/Opus, sonst erkennt WhatsApp es nicht als Sprachnachricht
 
 
 def _clip_file(path: str):
