@@ -813,7 +813,8 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun updGet(): String = JSONObject().put("auto", Updater.auto(this@MainActivity)).put("can", Updater.canInstall(this@MainActivity))
-            .put("pending", Updater.pending(this@MainActivity)).put("version", try { packageManager.getPackageInfo(packageName, 0).versionName } catch (_: Exception) { "" }).toString()
+            .put("pending", Updater.pending(this@MainActivity)).put("result", Alltag.updResult(this@MainActivity))
+            .put("version", try { packageManager.getPackageInfo(packageName, 0).versionName } catch (_: Exception) { "" }).toString()
         @JavascriptInterface
         fun updSet(on: Boolean) = Updater.setAuto(this@MainActivity, on)
         @JavascriptInterface

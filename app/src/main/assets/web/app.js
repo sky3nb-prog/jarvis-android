@@ -891,7 +891,21 @@
     try { const u = JSON.parse(A.updGet());
       sw("upd-auto", u.auto); $("upd-allowrow").style.display = u.can ? "none" : "";
       $("upd-state").textContent = `Version ${u.version}` + (u.pending ? ` · Build ${u.pending} ist geladen, kommt beim nächsten Bildschirm-aus` : "") + (u.auto && !u.can ? " · Erlaubnis fehlt noch" : "");
-    } catch (e) {}
+      return u;
+    } catch (e) { return null; }
+  }
+  // Rückmeldung nach „Jetzt nachsehen“: zeigt wirklich an, was dabei rauskam (nicht nur „Schaue nach …“)
+  let updLastToasted = "";
+  function updTellResult() {
+    const u = updShow(); if (!u) return false;
+    const r = u.result || "";
+    if (!r || r === updLastToasted) return false;
+    updLastToasted = r;
+    if (r === "aktuell") toast("✓ Du hast schon die neueste Version.");
+    else if (r.startsWith("laedt:")) toast("✓ Update gefunden (Build " + r.split(":")[1] + ") – lädt im Hintergrund.");
+    else if (r.startsWith("gefunden:")) toast("Update gefunden (Build " + r.split(":")[1] + ") – zum Herunterladen antippen.");
+    else if (r === "fehler") toast("✕ Konnte nicht nachsehen (ohne Internet?).");
+    return true;
   }
   document.querySelector('[data-p="sys"]').addEventListener("click", () => setTimeout(updShow, 60));
   $("upd-auto").addEventListener("click", () => setTimeout(() => { try { A.updSet(sw("upd-auto")); } catch (e) {} updShow(); }, 0));
@@ -959,7 +973,11 @@
       setTimeout(after, 3000);
     }, 1000);
   }
-  $("upd-now").addEventListener("click", () => { try { A.updNow(); } catch (e) {} toast("Schaue nach …"); setTimeout(updShow, 8000); setTimeout(updShow, 30000); });
+  $("upd-now").addEventListener("click", () => {
+    try { A.updNow(); } catch (e) {} toast("Schaue nach …");
+    let tries = 0;
+    const poll = setInterval(() => { tries++; if (updTellResult() || tries >= 10) clearInterval(poll); }, 2000);
+  });
   window.addEventListener("focus", updShow);
   const closeSettings = () => { $("settings").classList.remove("on"); newDots(); if (window.show) try { show("fokus"); } catch (e) {} };
   $("tst-skill").addEventListener("click", () => { closeSettings(); setTimeout(() => window.JSkill && JSkill.test(), 400); });

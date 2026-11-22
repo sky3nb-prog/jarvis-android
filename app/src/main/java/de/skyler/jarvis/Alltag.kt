@@ -340,6 +340,11 @@ object Alltag {
     /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
     private val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/" + BuildConfig.RELEASE_TAG + "/" + BuildConfig.APK_NAME
     fun updateNow(ctx: Context) { val s = state(ctx); s.put("upd_check", 0L); prefs(ctx).edit().remove("upd_told").apply(); appUpdate(ctx, s); save(ctx, s) }
+    /** Ergebnis der letzten Prüfung fürs HUD/die App ("" = noch keine gelaufen). */
+    fun updResult(ctx: Context): String = state(ctx).optString("upd_result", "")
+    private fun setResult(ctx: Context, text: String) {
+        val s = state(ctx); s.put("upd_result", text); s.put("upd_result_t", System.currentTimeMillis()); save(ctx, s)
+    }
     private fun appUpdate(ctx: Context, s: JSONObject) {
         val now = System.currentTimeMillis()
         if (now - s.optLong("upd_check") < (if (Updater.pending(ctx) > 0) 3_600_000L else 3 * 3_600_000L)) return
@@ -348,16 +353,19 @@ object Alltag {
             try {
                 val js = JSONObject(http.newCall(Request.Builder().url("https://api.github.com/repos/sky3nb-prog/jarvis-android/releases/tags/" + BuildConfig.RELEASE_TAG)
                     .header("Accept", "application/vnd.github+json").build()).execute().use { it.body?.string() ?: "{}" })
-                val build = Regex("Build (\\d+)").find(js.optString("name"))?.groupValues?.get(1)?.toLongOrNull() ?: return@Thread
+                val build = Regex("Build (\\d+)").find(js.optString("name"))?.groupValues?.get(1)?.toLongOrNull()
+                if (build == null) { setResult(ctx, "fehler"); return@Thread }
                 val pi = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
                 val mine = if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode else @Suppress("DEPRECATION") pi.versionCode.toLong()
                 val p = prefs(ctx)
-                if (build > mine && Updater.found(ctx, build)) return@Thread   // installiert selbst, sobald der Bildschirm aus ist
-                if (build > mine && p.getLong("upd_told", 0) != build) {
+                if (build <= mine) { setResult(ctx, "aktuell"); return@Thread }
+                if (Updater.found(ctx, build)) { setResult(ctx, "laedt:$build"); return@Thread }   // installiert selbst, sobald der Bildschirm aus ist
+                if (p.getLong("upd_told", 0) != build) {
                     p.edit().putLong("upd_told", build).apply()
                     notify(ctx, 360, "Neue Jarvis-Version da", "Antippen zum Herunterladen (Build $build). Tipp: Einstellungen → System → Updates – dann installiere ich selbst.", url = APK)
                 }
-            } catch (e: Exception) { Log.w(TAG, "update: $e") }
+                setResult(ctx, "gefunden:$build")
+            } catch (e: Exception) { Log.w(TAG, "update: $e"); setResult(ctx, "fehler") }
         }, "jarvis-upd").start()
     }
 
