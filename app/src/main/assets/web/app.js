@@ -904,6 +904,7 @@
     if (r === "aktuell") toast("✓ Du hast schon die neueste Version.");
     else if (r.startsWith("laedt:")) toast("✓ Update gefunden (Build " + r.split(":")[1] + ") – lädt im Hintergrund.");
     else if (r.startsWith("gefunden:")) toast("Update gefunden (Build " + r.split(":")[1] + ") – zum Herunterladen antippen.");
+    else if (r === "ratenlimit") toast("⏳ GitHub blockiert gerade kurz (zu oft gefragt heute Nacht) – probier's in einer Stunde noch mal.");
     else if (r === "fehler") toast("✕ Konnte nicht nachsehen (ohne Internet?).");
     return true;
   }

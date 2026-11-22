@@ -351,20 +351,47 @@ object Alltag {
         s.put("upd_check", now)
         Thread({
             try {
-                val js = JSONObject(http.newCall(Request.Builder().url("https://api.github.com/repos/sky3nb-prog/jarvis-android/releases/tags/" + BuildConfig.RELEASE_TAG)
-                    .header("Accept", "application/vnd.github+json").build()).execute().use { it.body?.string() ?: "{}" })
-                val build = Regex("Build (\\d+)").find(js.optString("name"))?.groupValues?.get(1)?.toLongOrNull()
-                if (build == null) { setResult(ctx, "fehler"); return@Thread }
+                // ETag-Cache: Wenn sich auf GitHub nichts geändert hat, antwortet die API mit 304 (nicht 200) –
+                // und das zählt NICHT gegen das Ratenlimit (anders als eine normale Abfrage). So verbraucht die
+                // automatische Prüfung alle 3 Stunden praktisch nie mehr Kontingent, außer es gibt wirklich was Neues.
+                val before = state(ctx)
+                val etag = before.optString("upd_etag", "")
+                val reqB = Request.Builder().url("https://api.github.com/repos/sky3nb-prog/jarvis-android/releases/tags/" + BuildConfig.RELEASE_TAG)
+                    .header("Accept", "application/vnd.github+json")
+                if (etag.isNotEmpty()) reqB.header("If-None-Match", etag)
+                var build: Long? = null
+                http.newCall(reqB.build()).execute().use { r ->
+                    when {
+                        r.code == 304 -> build = before.optLong("upd_etag_build", -1L).let { if (it > 0) it else null }
+                        r.code == 403 -> {
+                            // Ratenlimit erreicht: mit dem letzten bekannten Stand weitermachen statt Fehler zu melden,
+                            // damit das nicht als "kaputt" ankommt, sondern sich einfach von selbst erholt.
+                            build = before.optLong("upd_etag_build", -1L).let { if (it > 0) it else null }
+                            if (build == null) { setResult(ctx, "ratenlimit"); return@Thread }
+                        }
+                        r.isSuccessful -> {
+                            val js = JSONObject(r.body?.string() ?: "{}")
+                            build = Regex("Build (\\d+)").find(js.optString("name"))?.groupValues?.get(1)?.toLongOrNull()
+                            val newEtag = r.header("ETag")
+                            val b = build
+                            if (newEtag != null && b != null) {
+                                val st = state(ctx); st.put("upd_etag", newEtag); st.put("upd_etag_build", b); save(ctx, st)
+                            }
+                        }
+                    }
+                }
+                val b0 = build
+                if (b0 == null) { setResult(ctx, "fehler"); return@Thread }
                 val pi = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
                 val mine = if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode else @Suppress("DEPRECATION") pi.versionCode.toLong()
                 val p = prefs(ctx)
-                if (build <= mine) { setResult(ctx, "aktuell"); return@Thread }
-                if (Updater.found(ctx, build)) { setResult(ctx, "laedt:$build"); return@Thread }   // installiert selbst, sobald der Bildschirm aus ist
-                if (p.getLong("upd_told", 0) != build) {
-                    p.edit().putLong("upd_told", build).apply()
-                    notify(ctx, 360, "Neue Jarvis-Version da", "Antippen zum Herunterladen (Build $build). Tipp: Einstellungen → System → Updates – dann installiere ich selbst.", url = APK)
+                if (b0 <= mine) { setResult(ctx, "aktuell"); return@Thread }
+                if (Updater.found(ctx, b0)) { setResult(ctx, "laedt:$b0"); return@Thread }   // installiert selbst, sobald der Bildschirm aus ist
+                if (p.getLong("upd_told", 0) != b0) {
+                    p.edit().putLong("upd_told", b0).apply()
+                    notify(ctx, 360, "Neue Jarvis-Version da", "Antippen zum Herunterladen (Build $b0). Tipp: Einstellungen → System → Updates – dann installiere ich selbst.", url = APK)
                 }
-                setResult(ctx, "gefunden:$build")
+                setResult(ctx, "gefunden:$b0")
             } catch (e: Exception) { Log.w(TAG, "update: $e"); setResult(ctx, "fehler") }
         }, "jarvis-upd").start()
     }
