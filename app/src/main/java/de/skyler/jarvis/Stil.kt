@@ -207,9 +207,13 @@ object Stil {
         val fixes = pairs(ctx).filter { it.optString("src") == "quiz" && (chat.isBlank() || it.optString("chat") == chat) }.takeLast(6)
         val who = prefs(ctx).getString("stil_cn_$chat", "")?.ifBlank { null } ?: chat
         val sys = "Du schreibst eine WhatsApp-Nachricht IM NAMEN des Nutzers, so dass niemand merkt, dass sie nicht von ihm ist. " +
-            "Erfinde nichts über ihn (keine Pläne, Orte, Gefühle). Ist unklar, worum es geht: kurz und neutral. " +
+            "Erfinde nichts über IHN (keine Pläne, Orte, Gefühle, Erlebnisse von ihm). Ist eine Sachfrage dabei (Schule, Wissen, Fakten – " +
+            "z. B. 'wie geht die pq-Formel'), beantworte sie WIRKLICH RICHTIG, kurz und in seinem Ton – dort nichts erfinden oder raten, das " +
+            "ist etwas anderes als Erfinden über sein Leben. Nur wenn wirklich unklar ist, worum es geht: kurz und neutral statt zu raten. " +
             "WICHTIG: Er redet mit jeder Person anders. Sprüche, Beleidigungen oder Insider, die er zu EINER Person gesagt hat (auch in Gruppen), " +
-            "gelten nur für diese Person – nie auf andere übertragen. Richte Ton und Nähe nach den Beispielen an genau diese Person.\n" +
+            "gelten nur für diese Person – nie auf andere übertragen. Richte Ton und Nähe nach den Beispielen an genau diese Person. " +
+            "GENAU EINE zusammenhängende Nachricht, EINE Zeile, KEIN Zeilenumbruch, keine Leerzeile, nicht mehrere kurze Häppchen " +
+            "hintereinander. Höchstens EIN Emoji, und nur wenn's wirklich passt – lieber keins als zu viele.\n" +
             (prefs(ctx).getString("stil_profil", "")?.takeIf { it.isNotBlank() }?.let { "So schreibt er allgemein:\n$it\n" } ?: "") +
             (if (per.isNotEmpty()) "So schreibt er an $who (am wichtigsten):\n" + per.joinToString("\n") + "\n" else "") +
             (if (ex.isNotEmpty()) "Weitere echte Nachrichten von ihm (Stil: Länge, Kleinschreibung, Abkürzungen, Emojis):\n" + ex.joinToString("\n") + "\n" else "") +
@@ -361,6 +365,15 @@ object Stil {
     }
     fun takenOver(ctx: Context, ck: String) = prefs(ctx).getLong(takeoverKey(ck), 0L) > System.currentTimeMillis()
 
+    /** Chat läuft komplett automatisch (persistent "selbst" + in der Liste, oder ad-hoc übernommen) -> keine
+     * WhatsApp-Benachrichtigung dafür anzeigen (Chats.onPosted ruft das auf und blendet sie dann aus). */
+    fun autoSilent(ctx: Context, chat: String): Boolean {
+        val ck = Chats.norm(chat)
+        if (takenOver(ctx, ck)) return true
+        if (mode(ctx) != "selbst") return false
+        return autoChats(ctx).any { Chats.norm(it) == ck || (Chats.norm(it).length >= 3 && ck.contains(Chats.norm(it))) }
+    }
+
     fun onIncoming(ctx: Context, chat: String, text: String, verlauf: JSONArray) {
         val ck = Chats.norm(chat)
         val over = takenOver(ctx, ck) || (Chats.isTest(ctx, chat) && (prefs(ctx).getString("stil_ueber_alle", "") ?: "").split("|").any { Chats.isTest(ctx, it) && takenOver(ctx, it) })
@@ -377,7 +390,8 @@ object Stil {
                 val d = write(ctx, "Neue Nachricht von $chat: $text\nSchreib seine Antwort.", hist, person, ck)
                 if (d.isBlank()) return@Thread
                 if (m == "selbst") {
-                    if (Chats.reply(ctx, ck, chat, d)) note(ctx, ck, "Hab $chat geantwortet", d, false)
+                    val ok = Chats.reply(ctx, ck, chat, d)
+                    Log.i(TAG, "selbst-Antwort an $chat (ok=$ok): $d")   // keine Mitteilung – komplett im Hintergrund, wie gewünscht
                 } else {
                     synchronized(pending) { pending[ck] = JSONObject().put("chat", chat).put("text", d) }
                     note(ctx, ck, "Antwort an $chat?", d, true)

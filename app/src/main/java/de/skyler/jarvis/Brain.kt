@@ -222,6 +222,13 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         Regex("^(?:antworte|schreib) ([\\p{L}-]+) nicht mehr(?: selbst)?$|^hör auf,? ([\\p{L}-]+) zu (?:antworten|schreiben)$").find(lowW)?.let { m ->
             return Stil.revoke(ctx, (m.groupValues[1].ifBlank { m.groupValues[2] }).replaceFirstChar { it.uppercase() })
         }
+        // „Schreib von selber“ (ohne Namen): für die Chats, die schon in den Einstellungen eingetragen sind, komplett selbst schreiben
+        if (Regex("^(?:ja[, ]+)?schreib\\w*\\s+(?:du\\s+)?(?:(?:ab\\s+)?jetzt\\s+)?(?:von\\s+)?selb(?:er|st)$").containsMatchIn(lowW)) {
+            Stil.setMode(ctx, "selbst")
+            return if (Stil.mode(ctx) == "selbst")
+                "Okay, ich schreibe in den hinterlegten Chats jetzt komplett selbst – ohne dich zu fragen und ohne Mitteilung."
+            else "Dafür musst du erst das Schreibstil-Quiz ein bisschen spielen (Einstellungen → Leute), sonst lass ich dich lieber erst noch gegenlesen – ich schlage dir die Antworten bis dahin nur vor."
+        }
         if (Regex("\\b(?:stil[- ]?quiz|schreibstil[- ]?quiz|quiz (?:zu|über) meinem? (?:schreib)?stil)\\b").containsMatchIn(lowW)) {
             Bus.emit("open_page", JSONObject().put("page", "stil"))
             return "Mach ich auf: Welche Antwort ist von dir? Findest du unter Einstellungen → Leute → Schreibstil."

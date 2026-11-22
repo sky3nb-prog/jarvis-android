@@ -150,6 +150,10 @@ object Chats {
         }
 
         if (!group && !isVoice(text) && System.currentTimeMillis() - time < 10 * 60_000L) try { Stil.onIncoming(ctx, chat, text, verlauf(ctx, norm(chat))) } catch (_: Exception) {}
+        if (!group && try { Stil.autoSilent(ctx, chat) } catch (_: Exception) { false }) {
+            // Chat läuft komplett automatisch: WhatsApps eigene Benachrichtigung dafür gleich wieder ausblenden
+            try { (ctx as? NotificationListenerService)?.cancelNotification(sbn.key) } catch (_: Exception) {}
+        }
         val test = isTest(ctx, chat) || isTest(ctx, sender)
         val immer = (prefs(ctx).getString("wa_immer", "") ?: "").split(",").map { norm(it) }.filter { it.isNotBlank() }
         val wanted = test || matches(immer, chat, sender) || matches(important(ctx), chat, sender) || matches(watched(ctx), chat, sender)
@@ -292,7 +296,9 @@ object Chats {
         var t = t0.trim().trim('"', '„', '“')
         t = t.replace(Regex("\\s+[–—-]+\\s+"), " ").replace(Regex("[–—]"), " ")
         t = t.replace(Regex("(?<!\\d)[.,;:](?!\\d)"), " ").replace(Regex("(?<=\\d)[.,;:](?=\\s|$)"), " ")
-        t = t.replace(Regex("\\.{2,}|…"), " ").replace(Regex("[ \\t]{2,}"), " ").replace(Regex(" +([?!])"), "$1")
+        t = t.replace(Regex("\\.{2,}|…"), " ")
+        t = t.replace(Regex("\\s*\\n\\s*"), " ")   // eine durchgehende Nachricht, keine Zeilenumbrüche/"Häppchen"
+        t = t.replace(Regex("[ \\t]{2,}"), " ").replace(Regex(" +([?!])"), "$1")
         return t.trim()
     }
 
