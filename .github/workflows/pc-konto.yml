@@ -48,7 +48,7 @@ jobs:
           New-Item -ItemType Directory -Force out/Jarvis | Out-Null
           Copy-Item dist/Jarvis-Konto.exe out/Jarvis/
           Copy-Item dist/Jarvis-Konto-Debug.exe out/Jarvis/
-          Set-Content out/Jarvis/LIESMICH.txt "Jarvis für den PC`r`n`r`nDiesen Ordner irgendwohin entpacken (z. B. Dokumente\Jarvis) und Jarvis-Konto.exe starten.`r`nBeim ersten Start: anmelden oder neues Konto anlegen – oder erst mal ohne.`r`nUpdates kommen von selbst.`r`nJarvis-Konto-Debug.exe zeigt ein Fenster mit Meldungen, falls etwas nicht klappt."
+          Copy-Item pc_web/README.html out/Jarvis/README.html
           Compress-Archive -Path out/Jarvis -DestinationPath Jarvis-Konto-PC.zip
       - name: Auf die Download-Seite
         uses: softprops/action-gh-release@v2

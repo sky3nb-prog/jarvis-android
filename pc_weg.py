@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 
-FILES = ["Jarvis-Konto.exe", "Jarvis-Konto-Debug.exe", "LIESMICH.txt",
+FILES = ["Jarvis-Konto.exe", "Jarvis-Konto-Debug.exe", "LIESMICH.txt", "README.html",
          "einstellungen.json", "erinnerungen.json", "ets2_orte.json", "gaming.json", "gassi_log.json", "gedaechtnis.json",
          "handy_app.json", "handy_themen.json", "ideen.json", "interessen_pc.json", "konto.json", "lernen.json",
          "meine_befehle.json", "meldungen.json", "orte_genau.json", "schreibstil.json", "schule_eintraege.json",
@@ -46,7 +46,90 @@ def _ps_quote(p: str) -> str:
     return "'" + p.replace("'", "''") + "'"
 
 
-def destroy(quit_cb=None) -> dict:
+UNINST_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\JarvisKonto"
+
+
+def _spawn_cleanup(script: str):
+    """Startet das Aufräum-Skript so, dass es weiterläuft, wenn Jarvis beendet wird.
+    Wichtig: Das fertige Programm läuft in einer Prozess-Gruppe, die beim Beenden alle Kinder mitreißt.
+    Deshalb lässt Windows selbst (WMI) das Skript starten – dann gehört es nicht mehr zu Jarvis."""
+    enc = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    cmd = f"powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand {enc}"
+    starter = ("$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine=" + _ps_quote(cmd)
+               + "; CurrentDirectory=$env:TEMP}; exit [int]$r.ReturnValue")
+    enc2 = base64.b64encode(starter.encode("utf-16-le")).decode("ascii")
+    r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc2],
+                       capture_output=True, timeout=30, creationflags=0x08000000)
+    if r.returncode != 0:   # Notlösung: direkt starten und versuchen, aus der Gruppe auszubrechen
+        subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
+                          "-EncodedCommand", enc], cwd=os.environ.get("TEMP") or None, close_fds=True,
+                         creationflags=0x01000000 | 0x00000008 | 0x00000200 | 0x08000000)
+
+
+def hide_data_files():
+    """Download-Version: Hilfsordner und die Debug-Version im Programmordner verstecken. Die Daten selbst liegen
+    im versteckten Ordner „Jarvis-Daten“ (pc_apps.base_dir). Dateien selbst nie verstecken – sonst lässt Windows
+    sie nicht mehr überschreiben."""
+    if not allowed() or not getattr(sys, "frozen", False):
+        return
+    try:
+        import ctypes
+        exe_dir = os.path.dirname(sys.executable)
+        for n in ("Jarvis-Daten", "hud_fenster", "hud_profil", "piper", "sticker", "_neu"):
+            p = os.path.join(exe_dir, n)
+            if os.path.isdir(p):
+                a = ctypes.windll.kernel32.GetFileAttributesW(p)
+                if a != -1 and not a & 0x2:
+                    ctypes.windll.kernel32.SetFileAttributesW(p, a | 0x2)
+    except Exception as e:
+        print("Ordner verstecken ging nicht:", e)
+
+
+def register_uninstall():
+    """Eintrag unter Einstellungen → Apps, damit man Jarvis ganz normal deinstallieren kann (nur fertige .exe, nur Konto-Ausgabe)."""
+    if not allowed() or not getattr(sys, "frozen", False):
+        return
+    try:
+        import winreg
+        exe = sys.executable
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, UNINST_KEY) as k:
+            for name, val in (("DisplayName", "Jarvis"), ("DisplayIcon", exe + ",0"), ("Publisher", "Jarvis"),
+                              ("UninstallString", f'"{exe}" --uninstall'), ("QuietUninstallString", f'"{exe}" --uninstall --quiet'),
+                              ("InstallLocation", os.path.dirname(exe)), ("DisplayVersion", _version())):
+                winreg.SetValueEx(k, name, 0, winreg.REG_SZ, val)
+            winreg.SetValueEx(k, "NoModify", 0, winreg.REG_DWORD, 1)
+            winreg.SetValueEx(k, "NoRepair", 0, winreg.REG_DWORD, 1)
+    except Exception as e:
+        print("Deinstallieren-Eintrag ging nicht:", e)
+
+
+def _version() -> str:
+    try:
+        import pc_overlay
+        return str(getattr(pc_overlay, "VERSION", ""))
+    except Exception:
+        return ""
+
+
+def uninstall_main():
+    """Aufruf aus Windows (Apps → Deinstallieren): kurz nachfragen, dann alles löschen."""
+    quiet = "--quiet" in sys.argv
+    if not quiet:
+        try:
+            import ctypes
+            r = ctypes.windll.user32.MessageBoxW(None, "Jarvis komplett von diesem PC entfernen?\n\nDein Konto bleibt – "
+                                                 "lädst du Jarvis neu und meldest dich an, ist alles wieder da.",
+                                                 "Jarvis deinstallieren", 0x4 | 0x30 | 0x40000)   # Ja/Nein, Warnung, im Vordergrund
+            if r != 6:
+                return
+        except Exception:
+            pass
+    destroy(None, wait=False)
+    import time
+    time.sleep(1)
+
+
+def destroy(quit_cb=None, wait: bool = True) -> dict:
     if not allowed():
         return {"ok": False, "text": "Gibt es nur in der Ausgabe von der Website."}
     from pc_apps import base_dir
@@ -65,10 +148,17 @@ def destroy(quit_cb=None) -> dict:
     except Exception as e:
         print("Selbstzerstörung – Autostart:", e)
 
-    folder = base_dir()
-    targets = [os.path.join(folder, n) for n in FILES + DIRS]
+    data = base_dir()
+    folder = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else data
+    targets = [os.path.join(folder, n) for n in FILES + DIRS] + [os.path.join(data, n) for n in FILES + DIRS]
+    targets += [os.path.join(folder, n) for n in ("Jarvis-Daten", "hud_fenster")]
     sm = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Jarvis Konto.lnk")
     targets.append(sm)
+    try:
+        import winreg
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, UNINST_KEY)
+    except Exception:
+        pass
     la = os.environ.get("LOCALAPPDATA") or ""
     if la and not _private_jarvis_here():   # gemeinsam mit dem privaten Jarvis genutzt – nur löschen, wenn es den hier nicht gibt
         targets += [os.path.join(la, "JarvisPiper"), os.path.join(la, "JarvisPair")]
@@ -88,14 +178,13 @@ $f = {_ps_quote(folder)}
 if ({'$true' if whole else '$false'}) {{ Get-ChildItem -LiteralPath $f -File -Force | Where-Object {{ $_.Extension -in '.json','.txt','.log','.db','.bak' }} | Remove-Item -Force }}
 if ((Test-Path -LiteralPath $f) -and -not (Get-ChildItem -LiteralPath $f -Force)) {{ Remove-Item -LiteralPath $f -Force }}
 """
-    enc = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
     try:
-        subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
-                          "-EncodedCommand", enc],
-                         cwd=os.environ.get("TEMP") or None, close_fds=True,
-                         creationflags=0x00000008 | 0x00000200 | 0x08000000)   # losgelöst, eigene Gruppe, ohne Fenster
+        _spawn_cleanup(script)
     except Exception as e:
         return {"ok": False, "text": f"Aufräumen ließ sich nicht starten: {e}"}
+
+    if not wait:
+        return {"ok": True, "text": "Jarvis wird entfernt."}
 
     def _bye():
         import threading

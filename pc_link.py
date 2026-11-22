@@ -75,10 +75,36 @@ def _backup_path() -> str:
     return os.path.join(d, FILE + (".bak" if not la else ""))
 
 
+def _prot(t: str) -> str:
+    """Kopplungscode mit Windows verschlüsseln (nur dein Windows-Benutzer kann ihn lesen)."""
+    try:
+        import pc_secret
+        r = pc_secret.protect(t)
+        if r and pc_secret.unprotect(r) == t:
+            return "P:" + r
+    except Exception:
+        pass
+    return t
+
+
+def _unprot(t: str) -> str:
+    if isinstance(t, str) and t.startswith("P:"):
+        try:
+            import pc_secret
+            return pc_secret.unprotect(t[2:]) or ""
+        except Exception:
+            return ""
+    return t or ""
+
+
 def _read(p: str):
     with open(p, encoding="utf-8") as f:
         d = json.load(f)
-    return d if isinstance(d, dict) else None
+    if not isinstance(d, dict):
+        return None
+    if d.get("code"):
+        d["code"] = _unprot(d["code"])
+    return d
 
 
 def _state() -> dict:
@@ -113,7 +139,10 @@ def _state() -> dict:
 def _save_state(st: dict):
     if not st.get("code") and _cache.get("code"):   # nie aus Versehen den Code wegschreiben
         st = dict(st, code=_cache["code"])
-    data = json.dumps(st)
+    disk = dict(st)
+    if disk.get("code"):
+        disk["code"] = _prot(disk["code"])   # nicht im Klartext auf der Festplatte
+    data = json.dumps(disk)
     for p in (os.path.join(base_dir(), FILE), _backup_path()):
         try:
             os.makedirs(os.path.dirname(p), exist_ok=True)

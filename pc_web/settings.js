@@ -291,6 +291,7 @@
   const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Jarvis von diesem PC"]];
   function run(a, btn) {
     if (a === "konto_open" && window.JKonto) { close(false); window.JKonto.open(); return; }
+    if (a === "farbe_open" && window.JFarbe) { window.JFarbe.open(); return; }
     if (a === "selbstzerstoerung" && wegStep < 2 && !btn.dataset.boom) {
       clearTimeout(wegT); wegStep++;
       btn.textContent = WEG[wegStep][0]; btn.style.color = "#ff9a8a"; btn.style.borderColor = "#ff5a5a";

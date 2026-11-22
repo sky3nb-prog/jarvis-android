@@ -39,7 +39,7 @@ def main():
     import urllib.parse
     import webview
     api = Api()
-    win = webview.create_window("Jarvis Start", f"http://127.0.0.1:{port}/boot.html?name={urllib.parse.quote(name)}", js_api=api,
+    win = webview.create_window("Jarvis Start", f"http://127.0.0.1:{port}/boot.html?" + urllib.parse.urlencode({"name": name, "hk": os.environ.get("JARVIS_HK", "")}), js_api=api,
                                 fullscreen=True, frameless=True, on_top=True, background_color="#000000", text_select=False)
     api.win = win
     threading.Timer(22, lambda: os._exit(0)).start()   # Sicherheitsnetz: spätestens dann ist Schluss

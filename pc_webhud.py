@@ -193,6 +193,18 @@ def set_app_id(hwnd):
 
 
 # --- Server -----------------------------------------------------------------------------------------------
+
+# Schutz des lokalen HUD-Servers: nur das HUD-Fenster selbst darf ihn benutzen. Eine fremde Website im Browser
+# (die 127.0.0.1 anfragt) oder ein Trick mit umgeleiteten Namen (DNS-Rebinding) kommt ohne diesen Schlüssel nicht rein.
+import secrets as _secrets
+TOKEN = os.environ.get("JARVIS_HK") or _secrets.token_urlsafe(32)
+os.environ["JARVIS_HK"] = TOKEN   # die Fenster-Prozesse (HUD, Start-Animation) erben ihn
+
+
+def page_url(port: int, page: str = "hud.html", **q) -> str:
+    q["hk"] = TOKEN
+    return f"http://127.0.0.1:{port}/{page}?" + urllib.parse.urlencode(q)
+
 class WebHud:
     def __init__(self, ui, run_text):
         self.ui = ui                 # pc_overlay.UI (für Einstellungen, Tk-Warteschlange)
@@ -256,9 +268,31 @@ class WebHud:
                 self.end_headers()
                 self.wfile.write(b)
 
+            def _host_ok(self):
+                h = (self.headers.get("Host") or "").lower()
+                return h in (f"127.0.0.1:{hud.port}", f"localhost:{hud.port}")
+
+            def _authed(self, qs=None):
+                if not self._host_ok():
+                    return False
+                import hmac as _h
+                k = self.headers.get("X-Jarvis-K") or ""
+                if not k:
+                    for part in (self.headers.get("Cookie") or "").split(";"):
+                        n, _, v = part.strip().partition("=")
+                        if n == "hk":
+                            k = v
+                if not k and qs:
+                    k = qs.get("hk", "")
+                return bool(k) and _h.compare_digest(k, TOKEN)
+
             def do_GET(self):
                 u = urllib.parse.urlparse(self.path)
                 qs = dict(urllib.parse.parse_qsl(u.query))
+                if not self._host_ok():
+                    return self._send(403, "nein", "text/plain")
+                if (u.path == "/events" or u.path.startswith("/api/") or u.path == "/phonecam.jpg") and not self._authed(qs):
+                    return self._send(403, json.dumps({"error": "kein Zugriff"}))
                 if u.path == "/events":
                     return hud._events(self)
                 if u.path == "/phonecam.jpg":   # Bild der Handy-Kamera (kommt über den Fernzugriff)
@@ -276,10 +310,22 @@ class WebHud:
                 ctype = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
                          ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon"}.get(ext, "application/octet-stream")
                 with open(path, "rb") as f:
-                    self._send(200, f.read(), ctype)
+                    data = f.read()
+                if ext == ".html" and qs.get("hk") and self._authed(qs):   # Fenster öffnet mit Schlüssel: als Cookie merken
+                    self.send_response(200)
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Content-Length", str(len(data)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Set-Cookie", f"hk={TOKEN}; Path=/; HttpOnly; SameSite=Strict")
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+                self._send(200, data, ctype)
 
             def do_POST(self):
                 u = urllib.parse.urlparse(self.path)
+                if not self._authed():
+                    return self._send(403, json.dumps({"error": "kein Zugriff"}))
                 n = int(self.headers.get("Content-Length") or 0)
                 try:
                     body = json.loads(self.rfile.read(n) or b"{}")
@@ -761,7 +807,7 @@ class WebHud:
         if not edge:
             return False
         prof = os.path.join(base_dir(), "hud_profil")
-        self.proc = subprocess.Popen([edge, f"--app=http://127.0.0.1:{self.port}/hud.html", f"--user-data-dir={prof}",
+        self.proc = subprocess.Popen([edge, f"--app={page_url(self.port)}", f"--user-data-dir={prof}",
                                       f"--window-size={max(960, w)},{int(max(960, w) * 0.62)}", "--no-first-run",
                                       "--no-default-browser-check", "--disable-features=Translate,msEdgeTranslate",
                                       "--autoplay-policy=no-user-gesture-required", "--force-dark-mode"], creationflags=NO_WINDOW)

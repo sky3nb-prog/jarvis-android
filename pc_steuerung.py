@@ -38,6 +38,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import threading
 import time
 import urllib.parse
@@ -653,6 +654,19 @@ def handle_fixed(text: str):
     if _NIGHT is not None and _NIGHT.is_alive() and re.search(r"abbrech|stopp|nicht (aus|herunter)|lass (ihn )?an", low):
         _NIGHT.cancel()
         return "Okay, der PC bleibt an."
+
+    # Download-Version: „Wie richte ich dich ein?“ – kurze Anleitung sagen und das Handbuch (README) öffnen
+    if __import__("pc_variante").KONTO and re.search(r"wie richte ich dich ein|wie (richte|stelle) ich (dich|jarvis) ein|einrichten|anleitung|handbuch|wie funktionierst du|was muss ich (zuerst )?(machen|einstellen)", low):
+        try:
+            readme = os.path.join(os.path.dirname(sys.executable), "README.html") if getattr(sys, "frozen", False) else ""
+            if readme and os.path.exists(readme):
+                os.startfile(readme)
+        except Exception:
+            pass
+        return ("So geht's in drei Schritten: Erstens, hol dir auf console.groq.com einen kostenlosen KI-Schlüssel und trag ihn "
+                "unter Einstellungen, Allgemein ein. Zweitens, trag unter Zuhause und Orte deinen Wohnort ein. Drittens, sag einfach "
+                "Jarvis und dann, was du willst. Fürs Handy lädst du die App von derselben Seite und meldest dich mit demselben Konto an. "
+                "Ich habe dir das Handbuch geöffnet.")
 
     # „Geh aus dem Discord-Call, in dem ich gerade bin“ – ganz früh, damit nichts anderes den Satz schnappt
     if wants_discord_leave(low):

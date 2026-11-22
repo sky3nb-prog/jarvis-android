@@ -95,7 +95,8 @@ class H(BaseHTTPRequestHandler):
         if not k:
             m = re.search(r"(?:^|;\s*)jt=([0-9a-f]+)", self.headers.get("Cookie") or "")
             k = m.group(1) if m else ""
-        return bool(k) and k == token()
+        import hmac as _h
+        return bool(k) and _h.compare_digest(k, token())
 
     def _deny(self):
         self.send_response(403)
@@ -169,7 +170,9 @@ class H(BaseHTTPRequestHandler):
         path = (u.path if u.path != "/" else "/hud.html") + ("?" + urllib.parse.urlencode(q) if q else "")
         try:
             c = http.client.HTTPConnection("127.0.0.1", port, timeout=120)
-            c.request(method, path, body=body or None, headers={"Content-Type": self.headers.get("Content-Type") or "application/json"})
+            import pc_webhud
+            c.request(method, path, body=body or None, headers={"Content-Type": self.headers.get("Content-Type") or "application/json",
+                                                                "X-Jarvis-K": pc_webhud.TOKEN})
             r = c.getresponse()
             self.send_response(r.status)
             for k, v in r.getheaders():

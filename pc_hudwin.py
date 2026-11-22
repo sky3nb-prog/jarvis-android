@@ -78,7 +78,9 @@ def main():
     w = int(a[1]) if len(a) > 1 else 1280
     h = int(a[2]) if len(a) > 2 else 800
     import webview
-    win = webview.create_window(TITLE, f"http://127.0.0.1:{port}/hud.html", width=w, height=h, min_size=(900, 560),
+    import urllib.parse
+    url = f"http://127.0.0.1:{port}/hud.html?" + urllib.parse.urlencode({"hk": os.environ.get("JARVIS_HK", "")})
+    win = webview.create_window(TITLE, url, width=w, height=h, min_size=(900, 560),
                                 background_color="#000000", text_select=False)
     win.events.shown += lambda: threading.Thread(target=_style_window, daemon=True).start()
     base = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))

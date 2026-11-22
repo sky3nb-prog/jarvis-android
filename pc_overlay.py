@@ -49,6 +49,10 @@ if "--boot" in sys.argv:   # Iron-Man-Start (Vollbild-Hologramm nach dem Anmelde
     sys.exit(0)
 if "--orb" in sys.argv:   # alter Overlay-Prozess (gibt es nicht mehr) – sofort beenden
     sys.exit(0)
+if "--uninstall" in sys.argv:   # Windows: Einstellungen → Apps → Jarvis → Deinstallieren
+    import pc_weg
+    pc_weg.uninstall_main()
+    sys.exit(0)
 import threading
 import time
 import tkinter as tk
@@ -2115,6 +2119,17 @@ def main():
     icon = start_tray(ui, stop)
     threading.Thread(target=listen_show, args=(ui,), daemon=True).start()   # Klick aufs angeheftete Symbol
     threading.Thread(target=make_start_shortcut, daemon=True).start()
+    try:
+        import pc_weg
+        threading.Thread(target=pc_weg.register_uninstall, daemon=True).start()   # Einstellungen → Apps → Deinstallieren
+
+        def _hide_loop():
+            while True:
+                pc_weg.hide_data_files()
+                time.sleep(600)
+        threading.Thread(target=_hide_loop, daemon=True).start()
+    except Exception:
+        pass
 
     def shutdown():
         stop.set()

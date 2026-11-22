@@ -45,11 +45,43 @@ _lock = threading.Lock()
 
 
 # --- Hilfsfunktionen --------------------------------------------------------
+_DATA = {}
+
+
 def base_dir() -> str:
-    """Ordner des Programms (bei der .exe: der Ordner, in dem die .exe liegt)."""
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+    """Ordner für Jarvis' Dateien. Dein Jarvis: neben der .exe. Download-Version: im versteckten Unterordner
+    „Jarvis-Daten“ – im Programmordner sieht man dann nur Jarvis-Konto.exe und README.html."""
+    if not getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(__file__))
+    exe_dir = os.path.dirname(sys.executable)
+    if "d" in _DATA:
+        return _DATA["d"]
+    d = exe_dir
+    try:
+        import pc_variante
+        if pc_variante.KONTO:
+            d = os.path.join(exe_dir, "Jarvis-Daten")
+            if not os.path.isdir(d):
+                os.makedirs(d, exist_ok=True)
+                for n in os.listdir(exe_dir):   # einmalig: alte Dateien aus dem Programmordner herüberholen
+                    if n.lower() in ("readme.html", "liesmich.txt") or n.lower().endswith(".exe") or n in ("Jarvis-Daten", "hud_fenster"):
+                        continue
+                    if n.lower().endswith((".json", ".txt", ".db", ".tle")) or n in ("hud_profil", "piper", "sticker"):
+                        try:
+                            os.replace(os.path.join(exe_dir, n), os.path.join(d, n))
+                        except Exception:
+                            pass
+            try:
+                import ctypes
+                a = ctypes.windll.kernel32.GetFileAttributesW(d)
+                if a != -1 and not a & 0x2:
+                    ctypes.windll.kernel32.SetFileAttributesW(d, a | 0x2)   # Ordner verstecken (Schreiben darin geht normal)
+            except Exception:
+                pass
+    except Exception:
+        d = exe_dir
+    _DATA["d"] = d
+    return d
 
 
 def norm(text: str) -> str:

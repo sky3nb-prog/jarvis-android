@@ -141,6 +141,32 @@ def path() -> str:
     return os.path.join(base_dir(), FILE)
 
 
+# Diese Felder stehen nur verschlüsselt (Windows) in einstellungen.json – im Programm sind sie ganz normal lesbar
+SECRET_FIELDS = ("gemini_api_key", "calendar_url")
+
+
+def _unseal(v):
+    if isinstance(v, str) and v.startswith("P:"):
+        try:
+            import pc_secret
+            return pc_secret.unprotect(v[2:]) or ""
+        except Exception:
+            return ""
+    return v
+
+
+def _seal(v):
+    if isinstance(v, str) and v and not v.startswith("P:"):
+        try:
+            import pc_secret
+            r = pc_secret.protect(v)
+            if r and pc_secret.unprotect(r) == v:
+                return "P:" + r
+        except Exception:
+            pass
+    return v
+
+
 def load() -> dict:
     data = dict(DEFAULTS)
     try:
@@ -148,7 +174,7 @@ def load() -> dict:
             stored = json.load(f)
         for key, value in stored.items():
             if key in DEFAULTS:
-                data[key] = value
+                data[key] = _unseal(value) if key in SECRET_FIELDS else value
         # Neu durch ein Update: steht in den Standardwerten, aber noch nicht in deiner Einstellungsdatei -> roter Punkt
         fresh = [k for k in DEFAULTS if k not in stored and k not in ("auto_new", "seen_new", "overlay_v2")]
         if fresh:
@@ -165,7 +191,7 @@ def load() -> dict:
 def save(data: dict) -> bool:
     try:
         with open(path(), "w", encoding="utf-8") as f:
-            json.dump({k: data[k] for k in DEFAULTS if k in data}, f, ensure_ascii=False, indent=2)
+            json.dump({k: (_seal(data[k]) if k in SECRET_FIELDS else data[k]) for k in DEFAULTS if k in data}, f, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"Einstellungen konnten nicht gespeichert werden: {e}")
