@@ -2,6 +2,8 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jarvis – dein Assistent für Handy und PC</title>
 <meta name="description" content="Jarvis herunterladen – Android-App und Windows-Programm. Ein Konto für alle Geräte, Updates kommen von selbst.">
@@ -103,152 +105,9 @@
   <nav><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></nav>
   <span class="ai">Texte und Teile des Programms wurden mit Unterstützung von KI erstellt.</span>
 </div></footer>
-<script>
-// Download: immer die neueste Version (direkt von den fertigen Builds), mit Datum und Größe
-(function () {
-  const REL = "https://api.github.com/repos/sky3nb-prog/jarvis-android/releases/tags/konto-neueste";
-  const fmt = (d) => new Date(d).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  const mb = (b) => (b / 1048576).toFixed(0) + " MB";
-  fetch(REL, { headers: { Accept: "application/vnd.github+json" } }).then((r) => r.json()).then((rel) => {
-    const a = {}; (rel.assets || []).forEach((x) => { a[x.name] = x; });
-    const build = /Build (\d+)/.exec(rel.name || "");
-    const set = (id, btn, x, label) => {
-      const e = document.getElementById(id); if (!e) return;
-      if (!x) { e.textContent = "Gerade nicht verfügbar – gleich nochmal versuchen."; return; }
-      e.innerHTML = `<b>${label}</b> · Stand ${fmt(x.updated_at)} · ${mb(x.size)}`;
-      const b = document.getElementById(btn); if (b) b.href = x.browser_download_url;
-    };
-    set("ver-apk", "dl-apk", a["Jarvis-Konto.apk"], build ? "Version 0.3." + build[1] : "Neueste Version");
-    set("ver-pc", "dl-pc", a["Jarvis-Konto-PC.zip"], "Neueste Version");
-    const t = document.getElementById("ver-tag"); if (t && build) t.textContent = "Version 0.3." + build[1] + " · " + fmt(((a["Jarvis-Konto.apk"] || {}).updated_at) || rel.published_at);
-  }).catch(() => {
-    ["ver-apk", "ver-pc"].forEach((id) => { const e = document.getElementById(id); if (e) e.textContent = "Neueste Version"; });
-  });
-})();
-</script>
-<script>
-(function () {
-  const $ = (id) => document.getElementById(id);
-  let C = null;
-  const S = { get: () => { try { return JSON.parse(localStorage.getItem("jk") || "null"); } catch (e) { return null; } },
-              set: (v) => { try { v ? localStorage.setItem("jk", JSON.stringify(v)) : localStorage.removeItem("jk"); } catch (e) {} } };
-  const err = (m) => {
-    m = m || "";
-    if (m.startsWith("EMAIL_EXISTS")) return "Die E-Mail hat schon ein Konto – nimm „Anmelden“.";
-    if (/^(EMAIL_NOT_FOUND|INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD)/.test(m)) return "E-Mail oder Passwort stimmt nicht.";
-    if (m.startsWith("WEAK_PASSWORD")) return "Passwort zu kurz – mindestens 6 Zeichen.";
-    if (m.startsWith("INVALID_EMAIL")) return "Das ist keine gültige E-Mail.";
-    if (m.startsWith("TOO_MANY_ATTEMPTS")) return "Zu viele Versuche – kurz warten.";
-    if (m.startsWith("OPERATION_NOT_ALLOWED")) return "Anmeldung mit E-Mail ist noch nicht eingeschaltet.";
-    if (/PERMISSION_DENIED/i.test(m)) return "Zugriff verweigert (Regeln).";
-    return m;
-  };
-  const msg = (id, t, ok) => { $(id).textContent = t || ""; $(id).classList.toggle("ok", !!ok); };
-  async function j(url, body, token, method) {
-    const h = { "Content-Type": "application/json" }; if (token) h.Authorization = "Bearer " + token;
-    const r = await fetch(url, { method: method || (body ? "POST" : "GET"), headers: h, body: body ? JSON.stringify(body) : undefined });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(err((d.error || {}).message || ("HTTP " + r.status))); e.code = r.status; throw e; }
-    return d;
-  }
-  async function token() {
-    const s = S.get(); if (!s) throw new Error("Nicht angemeldet.");
-    if (Date.now() < s.exp) return s.id;
-    const r = await fetch("https://securetoken.googleapis.com/v1/token?key=" + C.apiKey, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(s.refresh) });
-    const d = await r.json(); if (!r.ok) { S.set(null); throw new Error("Anmeldung abgelaufen."); }
-    s.id = d.id_token; s.refresh = d.refresh_token; s.exp = Date.now() + (+d.expires_in - 60) * 1000; S.set(s); return s.id;
-  }
-  const docUrl = (uid) => `https://firestore.googleapis.com/v1/projects/${C.projectId}/databases/(default)/documents/users/${uid}`;
-  const when = (t) => t ? new Date(+t).toLocaleString("de-DE", { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : null;
-  async function show() {
-    const s = S.get();
-    $("c-login").hidden = !!s; $("c-acc").hidden = !s;
-    if (!s) return;
-    $("acc-mail").textContent = s.email;
-    $("st-and").textContent = $("st-pc").textContent = $("st-link").textContent = "…";
-    try {
-      let f = {};
-      try { f = (await j(docUrl(s.uid), null, await token())).fields || {}; } catch (e) { if (e.code !== 404) throw e; }
-      const t = (k) => f[k] && f[k].integerValue;
-      $("st-and").textContent = when(t("android_t")) ? "zuletzt " + when(t("android_t")) : "noch nicht angemeldet";
-      $("st-pc").textContent = when(t("pc_t")) ? "zuletzt " + when(t("pc_t")) : "noch nicht angemeldet";
-      $("st-link").textContent = f.link ? "PC und Handy finden sich automatisch" : "kommt, sobald sich der PC anmeldet";
-      msg("msg2", "");
-    } catch (e) { msg("msg2", e.message); }
-  }
-  async function login(neu) {
-    if (!C) return msg("msg", "Die Seite ist noch nicht fertig eingerichtet.");
-    const email = $("mail").value.trim(), pw = $("pw").value;
-    if (!email.includes("@")) return msg("msg", "Bitte deine E-Mail eintragen.");
-    if (pw.length < 6) return msg("msg", "Passwort: mindestens 6 Zeichen.");
-    msg("msg", neu ? "Lege dein Konto an …" : "Melde an …", true);
-    try {
-      const d = await j(`https://identitytoolkit.googleapis.com/v1/accounts:${neu ? "signUp" : "signInWithPassword"}?key=${C.apiKey}`, { email, password: pw, returnSecureToken: true });
-      S.set({ email, uid: d.localId, id: d.idToken, refresh: d.refreshToken, exp: Date.now() + (+d.expiresIn - 60) * 1000 });
-      $("pw").value = ""; msg("msg", "");
-      await show();
-      if (neu) msg("msg2", "Konto angelegt. Jetzt App bzw. PC-Programm herunterladen und dort mit derselben E-Mail anmelden.", true);
-    } catch (e) { msg("msg", e.message); }
-  }
-  $("b-reset").onclick = async (e) => {
-    e.preventDefault();
-    if (!C) return msg("msg", "Die Seite ist noch nicht fertig eingerichtet.");
-    const email = $("mail").value.trim();
-    if (!email.includes("@")) return msg("msg", "Trag oben deine E-Mail ein und klick dann nochmal auf „Passwort vergessen?“.");
-    msg("msg", "Schicke dir eine Mail …", true);
-    try {
-      await j("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=" + C.apiKey, { requestType: "PASSWORD_RESET", email });
-      msg("msg", "Mail ist unterwegs – schau auch im Spam-Ordner. Wichtig: Alte Sicherungen waren mit dem alten Passwort verschlüsselt. Nach dem Zurücksetzen lädt das erste Gerät, auf dem du dich neu anmeldest, seinen Stand neu hoch.", true);
-    } catch (err) { msg("msg", err.message); }
-  };
-  $("b-in").onclick = () => login(false);
-  $("b-neu").onclick = () => login(true);
-  $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") login(false); });
-  $("b-out").onclick = () => { S.set(null); show(); };
-  $("b-pwr").onclick = async () => {
-    const s = S.get(); if (!s || !C) return;
-    msg("msg2", "Schicke dir eine Mail …", true);
-    try { await j("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=" + C.apiKey, { requestType: "PASSWORD_RESET", email: s.email });
-      msg("msg2", "Mail an " + s.email + " ist unterwegs (auch im Spam schauen). Danach auf deinen Geräten mit dem neuen Passwort anmelden.", true);
-    } catch (e) { msg("msg2", e.message); }
-  };
-  $("b-del").onclick = () => { $("del-ask").hidden = !$("del-ask").hidden; };
-  $("b-del-ok").onclick = async () => {
-    const s = S.get(); if (!s) return;
-    try {
-      const t = await token();
-      await fetch(docUrl(s.uid), { method: "DELETE", headers: { Authorization: "Bearer " + t } });
-      await j("https://identitytoolkit.googleapis.com/v1/accounts:delete?key=" + C.apiKey, { idToken: t });
-      S.set(null); show(); msg("msg", "Konto und Daten sind gelöscht.", true);
-    } catch (e) { msg("msg2", e.message); }
-  };
-  fetch("konto_config.json", { cache: "no-store" }).then((r) => r.json()).then((c) => { if (c.apiKey) C = c; else msg("msg", "Die Seite ist noch nicht fertig eingerichtet."); show(); })
-    .catch(() => { msg("msg", "Die Seite ist noch nicht fertig eingerichtet."); show(); });
-})();
-</script>
+<script src="download.js"></script>
+<script src="konto.js"></script>
 <script src="kugel3d.js"></script>
-<script>
-// Unsere Kugel – dieselbe wie in der App und am PC. Ohne WebGL bleibt die einfache leuchtende Kugel.
-(function () {
-  const box = document.getElementById("kugel"), cv = document.getElementById("kugel-c");
-  let s = null;
-  try { s = new Sphere3D(cv, 3); box.classList.add("gl"); } catch (e) { return; }
-  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let last = performance.now(), talk = 0, next = 2.5, hover = false;
-  box.addEventListener("mouseenter", () => { hover = true; });
-  box.addEventListener("mouseleave", () => { hover = false; });
-  box.addEventListener("click", () => { talk = 2.2; });
-  function frame(now) {
-    const dt = Math.min(0.1, (now - last) / 1000); last = now;
-    next -= dt; if (next <= 0) { talk = 1.6 + Math.random(); next = 7 + Math.random() * 6; }   // ab und zu „spricht“ er kurz
-    talk = Math.max(0, talk - dt);
-    s.state = talk > 0 ? "speaking" : hover ? "listening" : "idle";
-    s.level = talk > 0 ? 0.35 + 0.35 * Math.abs(Math.sin(now / 90)) : 0;
-    s.draw(still ? dt * 0.3 : dt);
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-})();
-</script>
+<script src="kugel.js"></script>
 </body>
 </html>
