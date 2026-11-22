@@ -80,12 +80,25 @@
       </div>
       <div class="card" id="c-acc" hidden>
         <div class="kicker">Angemeldet</div>
-        <h3 id="acc-mail">–</h3>
+        <div class="avatarrow">
+          <label class="avatar" id="avatar-pick" title="Profilbild ändern">
+            <img id="acc-photo" alt="">
+            <span id="acc-initial"></span>
+            <input type="file" id="photo-file" accept="image/*" hidden>
+          </label>
+          <div>
+            <h3 id="acc-mail">–</h3>
+            <span class="note" id="acc-id">–</span>
+          </div>
+        </div>
         <div class="stat">
           <b>Handy</b><span id="st-and">–</span>
           <b>PC</b><span id="st-pc">–</span>
           <b>Kopplung</b><span id="st-link">–</span>
         </div>
+        <input id="acc-name" type="text" placeholder="Dein Name" autocomplete="name" maxlength="40">
+        <input id="acc-mail2" type="email" placeholder="E-Mail ändern" autocomplete="email">
+        <div class="row"><button class="btn ghost small" id="b-save">Speichern</button></div>
         <div class="msg" id="msg2"></div>
         <div class="row"><button class="btn ghost small" id="b-out">Abmelden</button><button class="btn ghost small" id="b-pwr">Passwort zurücksetzen</button><button class="btn ghost small" id="b-del">Konto löschen …</button></div>
         <div class="row" id="del-ask" hidden><button class="btn ghost small danger" id="b-del-ok">Ja, Konto und alle Daten löschen</button></div>

@@ -111,6 +111,16 @@ input:focus{border-color:var(--gold2)}
 .stat{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:14px 0 4px;font-size:14px}
 .stat b{font-weight:600}.stat span{color:var(--dim)}
 .note{font-size:13px;color:var(--mute);line-height:1.55;margin-top:12px}
+.avatarrow{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+.avatar{position:relative;width:56px;height:56px;border-radius:50%;flex:none;cursor:pointer;overflow:hidden;
+  background:radial-gradient(120% 120% at 30% 20%,var(--gold) 0%,var(--amber) 60%,#2a1c06 100%);
+  display:flex;align-items:center;justify-content:center;border:1px solid var(--line2)}
+.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.avatar img[src]:not([src=""]){display:block}
+.avatar #acc-initial{font-weight:700;font-size:20px;color:#1a1206}
+.avatar:hover::after{content:"ändern";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;background:rgba(0,0,0,.55);color:#fff;text-align:center}
+#acc-id{font-family:var(--mono);letter-spacing:.04em}
 
 /* Textseiten (Impressum, Datenschutz) */
 .doc{max-width:760px;margin:0 auto;padding:44px 0 20px}
