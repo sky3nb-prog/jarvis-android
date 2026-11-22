@@ -14,6 +14,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 
 REPO = "sky3nb-prog/jarvis-android"
@@ -60,13 +61,44 @@ def _neu_dir() -> str:
     return os.path.join(_dist(), "_neu") if pc_variante.KONTO else os.path.join(_src(), "dist_neu")
 
 
+def _etag_get(url: str, cache_key: str):
+    """GET mit ETag-Cache: Wenn sich auf GitHub nichts geändert hat, kommt 304 zurück – das zählt NICHT gegen
+    das Ratenlimit (anders als eine normale 200er-Antwort). Dadurch verbraucht die automatische Prüfung alle
+    30 Minuten praktisch nie mehr Kontingent, außer es gibt wirklich was Neues. Bei 403 (Ratenlimit erreicht)
+    wird – wenn vorhanden – einfach der letzte bekannte Stand weiterverwendet, statt einen Fehler zu melden."""
+    d = _load()
+    etag = d.get(cache_key + "_etag")
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "Jarvis-PC"}
+    if etag:
+        headers["If-None-Match"] = etag
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            body = json.loads(r.read().decode("utf-8"))
+            new_etag = r.headers.get("ETag")
+            if new_etag:
+                d[cache_key + "_etag"] = new_etag
+                d[cache_key + "_body"] = body
+                _save(d)
+            return body
+    except urllib.error.HTTPError as e:
+        if e.code == 304:
+            cached = d.get(cache_key + "_body")
+            if cached is not None:
+                return cached
+            raise RuntimeError("GitHub sagt '304' aber ich hab noch keinen alten Stand gespeichert.") from e
+        if e.code == 403:
+            cached = d.get(cache_key + "_body")
+            if cached is not None:
+                return cached
+            raise RuntimeError("GitHub blockiert gerade kurz (zu oft gefragt) - bitte in einer Stunde nochmal") from e
+        raise
+
+
 def _asset():
     """Konto-Ausgabe: das fertige Paket auf der Download-Seite -> (Kennung, Download-Link)."""
     import pc_variante
-    req = urllib.request.Request(f"https://api.github.com/repos/{pc_variante.DOWNLOAD_REPO}/releases/tags/{pc_variante.DOWNLOAD_TAG}",
-                                 headers={"Accept": "application/vnd.github+json", "User-Agent": "Jarvis-PC"})
-    with urllib.request.urlopen(req, timeout=15) as r:
-        rel = json.loads(r.read().decode("utf-8"))
+    rel = _etag_get(f"https://api.github.com/repos/{pc_variante.DOWNLOAD_REPO}/releases/tags/{pc_variante.DOWNLOAD_TAG}", "rel")
     for a in rel.get("assets") or []:
         if a.get("name") == pc_variante.DOWNLOAD_ASSET:
             return f"{a.get('id')}:{a.get('updated_at')}", a.get("browser_download_url")
@@ -77,10 +109,8 @@ def latest() -> str:
     import pc_variante
     if pc_variante.KONTO:
         return _asset()[0]
-    req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/commits/{BRANCH}",
-                                 headers={"Accept": "application/vnd.github+json", "User-Agent": "Jarvis-PC"})
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read().decode("utf-8"))["sha"]
+    body = _etag_get(f"https://api.github.com/repos/{REPO}/commits/{BRANCH}", "commit")
+    return body["sha"]
 
 
 def possible() -> bool:
