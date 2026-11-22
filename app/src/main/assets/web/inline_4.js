@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded", () => { const b = document.getElementById("ws-heute"); if (b) b.addEventListener("click", () => { if (window.JOutfit) window.JOutfit.open(); }); const f = document.getElementById("set-farbe"); if (f) f.addEventListener("click", () => window.JFarbe && window.JFarbe.open()); });

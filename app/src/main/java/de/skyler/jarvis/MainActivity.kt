@@ -370,6 +370,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun askText(text: String) {
             val key = prefs.getString("groq_key", "") ?: ""
+            Brain.setupAnswer(text)?.let { send("agent", JSONObject().put("text", it)); return }
             if (key.isBlank()) { send("needkey", JSONObject()); return }
             Thread({
                 send("state", JSONObject().put("state", "thinking"))

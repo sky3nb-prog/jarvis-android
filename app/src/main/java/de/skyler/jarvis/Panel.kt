@@ -48,7 +48,14 @@ class Panel(private val ctx: Context, private val onClose: () -> Unit, private v
         w.overScrollMode = View.OVER_SCROLL_NEVER
         w.settings.javaScriptEnabled = true
         w.settings.domStorageEnabled = true
-        w.webViewClient = object : WebViewClient() {}
+        w.webViewClient = object : WebViewClient() {
+            // Sicherheit: im Panel nur die eigenen Seiten – fremde Links nie hier (dort gäbe es sonst die Panel-Brücke)
+            override fun shouldOverrideUrlLoading(view: android.webkit.WebView, request: android.webkit.WebResourceRequest): Boolean {
+                if (request.url.scheme == "file") return false
+                try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, request.url).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
+                return true
+            }
+        }
         w.addJavascriptInterface(Bridge(), "Panel")
         w.loadUrl("file:///android_asset/panel/panel.html")
         val type = if (Build.VERSION.SDK_INT >= 26) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY

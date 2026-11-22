@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="de">
 <head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src * data: blob:; media-src * data: blob:; connect-src *; font-src 'self' file: data:; worker-src 'self' file: blob:; child-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Jarvis</title>
@@ -161,7 +162,7 @@
         <div class="slist">
           <div class="sitem" data-go="allg"><i style="background:#3a2608">⚙️</i><div><b>Allgemein</b><small>Persönlichkeit, KI-Schlüssel, Kalender, Ideen</small></div><span>›</span></div>
           <div class="sitem" data-go="hoer"><i style="background:#0b2a3c">🎙️</i><div><b>Zuhören & Stimme</b><small>Aktivierungswort, Stimme, wann er redet, Rechte</small></div><span>›</span></div>
-          <div class="sitem" data-go="anz"><i style="background:#13202a">◐</i><div><b>Anzeige</b><small>Strang, Startanimation, Leuchtrand</small></div><span>›</span></div>
+          <div class="sitem" data-go="anz"><i style="background:#13202a">◐</i><div><b>Anzeige</b><small>Farbe, Strang, Startanimation, Leuchtrand</small></div><span>›</span></div>
           <div class="sitem" data-go="sys"><i style="background:#0b2a22">●</i><div><b>Systemstatus</b><small id="sys-sub">Läuft alles? Grüne und rote Punkte</small></div><span>›</span></div>
           <div class="sitem" id="si-weg" data-go="sys" style="display:none"><i style="background:#3a0b0b">✸</i><div><b style="color:#ff9a8a">Selbstzerstörung</b><small>Jarvis komplett von diesem Handy löschen · Konto-Passwort</small></div><span>›</span></div>
         </div>
@@ -474,7 +475,7 @@
         </div>
       </div>
       <div class="spane" id="sp-schrank">
-        <div class="srow" style="margin:0 14px 10px"><div>Was hattest du heute an?<small>Antippen und sagen, ob es gepasst hat – so lerne ich dazu</small></div><div class="sbtn" id="ws-heute" onclick="window.JOutfit && window.JOutfit.open()">Eintragen</div></div>
+        <div class="srow" style="margin:0 14px 10px"><div>Was hattest du heute an?<small>Antippen und sagen, ob es gepasst hat – so lerne ich dazu</small></div><div class="sbtn" id="ws-heute">Eintragen</div></div>
         <div class="ws-hero" id="ws-hero"><small>HEUTE ANZIEHEN</small><div class="ws-chips" id="ws-today">…</div><div class="ws-why" id="ws-why"></div></div>
         <div class="sec" style="--c:#3cc8ff"><h3>MEINE SACHEN &amp; TEMPERATUREN</h3><div id="ws-layers"></div></div>
         <div class="sec" style="--c:#ffd678"><h3>EIGENES TEIL</h3>
@@ -560,6 +561,7 @@
       </div>
       <div class="spane" id="sp-anz">
         <div class="sec" style="--c:#ffd678"><h3>ANZEIGE</h3>
+          <div class="srow"><div>Deine Farbe<small>Farbkreis, Helligkeit und Kräftigkeit – alles Goldene inklusive Kugel nimmt sie an</small></div><div class="sbtn" id="set-farbe">Ändern</div></div>
           <div class="srow"><div>Jarvis-Strang im Hintergrund</div><div class="sw" id="set-strand"></div></div>
           <div class="srow"><div>Startanimation beim Öffnen<small>Lichtpunkte, Ringe, Systemstatus – Tippen überspringt</small></div><div class="sw" id="set-bootanim"></div></div>
           <div class="srow"><div>Leuchtrand über anderen Apps einrichten</div><div class="sbtn" id="set-overlay2">Öffnen</div></div>
@@ -577,6 +579,7 @@
     <div class="tab" data-v="steuern"><i>✦</i><span>STEUERN</span></div>
   </nav>
 </div>
+<script src="farbe.js"></script>
 <script src="sphere3d.js"></script>
 <script src="brain.js"></script>
 <script src="sphere.js"></script>
@@ -585,8 +588,7 @@
 <script src="satellite.min.js"></script>
 <script src="lage.js"></script>
 <script src="galaxy.js"></script>
-<script>window.JModiSend = (t) => { try { const r = window.Android.modusCmd(t); if (window.JModiToast) window.JModiToast(r); } catch (e) {} };
-window.JModiSaveCfg = (c) => { try { window.Android.setModiCfg(JSON.stringify(c)); } catch (e) {} };</script>
+<script src="inline_1.js"></script>
 <script src="modi.js"></script>
 <script src="schulkal.js"></script>
 <script src="app.js"></script>
@@ -597,16 +599,10 @@ window.JModiSaveCfg = (c) => { try { window.Android.setModiCfg(JSON.stringify(c)
 <script src="checkfx.js"></script>
 <script src="bootfx.js"></script>
 <script src="neu.js"></script>
+<script src="inline_4.js"></script>
 <script src="konto.js"></script>
 <script src="outfit.js"></script>
-<script>(function(){const J=window.jarvis;if(!J)return;const prev=J.onEvent;J.onEvent=function(t,d){if(t==="skill"){window.JSkill&&JSkill.show(d||{});return;}if(t==="checkfx"){window.JCheck&&JCheck.play((d||{}).items);return;}return prev&&prev.call(J,t,d);};setTimeout(function(){try{const N=window.JNEU;if(!N)return;let seen=[];try{seen=JSON.parse(localStorage.getItem("skills_seen")||"[]");}catch(e){}const nu=N.neu.filter(function(x){return seen.indexOf(x.title)<0;});nu.forEach(function(x){JSkill.show({title:x.title,text:x.text,kind:"funktion"});seen.push(x.title);});try{localStorage.setItem("skills_seen",JSON.stringify(seen.slice(-80)));}catch(e){}}catch(e){}},(window.JBoot&&(JBoot.running||JBoot.pending))?6500:2500);})();</script>
-<script>
-(function(){ // Nur-Kugel-Modus im Fokus: Text, Gesprächsknopf und Schreibfeld gleiten nach unten weg
-  var b=document.getElementById("cleanbtn"); if(!b) return;
-  function set(on){ document.body.classList.toggle("clean",on); b.classList.toggle("on",on); try{localStorage.setItem("hud_clean",on?"1":"")}catch(e){} }
-  try{ set(localStorage.getItem("hud_clean")==="1") }catch(e){}
-  b.addEventListener("click",function(e){ e.stopPropagation(); set(!document.body.classList.contains("clean")) });
-})();
-</script>
+<script src="inline_2.js"></script>
+<script src="inline_3.js"></script>
 </body>
 </html>

@@ -9,6 +9,17 @@ import java.util.Locale
 
 /** Versteht den Befehl (Groq) und führt die passenden Handy-Aktionen aus – wie der PC-Jarvis. */
 class Brain(private val ctx: Context) {
+    companion object {
+        private val SETUP = Regex("wie richte ich dich ein|wie (richte|stelle) ich (dich|jarvis) ein|einrichten|anleitung|handbuch|wie funktionierst du|was muss ich (zuerst )?(machen|einstellen)", RegexOption.IGNORE_CASE)
+        /** Download-Version: „Wie richte ich dich ein?“ – kurze Anleitung (geht auch ohne KI-Schlüssel). */
+        fun setupAnswer(text: String): String? {
+            if (BuildConfig.FLAVOR != "konto" || !SETUP.containsMatchIn(text)) return null
+            return "So geht's in drei Schritten: 1. Hol dir auf console.groq.com einen kostenlosen KI-Schlüssel (API Keys → Create) und " +
+                "trag ihn unter Einstellungen → Allgemein → KI-Schlüssel ein. 2. Trag unter Einstellungen → Zuhause & Orte deinen Wohnort ein. " +
+                "3. Sag „Jarvis“ und dann, was du willst. Für den PC lädst du das Programm von derselben Seite und meldest dich mit demselben Konto an."
+        }
+    }
+
     private val history = JSONArray()
     private val actions = Actions(ctx)
 
@@ -126,6 +137,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
 
     /** Gibt den gesprochenen Text zurück; die passende Karte fürs Fenster liegt danach in [card]. */
     fun handle(key: String, text: String): String {
+        setupAnswer(text)?.let { card = JSONObject().put("kind", "text").put("text", it).put("say", it); return it }
         Cards.pending = null
         tour = null
         val say = run(key, text)

@@ -41,7 +41,7 @@
   const card = (title, color, inner) => `<div class="fp-card" style="--c:${color}"><h3>${title}</h3>${inner}</div>`;
   const chips = (a) => (a && a.length ? `<div class="fp-chips">${a.map((x) => `<span class="fp-chip">${clothIcon(x)} ${esc(x)}</span>`).join("")}</div>` : "");
   const warns = (a) => (a || []).map((x) => `<div class="fp-warn"><span>${warnIcon(x)}</span><span>${esc(x)}</span></div>`).join("");
-  const todos = (a) => (a || []).map((x) => `<div class="fp-todo"><span class="fp-box" onclick="this.classList.toggle('ok');this.textContent=this.classList.contains('ok')?'✓':''"></span>${esc(x)}</div>`).join("");
+  const todos = (a) => (a || []).map((x) => `<div class="fp-todo"><span class="fp-box"></span>${esc(x)}</div>`).join("");
   const wxBox = (label, w) => (w ? `<div class="fp-w"><small>${label}</small><div class="i">${wxIcon(w.code, w.dark)}</div><b>${w.temp}°</b>
     <div class="f">gefühlt ${w.feel}° · ${w.rain_mm > 0.05 ? "Regen " + w.rain_mm + " mm" : "Wind " + w.wind}${w.dark ? " · dunkel" : ""}</div></div>` : "");
   const say = (t) => card("JARVIS SAGT", "var(--gold-l)", `<div class="fp-say">${esc(t)}</div>`);
@@ -145,9 +145,9 @@
     const VV = { "-1": "🥶 war zu kalt", "0": "👍 hat gepasst", "1": "🥵 war zu warm" };
     h += card("👕 HEUTE ANGEHABT", "#ffd678", ow.done
       ? `<div class="fp-todo" style="gap:9px;flex-wrap:wrap">${(ow.names || []).map(esc).join(" · ")}</div><div class="fp-row"><span>${VV[String(ow.v)] || ""}${ow.t ? ` <span class="o">bei gefühlt ${Math.round(ow.t)}°</span>` : ""}</span></div>
-         <div class="fp-now" style="margin-top:8px"><div onclick="window.JOutfit && window.JOutfit.open()">Ändern</div></div>`
+         <div class="fp-now" style="margin-top:8px"><div data-outfit="1">Ändern</div></div>`
       : `<div class="fp-row"><span>Noch nicht eingetragen – sag mir, was du anhattest und ob es gepasst hat. Dann lerne ich dazu.</span></div>
-         <div class="fp-now" style="margin-top:8px"><div onclick="window.JOutfit && window.JOutfit.open()">👕 Jetzt eintragen</div></div>`);
+         <div class="fp-now" style="margin-top:8px"><div data-outfit="1">👕 Jetzt eintragen</div></div>`);
     h += outfit(d.outfit, d.anziehen);
     return h + say(m.text);
   }
@@ -330,3 +330,11 @@
     window.jarvis.back = function () { return back() || (prevBack ? prevBack.call(window.jarvis) : false); };
   }
 })();
+
+// Klicks ohne Code im HTML (strenge Sicherheitsregel): Häkchen bei Aufgaben, „Anziehen eintragen“
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest(".fp-box");
+  if (b) { b.classList.toggle("ok"); b.textContent = b.classList.contains("ok") ? "✓" : ""; return; }
+  const o = e.target.closest && e.target.closest("[data-outfit]");
+  if (o && window.JOutfit) window.JOutfit.open();
+});

@@ -204,8 +204,9 @@
   // --- Einstellungen ---
   function askKey() {
     setState("ended");
-    const k = window.prompt("Für die kostenlose Stimme und das Aktivierungswort brauche ich Groq.\n\n" +
-      "Bitte einmal deinen Groq-Schlüssel eintragen (console.groq.com → API Keys, beginnt mit gsk_):", "");
+    const k = window.prompt("Für die kostenlose Stimme und das Aktivierungswort brauche ich einen KI-Schlüssel (kostenlos).\n\n" +
+      "So geht's: console.groq.com öffnen → anmelden → „API Keys“ → „Create API Key“ → Schlüssel kopieren (beginnt mit gsk_) und hier einfügen.\n" +
+      "Mehr Hilfe: schreib „Wie richte ich dich ein?“", "");
     if (k && k.trim().length > 20 && A) { A.setGroqKey(k.trim()); A.startTalk(); }
     else if (k !== null) toast("Das sah nicht nach einem Groq-Schlüssel aus.");
   }
