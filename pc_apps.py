@@ -116,7 +116,7 @@ def ensure_custom_file():
         return
     example = {
         "_hinweis": "Eigene Befehle: \"name\": \"Pfad, Ordner oder Webadresse\". "
-        "Sag dann: Jarvis, öffne name. Doppelte Rückstriche im Pfad schreiben (\\\\). "
+        "Sag dann: Vector, öffne name. Doppelte Rückstriche im Pfad schreiben (\\\\). "
         "Zeilen die mit _ oder beispiel beginnen werden ignoriert.",
         "beispiel spiel": "C:\\\\Spiele\\\\MeinSpiel\\\\spiel.exe",
         "beispiel ordner": "C:\\\\Users\\\\DEINNAME\\\\Documents\\\\Projekte",

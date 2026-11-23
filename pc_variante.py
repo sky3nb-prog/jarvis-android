@@ -20,7 +20,7 @@ def _detect() -> bool:
 
 
 KONTO = _detect()
-NAME = "Jarvis Konto" if KONTO else "PC-Assistent"
+NAME = "Vector Konto" if KONTO else "PC-Assistent"
 EXE = "Jarvis-Konto.exe" if KONTO else "PC-Assistent.exe"
 EXE_DEBUG = "Jarvis-Konto-Debug.exe" if KONTO else "PC-Assistent-Debug.exe"
 APP_ID = "Jarvis.Konto" if KONTO else "Jarvis.PCAssistent"

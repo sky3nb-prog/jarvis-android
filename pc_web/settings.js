@@ -294,7 +294,7 @@
       setTimeout(after, 3000);
     }, 1000);
   }
-  const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Jarvis von diesem PC"]];
+  const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Vector von diesem PC"]];
   function run(a, btn) {
     if (a === "konto_open" && window.JKonto) { close(false); window.JKonto.open(); return; }
     if (a === "farbe_open" && window.JFarbe) { window.JFarbe.open(); return; }

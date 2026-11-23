@@ -19,7 +19,7 @@ import time
 import pc_info
 
 # Werden aus den Einstellungen gesetzt
-NAME = "J.A.R.V.I.S."  # wie er sich vorstellt
+NAME = "V.E.C.T.O.R."  # wie er sich vorstellt
 ADDRESS = ""  # Anrede, z. B. "Sir" oder dein Name
 CITY = "Karlsruhe"  # Standardort für das Wetter
 
@@ -41,7 +41,7 @@ def _sir() -> str:
 
 
 def _name() -> str:
-    n = NAME.replace(".", "").strip() or "Jarvis"
+    n = NAME.replace(".", "").strip() or "Vector"
     return n.title() if n.isupper() else n
 
 

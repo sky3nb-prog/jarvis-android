@@ -7,7 +7,7 @@ import os
 import sys
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-NAME = "Jarvis Konto" if __import__("pc_variante").KONTO else "Jarvis PC-Assistent"
+NAME = "Vector Konto" if __import__("pc_variante").KONTO else "Vector PC-Assistent"
 
 
 def command() -> str:

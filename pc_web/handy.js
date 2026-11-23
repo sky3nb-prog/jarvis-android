@@ -14,7 +14,7 @@
     $("ph-bar").classList.toggle("off", !fresh);
     $("ph-head").textContent = !paired ? "DEIN HANDY · NICHT GEKOPPELT" : fresh ? "DEIN HANDY · VERBUNDEN" : "DEIN HANDY · KEIN STAND";
     const mins = s.ts ? Math.round((Date.now() / 1000 - s.ts) / 60) : null;
-    $("ph-sub").textContent = !paired ? "Kopplungscode in der App eintragen" : !s.ts ? "Jarvis-App mit Schalter oben rechts an?" :
+    $("ph-sub").textContent = !paired ? "Kopplungscode in der App eintragen" : !s.ts ? "Vector-App mit Schalter oben rechts an?" :
       `${esc(s.model || "Handy")} · ${mins < 1 ? "gerade eben" : "vor " + mins + " Min."} gemeldet`;
     $("ph-r").innerHTML = s.akku != null ? `Akku ${s.akku} %${s.laedt ? " ⚡" : ""}<span class="bat"><i style="width:${Math.max(4, s.akku * .9)}%"></i></span><br>${{ an: "Klingelton an", vibration: "Vibration", lautlos: "Lautlos" }[s.ringer] || ""}` : "";
     const p = s.playing;

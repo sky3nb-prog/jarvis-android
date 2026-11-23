@@ -85,7 +85,7 @@ def schema(s: dict) -> dict:
         voices.append((g("eleven_voice_name") or g("eleven_voice"), g("eleven_voice")))
     try:
         import pc_themen
-        gelernt = ", ".join(t.get("name", "") for t in pc_themen.learned()) or "noch nichts – frag Jarvis einfach Dinge"
+        gelernt = ", ".join(t.get("name", "") for t in pc_themen.learned()) or "noch nichts – frag Vector einfach Dinge"
     except Exception:
         gelernt = "–"
     try:
@@ -133,7 +133,7 @@ def schema(s: dict) -> dict:
                  sw("autostart", "Mit Windows starten", "Leise im Hintergrund"),
                  sw("greet_on_start", "Beim Start kurz begrüßen"),
                  sw("show_hud_on_start", "HUD beim Start öffnen"),
-                 sw("boot_animation", "Iron-Man-Start nach dem Anmelden", "Vollbild-Hologramm mit Systemstatus. Testen: „Friday, Startanimation“"),
+                 sw("boot_animation", "Iron-Man-Start nach dem Anmelden", "Vollbild-Hologramm mit Systemstatus. Testen: „Vector, Startanimation“"),
                  sw("confirm_messages", "Nachrichten vor dem Senden zurückfragen", "WhatsApp, Discord"),
                  sw("msg_ask_first", "Nachrichten wichtiger Leute: erst fragen", "„Neue Nachricht von Mama – weiter oder egal?“ Bei „egal“ ignoriert er sie."),
                  sw("kommentare", "Von selbst melden", "Z. B. nach über 2 Stunden am Stück: „Kurz raus und bewegen?“ – persönlich, lernt mit."),
@@ -144,7 +144,7 @@ def schema(s: dict) -> dict:
         ]},
         {"id": "hoer", "n": "Zuhören", "i": "◉", "items": [
             card("Aktivierung",
-                 tx("wake_words", "Aktivierungswort", "Mehrere Schreibweisen mit Komma, z. B. jarvis, dscharvis"),
+                 tx("wake_words", "Aktivierungswort", "Mehrere Schreibweisen mit Komma, z. B. vector, wector"),
                  sel("language", "Sprache", _opts(su.LANGUAGES)),
                  sel("input_device", "Mikrofon", mics, "Wirkt sofort nach dem Speichern."),
                  rng("followup_seconds", "Weiterhören nach einem Befehl", 0, 15, " s", "0 = aus"),
@@ -161,10 +161,10 @@ def schema(s: dict) -> dict:
                  rng("voice_rate", "Sprechtempo", -10, 10),
                  btn("test_voice", "▶ Stimme testen")),
             card("Gaming-Rückblick",
-                 note("Jarvis merkt sich, was du wie lange zockst, und sagt dir sonntags um 19 Uhr deinen Wochenrückblick (oder auf Frage: „Gaming-Rückblick“)."),
+                 note("Vector merkt sich, was du wie lange zockst, und sagt dir sonntags um 19 Uhr deinen Wochenrückblick (oder auf Frage: „Gaming-Rückblick“)."),
                  sec("steam_api_key", "Steam-Schlüssel (freiwillig, für Erfolge)", "Holst du dir selbst auf steamcommunity.com/dev/apikey – nur dann kann er deine neuen Erfolge nennen.")),
             card("Discord & Clips",
-                 sw("discord_hoerbar", "Jarvis in Discord hörbar", "Spielt seine Stimme zusätzlich auf dein Discord-Mikro – Freunde hören ihn, und er ist in Discord-Clips mit drauf."),
+                 sw("discord_hoerbar", "Vector in Discord hörbar", "Spielt seine Stimme zusätzlich auf dein Discord-Mikro – Freunde hören ihn, und er ist in Discord-Clips mit drauf."),
                  sel("discord_device", "Zweites Gerät", [["– aus –", ""]] + outs[1:] if outs else [["– aus –", ""]],
                      "Ein Ausgang, der in dein Discord-Mikro geht: bei Wave Link z. B. der Kanal, der im Stream-/Chat-Mix landet, sonst ein virtuelles Kabel (VB-CABLE: hier „CABLE Input“, in Discord als Mikro „CABLE Output“)."),
                  note("Damit Discord überhaupt clippen kann: in Discord → Einstellungen → Registrierte Spiele → „Hinzufügen!“ → PC-Assistent."),
@@ -186,7 +186,7 @@ def schema(s: dict) -> dict:
                  tx("home_city", "Standort", "Mitte der Karte und Ort für lokale Nachrichten."),
                  tx("home_address", "Adresse", "Für den Zuhause-Punkt und als Startpunkt für Routen."),
                  tx("lage_places", "Lieblingsorte", "Mit Komma, z. B. Seoul, New York. Stehen oben auf der Lage-Seite."),
-                 tx("themen_selbst", "Eigene Themen (Für dich)", f"Mit Komma. Dazu lernt Jarvis selbst. Gelernt: {gelernt}")),
+                 tx("themen_selbst", "Eigene Themen (Für dich)", f"Mit Komma. Dazu lernt Vector selbst. Gelernt: {gelernt}")),
             card("Globus",
                  sw("lage_spin", "Erde langsam drehen", "Mit echtem Tag und Nacht"),
                  sw("lage_orbits", "Echte Satelliten", "ISS, Hubble … beim Rauszoomen"),
@@ -211,11 +211,11 @@ def schema(s: dict) -> dict:
         {"id": "leute", "n": "Leute", "i": "☺", "items": [
             card("Schreibstil & Antworten",
                  note("Wie am Handy unter Leute → Schreibstil – alles hier gilt auf beiden Geräten."),
-                 sel("stil_modus", "Darf Jarvis in deinem Namen antworten?", [["Aus", "aus"], ["Vorschlag – du sagst/tippst ja", "bestaetigen"], ["Selbst schreiben (erst nach dem Stil-Training am Handy)", "selbst"]],
+                 sel("stil_modus", "Darf Vector in deinem Namen antworten?", [["Aus", "aus"], ["Vorschlag – du sagst/tippst ja", "bestaetigen"], ["Selbst schreiben (erst nach dem Stil-Training am Handy)", "selbst"]],
                      "Gilt nur für die Chats darunter."),
                  tx("stil_chats", "Für diese Chats", "Namen wie in WhatsApp, mit Komma. Per Sprache: „Du darfst Alex selbst antworten“ / „Antworte Alex nicht mehr“.", "z. B. Tobi, Marius"),
                  tx("wa_name", "Dein Name in WhatsApp-Exporten", "So stehst du in exportierten Chats (z. B. „Sky“). Leer = ich erkenne es selbst – bei Gruppen brauch ich ihn.", "z. B. Sky"),
-                 tx("test_chat", "Test-Chat (z. B. deine Zweitnummer)", "Nachrichten aus diesem Chat liest Jarvis immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt. Kleine Tippfehler im Kontaktnamen sind egal.", "Name wie in WhatsApp"),
+                 tx("test_chat", "Test-Chat (z. B. deine Zweitnummer)", "Nachrichten aus diesem Chat liest Vector immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt. Kleine Tippfehler im Kontaktnamen sind egal.", "Name wie in WhatsApp"),
                  btn("stil_import", "WhatsApp-Chat-Export wählen (ZIP direkt, nicht entpacken)"),
                  btn("stil_list", "Welche Chats sind schon drin?"),
                  btn("test_handy", "Test: Verbindung zum Handy"),
@@ -227,7 +227,7 @@ def schema(s: dict) -> dict:
                  tx("wa_immer", "Immer vorlesen", "Diese Chats liest er IMMER vor – auch beim Zocken, wenn WhatsApp offen ist oder im Fokus-Modus. Gilt auch am Handy.", "z. B. Mama"),
                  sel("wa_beim_zocken", "Beim Zocken / Discord", [["Trotzdem ansagen", "ansagen"], ["Sammeln und danach sagen", "sammeln"], ["Gar nicht ansagen", "nie"]],
                      "„Immer vorlesen“-Chats und der Test-Chat kommen trotzdem durch."),
-                 note("Schreiben sie dir, sagt Jarvis es hier an – auch mitten im Spiel. Sprachnachrichten: „vorlesen“ oder „abspielen“. "
+                 note("Schreiben sie dir, sagt Vector es hier an – auch mitten im Spiel. Sprachnachrichten: „vorlesen“ oder „abspielen“. "
                       "Danach: „antworte du“ (Vorschlag, du sagst ja oder nein) oder „ich antworte“ (du diktierst). "
                       "Gesendet wird über die Benachrichtigung am Handy, WhatsApp geht nicht auf.")),
             card("Sticker",
@@ -237,7 +237,7 @@ def schema(s: dict) -> dict:
                       "Solange er schickt, nicht wegklicken – sobald ein anderes Fenster vorne ist, hört er sofort auf.")),
             card("Anruf-Butler",
                  tx("absage_text", "Absage-Text", "Leer = „Kann gerade nicht, rufe später zurück.“ Gilt auch am Handy."),
-                 note("Steht das Handy auf „Nicht stören“, drückt Jarvis Anrufe aus deinen Kontakten weg und schickt diesen Text – "
+                 note("Steht das Handy auf „Nicht stören“, drückt Vector Anrufe aus deinen Kontakten weg und schickt diesen Text – "
                       "per WhatsApp hier am PC, wenn er läuft, sonst per SMS. Ein- und ausschalten in der Handy-App.")),
         ]},
         {"id": "fern", "n": "Fernzugriff", "i": "⌁", "items": [
@@ -261,7 +261,7 @@ def schema(s: dict) -> dict:
                      ["Handy-Stil", "handy", "Fokus · Info · Lage · Steuern unten"]],
                   "h": "Handy-Stil: gleicher Aufbau wie die App, mit der Seite „Steuern“ für dein Handy."},
                  sel("hud_mode", "Modus beim Start", _opts(su.HUD_MODES[:3]) + [["Steuern – dein Handy fernsteuern", "steuern"]]),
-                 sel("hud_style", "Stil", _opts(su.HUD_STYLES), "Wirkt nach einem Neustart von Jarvis."),
+                 sel("hud_style", "Stil", _opts(su.HUD_STYLES), "Wirkt nach einem Neustart von Vector."),
                  sel("sphere_color", "Farbe der Kugel", _same(su.SPHERE_COLORS)),
                  sw("hud_topmost", "Immer im Vordergrund"),
                  sw("hud_animation", "Animationen", "Aus = ruhiger und sparsamer"),
@@ -274,7 +274,7 @@ def schema(s: dict) -> dict:
         ]},
         {"id": "kn", "n": "Knöpfe", "i": "▣", "items": [
             card("Schnellstart-Knöpfe",
-                 note("Bis zu 12 Knöpfe im HUD: Symbol, Name und Befehl (das, was du sonst zu Jarvis sagen würdest)."),
+                 note("Bis zu 12 Knöpfe im HUD: Symbol, Name und Befehl (das, was du sonst zu Vector sagen würdest)."),
                  {"k": "hud_buttons", "t": "buttons", "n": su.BUTTON_SLOTS}),
         ]},
         {"id": "inf", "n": "Infos", "i": "☀", "items": [
@@ -294,7 +294,7 @@ def schema(s: dict) -> dict:
         ]},
         {"id": "ki", "n": "KI", "i": "✦", "items": [
             card("Gemini",
-                 note("Mit einem Gemini-Schlüssel versteht Jarvis freie Sätze. Kostenlos auf aistudio.google.com/apikey."),
+                 note("Mit einem Gemini-Schlüssel versteht Vector freie Sätze. Kostenlos auf aistudio.google.com/apikey."),
                  {"k": "gemini_api_key", "t": "text", "l": "Gemini-Schlüssel", "pw": True, "h": "Nie in Chats oder Mails weitergeben."},
                  btn("test_ai", "Verbindung testen")),
             card("Groq (kostenloser Ersatz)",
@@ -310,18 +310,18 @@ def schema(s: dict) -> dict:
         {"id": "schule", "n": "Schule", "i": "▦", "items": [
             card("Stundenplan", {"t": "plan", "k": "stundenplan_pc"},
                  note("Tipp auf eine Stunde und trag das Fach ein – wird sofort gespeichert und landet auf dem Handy. "
-                      "Dort nutzt Jarvis den Plan: in der Stunde still, Nachrichten erst in der Pause.")),
+                      "Dort nutzt Vector den Plan: in der Stunde still, Nachrichten erst in der Pause.")),
             card("Arbeiten & Hausaufgaben", {"t": "schulkal", "k": "schulkal_pc"},
-                 note("Tag anklicken zum Eintragen. Was in schul.cloud am Handy reinkommt, trägt Jarvis selbst ein. "
+                 note("Tag anklicken zum Eintragen. Was in schul.cloud am Handy reinkommt, trägt Vector selbst ein. "
                       "Er erinnert dich rechtzeitig und fragt dich vor Arbeiten ab, wenn du willst („frag mich ab“).")),
         ]},
         {"id": "ideen", "n": "Ideen", "i": "✧", "items": [
             card("Meine Ideen", {"t": "ideen", "k": "ideen_pc"},
-                 note("Sag „Jarvis, ich hab eine Idee: …“ – am PC oder am Handy. Hier stehen alle.")),
+                 note("Sag „Vector, ich hab eine Idee: …“ – am PC oder am Handy. Hier stehen alle.")),
         ]},
         {"id": "hdy", "n": "Handy", "i": "✆", "items": [
             card("Handy-App koppeln",
-                 note("In der Jarvis-App auf ⚙ → Kopplungscode vom PC eintragen. Alles geht verschlüsselt. Code nicht weitergeben."),
+                 note("In der Vector-App auf ⚙ → Kopplungscode vom PC eintragen. Alles geht verschlüsselt. Code nicht weitergeben."),
                  {"t": "code", "l": "Kopplungscode", "v": link_code},
                  btn("copy_link", "Code kopieren"),
                  btn("new_link", "Neuen Code erzeugen (alte Kopplung endet)"),
@@ -586,7 +586,7 @@ def _ordnen(tabs, card):
     if "Kalender" in c:
         c["Kalender"]["l"] = "Kalender"
     T = lambda i, g, n, ic, items: {"id": i, "g": g, "n": n, "i": ic, "items": [x for x in items if x and x.get("items")]}  # noqa: E731
-    A, J, W = "DEIN ALLTAG", "JARVIS", "PC & WELT"
+    A, J, W = "DEIN ALLTAG", "VECTOR", "PC & WELT"
     konto = None
     if __import__("pc_variante").KONTO:   # Jarvis von der Website: eigener Bereich fürs Konto
         try:
@@ -595,12 +595,12 @@ def _ordnen(tabs, card):
             kst = (f"Angemeldet als {ki_['email']}." if ki_["loggedIn"] else ("Nicht angemeldet." if ki_["configured"] else "Noch nicht eingerichtet."))
         except Exception:
             kst = ""
-        konto = {"id": "konto", "g": "KONTO", "n": "Jarvis-Konto", "i": "👤", "items": [card("Dein Konto", {"t": "note", "l": kst},
+        konto = {"id": "konto", "g": "KONTO", "n": "Vector-Konto", "i": "👤", "items": [card("Dein Konto", {"t": "note", "l": kst},
                  {"t": "btn", "a": "konto_open", "l": "Anmelden / Konto verwalten"},
                  {"t": "note", "l": "Alles wird mit deinem Passwort verschlüsselt, bevor es ins Konto geht – auch der Server kann es nicht lesen."}),
                  card("Selbstzerstörung",
-                      {"t": "note", "l": "Löscht Jarvis komplett von diesem PC: Programm, Einstellungen, Gedächtnis, Stimmen und Autostart. "
-                                         "Dein Konto bleibt – lädst du Jarvis neu und meldest dich an, ist alles wieder da."},
+                      {"t": "note", "l": "Löscht Vector komplett von diesem PC: Programm, Einstellungen, Gedächtnis, Stimmen und Autostart. "
+                                         "Dein Konto bleibt – lädst du Vector neu und meldest dich an, ist alles wieder da."},
                       {"t": "btn", "a": "selbstzerstoerung", "l": "Selbstzerstörung"})]}
     return ([konto] if konto else []) + [
         T("schule", A, "Schule", "🏫", pick("Stundenplan", "Arbeiten & Hausaufgaben")),

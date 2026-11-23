@@ -37,7 +37,7 @@ ENGINES = [("Schnell – Thorsten, auf dem PC, sofort (Standard)", "auto"), ("El
            ("Online-Stimme (manchmal langsam)", "edge"),
            ("Nur Windows-Stimme (offline)", "windows")]
 AUTO_WINDOWS = "Automatisch (deutsche Männerstimme)"
-GLOBE_THEMES = ["Glut", "Jarvis", "Radar", "Violett"]
+GLOBE_THEMES = ["Glut", "Vector", "Radar", "Violett"]
 NEW_DOT = "#ff5a5a"
 
 # Bereiche der Einstellungen: Titel -> (Symbol, Untertitel in der Liste)
@@ -53,12 +53,12 @@ SECTIONS = {
     "Google eintragen": ("▦", "TimeTree-Termine in Google Kalender"),
     "Persönlichkeit": ("☺", "Name, Anrede, Begrüßung, eigene Befehle"),
     "Handy": ("✆", "Routen aufs Handy, dein Standort"),
-    "Handy-App": ("▣", "Jarvis aufs Handy: gleiches Gedächtnis"),
+    "Handy-App": ("▣", "Vector aufs Handy: gleiches Gedächtnis"),
 }
 
 # Neue Einstellungen (bekommen beim ersten Anschauen einen roten Punkt). Bei jedem Update hier ergänzen.
 NEW_ITEMS = {
-    "Stimme": ["Lautstärke von Jarvis' Stimme", "Stimmenart", "ElevenLabs-Schlüssel", "ElevenLabs-Stimme", "ElevenLabs-Modell"],
+    "Stimme": ["Lautstärke von Vectors Stimme", "Stimmenart", "ElevenLabs-Schlüssel", "ElevenLabs-Stimme", "ElevenLabs-Modell"],
     "Weltlage": ["Erde langsam drehen (mit echtem Tag und Nacht)", "Beim Start ein kurzes Lage-Briefing sprechen",
                  "Bei „Wie ist die Lage?“ die Karte öffnen", "Karte im Vollbild öffnen", "Farben der Karte",
                  "Kartenstil", "Ortsnamen auf der Karte", "Standort", "Lieblingsorte",
@@ -72,7 +72,7 @@ NEW_ITEMS = {
               "Kanal für den Standort (OwnTracks)"],
 }
 HIDDEN_SECTIONS = {"Handy"}  # vorerst ausgeblendet (kommt mit dem Telefon-Projekt zurück)
-PHONE_CHANNELS = [("Telegram – Jarvis' eigener Bot (empfohlen)", "telegram"), ("WhatsApp an mich selbst", "whatsapp"),
+PHONE_CHANNELS = [("Telegram – Vectors eigener Bot (empfohlen)", "telegram"), ("WhatsApp an mich selbst", "whatsapp"),
                   ("ntfy-App", "ntfy")]
 PERSONAS = [("Sarkastisch – ernst, mit trockenem Humor", "sarkastisch"),
             ("Butler – ruhig, trockener Humor", "butler"), ("Locker – wie ein Kumpel", "locker")]
@@ -456,7 +456,7 @@ class SettingsDialog:
 
         self._tab("Zuhören")
         self._check("Automatisch mit Windows starten (leise im Hintergrund)", self.v_auto)
-        self._entry("Aktivierungswort", self.v_wake, "Mehrere Schreibweisen mit Komma trennen, z. B. jarvis, dscharvis")
+        self._entry("Aktivierungswort", self.v_wake, "Mehrere Schreibweisen mit Komma trennen, z. B. vector, wector")
         self._combo("Sprache", self.v_lang, [n for n, _ in LANGUAGES])
         self._combo("Mikrofon", self.v_dev, [n for n, _ in self.devices], "Wirkt sofort nach dem Speichern.")
         self._scale("Weiterhören nach einem Befehl", self.v_follow, 0, 15, " s",
@@ -488,15 +488,15 @@ class SettingsDialog:
         self._combo("Windows-Stimme", self.v_winvoice, self.win_voices)
         self._scale("Tonhöhe", self.v_pitch, -10, 10)
         self._scale("Sprechtempo", self.v_rate, -10, 10)
-        self._scale("Lautstärke von Jarvis' Stimme", self.v_vvol, 10, 100, "%",
+        self._scale("Lautstärke von Vectors Stimme", self.v_vvol, 10, 100, "%",
                     "Eigene Lautstärke, unabhängig von Windows und Musik. Auch per Sprache: „sprich lauter“.")
         self._scale("Lautstärke Wecksound", self.v_vol, 0, 100, "%")
         self._check("Wecksound schon beim Weckwort (nicht erst am Satzende)", self.v_early)
         self._button("Stimme testen", self._test_voice)
 
         self._tab("Weltlage")
-        ttk.Label(self.frm, text="Jarvis holt Nachrichten von tagesschau, Deutscher Welle, BBC und aus deiner Gegend und fasst "
-                  "sie zusammen (mit Gemini-Schlüssel besonders gut). Sag „Jarvis, wie ist die Lage?“, „Was ist los in "
+        ttk.Label(self.frm, text="Vector holt Nachrichten von tagesschau, Deutscher Welle, BBC und aus deiner Gegend und fasst "
+                  "sie zusammen (mit Gemini-Schlüssel besonders gut). Sag „Vector, wie ist die Lage?“, „Was ist los in "
                   "München?“, „Was fliegt gerade über uns?“ oder „Wie ist die Lage in Deutschland?“. Die Karte öffnest du "
                   "auch mit dem Knopf „Lage“ oben im HUD. Ziehen = verschieben, Mausrad = zoomen, Klick auf einen Punkt = Details.",
                   style="Hint.TLabel", wraplength=self.wrap, justify="left").grid(
@@ -508,11 +508,11 @@ class SettingsDialog:
                     "Oder einfach fragen: „Wie ist die Lage in Tokio?“")
         try:
             import pc_themen
-            gelernt = ", ".join(t.get("name", "") for t in pc_themen.learned()) or "noch nichts – frag Jarvis einfach Dinge"
+            gelernt = ", ".join(t.get("name", "") for t in pc_themen.learned()) or "noch nichts – frag Vector einfach Dinge"
         except Exception:
             gelernt = "–"
         self._entry("Eigene Themen (Für dich)", self.v_themen,
-                    "Mit Komma trennen, z. B. Euro Truck Simulator, VfB Stuttgart, KI. Dazu lernt Jarvis von selbst "
+                    "Mit Komma trennen, z. B. Euro Truck Simulator, VfB Stuttgart, KI. Dazu lernt Vector von selbst "
                     f"(mit dem Handy zusammen). Gelernt bisher: {gelernt}")
         self._check("Beim Briefing ins Satellitenbild zoomen", self.v_sattour)
         self._check("Erde langsam drehen (mit echtem Tag und Nacht)", self.v_spin)
@@ -530,11 +530,11 @@ class SettingsDialog:
         self._tab("Anzeige")
         self._combo("Stil des HUD", self.v_hstyle, [n for n, _ in HUD_STYLES],
                     "Neu = läuft in einem Edge-Fenster, flüssig über die Grafikkarte, gleiches Aussehen wie die Handy-App. "
-                    "Wirkt nach einem Neustart von Jarvis.")
+                    "Wirkt nach einem Neustart von Vector.")
         self._combo("Modus des HUD", self.v_hmode, [n for n, _ in HUD_MODES],
                     "Umschalten geht auch unten rechts im HUD oder per Sprache: „Fokus-Modus“ / „Info-Modus“.")
         self._combo("Farbe der Kugel", self.v_sphere, SPHERE_COLORS,
-                    "Nach einem Farbwechsel rechnet Jarvis die Kugel einmal neu (ca. 10 bis 30 Sekunden).")
+                    "Nach einem Farbwechsel rechnet Vector die Kugel einmal neu (ca. 10 bis 30 Sekunden).")
         self._combo("Farbe", self.v_theme, list(pc_settings.THEMES))
         self._combo("Anzeige beim Weckwort", self.v_style, [n for n, _ in STYLES])
         self._scale("Größe des kleinen Kreises", self.v_orb, 40, 120, " px")
@@ -548,7 +548,7 @@ class SettingsDialog:
         self._label("Schnellstart-Knöpfe").grid(row=self.row, column=0, columnspan=2, sticky="w", pady=(0, 4))
         self.row += 1
         ttk.Label(self.frm, text="Bis zu 12 Knöpfe oben im HUD. Symbol (ein Zeichen), Name und Befehl, also das, was du "
-                  "sonst zu Jarvis sagen würdest, z. B. „öffne discord“, „musik“, „wie ist die lage“. Leere Zeilen werden "
+                  "sonst zu Vector sagen würdest, z. B. „öffne discord“, „musik“, „wie ist die lage“. Leere Zeilen werden "
                   "nicht angezeigt.", style="Hint.TLabel", wraplength=self.wrap, justify="left").grid(
             row=self.row, column=0, columnspan=2, sticky="w", pady=(0, 8))
         self.row += 1
@@ -600,7 +600,7 @@ class SettingsDialog:
         self._check("PC-Temperaturen anzeigen (wenn Windows sie freigibt)", self.v_temps)
 
         self._tab("KI")
-        ttk.Label(self.frm, text="Mit einem Gemini-Schlüssel versteht Jarvis freie Sätze und kann sich unterhalten. "
+        ttk.Label(self.frm, text="Mit einem Gemini-Schlüssel versteht Vector freie Sätze und kann sich unterhalten. "
                   "Den Schlüssel gibt es kostenlos auf aistudio.google.com/apikey.",
                   style="Hint.TLabel", wraplength=440).grid(row=self.row, column=0, columnspan=2, sticky="w", pady=(0, 8))
         self.row += 1
@@ -608,7 +608,7 @@ class SettingsDialog:
                     "Wird nur in der Datei einstellungen.json auf diesem PC gespeichert. Nie in Chats oder Mails weitergeben.")
         self._field("Modell", lambda p: ttk.Combobox(p, textvariable=self.v_model, values=["Automatisch"],
                                                      style="J.TCombobox"),
-                    "Automatisch ist richtig. Jarvis sucht sich selbst ein schnelles, aktuelles Modell.")
+                    "Automatisch ist richtig. Vector sucht sich selbst ein schnelles, aktuelles Modell.")
         self._button("Verbindung testen", self._test_ai)
         self.ai_status = ttk.Label(self.frm, text="", style="Hint.TLabel", wraplength=440)
         self.ai_status.grid(row=self.row, column=0, columnspan=2, sticky="w")
@@ -616,7 +616,7 @@ class SettingsDialog:
         self._field("Groq-Schlüssel (kostenloser Ersatz)",
                     lambda p: ttk.Entry(p, textvariable=self.v_groq, style="J.TEntry", show="•"),
                     "Kostenlos und ohne Bankkarte auf console.groq.com → API Keys. Ist Gemini aufgebraucht oder nicht "
-                    "erreichbar, antwortet Jarvis automatisch über Groq. Hast du keinen Gemini-Schlüssel, nimmt er nur Groq.")
+                    "erreichbar, antwortet Vector automatisch über Groq. Hast du keinen Gemini-Schlüssel, nimmt er nur Groq.")
         self._button("Groq testen", self._test_groq)
         self.groq_status = ttk.Label(self.frm, text="", style="Hint.TLabel", wraplength=440)
         self.groq_status.grid(row=self.row, column=0, columnspan=2, sticky="w")
@@ -629,7 +629,7 @@ class SettingsDialog:
         self.row += 1
 
         self._tab("Meine Daten")
-        ttk.Label(self.frm, text="Damit kann Jarvis sie auf Zuruf in Formulare tippen: „Trag bitte meine E-Mail ein“. "
+        ttk.Label(self.frm, text="Damit kann Vector sie auf Zuruf in Formulare tippen: „Trag bitte meine E-Mail ein“. "
                   "Die Daten bleiben nur auf diesem PC (gedaechtnis.json). Passwörter gehören hier nicht hinein.",
                   style="Hint.TLabel", wraplength=440).grid(row=self.row, column=0, columnspan=2, sticky="w", pady=(0, 8))
         self.row += 1
@@ -639,11 +639,11 @@ class SettingsDialog:
             self._entry(label, self.v_profile[key])
 
         self._tab("Google eintragen")
-        ttk.Label(self.frm, text="Hiermit trägt Jarvis die TimeTree-Termine in einen Google-Kalender ein (gleicher Tag, gleiche Uhrzeit). "
+        ttk.Label(self.frm, text="Hiermit trägt Vector die TimeTree-Termine in einen Google-Kalender ein (gleicher Tag, gleiche Uhrzeit). "
                   "Einmal einrichten:\n"
                   "1. console.cloud.google.com öffnen, neues Projekt anlegen.\n"
                   "2. „APIs und Dienste“ > „Bibliothek“: „Google Calendar API“ aktivieren.\n"
-                  "3. „OAuth-Zustimmungsbildschirm“: extern, Name z. B. Jarvis, deine E-Mail als Testnutzer. Danach „App veröffentlichen“, "
+                  "3. „OAuth-Zustimmungsbildschirm“: extern, Name z. B. Vector, deine E-Mail als Testnutzer. Danach „App veröffentlichen“, "
                   "sonst läuft die Anmeldung nach 7 Tagen ab.\n"
                   "4. „Anmeldedaten“ > „OAuth-Client-ID“ > Typ „Desktop-App“. Client-ID und Client-Secret hier einfügen.",
                   style="Hint.TLabel", wraplength=470, justify="left").grid(row=self.row, column=0, columnspan=2, sticky="w", pady=(0, 8))
@@ -677,8 +677,8 @@ class SettingsDialog:
 
         self._tab("Handy-App")
         import pc_link
-        ttk.Label(self.frm, text="Damit Jarvis auf dem Handy dasselbe über dich weiß wie hier (was du ihm erzählt hast, wie du "
-                  "drauf bist, seine Art und Anrede): In der Jarvis-App auf ⚙ tippen und bei „Kopplungscode vom PC“ diesen Code "
+        ttk.Label(self.frm, text="Damit Vector auf dem Handy dasselbe über dich weiß wie hier (was du ihm erzählt hast, wie du "
+                  "drauf bist, seine Art und Anrede): In der Vector-App auf ⚙ tippen und bei „Kopplungscode vom PC“ diesen Code "
                   "eintragen. Was du dem Handy erzählst, landet dann auch hier.\n"
                   "Alles geht verschlüsselt über ntfy.sh. Den Code nicht weitergeben.",
                   style="Hint.TLabel", wraplength=self.wrap, justify="left").grid(
@@ -693,10 +693,10 @@ class SettingsDialog:
         self.row += 1
 
         self._tab("Handy")
-        ttk.Label(self.frm, text="Frag z. B. „Wie lange brauche ich mit dem Fahrrad nach Musterstadt?“. Jarvis nennt dir bis zu "
+        ttk.Label(self.frm, text="Frag z. B. „Wie lange brauche ich mit dem Fahrrad nach Musterstadt?“. Vector nennt dir bis zu "
                   "drei Wege (schnellster, flachster, kürzester) und schickt dir den gewünschten aufs Handy.\n\n"
                   "Am einfachsten mit Telegram (Nachrichten UND Standort, keine zweite SIM nötig):\n"
-                  "1. Telegram aufs Handy, dort @BotFather suchen, /newbot schreiben, einen Namen (z. B. Jarvis) und einen "
+                  "1. Telegram aufs Handy, dort @BotFather suchen, /newbot schreiben, einen Namen (z. B. Vector) und einen "
                   "Benutzernamen, der auf bot endet (z. B. mein_jarvis_bot), eingeben.\n"
                   "2. BotFather schickt einen Schlüssel (lange Zeichenkette mit Doppelpunkt). Unten eintragen, „Telegram "
                   "testen“, Speichern.\n"
@@ -1140,7 +1140,7 @@ class SettingsDialog:
             old = (pc_phone.PUSH_TOPIC, pc_phone.CHANNEL, pc_phone.MY_NUMBER)
             pc_phone.PUSH_TOPIC, pc_phone.CHANNEL, pc_phone.MY_NUMBER = topic, chan, self.v_mynum.get().strip()
             try:
-                ok = pc_phone.push("Jarvis", "Verbindung steht. Hier kommen ab jetzt deine Routen an.", tags="robot")
+                ok = pc_phone.push("Vector", "Verbindung steht. Hier kommen ab jetzt deine Routen an.", tags="robot")
             finally:
                 pc_phone.PUSH_TOPIC, pc_phone.CHANNEL, pc_phone.MY_NUMBER = old
             loc = ""

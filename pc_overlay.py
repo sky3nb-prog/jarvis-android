@@ -157,7 +157,7 @@ def apply_settings(s: dict):
     """Überträgt die Einstellungen auf alle laufenden Teile des Assistenten."""
     global SPEAK, EARLY_CHIME, OVERLAY_STYLE, FOLLOWUP_SECONDS, GREET_ON_START
     words = [w.strip().lower() for w in s.get("wake_words", []) if str(w).strip()]
-    WAKE_WORDS[:] = words or ["jarvis"]  # dieselbe Liste, die auch die Erkennung benutzt
+    WAKE_WORDS[:] = words or ["vector"]  # dieselbe Liste, die auch die Erkennung benutzt
     pc_assistent.LANGUAGE = s.get("language", "de-DE")
     pc_assistent.LONG_SILENCE_BLOCKS = int(round(float(s.get("pause_lang", 1.8) or 1.8) * 10))
     new_in = pc_audio.resolve_device(s.get("input_device"), "input")
@@ -213,7 +213,7 @@ def apply_settings(s: dict):
     pc_ai.GROQ_KEY = pc_secret.unprotect(s.get("groq_key_enc", ""))
     pc_ai.MODEL = s.get("gemini_model") or "auto"
     pc_ai.reset_cache()
-    pc_talk.NAME = s.get("assistant_name") or "J.A.R.V.I.S."
+    pc_talk.NAME = s.get("assistant_name") or "V.E.C.T.O.R."
     pc_talk.ADDRESS = (s.get("address_as") or "").strip()
     pc_talk.CITY = s.get("weather_city") or "Karlsruhe"
     pc_news.CITY = (s.get("home_city") or "Berlin").strip().title()
@@ -652,7 +652,7 @@ class CompactOverlay:
             self._hide_job = None
         self.state = state
         if not text.strip(" …") and state == "listening":
-            role, text = "JARVIS HÖRT ZU", "…"
+            role, text = "VECTOR HÖRT ZU", "…"
         if (role, text) != self._last:
             self._render(role, text)
             self._last = (role, text)
@@ -695,7 +695,7 @@ class CompactOverlay:
             self.canvas.delete("txt")
             self.canvas.itemconfigure(self.pill_item, image=self._photo_pill)
             self.canvas.coords(self.pill_item, px, py)
-            label = {"Du": "DU", "Assistent": "JARVIS"}.get(role, role.upper())
+            label = {"Du": "DU", "Assistent": "VECTOR"}.get(role, role.upper())
             self.canvas.create_text(
                 px + padx, py + padt, text=label, font=self.f_role,
                 fill="#6ec8ff" if role == "Du" else "#ffd678", anchor="nw", tags="txt",
@@ -1080,7 +1080,7 @@ class UI:
                 self._set_win.lift()
                 return
             win = tk.Toplevel(self.root)
-            win.title("Jarvis – Einstellungen")
+            win.title("Vector – Einstellungen")
             win.configure(bg="#04121c")
             w, h = int(820 * self.k), int(860 * self.k)
             win.geometry(f"{w}x{h}+{(self.root.winfo_screenwidth() - w) // 2}+{max(0, (self.root.winfo_screenheight() - h) // 2)}")
@@ -1657,7 +1657,7 @@ class BargeIn:
     def _heard(self, text: str):
         low = (text or "").lower()
         wake = next((w for w in WAKE_WORDS if w in low), None)
-        if not wake:   # ungenau gehört, z. B. "freitag" statt "friday"
+        if not wake:   # ungenau gehört, z. B. ein ähnlich klingendes Wort
             words = re.findall(r"[a-zäöüß]+", low)
             for w in WAKE_WORDS:
                 for i, x in enumerate(words):
@@ -1978,12 +1978,12 @@ def make_start_shortcut():
         return
     try:
         folder = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs")
-        lnk = os.path.join(folder, "Jarvis Konto.lnk" if __import__("pc_variante").KONTO else "Jarvis.lnk")
+        lnk = os.path.join(folder, "Vector Konto.lnk" if __import__("pc_variante").KONTO else "Vector.lnk")
         if os.path.isdir(folder) and not os.path.exists(lnk):
             import subprocess
             ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');$s.TargetPath='{sys.executable}';"
                   f"$s.WorkingDirectory='{os.path.dirname(sys.executable)}';$s.IconLocation='{sys.executable},0';"
-                  "$s.Description='Jarvis öffnen';$s.Save()")
+                  "$s.Description='Vector öffnen';$s.Save()")
             subprocess.run(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps], timeout=20,
                            creationflags=0x08000000)
     except Exception as e:
@@ -2006,9 +2006,9 @@ def already_running() -> bool:
             _MUTEX2 = k32.CreateMutexW(None, False, "Jarvis.PCAssistent.SingleInstance")
             if ctypes.get_last_error() == 183:
                 if "--autostart" not in sys.argv:
-                    ctypes.windll.user32.MessageBoxW(None, "Der normale Jarvis läuft gerade.\n\nBitte erst den normalen Jarvis beenden "
-                                                     "(unten rechts beim Jarvis-Symbol: Rechtsklick → Beenden) und Jarvis Konto dann noch mal starten.",
-                                                     "Jarvis Konto", 0x40)
+                    ctypes.windll.user32.MessageBoxW(None, "Der normale Vector läuft gerade.\n\nBitte erst den normalen Vector beenden "
+                                                     "(unten rechts beim Vector-Symbol: Rechtsklick → Beenden) und Vector Konto dann noch mal starten.",
+                                                     "Vector Konto", 0x40)
                 sys.exit(0)
         return False
     except Exception:
@@ -2066,11 +2066,11 @@ VERSION = "2026-11-22 00:45"
 
 def main():
     setup_log()
-    print(f"Jarvis-Version: {VERSION}")
+    print(f"Vector-Version: {VERSION}")
     if already_running():
         if "--autostart" not in sys.argv:   # z. B. Klick auf das angeheftete Symbol: laufenden Jarvis nach vorne holen
             signal_show()
-        print("Jarvis läuft schon – HUD wird gezeigt.")
+        print("Vector läuft schon – HUD wird gezeigt.")
         return
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)

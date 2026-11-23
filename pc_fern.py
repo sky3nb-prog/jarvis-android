@@ -102,7 +102,7 @@ class H(BaseHTTPRequestHandler):
         self.send_response(403)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.end_headers()
-        self.wfile.write("Kein Zugriff. Öffne den Link aus der Jarvis-App.".encode())
+        self.wfile.write("Kein Zugriff. Öffne den Link aus der Vector-App.".encode())
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")

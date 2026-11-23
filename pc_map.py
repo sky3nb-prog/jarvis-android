@@ -44,7 +44,7 @@ STYLES = list(SOURCES)
 THEMES = {
     "Glut": dict(bg=(5, 8, 18), accent=(255, 142, 48), accent2=(255, 214, 96), text=(255, 230, 210),
                  dim=(196, 156, 128), panel=(16, 13, 20), tint=(255, 150, 60)),
-    "Jarvis": dict(bg=(2, 10, 18), accent=(0, 207, 255), accent2=(170, 240, 255), text=(220, 245, 255),
+    "Vector": dict(bg=(2, 10, 18), accent=(0, 207, 255), accent2=(170, 240, 255), text=(220, 245, 255),
                    dim=(130, 192, 214), panel=(5, 22, 34), tint=(60, 200, 255)),
     "Radar": dict(bg=(2, 12, 6), accent=(70, 255, 120), accent2=(200, 255, 170), text=(220, 255, 226),
                   dim=(124, 198, 140), panel=(5, 22, 11), tint=(80, 255, 130)),
@@ -554,7 +554,7 @@ class GlobeWindow:
                                 highlightbackground=hexc(mix(self.theme["bg"], self.theme["accent"], 0.45)), bd=0)
         else:
             self.win = tk.Toplevel(self.root)
-            self.win.title("Jarvis – Weltlage")
+            self.win.title("Vector – Weltlage")
             self.win.configure(bg=hexc(self.theme["bg"]))
             w, h = int(1280 * k), int(760 * k)
             sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
@@ -634,7 +634,7 @@ class GlobeWindow:
         # oberer Balken
         c.create_rectangle(0, 0, W, self.top_h, fill=hexc(t["bg"]), outline="", tags=("ui", "bar"))
         c.create_line(0, self.top_h, W, self.top_h, fill=hexc(mix(t["bg"], t["accent"], 0.4)), tags="ui")
-        c.create_text(int(22 * s), self.top_h // 2, text="◉  J.A.R.V.I.S.", anchor="w", fill=acc, font=self.f_title,
+        c.create_text(int(22 * s), self.top_h // 2, text="◉  V.E.C.T.O.R.", anchor="w", fill=acc, font=self.f_title,
                       tags="ui")
         tab_w = int(122 * s)
         x = W / 2 - tab_w * len(VIEWS) / 2
@@ -1188,7 +1188,7 @@ class GlobeWindow:
                 y = put(it, y) + int(18 * s)
         entries = self._panel_entries()
         if not entries:
-            it = c.create_text(x, y, text="Gerade nichts Passendes. Wechsle oben die Ansicht oder frag Jarvis nach der Lage.",
+            it = c.create_text(x, y, text="Gerade nichts Passendes. Wechsle oben die Ansicht oder frag Vector nach der Lage.",
                                anchor="nw", fill=dim, font=self.f_text, width=wrap, tags="panel")
         for i, (kind, obj, title, sub, col) in enumerate(entries):
             tag = f"pe{i}"

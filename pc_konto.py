@@ -315,7 +315,7 @@ def login(email: str, pw: str, neu: bool) -> dict:
     try:
         if BACKUP:   # Haupt-PC: dieser Stand ist das Original
             push(force=True)
-            return {"ok": True, "text": "Verbunden – dein Jarvis ist jetzt in deinem Konto gesichert."}
+            return {"ok": True, "text": "Verbunden – dein Vector ist jetzt in deinem Konto gesichert."}
         doc = _get_doc()
         if doc and doc.get("pc"):
             if _decrypt_any(doc["pc"]) is None:   # z. B. nach „Passwort vergessen“: alte Sicherung ist mit dem alten Passwort verschlüsselt
@@ -323,7 +323,7 @@ def login(email: str, pw: str, neu: bool) -> dict:
                 return {"ok": True, "text": "Angemeldet. Die alte Sicherung war mit deinem früheren Passwort verschlüsselt und lässt sich "
                                             "nicht mehr öffnen – dieser PC ist jetzt der neue Stand im Konto."}
             pull(force=True, doc=doc)
-            return {"ok": True, "restart": True, "text": "Angemeldet – deine Sachen sind geladen. Jarvis startet neu."}
+            return {"ok": True, "restart": True, "text": "Angemeldet – deine Sachen sind geladen. Vector startet neu."}
         push(force=True)
         return {"ok": True, "text": "Konto angelegt – dieser PC ist jetzt im Konto." if neu else "Angemeldet – dieser PC ist jetzt im Konto."}
     except Exception as e:
@@ -361,7 +361,7 @@ def sync_now() -> dict:
     try:
         a = pull()
         b = push(force=True)
-        return {"ok": True, "restart": a, "text": ("Neuen Stand geholt – Jarvis startet neu. " if a else "") + ("Hochgeladen." if b else "Alles aktuell.")}
+        return {"ok": True, "restart": a, "text": ("Neuen Stand geholt – Vector startet neu. " if a else "") + ("Hochgeladen." if b else "Alles aktuell.")}
     except Exception as e:
         STATUS["err"] = str(e)
         return {"ok": False, "text": str(e)}

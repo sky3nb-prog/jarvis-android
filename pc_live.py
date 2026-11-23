@@ -228,7 +228,7 @@ class LiveSession:
         init = {"type": "conversation_initiation_client_data"}
         if with_override:
             persona = pc_steuerung.PERSONAS.get(pc_steuerung.PERSONA, "")
-            name = (pc_talk.NAME or "Jarvis").replace(".", "") or "Jarvis"
+            name = (pc_talk.NAME or "Vector").replace(".", "") or "Vector"
             init["conversation_config_override"] = {
                 "agent": {"prompt": {"prompt": _prompt(pc_memory.prompt_block(), persona, name)},
                           "language": "de"}}
@@ -266,11 +266,11 @@ class LiveSession:
         gen = pc_cancel.GEN
         err = self._open()
         if err:
-            return f"Ich komme gerade nicht zum Cloud-Jarvis durch ({err[:80]})."
+            return f"Ich komme gerade nicht zum Cloud-Vector durch ({err[:80]})."
         threads = [threading.Thread(target=f, daemon=True) for f in (self._recv_loop, self._play_loop, self._mic_loop)]
         for th in threads:
             th.start()
-        self.ui.post("Gespräch", "Live mit Jarvis – sag „Tschüss“ zum Beenden", glow=True)
+        self.ui.post("Gespräch", "Live mit Vector – sag „Tschüss“ zum Beenden", glow=True)
         while not self.stop.is_set():
             if pc_cancel.changed(gen):  # X am Overlay
                 self.stop.set()

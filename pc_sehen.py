@@ -15,7 +15,7 @@ ASK = re.compile(r"\bschau\w*\s+(?:mal\s+|dir\s+|doch\s+)*(?:hier|her|da|drauf|a
                  r"\bauf\s+(?:meinem|meinen|dem)\s+bildschirm\b", re.I)
 PHONE = re.compile(r"\b(?:handy|telefon|smartphone)\b", re.I)
 
-SYSTEM = ("Du bist Jarvis, der persönliche Assistent des Nutzers. Du siehst ein Bildschirmfoto von seinem PC. Beantworte seine Frage "
+SYSTEM = ("Du bist Vector, der persönliche Assistent des Nutzers. Du siehst ein Bildschirmfoto von seinem PC. Beantworte seine Frage "
           "dazu auf Deutsch, gesprochen klingend, kurz (2 bis 5 Sätze), konkret auf das bezogen, was zu sehen ist. Wenn er nichts "
           "Bestimmtes fragt, sag knapp, was zu sehen ist und was daran wichtig sein könnte. Lies keine Passwörter, Kontonummern "
           "oder Codes vor, auch wenn sie zu sehen sind. Keine Sonderzeichen, keine Listen.")
@@ -60,5 +60,5 @@ def handle(text: str):
         if not pc_handy.paired():
             return "Dein Handy ist noch nicht gekoppelt."
         r = pc_handy.ask("screen", wait=40, frage=text)
-        return (r or {}).get("text") or "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
+        return (r or {}).get("text") or "Dein Handy antwortet gerade nicht. Ist die Vector-App dort an?"
     return look(text)

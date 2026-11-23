@@ -188,7 +188,7 @@ def handle(text: str):
     if not m:
         return None
     what = (m.group(1) or "").strip(" .,!?")
-    what = re.sub(r"^(?:kannst du|könntest du|jarvis,?)\s+", "", what, flags=re.I)
+    what = re.sub(r"^(?:kannst du|könntest du|vector,?)\s+", "", what, flags=re.I)
     url = URL_RE.search(text)
     if url or not what or THIS.match(what):
         link = url.group(0) if url else ""

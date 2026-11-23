@@ -86,10 +86,10 @@
       hx.push({ x: px, y: yy, dd: Math.hypot(px - C.x, yy - C.y) });
     }
     const maxD = Math.hypot(W, H);
-    const T = "J.A.R.V.I.S."; const title = box.querySelector(".title"); title.innerHTML = [...T].map((c) => `<span>${c}</span>`).join("");
+    const T = "V.E.C.T.O.R."; const title = box.querySelector(".title"); title.innerHTML = [...T].map((c) => `<span>${c}</span>`).join("");
     const t0 = performance.now(); let flash = 0, done = false, last = t0;
     const logEl = box.querySelector(".log");
-    if (logEl) ["> Kern wird geladen …", "> Gedächtnis synchronisiert", "> Sprachmodul „Friday“", "> Neuronales Netz online", "> Gelernte Skills: " + ((window.JarvisBrain && JarvisBrain.learned.length) || 0), "> Oberfläche wird aufgebaut …"]
+    if (logEl) ["> Kern wird geladen …", "> Gedächtnis synchronisiert", "> Sprachmodul „Vector“", "> Neuronales Netz online", "> Gelernte Skills: " + ((window.JarvisBrain && JarvisBrain.learned.length) || 0), "> Oberfläche wird aufgebaut …"]
       .forEach((l, i) => setTimeout(() => { logEl.textContent += l + "\n"; }, 250 + i * 320));
     // Systemstatus: Punkte laufen durch (erst grau, dann grün/rot)
     status().then((items) => {

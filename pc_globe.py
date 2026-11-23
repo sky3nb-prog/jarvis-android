@@ -34,7 +34,7 @@ THEMES = {
     "Glut": dict(bg=(5, 8, 18), ocean=(7, 13, 28), land=(18, 27, 46), lights=(255, 156, 70), glow=(255, 92, 28),
                  dots=(150, 120, 110), accent=(255, 142, 48), accent2=(255, 214, 96), text=(255, 226, 204),
                  dim=(190, 146, 122), panel=(14, 12, 20), grid=(60, 38, 30)),
-    "Jarvis": dict(bg=(2, 10, 18), ocean=(3, 16, 28), land=(8, 34, 50), lights=(120, 228, 255), glow=(0, 160, 255),
+    "Vector": dict(bg=(2, 10, 18), ocean=(3, 16, 28), land=(8, 34, 50), lights=(120, 228, 255), glow=(0, 160, 255),
                    dots=(70, 150, 180), accent=(0, 207, 255), accent2=(170, 240, 255), text=(215, 243, 255),
                    dim=(125, 190, 214), panel=(4, 22, 34), grid=(10, 60, 80)),
     "Radar": dict(bg=(2, 12, 6), ocean=(3, 18, 9), land=(10, 40, 20), lights=(140, 255, 150), glow=(40, 220, 90),
@@ -543,7 +543,7 @@ class GlobeWindow:
     def _create(self):
         k = self.k
         self.win = tk.Toplevel(self.root)
-        self.win.title("Jarvis – Weltlage")
+        self.win.title("Vector – Weltlage")
         self.win.configure(bg=hexc(self.r.theme["bg"]))
         w, h = int(1280 * k), int(760 * k)
         sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
@@ -627,7 +627,7 @@ class GlobeWindow:
         acc, txt, dim = hexc(t["accent"]), hexc(t["text"]), hexc(t["dim"])
         c.create_rectangle(0, 0, W, self.top_h, fill=hexc(t["bg"]), outline="", tags="bar")
         c.create_line(0, self.top_h, W, self.top_h, fill=hexc(mix(t["bg"], t["accent"], 0.35)), tags="bar")
-        c.create_text(int(22 * s), self.top_h // 2, text="◉  J.A.R.V.I.S.", anchor="w", fill=acc, font=self.f_title,
+        c.create_text(int(22 * s), self.top_h // 2, text="◉  V.E.C.T.O.R.", anchor="w", fill=acc, font=self.f_title,
                       tags="bar")
         tab_w = int(126 * s)
         x = W / 2 - tab_w * len(VIEWS) / 2

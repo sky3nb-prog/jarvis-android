@@ -69,7 +69,7 @@ def not_reached() -> str:
     if limited() and time.time() - pc_link.DIRECT["t"] > 90:
         return ("Der Kopplungsdienst hat heute sein Tageslimit erreicht (geht ab Mitternacht wieder). "
                 "Mach am Handy Tailscale an, dann geht's direkt und ohne Limit.")
-    return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
+    return "Dein Handy antwortet gerade nicht. Ist die Vector-App dort an?"
 
 
 def ask(kind: str, wait: float = 25, **data):
@@ -127,7 +127,7 @@ class _CalAdd:
     """„Trag … in den Kalender ein“, „kannst du mir was im Kalender eintragen in 48 Stunden“, „neuer Termin …“"""
     @staticmethod
     def search(low: str):
-        low = re.sub(r"^(?:jarvis|friday|hey|okay|ok)[ ,]+", "", low.strip())
+        low = re.sub(r"^(?:vector|hey|okay|ok)[ ,]+", "", low.strip())
         low = re.sub(r"^(?:kannst du|könntest du|würdest du|bitte)\s+(?:mir\s+)?", "", low)
         if CAL_QUESTION.match(low) and not re.search(r"\b(?:ein)?trag|einträg", low):
             return None
@@ -144,7 +144,7 @@ def call_name(text: str):
     """„Ruf über mein Handy Mama an“ -> „Mama“, „kannst du Lisa anrufen“ -> „Lisa“. Sonst None."""
     low = text.lower().strip(" .!?")
     low = re.sub(r"\b(?:über|übers|mit|vom|von|auf|am)\s+(?:mein(?:em|en)?|das|dem|den)?\s*(?:handy|telefon|smartphone|samsung)\b", " ", low)
-    low = re.sub(r"^(?:jarvis|hey|okay|ok)[ ,]+", "", low)
+    low = re.sub(r"^(?:vector|hey|okay|ok)[ ,]+", "", low)
     low = re.sub(FILLER, " ", low)
     low = re.sub(r"\s+", " ", low).strip()
     m = re.search(r"\bruf\w*\s+(.+?)\s+an$", low) or re.search(r"(?:^|\b(?:du|sie|bitte)\s+)(.+?)\s+anrufen$", low) \
@@ -167,21 +167,21 @@ def handle(text: str):
         # "ich fahr jetzt los zu Oma und Opa": das Handy merkt sich das Ziel und sagt kurz vor der Ankunft Bescheid
         r = ask("do", wait=25, text=text)
         if r is None:
-            return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
+            return "Dein Handy antwortet gerade nicht. Ist die Vector-App dort an?"
         return r.get("text") or "Gute Fahrt!"
     who = call_name(text) if CALL.search(low) and not re.search(r"discord|teams|skype|zoom", low) else None
     if who:   # Anruf: direkt ans Handy, ohne Umweg über die KI (schnell und zuverlässig)
         r = ask("call", wait=20, who=who)
         if r is None:
-            return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
+            return "Dein Handy antwortet gerade nicht. Ist die Vector-App dort an?"
         return r["text"] or f"Ich rufe {who} über dein Handy an."
     via_phone = re.search(r"\b" + PHONE + r"\b", low) is not None
     if via_phone or (CALL.search(low) and not re.search(r"discord|teams|skype|zoom", low)):
         r = ask("do", text=text)
         if r is None:
-            return "Dein Handy antwortet gerade nicht. Ist die Jarvis-App dort an?"
+            return "Dein Handy antwortet gerade nicht. Ist die Vector-App dort an?"
         return r["text"] or ("Erledigt, am Handy." if r["ok"] else "Am Handy ging das nicht.")
-    if re.match(r"^(?:jarvis |friday )?(?:kannst du mich |bitte )?erinner\w* mich\b", low) and not CAL_ADD.search(low):
+    if re.match(r"^(?:vector )?(?:kannst du mich |bitte )?erinner\w* mich\b", low) and not CAL_ADD.search(low):
         # „Erinnere mich in 2 Stunden an …“: der PC erinnert selbst (pc_remind), das Handy trägt es zusätzlich ein
         threading.Thread(target=lambda: ask("termin", wait=30, text=text), daemon=True).start()
         return None

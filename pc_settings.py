@@ -30,7 +30,7 @@ DEFAULT_BUTTONS = [
 ]
 
 DEFAULTS = {
-    "wake_words": ["jarvis"],  # mehrere Schreibweisen möglich, falls er dich oft anders versteht
+    "wake_words": ["vector"],  # mehrere Schreibweisen möglich, falls er dich oft anders versteht
     "language": "de-DE",
     "input_device": None,  # None = Standard-Mikrofon, sonst Name des Mikrofons
     "output_device": None,  # None = Windows-Standard, sonst Name des Ausgabegeräts (z. B. Elgato Wave Link)
@@ -59,7 +59,7 @@ DEFAULTS = {
     "hud_alpha": 100,  # Durchsichtigkeit des HUD-Fensters in Prozent (40 bis 100)
     "hud_animation": True,  # Animationen im HUD (aus = ruhiger und sparsamer)
     "hud_buttons": None,  # eigene Schnellstart-Knöpfe: Liste aus [Symbol, Beschriftung, Befehl]
-    "assistant_name": "J.A.R.V.I.S.",  # Name, der im HUD steht und mit dem er sich vorstellt
+    "assistant_name": "V.E.C.T.O.R.",  # Name, der im HUD steht und mit dem er sich vorstellt
     "address_as": "",  # wie er dich anspricht, z. B. "Sir" oder dein Name
     "greet_on_start": False,  # beim Start kurz begrüßen
     "show_hud_on_start": True,
@@ -89,12 +89,12 @@ DEFAULTS = {
     "groq_key_enc": "",  # kostenloser Ersatz (console.groq.com), mit Windows verschlüsselt
     "eleven_key_enc": "",  # ElevenLabs-Schlüssel, mit Windows verschlüsselt (pc_secret)
     "eleven_voice": "onwK4e9ZLuTAKqWW03F9",  # Stimmen-ID (Standard: Daniel)
-    "eleven_voice_name": "Daniel – britisch, ruhig, souverän (Jarvis-Stil)",
+    "eleven_voice_name": "Daniel – britisch, ruhig, souverän (Vector-Stil)",
     "eleven_model": "eleven_flash_v2_5",
     "briefing_on_start": True,  # beim Start ein kurzes Lage-Briefing (Weltlage) sprechen
     "globe_auto_open": True,  # bei "wie ist die Lage" den Globus öffnen
     "globe_fullscreen": False,  # Globus gleich im Vollbild öffnen
-    "globe_theme": "Glut",  # Farben des Globus: Glut, Jarvis, Radar, Violett
+    "globe_theme": "Glut",  # Farben des Globus: Glut, Vector, Radar, Violett
     "globe_style": "Hologramm",  # (alt) Stil des früheren Globus
     "map_style": "Satellit",  # Weltlage-Karte: Satellit (echte Bilder) oder Dunkel (in deiner Farbe)
     "map_labels": True,  # Ortsnamen auf der Karte

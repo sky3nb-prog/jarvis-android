@@ -127,7 +127,7 @@ def send_setup() -> bool:
              "2. Oben links Menü > Einstellungen > Verbindung (iPhone: i-Symbol > Einstellungen).\n"
              "3. Modus: HTTP.\n"
              "4. Bei Host/URL genau diese Adresse einfügen (lange drauftippen zum Kopieren):\n" + url + "\n"
-             "5. Rest leer lassen, speichern. Fertig - Jarvis sieht dich dann innerhalb weniger Minuten.")
+             "5. Rest leer lassen, speichern. Fertig - Vector sieht dich dann innerhalb weniger Minuten.")
     return push("OwnTracks einrichten", steps)
 
 

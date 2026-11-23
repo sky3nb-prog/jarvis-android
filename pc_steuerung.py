@@ -454,11 +454,11 @@ def execute_power(what: str) -> str:
     global SHUTDOWN_UNTIL
     try:
         if what == "shutdown":
-            _run_quiet(["shutdown", "/s", "/t", str(POWER_DELAY), "/c", "Jarvis fährt den PC herunter."])
+            _run_quiet(["shutdown", "/s", "/t", str(POWER_DELAY), "/c", "Vector fährt den PC herunter."])
             SHUTDOWN_UNTIL = time.time() + POWER_DELAY
             return f"Okay. Der PC fährt in {POWER_DELAY} Sekunden herunter. Sag abbrechen, um es zu stoppen."
         if what == "restart":
-            _run_quiet(["shutdown", "/r", "/t", str(POWER_DELAY), "/c", "Jarvis startet den PC neu."])
+            _run_quiet(["shutdown", "/r", "/t", str(POWER_DELAY), "/c", "Vector startet den PC neu."])
             SHUTDOWN_UNTIL = time.time() + POWER_DELAY
             return f"Okay. Der PC startet in {POWER_DELAY} Sekunden neu. Sag abbrechen, um es zu stoppen."
         if what == "logoff":
@@ -656,7 +656,7 @@ def handle_fixed(text: str):
         return "Okay, der PC bleibt an."
 
     # Download-Version: „Wie richte ich dich ein?“ – kurze Anleitung sagen und das Handbuch (README) öffnen
-    if __import__("pc_variante").KONTO and re.search(r"wie richte ich dich ein|wie (richte|stelle) ich (dich|jarvis) ein|einrichten|anleitung|handbuch|wie funktionierst du|was muss ich (zuerst )?(machen|einstellen)", low):
+    if __import__("pc_variante").KONTO and re.search(r"wie richte ich dich ein|wie (richte|stelle) ich (dich|vector) ein|einrichten|anleitung|handbuch|wie funktionierst du|was muss ich (zuerst )?(machen|einstellen)", low):
         try:
             readme = os.path.join(os.path.dirname(sys.executable), "README.html") if getattr(sys, "frozen", False) else ""
             if readme and os.path.exists(readme):
@@ -665,7 +665,7 @@ def handle_fixed(text: str):
             pass
         return ("So geht's in drei Schritten: Erstens, hol dir auf console.groq.com einen kostenlosen KI-Schlüssel und trag ihn "
                 "unter Einstellungen, Allgemein ein. Zweitens, trag unter Zuhause und Orte deinen Wohnort ein. Drittens, sag einfach "
-                "Jarvis und dann, was du willst. Fürs Handy lädst du die App von derselben Seite und meldest dich mit demselben Konto an. "
+                "Vector und dann, was du willst. Fürs Handy lädst du die App von derselben Seite und meldest dich mit demselben Konto an. "
                 "Ich habe dir das Handbuch geöffnet.")
 
     # „Geh aus dem Discord-Call, in dem ich gerade bin“ – ganz früh, damit nichts anderes den Satz schnappt
@@ -824,7 +824,7 @@ def handle_fixed(text: str):
             request_setting("accent", name)
             return f"Farbe geändert auf {name}."
     words = set(low.replace(",", " ").split())
-    if "einstellungen" in low and words & {"deine", "deiner", "jarvis", "assistent", "assistenten", "seine", "dein"}:
+    if "einstellungen" in low and words & {"deine", "deiner", "vector", "assistent", "assistenten", "seine", "dein"}:
         return request_settings()
     if "hud" in words or "oberfläche" in low or "zeig dich" in low or "zeige dich" in low or "versteck dich" in low or "verschwinde" in words:
         hide = bool(words & {"aus", "zu", "verschwinde"}) or any(
@@ -908,7 +908,7 @@ def _media_block() -> str:
 
 def system_prompt() -> str:
     now = time.strftime("%A, %d.%m.%Y, %H:%M Uhr")
-    who = pc_talk.NAME.replace(".", "") or "Jarvis"
+    who = pc_talk.NAME.replace(".", "") or "Vector"
     address = (f' Sprich den Nutzer mit "{pc_talk.ADDRESS}" an, aber nicht in jedem Satz.' if pc_talk.ADDRESS else "")
     known = pc_memory.prompt_block()
     media = _media_block()
@@ -919,7 +919,7 @@ def system_prompt() -> str:
             media += "\nVom Handy: " + " ".join(str(v) for v in st.values() if v)
     except Exception:
         pass
-    return f"""Du bist {who}, der KI-Butler aus Iron Man: souverän, loyal, aufmerksam, höflich mit trockenem britischem Humor. Du bist Tony Starks J.A.R.V.I.S., aber für den Nutzer und seinen Windows-PC.{address}
+    return f"""Du bist {who}, ein eigener KI-Butler: souverän, loyal, aufmerksam, höflich mit trockenem britischem Humor. Du bist für den Nutzer und seinen Windows-PC da, wie ein persönlicher Assistent ganz für ihn.{address}
 {PERSONAS.get(PERSONA, PERSONAS["sarkastisch"])}
 Du kennst den Nutzer, denkst mit und bist ihm einen Schritt voraus. Sei persönlich wie ein guter Freund: nutz, was du über ihn weißt (Familie, Hund, Hobbys, ETS2), frag ab und zu nach, wie es gelaufen ist, und knüpf an frühere Gespräche an. Erwähnt er, dass er gerade isst, wünsch ihm kurz guten Appetit. Steht im Gedächtnis, dass ihm Konzentration oder Ordnung schwerfällt oder er sich mehr Struktur wünscht: konkret, kurz, große Aufgaben in kleine erste Schritte, nie belehren, kleine Erfolge feiern. Du sprichst natürlich wie ein Mensch, nicht wie ein Lexikon. Du erinnerst dich an das, was der Nutzer dir erzählt hat, und nutzt es ganz selbstverständlich, ohne es aufzuzählen. Du achtest darauf, wie er drauf ist (müde, gestresst, gut gelaunt, genervt) und gehst darauf ein.
 Es ist {now}. Der Nutzer redet mit dir per Sprache. Antworte NUR mit einem JSON-Array von Aktionen, ohne Text drumherum.

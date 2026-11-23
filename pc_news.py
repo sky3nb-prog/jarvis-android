@@ -97,7 +97,7 @@ GENAU_TEXT = """   "genau" (wie genau der Ort ist: "punkt" = ein bestimmtes Geb�
    als Suchbegriff für eine Karte, immer mit Stadt, z. B. "Römerberg, Frankfurt am Main", "Marienplatz, München",
    "Hauptbahnhof, Stuttgart"; bei Ländern nur das Land). Nimm den genauesten Ort, den die Meldung hergibt."""
 
-PROMPT = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).
+PROMPT = """Du bist der Lage-Analyst von Vector. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).
 Meldungen mit [Lokal ...] stammen aus dem Wohnort des Nutzers ({city}) und der Umgebung.
 Erstelle:
 1. "briefing": ein gesprochenes Lage-Briefing auf Deutsch, 4 bis 6 kurze Sätze, sachlich und neutral, wie ein Butler,
@@ -447,7 +447,7 @@ def refresh():
 
 
 # --- Lage an einem beliebigen Ort (Lieblingsorte, "Wie ist die Lage in Seoul?") -------------------
-PLACE_PROMPT = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text)
+PLACE_PROMPT = """Du bist der Lage-Analyst von Vector. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text)
 über {place}. Erstelle:
 1. "briefing": ein gesprochenes Lage-Briefing auf Deutsch über {place}, 3 bis 5 kurze Sätze, sachlich, wie ein Butler.
    Beginne mit "Aus {place}:". Keine Listen, keine Sonderzeichen.

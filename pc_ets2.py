@@ -478,7 +478,7 @@ def _ai_answer(question: str, t) -> str:
                f"Auftrag: {s.get('ladung') or 'keiner'} von {s.get('von')} nach {s.get('nach')} ({s.get('nach_firma')}), Lohn {s.get('lohn')} €. "
                f"Navi: noch {s.get('rest_km')} km, {s.get('rest_min')} Min. Spielzeit ({_real(s.get('rest_min') or 0)}). "
                f"Ruhezeit in {s.get('ruhe_min')} Min. Spielzeit. Abgabe in {s.get('abgabe_min')} Min. Spielzeit. " + ferry_text(t) + " " + tankplan(t).get("text", ""))
-        sys_ = ("Du bist Jarvis, Beifahrer im Euro Truck Simulator 2. Antworte kurz (1–2 Sätze, Deutsch, du), nur mit den Live-Daten. "
+        sys_ = ("Du bist Vector, Beifahrer im Euro Truck Simulator 2. Antworte kurz (1–2 Sätze, Deutsch, du), nur mit den Live-Daten. "
                 "Erfinde keine Orte oder Zahlen; wenn etwas nicht in den Daten steht, sag das ehrlich.")
         out = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": ctx + "\n\nFrage: " + question}]}], sys_, json_mode=False, max_tokens=160, fast=True)
         return (out or "").strip()

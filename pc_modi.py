@@ -215,7 +215,7 @@ def set_mode(mode: str, from_phone: bool = False, lofi=None) -> str:
     parts = [f"{m['n']}-Modus an."]
     p = "" if from_phone else _phone(mode, m)
     if p and m.get("handy") in ("dnd", "lautlos", "stumm"):
-        parts.append({"dnd": "Handy ist auf Nicht stören.", "lautlos": "Handy ist lautlos.", "stumm": "Handy ist komplett stumm, Jarvis meldet sich dort nur per Nachricht auf der Uhr."}[m["handy"]])
+        parts.append({"dnd": "Handy ist auf Nicht stören.", "lautlos": "Handy ist lautlos.", "stumm": "Handy ist komplett stumm, Vector meldet sich dort nur per Nachricht auf der Uhr."}[m["handy"]])
     if m.get("discord"):
         try:
             import pc_steuerung

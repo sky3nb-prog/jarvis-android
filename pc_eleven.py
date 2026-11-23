@@ -28,7 +28,7 @@ MODEL = "eleven_flash_v2_5"
 # Fertige Stimmen von ElevenLabs (funktionieren auch im kostenlosen Tarif). Mit "Stimmen laden" kommen alle dazu,
 # die in deinem ElevenLabs-Konto unter "Meine Stimmen" liegen.
 DEFAULT_VOICES = [
-    ("Daniel – britisch, ruhig, souverän (Jarvis-Stil)", "onwK4e9ZLuTAKqWW03F9"),
+    ("Daniel – britisch, ruhig, souverän (Vector-Stil)", "onwK4e9ZLuTAKqWW03F9"),
     ("George – britisch, warm, erzählend", "JBFqnCBsd6RMkjVDRZzb"),
     ("Brian – tief, ruhig", "nPczCjzI2devNBz1zQrb"),
     ("Bill – älter, vertrauenswürdig", "pqHfZKP75CvOlQylNhV4"),

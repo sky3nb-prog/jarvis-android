@@ -71,7 +71,7 @@ def install() -> str:
             continue
         if r.returncode == 0:
             return "✔ Das Tool ist installiert." if _tool_command() else \
-                "✔ Installiert, aber ich finde das Programm noch nicht. Starte Jarvis einmal neu."
+                "✔ Installiert, aber ich finde das Programm noch nicht. Starte Vector einmal neu."
         tail = (r.stderr or r.stdout or "").strip().splitlines()[-1:] or ["unbekannter Fehler"]
         return f"✘ Installation fehlgeschlagen: {tail[0][:160]}"
     return "✘ Python wurde nicht gefunden (py oder python)."

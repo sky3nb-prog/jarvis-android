@@ -41,7 +41,7 @@ def add(text: str, von: str = "pc") -> str:
     return f"Steht auf deiner Ideenliste: „{t}“. Das ist Idee Nummer {len(items)}."
 
 
-IDEA = re.compile(r"^(?:jarvis,?\s+)?(?:notiere idee( vom handy)?:\s*|ich hab(?:e)? (?:da )?(?:eine|ne|'ne) idee[,:]?\s*(?:und zwar[,:]?\s*)?|"
+IDEA = re.compile(r"^(?:vector,?\s+)?(?:notiere idee( vom handy)?:\s*|ich hab(?:e)? (?:da )?(?:eine|ne|'ne) idee[,:]?\s*(?:und zwar[,:]?\s*)?|"
                   r"schreib (?:das )?auf (?:die|meine) ideen ?liste:?\s*|merk dir (?:als|eine) idee:?\s*|neue idee:?\s*)(.+)$", re.I)
 
 

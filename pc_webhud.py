@@ -26,7 +26,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from pc_apps import base_dir
 
-TITLE = "Jarvis HUD"
+TITLE = "Vector HUD"
 NO_WINDOW = 0x08000000
 SAT_IDS = {25544, 48274, 20580, 40697, 43013}   # ISS, Tiangong, Hubble, Sentinel-2A, NOAA-20
 
@@ -182,7 +182,7 @@ def set_app_id(hwnd):
         if getattr(sys, "frozen", False):
             put(2, f'"{sys.executable}"')          # RelaunchCommand: Klick aufs angeheftete Symbol startet Jarvis
             put(3, f"{sys.executable},0")           # RelaunchIconResource
-            put(4, "Jarvis")                        # RelaunchDisplayNameResource
+            put(4, "Vector")                        # RelaunchDisplayNameResource
         put(5, APP_ID)                              # AppUserModel_ID (zuletzt)
         Commit(store)
         Release(store)
@@ -524,7 +524,7 @@ class WebHud:
             elif w == "overlay":   # kleines Overlay einmal durchspielen: zuhören -> sprechen -> fertig
                 def demo():
                     self.ui.force_overlay = time.time() + 12   # auch wenn das HUD vorn liegt
-                    self.ui.post("Du", "Friday, wie wird das Wetter?")
+                    self.ui.post("Du", "Vector, wie wird das Wetter?")
                     time.sleep(2.2)
                     self.ui.post("Assistent", "Das ist ein Test vom Overlay – Nervenstrang, Kugel und Text.", 5000, glow=True)
                 threading.Thread(target=demo, daemon=True).start()
@@ -626,7 +626,7 @@ class WebHud:
         try:
             if op == "refresh":
                 if not pc_handy.refresh_status(bool(b.get("force"))):
-                    self.push("phone_reply", {"ok": False, "text": "Dein Handy hat nicht geantwortet. Ist die Jarvis-App dort an (Schalter oben rechts)? Wenn ja: Der Kopplungsdienst lässt nur 250 Nachrichten am Tag durch – dann geht es nachts wieder."})
+                    self.push("phone_reply", {"ok": False, "text": "Dein Handy hat nicht geantwortet. Ist die Vector-App dort an (Schalter oben rechts)? Wenn ja: Der Kopplungsdienst lässt nur 250 Nachrichten am Tag durch – dann geht es nachts wieder."})
                 return
             if op == "ctl":
                 r = pc_handy.control(str(b.get("what")), **{k: v for k, v in b.items() if k not in ("op", "what")})

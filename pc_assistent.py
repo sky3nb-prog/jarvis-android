@@ -31,7 +31,7 @@ from pc_steuerung import ask_ai, handle_fixed
 import pc_ai
 
 # --- Einstellungen ----------------------------------------------------------
-WAKE_WORDS = ["jarvis"]  # hier dein Weckwort (auch mehrere Schreibweisen) eintragen
+WAKE_WORDS = ["vector"]  # hier dein Weckwort (auch mehrere Schreibweisen) eintragen
 LANGUAGE = "de-DE"
 RATE = 16000
 BLOCK = 1600  # 0,1 Sekunden pro Block

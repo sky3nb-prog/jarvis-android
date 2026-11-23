@@ -23,8 +23,8 @@
   document.head.appendChild(css);
   const ov = document.createElement("div");
   ov.id = "konto-ov"; ov.hidden = true;
-  ov.innerHTML = `<div class="ko-card"><div class="ko-orb"></div><h1>JARVIS-KONTO</h1>
-    <p id="ko-p">Melde dich an – dann ist dein Jarvis auf jedem PC und Handy gleich.</p>
+  ov.innerHTML = `<div class="ko-card"><div class="ko-orb"></div><h1>VECTOR-KONTO</h1>
+    <p id="ko-p">Melde dich an – dann ist dein Vector auf jedem PC und Handy gleich.</p>
     <div class="ko-in" id="ko-form"><input id="ko-mail" type="email" placeholder="E-Mail"><input id="ko-pw" type="password" placeholder="Passwort (mind. 6 Zeichen)">
     <div class="ko-msg" id="ko-msg"></div><div class="ko-row"><button id="ko-in">Anmelden</button><button class="alt" id="ko-neu">Neues Konto</button></div></div>
     <div class="ko-in" id="ko-acc" hidden><div class="ko-msg ok" id="ko-st"></div><div class="ko-row"><button id="ko-sync">Jetzt abgleichen</button><button class="alt" id="ko-out">Abmelden</button></div>
@@ -37,7 +37,7 @@
   function paint(i, extra) {
     i = i || window.PC.get("konto") || {};
     $("ko-form").hidden = !!i.loggedIn; $("ko-acc").hidden = !i.loggedIn;
-    $("ko-p").textContent = i.loggedIn ? "Dein Jarvis ist im Konto." : (i.configured ? "Melde dich an – dann ist dein Jarvis auf jedem PC und Handy gleich." : "Das Konto ist in dieser Version noch nicht eingerichtet.");
+    $("ko-p").textContent = i.loggedIn ? "Dein Vector ist im Konto." : (i.configured ? "Melde dich an – dann ist dein Vector auf jedem PC und Handy gleich." : "Das Konto ist in dieser Version noch nicht eingerichtet.");
     $("ko-st").innerHTML = i.loggedIn ? `Angemeldet als <b>${esc(i.email)}</b><br>Hochgeladen: ${when(i.lastPush)} · Geholt: ${when(i.lastPull)}${i.err ? `<br><span style="color:#ff9a8a">${esc(i.err)}</span>` : ""}${extra ? "<br>" + esc(extra) : ""}` : "";
   }
   async function call(name, body) {

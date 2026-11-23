@@ -49,8 +49,8 @@ FOLLOW_SET = re.compile(r"(?:hör|höre)\w*\s+(?:nach (?:einem|jedem) befehl\s+)
                         r"sieben|acht|neun|zehn|zwölf|fünfzehn)\s+sekunden?\s+(?:lang\s+)?weiter")
 NUM = {"eine": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10,
        "zwölf": 12, "fünfzehn": 15}
-GLOBE_COLORS = {"orange": "Glut", "rot": "Glut", "glut": "Glut", "wie im video": "Glut", "blau": "Jarvis", "cyan": "Jarvis",
-                "türkis": "Jarvis", "jarvis": "Jarvis", "grün": "Radar", "radar": "Radar", "lila": "Violett",
+GLOBE_COLORS = {"orange": "Glut", "rot": "Glut", "glut": "Glut", "wie im video": "Glut", "blau": "Vector", "cyan": "Vector",
+                "türkis": "Vector", "vector": "Vector", "grün": "Radar", "radar": "Radar", "lila": "Violett",
                 "violett": "Violett", "pink": "Violett"}
 HUD_COLORS = {"cyan": "Cyan", "türkis": "Cyan", "blau": "Blau", "violett": "Violett", "lila": "Violett", "rosa": "Rosa",
               "pink": "Rosa", "rot": "Rot", "orange": "Orange", "gold": "Gold", "gelb": "Gold", "grün": "Grün"}
@@ -76,7 +76,7 @@ def handle(text: str, settings: dict):
         return None
 
     if re.search(r"(?:was|wie) (?:ist|lautet|heißt) (?:dein|das) (?:aktivierungs|weck)wort|auf welche[sn]? (?:wort|namen) hörst du", low):
-        words = settings.get("wake_words") or ["jarvis"]
+        words = settings.get("wake_words") or ["vector"]
         return "Ich höre auf " + " und ".join(w.title() for w in words) + "."
 
     # Aktivierungswort hinzufügen
@@ -85,7 +85,7 @@ def handle(text: str, settings: dict):
         w = _clean_word(m.group("w")).lower()
         if len(w) < 3:
             return "Das Wort ist mir zu kurz, dann würde ich ständig aus Versehen reagieren."
-        words = [x for x in settings.get("wake_words", ["jarvis"]) if x]
+        words = [x for x in settings.get("wake_words", ["vector"]) if x]
         if w not in words:
             words.append(w)
         _set("wake_words", words)

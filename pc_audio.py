@@ -43,7 +43,7 @@ EDGE_VOICES = [
     ("Killian – ruhig, männlich (Deutsch)", "de-DE-KillianNeural"),
     ("Conrad – warm, männlich (Deutsch)", "de-DE-ConradNeural"),
     ("Florian – mehrsprachig, männlich", "de-DE-FlorianMultilingualNeural"),
-    ("Ryan – britisch, männlich (Jarvis-Stil, spricht Deutsch mit Akzent)", "en-GB-RyanNeural"),
+    ("Ryan – britisch, männlich (Vector-Stil, spricht Deutsch mit Akzent)", "en-GB-RyanNeural"),
     ("Thomas – britisch, männlich (spricht Deutsch mit Akzent)", "en-GB-ThomasNeural"),
     ("Andrew – mehrsprachig, tief, ruhig (Deutsch mit leichtem Akzent)", "en-US-AndrewMultilingualNeural"),
     ("Brian – mehrsprachig, sachlich (Deutsch mit leichtem Akzent)", "en-US-BrianMultilingualNeural"),

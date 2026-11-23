@@ -48,11 +48,11 @@
   setTimeout(() => $("fade").classList.add("off"), 50);
   setTimeout(() => document.body.classList.add("on"), 600);
   // Titel Buchstabe für Buchstabe
-  const T = "J.A.R.V.I.S."; $("title").innerHTML = [...T].map((c) => `<span>${c}</span>`).join("");
+  const T = "V.E.C.T.O.R."; $("title").innerHTML = [...T].map((c) => `<span>${c}</span>`).join("");
   [...$("title").children].forEach((sp, i) => setTimeout(() => sp.classList.add("v"), 1400 + i * 90));
   setTimeout(() => $("sub").classList.add("v"), 2600);
   // Konsole links
-  const log = ["> Kern wird geladen …", "> Sprachmodul: Friday", "> Gedächtnis synchronisiert", "> Neuronales Netz online", "> Hologramm-Schnittstelle aktiv", "> Verbindung zum Handy …"];
+  const log = ["> Kern wird geladen …", "> Sprachmodul: Vector", "> Gedächtnis synchronisiert", "> Neuronales Netz online", "> Hologramm-Schnittstelle aktiv", "> Verbindung zum Handy …"];
   log.forEach((l, i) => setTimeout(() => { $("left").textContent += l + "\n"; }, 700 + i * 420));
   // Systemstatus rechts (echte Prüfung)
   let items = [];

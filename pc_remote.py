@@ -204,8 +204,8 @@ def execute(cmd: dict) -> str:
     if t == "text" and str(cmd.get("text") or "").strip():
         if ON_TEXT:
             ON_TEXT(str(cmd["text"]).strip()[:300])
-            return "An Jarvis am PC geschickt."
-        return "Jarvis am PC ist gerade nicht bereit."
+            return "An Vector am PC geschickt."
+        return "Vector am PC ist gerade nicht bereit."
     return "Diesen Befehl kenne ich nicht."
 
 

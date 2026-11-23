@@ -13,7 +13,7 @@ import sys
 import threading
 import time
 
-TITLE = "Jarvis HUD"
+TITLE = "Vector HUD"
 APP_ID = "Jarvis.PCAssistent"
 
 

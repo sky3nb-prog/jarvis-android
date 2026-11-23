@@ -2,7 +2,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const S = window.PC.get("settings") || {};
-  const name = (S.assistant_name || "J.A.R.V.I.S.");
+  const name = (S.assistant_name || "V.E.C.T.O.R.");
   $("aname").textContent = name; $("f-name").textContent = name; $("i-name").textContent = name; $("s-name").textContent = name;
   document.body.classList.toggle("handy", S.hud_layout === "handy");   // Aufbau wie die Handy-App (Leiste unten)
   let mode = "fokus";   // beim Öffnen immer Fokus
@@ -172,13 +172,13 @@
   // Schreiben statt reden
   let typedAt = 0;
   function tbShow(t) { if (mode === "fokus") return;   // auf Fokus steht die Antwort im Gesprächsfeld
- const r = $("tb-reply"); r.innerHTML = '<span class="who jar">JARVIS</span>' + esc(t); r.classList.add("on"); clearTimeout(tbShow.j); tbShow.j = setTimeout(() => r.classList.remove("on"), 60000); }
+ const r = $("tb-reply"); r.innerHTML = '<span class="who jar">VECTOR</span>' + esc(t); r.classList.add("on"); clearTimeout(tbShow.j); tbShow.j = setTimeout(() => r.classList.remove("on"), 60000); }
   function tbSend() {
     const t = $("tb-in").value.trim(); if (!t) return;
     $("tb-in").value = ""; typedAt = Date.now();
     $("f-you").textContent = $("s-you").textContent = t;
     if (mode === "fokus") $("f-jar").textContent = "denkt nach …";
-    else { const r = $("tb-reply"); r.innerHTML = '<span class="who jar">JARVIS</span>denkt nach …'; r.classList.add("on"); }
+    else { const r = $("tb-reply"); r.innerHTML = '<span class="who jar">VECTOR</span>denkt nach …'; r.classList.add("on"); }
     window.PC.post("ask", { text: t });
   }
   $("tb-send").addEventListener("click", tbSend);

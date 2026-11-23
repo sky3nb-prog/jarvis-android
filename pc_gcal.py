@@ -103,7 +103,7 @@ def login(client_id: str, client_secret: str, open_browser=webbrowser.open, time
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write("<html><body style='font-family:sans-serif;background:#031018;color:#cdeffc;text-align:center;padding-top:80px'>"
-                             "<h2>Fertig.</h2><p>Du kannst dieses Fenster schließen und zu Jarvis zurückgehen.</p></body></html>".encode("utf-8"))
+                             "<h2>Fertig.</h2><p>Du kannst dieses Fenster schließen und zu Vector zurückgehen.</p></body></html>".encode("utf-8"))
 
         def log_message(self, *a):
             pass
@@ -130,7 +130,7 @@ def login(client_id: str, client_secret: str, open_browser=webbrowser.open, time
         "code": result["code"], "client_id": client_id, "client_secret": client_secret, "redirect_uri": redirect,
         "grant_type": "authorization_code", "code_verifier": verifier}, form=True)
     if not tok.get("refresh_token"):
-        raise GError("Google hat keine dauerhafte Erlaubnis geschickt. Entferne Jarvis unter myaccount.google.com/permissions und versuche es nochmal")
+        raise GError("Google hat keine dauerhafte Erlaubnis geschickt. Entferne Vector unter myaccount.google.com/permissions und versuche es nochmal")
     return tok["refresh_token"]
 
 

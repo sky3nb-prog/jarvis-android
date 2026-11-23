@@ -91,7 +91,7 @@ def _phone():
             akku = (pc_handy.STATUS.get("data") or {}).get("akku")
             return _item("phone", "Handy-Kopplung", True, f"verbunden" + (f" · Akku {akku} %" if akku is not None else ""))
         return _item("phone", "Handy-Kopplung", False, f"seit {int(age // 60)} Min. still",
-                     "Handy-App öffnen; in den Akku-Einstellungen 'Nicht einschränken' für Jarvis wählen.")
+                     "Handy-App öffnen; in den Akku-Einstellungen 'Nicht einschränken' für Vector wählen.")
     except Exception:
         return _item("phone", "Handy-Kopplung", None, "–")
 
@@ -144,7 +144,7 @@ def _ets2():
         if not dirs:
             return _item("ets2", "ETS2-Plugin", None, "ETS2 nicht installiert")
         ok = all(os.path.isfile(os.path.join(d, "plugins", "scs-telemetry.dll")) for d in dirs)
-        return _item("ets2", "ETS2-Plugin", ok, "installiert" if ok else "fehlt", "" if ok else "Jarvis neu starten – er legt es selbst hinein.")
+        return _item("ets2", "ETS2-Plugin", ok, "installiert" if ok else "fehlt", "" if ok else "Vector neu starten – er legt es selbst hinein.")
     except Exception:
         return _item("ets2", "ETS2-Plugin", None, "–")
 
@@ -234,7 +234,7 @@ def test(id_: str) -> str:
             if id_ != "gemini" and pc_ai.groq_key():
                 req = urllib.request.Request("https://api.groq.com/openai/v1/chat/completions", method="POST",
                                              data=json.dumps({"model": "llama-3.1-8b-instant", "max_tokens": 30, "messages": [
-                                                 {"role": "user", "content": "Sag in höchstens 8 Wörtern auf Deutsch hallo, als Jarvis."}]}).encode(),
+                                                 {"role": "user", "content": "Sag in höchstens 8 Wörtern auf Deutsch hallo, als Vector."}]}).encode(),
                                              headers={"Authorization": f"Bearer {pc_ai.groq_key()}", "Content-Type": "application/json", "User-Agent": "Jarvis-PC"})
                 with urllib.request.urlopen(req, timeout=15) as r:
                     return "Groq sagt: " + json.loads(r.read())["choices"][0]["message"]["content"].strip()
@@ -256,7 +256,7 @@ def test(id_: str) -> str:
             import pc_handy
             r = pc_handy.ask("status", wait=20)
             if not r:
-                return "Das Handy antwortet nicht – ist die Jarvis-App an?"
+                return "Das Handy antwortet nicht – ist die Vector-App an?"
             s = r.get("status") or {}
             return f"Handy antwortet: Akku {s.get('akku', '?')} %, Klingelton {s.get('ringer', '?')}."
         if id_ == "tail":
@@ -272,7 +272,7 @@ def test(id_: str) -> str:
             return pc_calendar.today_text() or "Heute keine Termine."
         if id_ == "tg":
             import pc_telegram
-            return "Testnachricht an dich in Telegram geschickt." if pc_telegram.send("Test von Jarvis – Telegram läuft.") else "Telegram-Nachricht ging nicht."
+            return "Testnachricht an dich in Telegram geschickt." if pc_telegram.send("Test von Vector – Telegram läuft.") else "Telegram-Nachricht ging nicht."
         if id_ == "ets2":
             import pc_ets2
             dirs = pc_ets2._game_dirs()

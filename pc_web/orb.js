@@ -73,9 +73,9 @@
   let grow = 0, want = 0, state = "idle", level = 0, lvT = 0, idleTimer = 0, show = true, pulses = [];
   let sphere = null, brain = null;
   try { sphere = new Sphere3D(document.getElementById("sph"), 3); brain = new JarvisBrain(document.getElementById("brn"), sphere); brain.scale = .8; } catch (e) {}
-  const LABEL = { listening: "FRIDAY · HÖRT ZU", thinking: "FRIDAY · DENKT NACH", speaking: "FRIDAY · SPRICHT", idle: "FRIDAY" };
+  const LABEL = { listening: "VECTOR · HÖRT ZU", thinking: "VECTOR · DENKT NACH", speaking: "VECTOR · SPRICHT", idle: "VECTOR" };
   function bars() { return '<span class="bars">' + "<i></i>".repeat(5) + "</span>"; }
-  function setLabel() { who.innerHTML = (LABEL[state] || "FRIDAY") + (state === "listening" || state === "speaking" ? bars() : ""); }
+  function setLabel() { who.innerHTML = (LABEL[state] || "VECTOR") + (state === "listening" || state === "speaking" ? bars() : ""); }
   function wake() { want = 1; clearTimeout(idleTimer); }
   function sleep(ms) { clearTimeout(idleTimer); idleTimer = setTimeout(() => { want = 0; pill.classList.remove("on"); }, ms); }
 

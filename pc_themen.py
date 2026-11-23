@@ -89,7 +89,7 @@ def summary() -> str:
 
 
 # --- "Für dich" am PC ---------------------------------------------------------------------------------
-PROMPT = """Du bist der persönliche Nachrichten-Butler von J.A.R.V.I.S. Der Nutzer interessiert sich für: {names}.
+PROMPT = """Du bist der persönliche Nachrichten-Butler von Vector. Der Nutzer interessiert sich für: {names}.
 Unten stehen nummerierte Meldungen zu diesen Themen (#Nummer [Thema: ...] Titel: Text). Erstelle:
 1. "briefing": 1 bis 2 gesprochene Sätze auf Deutsch, persönlich ("Passend zu deinen Interessen: ..."), was es Neues gibt.
 2. "brennpunkte": die 6 bis 12 interessantesten neuen Meldungen (keine Werbung, keine Dopplungen), höchstens 3 pro Thema,

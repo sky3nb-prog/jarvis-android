@@ -87,8 +87,8 @@ def _rephrase(text: str, to: str, as_jarvis: bool) -> str:
         import pc_ai
         if not (pc_ai.gemini_key() or pc_ai.groq_key()):
             return text
-        who = ("Die Nachricht schreibt Jarvis, der Assistent des Nutzers, und spricht über den Nutzer in der dritten Person "
-               "(z. B. „Er bittet dich, …“). Beginne NICHT mit „Hier ist Jarvis“.") if as_jarvis else \
+        who = ("Die Nachricht schreibt Vector, der Assistent des Nutzers, und spricht über den Nutzer in der dritten Person "
+               "(z. B. „Er bittet dich, …“). Beginne NICHT mit „Hier ist Vector“.") if as_jarvis else \
               ("Die Nachricht ist in der Ich-Form des Nutzers, locker, wie man an Familie und Freunde schreibt, OHNE Punkt, Komma und Strich. "
                + _stil_hint())
         system = ("Der Nutzer hat in indirekter Rede gesagt, was in einer WhatsApp an " + to + " stehen soll. Mach daraus die fertige, "
@@ -301,7 +301,7 @@ def start(app: str, to: str, text: str) -> str:
     global PENDING
     label = "WhatsApp" if app == "whatsapp" else "Discord"
     text = polish(text)
-    if app == "whatsapp" and not text.lower().startswith(("hier ist jarvis",)):
+    if app == "whatsapp" and not text.lower().startswith(("hier ist vector",)):
         import pc_nachrichten
         text = pc_nachrichten.wa_style(text)   # wie er schreibt: ohne Punkt, Komma, Strich
     if CONFIRM:
@@ -322,8 +322,8 @@ def handle(command: str):
                 return send(app, to, text)
             if low in NO:
                 return "Okay, ich schicke nichts."
-    as_jarvis = re.search(r"\b(?:unter|in|mit)\s+deinem\s+namen\b|\bals\s+jarvis\b|\bvon\s+dir\s+aus\b|\bals\s+du\b", low)
-    cmd = re.sub(r",?\s*(?:unter|in|mit)\s+deinem\s+namen\b|,?\s*als\s+jarvis\b|,?\s*von\s+dir\s+aus\b|,?\s*als\s+du\b", "", command, flags=re.I) if as_jarvis else command
+    as_jarvis = re.search(r"\b(?:unter|in|mit)\s+deinem\s+namen\b|\bals\s+vector\b|\bvon\s+dir\s+aus\b|\bals\s+du\b", low)
+    cmd = re.sub(r",?\s*(?:unter|in|mit)\s+deinem\s+namen\b|,?\s*als\s+vector\b|,?\s*von\s+dir\s+aus\b|,?\s*als\s+du\b", "", command, flags=re.I) if as_jarvis else command
     parsed = parse(cmd)
     if not parsed:
         return None
@@ -331,8 +331,8 @@ def handle(command: str):
         parsed = (parsed[0], parsed[1], _rephrase(parsed[2], parsed[1], bool(as_jarvis)))
     if as_jarvis:   # „Schreib Opa unter deinem Namen …“ -> „Hier ist Jarvis. …“; Antworten in dem Chat sagt er an
         app, to, text = parsed
-        text = re.sub(r"^(?:hier ist jarvis[.,!]?\s*)", "", text, flags=re.I)
-        parsed = (app, to, "Hier ist Jarvis. " + text[0].upper() + text[1:])
+        text = re.sub(r"^(?:hier ist vector[.,!]?\s*)", "", text, flags=re.I)
+        parsed = (app, to, "Hier ist Vector. " + text[0].upper() + text[1:])
         try:
             import pc_handy
             if pc_handy.paired():   # das Handy meldet Antworten aus diesem Chat (24 Stunden lang)

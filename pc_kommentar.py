@@ -29,7 +29,7 @@ def _phrase(what: str, fallback: str) -> str:
         if not pc_ai.available():
             return fallback
         mood = ((pc_handy.STATUS.get("data") or {}).get("gesund") or {}).get("stimmung", "")
-        sys_ = ("Du bist Jarvis, der persönliche KI-Butler des Nutzers, wie ein guter Freund. Du meldest dich von selbst. "
+        sys_ = ("Du bist Vector, der persönliche KI-Butler des Nutzers, wie ein guter Freund. Du meldest dich von selbst. "
                 "1 bis 2 kurze, persönliche Sätze auf Deutsch (du), locker, ohne Vorwurf, gern mit kleinem Augenzwinkern. Nur der Text.\n"
                 + pc_memory.prompt_block() + ("\n" + mood if mood else ""))
         out = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": f"Anlass: {what}"}]}], sys_, json_mode=False, max_tokens=160, fast=True)

@@ -60,13 +60,13 @@ def _spoken(an: str, inhalt: str, modus: str = "antwort") -> str:
             return inhalt
     try:
         t = pc_ai.gemini_generate([{"role": "user", "parts": [{"text": inhalt}]}],
-                                  f"Du bist Jarvis, der KI-Assistent des Nutzers, und sprichst eine kurze WhatsApp-Sprachnachricht an {an}. "
-                                  f"Fang locker an (z. B. „Hey {an}, hier ist Jarvis“), dann der Inhalt in 1–3 kurzen Sätzen, über den Nutzer "
+                                  f"Du bist Vector, der KI-Assistent des Nutzers, und sprichst eine kurze WhatsApp-Sprachnachricht an {an}. "
+                                  f"Fang locker an (z. B. „Hey {an}, hier ist Vector“), dann der Inhalt in 1–3 kurzen Sätzen, über den Nutzer "
                                   f"in der dritten Person („er“). Nur der gesprochene Text, keine Emojis.",
                                   json_mode=False, max_tokens=200, timeout=12, fast=True).strip().strip('"')
-        return t or f"Hey {an}, hier ist Jarvis. Ich soll dir ausrichten: {inhalt}"
+        return t or f"Hey {an}, hier ist Vector. Ich soll dir ausrichten: {inhalt}"
     except Exception:
-        return f"Hey {an}, hier ist Jarvis. Ich soll dir ausrichten: {inhalt}"
+        return f"Hey {an}, hier ist Vector. Ich soll dir ausrichten: {inhalt}"
 
 
 def _audio(text: str) -> str:

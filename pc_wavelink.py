@@ -391,9 +391,9 @@ def _find_mix(tokens, mixes):
     try:
         import pc_settings
 
-        wake = {w.lower() for w in (pc_settings.load().get("wake_words") or ["jarvis"])}
+        wake = {w.lower() for w in (pc_settings.load().get("wake_words") or ["vector"])}
     except Exception:
-        wake = {"jarvis"}
+        wake = {"vector"}
     for i, t in enumerate(tokens):  # "bei mir" / "in meinem Mix" = dein eigener Mix
         if (t == "mir" and i and tokens[i - 1] in ("bei", "für")) or (t == "mix" and i and tokens[i - 1] in ("meinem", "mein")):
             m = _default_mix(mixes)

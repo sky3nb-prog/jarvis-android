@@ -612,7 +612,7 @@ def handle(text: str):
                 return pc_update.restart(ON_QUIT)
             if ON_SHOW and m.get("text"):
                 try:
-                    ON_SHOW(m.get("title") or "Jarvis", m["text"])
+                    ON_SHOW(m.get("title") or "Vector", m["text"])
                 except Exception:
                     pass
             return m.get("text") or "Okay."

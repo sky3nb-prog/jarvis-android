@@ -260,7 +260,7 @@ class HudWindow:
         w = int(min(max(MIN_W * k, s.get("hud_width", 1280) * k), sw * 0.94))
         h = int(min(w * BASE_H / BASE_W, sh * 0.88))
         self.win = tk.Toplevel(root)
-        self.win.title("Jarvis")
+        self.win.title("Vector")
         self.win.configure(bg="#02080e")
         self.win.geometry(f"{w}x{h}+{max(0, (sw - w) // 2)}+{max(0, (sh - h) // 2 - int(20 * k))}")
         self.win.minsize(int(MIN_W * k * 0.8), int(MIN_H * k * 0.8))
@@ -564,7 +564,7 @@ class HudWindow:
                              c.create_oval(0, 0, 0, 0, outline=GOLD, width=max(1, int(2 * sc)), state="hidden")]
 
         # Name und Status unter der Kugel
-        name = s_.get("assistant_name") or "J.A.R.V.I.S."
+        name = s_.get("assistant_name") or "V.E.C.T.O.R."
         if fokus:  # zweiter, ruhiger Ring wie im Vorschaubild
             r2 = D * 0.49
             c.create_oval(self.cx - r2, self.cy - r2, self.cx + r2, self.cy + r2, outline="#7a4c10", width=1)
@@ -686,7 +686,7 @@ class HudWindow:
 
     def _update_status(self):
         try:
-            words = self.get_settings().get("wake_words") or ["jarvis"]
+            words = self.get_settings().get("wake_words") or ["vector"]
             st = STATE_TEXT.get(self.state, "").replace("{w}", words[0].title())
             self.c.itemconfigure(self.t_state, text=st)
             say = self.status_text
@@ -750,7 +750,7 @@ class HudWindow:
         # große Zahl oben links
         self.lage_big = c.create_text(X(64), Y(64), text="", anchor="nw", fill=gold, font=self.f["big"])
         self.lage_sub = c.create_text(X(66), Y(124), text="", anchor="nw", fill="#ffdcaa", font=self.f["head"])
-        self.lage_hint = c.create_text(X(66), Y(150), text="„Wie ist die Lage?“ – Jarvis fliegt die Orte ab · ziehen = drehen · Mausrad = zoomen",
+        self.lage_hint = c.create_text(X(66), Y(150), text="„Wie ist die Lage?“ – Vector fliegt die Orte ab · ziehen = drehen · Mausrad = zoomen",
                       anchor="nw", fill="#7fb3c8", font=self.f["small"])
         c.create_line(X(64), Y(176), X(330), Y(176), fill="#16506a", tags="lagegfx")
         c.create_line(X(64), Y(176), X(130), Y(176), fill="#3cc8ff", width=2, tags="lagegfx")
@@ -1809,7 +1809,7 @@ class HudWindow:
             return
         y = y0 + S(46)
         for role, text in self.log[-6:]:
-            name = "Du" if role == "Du" else "Jarvis"
+            name = "Du" if role == "Du" else "Vector"
             it = self._t(key, x0 + S(16), y, f"{name}: {short(text, 70)}", "small",
                          self.colors["cyan"] if role == "Du" else self.colors["txt"], width=int(x1 - x0 - S(32)))
             bb = self.c.bbox(it)

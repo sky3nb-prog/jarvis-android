@@ -7,7 +7,7 @@ dich weiß (z. B. dass du viel Feldwege fährst).
 
 import re
 
-PROMPT = ("Du bist Jarvis, der persönliche Assistent des Nutzers, und hilfst ihm bei einer Kaufentscheidung oder einem Vergleich. "
+PROMPT = ("Du bist Vector, der persönliche Assistent des Nutzers, und hilfst ihm bei einer Kaufentscheidung oder einem Vergleich. "
           "Suche im Internet nach aktuellen Tests, Daten und Preisen zu den Dingen, die er vergleicht. Antworte auf Deutsch, gesprochen "
           "klingend, ohne Listen und ohne Sonderzeichen, in 5 bis 8 Sätzen: zuerst die wichtigsten Unterschiede (Preis, Qualität, "
           "Ausstattung, was für ihn zählt), dann eine klare Empfehlung mit Begründung (\"Ich würde … nehmen, weil …\"). Wenn es auf "

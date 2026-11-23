@@ -230,7 +230,7 @@ def snapshot() -> dict:
     prof = {k: v for k, v in (data.get("profile") or {}).items() if k in ("vorname", "nachname", "name", "ort", "plz", "adresse")}
     return {
         "kind": "snap", "from": "pc", "ts": int(time.time()),
-        "name": (pc_talk.NAME or "Jarvis").replace(".", ""),
+        "name": (pc_talk.NAME or "Vector").replace(".", ""),
         "address": pc_talk.ADDRESS or "",
         "persona": persona,
         "persona_text": pc_steuerung.PERSONAS.get(persona, ""),
@@ -304,8 +304,8 @@ def apply_phone_settings(msg: dict) -> bool:
             val = [x.strip() for x in str(val).split(",") if x.strip()]
         elif pc_key == "assistant_name":
             val = str(val).strip() or s.get("assistant_name")
-            if val and "." not in val and val.upper() == "JARVIS":
-                val = "J.A.R.V.I.S."
+            if val and "." not in val and val.upper() == "VECTOR":
+                val = "V.E.C.T.O.R."
         new[pc_key] = val
     if ON_SETTINGS:
         ON_SETTINGS(new)

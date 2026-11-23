@@ -30,13 +30,13 @@ def allowed() -> bool:
 
 def _private_jarvis_here() -> bool:
     """Ist auf diesem PC auch der normale (private) Jarvis eingerichtet? Dann bleiben gemeinsam genutzte Ordner."""
-    sm = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Jarvis.lnk")
+    sm = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Vector.lnk")
     if os.path.exists(sm):
         return True
     try:
         import winreg
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run") as k:
-            winreg.QueryValueEx(k, "Jarvis PC-Assistent")
+            winreg.QueryValueEx(k, "Vector PC-Assistent")
             return True
     except Exception:
         return False
@@ -93,7 +93,7 @@ def register_uninstall():
         import winreg
         exe = sys.executable
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, UNINST_KEY) as k:
-            for name, val in (("DisplayName", "Jarvis"), ("DisplayIcon", exe + ",0"), ("Publisher", "Jarvis"),
+            for name, val in (("DisplayName", "Vector"), ("DisplayIcon", exe + ",0"), ("Publisher", "Vector"),
                               ("UninstallString", f'"{exe}" --uninstall'), ("QuietUninstallString", f'"{exe}" --uninstall --quiet'),
                               ("InstallLocation", os.path.dirname(exe)), ("DisplayVersion", _version())):
                 winreg.SetValueEx(k, name, 0, winreg.REG_SZ, val)
@@ -117,9 +117,9 @@ def uninstall_main():
     if not quiet:
         try:
             import ctypes
-            r = ctypes.windll.user32.MessageBoxW(None, "Jarvis komplett von diesem PC entfernen?\n\nDein Konto bleibt – "
-                                                 "lädst du Jarvis neu und meldest dich an, ist alles wieder da.",
-                                                 "Jarvis deinstallieren", 0x4 | 0x30 | 0x40000)   # Ja/Nein, Warnung, im Vordergrund
+            r = ctypes.windll.user32.MessageBoxW(None, "Vector komplett von diesem PC entfernen?\n\nDein Konto bleibt – "
+                                                 "lädst du Vector neu und meldest dich an, ist alles wieder da.",
+                                                 "Vector deinstallieren", 0x4 | 0x30 | 0x40000)   # Ja/Nein, Warnung, im Vordergrund
             if r != 6:
                 return
         except Exception:
@@ -152,7 +152,7 @@ def destroy(quit_cb=None, wait: bool = True) -> dict:
     folder = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else data
     targets = [os.path.join(folder, n) for n in FILES + DIRS] + [os.path.join(data, n) for n in FILES + DIRS]
     targets += [os.path.join(folder, n) for n in ("Jarvis-Daten", "hud_fenster")]
-    sm = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Jarvis Konto.lnk")
+    sm = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Vector Konto.lnk")
     targets.append(sm)
     try:
         import winreg
@@ -184,7 +184,7 @@ if ((Test-Path -LiteralPath $f) -and -not (Get-ChildItem -LiteralPath $f -Force)
         return {"ok": False, "text": f"Aufräumen ließ sich nicht starten: {e}"}
 
     if not wait:
-        return {"ok": True, "text": "Jarvis wird entfernt."}
+        return {"ok": True, "text": "Vector wird entfernt."}
 
     def _bye():
         import threading
@@ -200,4 +200,4 @@ if ((Test-Path -LiteralPath $f) -and -not (Get-ChildItem -LiteralPath $f -Force)
                 os._exit(0)
         threading.Thread(target=run, daemon=True).start()
     _bye()
-    return {"ok": True, "text": "Jarvis löscht sich jetzt von diesem PC" + (" (" + ", ".join(steps) + ")" if steps else "") + ". Tschüss."}
+    return {"ok": True, "text": "Vector löscht sich jetzt von diesem PC" + (" (" + ", ".join(steps) + ")" if steps else "") + ". Tschüss."}
