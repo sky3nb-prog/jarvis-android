@@ -1,0 +1,58 @@
+name: Vector App – Testbuild (Vorschau, NICHT die Live-Version)
+
+# Baut absichtlich auf einen eigenen Tag "vorschau" statt "neueste"/"konto-neueste" -
+# die Selbst-Update-Funktion der App schaut nur nach diesen beiden Tags, holt sich
+# diesen Vorschau-Build also NIE automatisch. So kann Skyler testen, ohne dass
+# ungetestete Änderungen an alle anderen Nutzer verteilt werden.
+#
+# Start: GitHub -> Actions -> "Vector App – Testbuild (Vorschau, NICHT die Live-Version)"
+# -> "Run workflow" -> den gewünschten Branch wählen (z. B. sammeln) -> Run.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android-SDK
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: APK bauen
+        env:
+          JARVIS_AGENT_ID: ${{ secrets.JARVIS_AGENT_ID }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: APKs umbenennen
+        run: |
+          cp app/build/outputs/apk/privat/release/app-privat-release.apk Vector-Vorschau.apk
+          cp app/build/outputs/apk/konto/release/app-konto-release.apk Vector-Konto-Vorschau.apk
+
+      - name: Als Vorschau-Download bereitstellen (eigener Tag, kein Auto-Update)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: vorschau
+          name: "Vector – Testbuild (Branch ${{ github.ref_name }}, Build ${{ github.run_number }})"
+          body: |
+            NUR zum manuellen Testen - diese Version kommt NICHT per Selbst-Update, sie muss
+            jedes Mal von Hand hier heruntergeladen und installiert werden.
+            Branch: ${{ github.ref_name }} · Build ${{ github.run_number }} · ${{ github.event.head_commit.message }}
+          files: |
+            Vector-Vorschau.apk
+            Vector-Konto-Vorschau.apk
+          make_latest: false
+          prerelease: true
