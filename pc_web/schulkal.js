@@ -11,44 +11,44 @@
   css.textContent = `
 .sk{font-size:14px}
 .sk-hd{display:flex;align-items:center;justify-content:space-between;margin:2px 0 8px}
-.sk-hd b{font-size:15px;color:#ffd678;letter-spacing:.06em}
-.sk-nav{all:unset;cursor:pointer;width:32px;height:32px;border-radius:10px;border:1px solid #5a3e14;color:#c8965a;display:flex;align-items:center;justify-content:center}
+.sk-hd b{font-size:15px;color:#9fe1cb;letter-spacing:.06em}
+.sk-nav{all:unset;cursor:pointer;width:32px;height:32px;border-radius:10px;border:1px solid #145a42;color:#5ac89b;display:flex;align-items:center;justify-content:center}
 .sk-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-.sk-wd{text-align:center;font-size:11px;letter-spacing:.1em;color:#8a6a3a;padding-bottom:2px}
-.sk-d{all:unset;box-sizing:border-box;cursor:pointer;min-height:48px;border-radius:9px;padding:3px 3px 4px;background:rgba(0,0,0,.25);border:1px solid rgba(255,190,90,.12);display:flex;flex-direction:column;gap:2px;min-width:0}
-.sk-d.out{opacity:.35}.sk-d.today{border-color:#ffd678;box-shadow:0 0 10px rgba(255,200,90,.35)}.sk-d.sel{background:rgba(255,170,40,.16)}
-.sk-d .n{font-size:11px;color:#c8965a}.sk-d.today .n{color:#ffd678;font-weight:700}
+.sk-wd{text-align:center;font-size:11px;letter-spacing:.1em;color:#3a8a6e;padding-bottom:2px}
+.sk-d{all:unset;box-sizing:border-box;cursor:pointer;min-height:48px;border-radius:9px;padding:3px 3px 4px;background:rgba(0,0,0,.25);border:1px solid rgba(90, 255, 198,.12);display:flex;flex-direction:column;gap:2px;min-width:0}
+.sk-d.out{opacity:.35}.sk-d.today{border-color:#9fe1cb;box-shadow:0 0 10px rgba(90, 255, 208,.35)}.sk-d.sel{background:rgba(29, 158, 117,.16)}
+.sk-d .n{font-size:11px;color:#5ac89b}.sk-d.today .n{color:#9fe1cb;font-weight:700}
 .sk-d .e{font-size:9.5px;line-height:1.15;padding:1px 3px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:hsl(var(--h),90%,82%);background:hsla(var(--h),70%,35%,.45)}
 .sk-d .e.done{opacity:.4;text-decoration:line-through}
-.sk-day{margin-top:10px;padding:10px;border-radius:12px;border:1px solid rgba(255,190,90,.25);background:rgba(0,0,0,.25)}
-.sk-day h4{margin:0 0 6px;font-size:13px;color:#ffaa28;letter-spacing:.08em;font-weight:700}
-.sk-it{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,190,90,.1)}
+.sk-day{margin-top:10px;padding:10px;border-radius:12px;border:1px solid rgba(90, 255, 198,.25);background:rgba(0,0,0,.25)}
+.sk-day h4{margin:0 0 6px;font-size:13px;color:#1d9e75;letter-spacing:.08em;font-weight:700}
+.sk-it{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(90, 255, 198,.1)}
 .sk-it:last-child{border-bottom:0}
-.sk-chk{all:unset;cursor:pointer;width:20px;height:20px;border-radius:6px;border:1.5px solid hsl(var(--h),70%,60%);flex:0 0 20px;display:flex;align-items:center;justify-content:center;color:#0b0805;font-size:13px}
+.sk-chk{all:unset;cursor:pointer;width:20px;height:20px;border-radius:6px;border:1.5px solid hsl(var(--h),70%,60%);flex:0 0 20px;display:flex;align-items:center;justify-content:center;color:#050b08;font-size:13px}
 .sk-chk.on{background:hsl(var(--h),80%,65%)}
-.sk-it .t{flex:1;min-width:0}.sk-it .t b{color:hsl(var(--h),90%,82%);font-size:13px}.sk-it .t small{display:block;color:#b9a78a;font-size:12px;overflow-wrap:anywhere}
+.sk-it .t{flex:1;min-width:0}.sk-it .t b{color:hsl(var(--h),90%,82%);font-size:13px}.sk-it .t small{display:block;color:#8ab9a9;font-size:12px;overflow-wrap:anywhere}
 .sk-it .t i{font-style:normal;font-size:10px;color:#6effcd;margin-left:4px}
 .sk-x{all:unset;cursor:pointer;color:#ff8a6a;padding:4px 6px}
 .sk-adds{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .sk-add{all:unset;cursor:pointer;padding:7px 11px;border-radius:999px;font-size:13px;color:hsl(var(--h),90%,82%);border:1px solid hsla(var(--h),70%,60%,.5);background:hsla(var(--h),60%,25%,.35)}
-.sk-up{margin-top:10px}.sk-up h4{margin:0 0 4px;font-size:12px;color:#8a6a3a;letter-spacing:.14em;font-weight:700}
-.sk-ed{position:fixed;inset:0;z-index:9999;background:rgba(4,3,1,.72);display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+.sk-up{margin-top:10px}.sk-up h4{margin:0 0 4px;font-size:12px;color:#3a8a6e;letter-spacing:.14em;font-weight:700}
+.sk-ed{position:fixed;inset:0;z-index:9999;background:rgba(1, 4, 3,.72);display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
 .sk-ed.on{display:flex}
-.sk-box{width:min(520px,100%);background:linear-gradient(180deg,#1d1408,#0d0904);border:1px solid rgba(255,190,90,.4);border-radius:18px;padding:16px}
-.sk-box .sk-tt{font-size:13px;letter-spacing:.14em;color:#ffaa28;text-transform:uppercase;margin-bottom:10px}
+.sk-box{width:min(520px,100%);background:linear-gradient(180deg,#081d15,#040d09);border:1px solid rgba(90, 255, 198,.4);border-radius:18px;padding:16px}
+.sk-box .sk-tt{font-size:13px;letter-spacing:.14em;color:#1d9e75;text-transform:uppercase;margin-bottom:10px}
 .sk-row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.sk-chip{all:unset;cursor:pointer;padding:6px 10px;border-radius:999px;font-size:13px;color:#d9c3a0;border:1px solid #5a3e14}
-.sk-chip.on{color:#0b0805;background:#ffd678;border-color:#ffd678}
+.sk-chip{all:unset;cursor:pointer;padding:6px 10px;border-radius:999px;font-size:13px;color:#a0d9c6;border:1px solid #145a42}
+.sk-chip.on{color:#050b08;background:#9fe1cb;border-color:#9fe1cb}
 .sk-chip.f.on{background:#3cc8ff;border-color:#3cc8ff}
-.sk-box input{width:100%;box-sizing:border-box;font-size:17px;padding:11px 12px;border-radius:12px;border:1px solid #ffaa28;background:rgba(0,0,0,.45);color:#fff1c8;outline:none;color-scheme:dark}
-.sk-box input[type=date]{font-size:15px;border-color:#4a3410;margin-top:8px}
+.sk-box input{width:100%;box-sizing:border-box;font-size:17px;padding:11px 12px;border-radius:12px;border:1px solid #1d9e75;background:rgba(0,0,0,.45);color:#c8fff4;outline:none;color-scheme:dark}
+.sk-box input[type=date]{font-size:15px;border-color:#104a37;margin-top:8px}
 .sk-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-.sk-btn{all:unset;cursor:pointer;padding:9px 14px;border-radius:999px;border:1px solid #5a3e14;color:#d9c3a0;font-size:14px}
-.sk-g1{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:12px;font-weight:700;color:#0b0805;background:hsl(var(--g),70%,60%)}
-.sk-noten{margin-top:10px}.sk-noten h4{margin:0 0 6px;font-size:12px;color:#8a6a3a;letter-spacing:.14em;font-weight:700}
-.sk-nr{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:#e8d6b8;border-bottom:1px solid rgba(255,190,90,.1)}
-.sk-nr b{flex:1}.sk-nr small{color:#b9a78a}.sk-nr i{font-style:normal;font-weight:700;min-width:38px;text-align:center;padding:2px 6px;border-radius:8px;color:#0b0805;background:hsl(var(--g),70%,60%)}
-.sk-btn.ok{background:#ffaa28;color:#1a1006;font-weight:700;border-color:#ffaa28}`;
+.sk-btn{all:unset;cursor:pointer;padding:9px 14px;border-radius:999px;border:1px solid #145a42;color:#a0d9c6;font-size:14px}
+.sk-g1{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:12px;font-weight:700;color:#050b08;background:hsl(var(--g),70%,60%)}
+.sk-noten{margin-top:10px}.sk-noten h4{margin:0 0 6px;font-size:12px;color:#3a8a6e;letter-spacing:.14em;font-weight:700}
+.sk-nr{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:#b8e8d8;border-bottom:1px solid rgba(90, 255, 198,.1)}
+.sk-nr b{flex:1}.sk-nr small{color:#8ab9a9}.sk-nr i{font-style:normal;font-weight:700;min-width:38px;text-align:center;padding:2px 6px;border-radius:8px;color:#050b08;background:hsl(var(--g),70%,60%)}
+.sk-btn.ok{background:#1d9e75;color:#061a11;font-weight:700;border-color:#1d9e75}`;
   document.head.appendChild(css);
 
   function mount(el, io) {
@@ -72,7 +72,7 @@
       h += `</div>`;
       const sd = new Date(sel + "T12:00"), list = forDay(sel);
       h += `<div class="sk-day"><h4>${sd.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}</h4>` +
-        (list.length ? list.map(row).join("") : `<div style="color:#8a7a62;font-size:13px">Nichts eingetragen.</div>`) +
+        (list.length ? list.map(row).join("") : `<div style="color:#628a7c;font-size:13px">Nichts eingetragen.</div>`) +
         `<div class="sk-adds">${["arbeit", "test", "ha"].map((a) => `<button class="sk-add" style="--h:${ART[a][1]}" data-add="${a}">＋ ${ART[a][0]}</button>`).join("")}</div></div>`;
       const up = items.filter((x) => !x.done && x.datum >= today && x.datum !== sel).sort((a, b) => (a.datum > b.datum ? 1 : -1)).slice(0, 6);
       if (up.length) h += `<div class="sk-up"><h4>DEMNÄCHST</h4>${up.map(row).join("")}</div>`;

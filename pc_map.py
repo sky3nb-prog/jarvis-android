@@ -724,15 +724,15 @@ class GlobeWindow:
         self._ready_q.put(key)
 
     def _tint(self, img, key):
-        """Dunkle Karte in der Farbe des Themas einfärben; Satellitenbilder bekommen einen warmen Gold-Schimmer,
-        damit die Karte zur goldenen Kugel im HUD passt."""
+        """Dunkle Karte in der Farbe des Themas einfärben; Satellitenbilder bekommen einen Teal-Schimmer,
+        damit die Karte zur Teal-Kugel im HUD passt."""
         hit = self._tinted.get(key)
         if hit is not None:
             return hit
         t = self.theme
         g = ImageOps.grayscale(img)
         if self.style != "Dunkel":
-            warm = ImageOps.colorize(g, black=(8, 4, 0), white=mix((255, 214, 150), t["tint"], 0.35))
+            warm = ImageOps.colorize(g, black=(8, 4, 0), white=mix((159, 225, 203), t["tint"], 0.35))
             out = Image.blend(img.convert("RGB"), warm, 0.38)
         else:
             g = g.point(lambda v: min(255, int(v * 2.4)))

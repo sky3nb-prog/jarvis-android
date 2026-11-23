@@ -1,5 +1,5 @@
 """
-HUD von Jarvis (Windows) im neuen Design: die goldene Daten-Kugel in der Mitte.
+HUD von Jarvis (Windows) im neuen Design: die Teal-Daten-Kugel in der Mitte.
 
 Zwei Modi (oben rechts umschalten, in den Einstellungen oder per Sprache "Fokus-Modus" / "Info-Modus"):
 - INFO:  Kugel mit blauen Ringen, links Zeit, Wetter und System, rechts Termine, Lage und Verlauf,
@@ -225,7 +225,7 @@ def make_info_background(W, H, sc, ox, oy, cyan, cards, cx, cy):
     m = Image.new("L", (W, H), 0)  # warmes Leuchten hinter der Kugel (wie im Vorschaubild)
     ImageDraw.Draw(m).ellipse((cx - S(300), cy - S(300), cx + S(300), cy + S(300)), fill=110)
     m = m.filter(ImageFilter.GaussianBlur(S(135)))
-    img = Image.composite(Image.new("RGB", (W, H), (70, 36, 0)), img, m)
+    img = Image.composite(Image.new("RGB", (W, H), (0, 70, 39)), img, m)
     d = ImageDraw.Draw(img)
     for (x0, y0, x1, y1) in cards:  # Kartenrahmen
         d.rounded_rectangle((x0, y0, x1, y1), radius=int(14 * sc), outline=tuple(int(c * 0.6) for c in cyan),
@@ -514,9 +514,9 @@ class HudWindow:
         if dark:  # Schwarz mit warmem Leuchten hinter Kugel (und Globus) wie in den Vorschaubildern
             c.configure(bg="#000000")
             self.win.configure(bg="#000000")
-            glows = [(self.cx, self.cy, (min(W, H) * 0.42) if fokus else S(240), (60, 28, 0), 125)]
+            glows = [(self.cx, self.cy, (min(W, H) * 0.42) if fokus else S(240), (0, 60, 31), 125)]
             if lage:
-                glows.append((X(1060), Y(470), S(300), (70, 30, 0), 95))
+                glows.append((X(1060), Y(470), S(300), (0, 70, 34), 95))
                 glows.append((X(230), Y(740), S(240), (0, 26, 44), 110))  # kühles Blau unten links (Karte)
                 glows.append((X(1060), Y(470), S(380), (0, 22, 38), 40))
             self._bg_img = make_dark_background(W, H, glows)  # bleibt für den Lage-Globus (wird daraufgerechnet)
@@ -567,17 +567,17 @@ class HudWindow:
         name = s_.get("assistant_name") or "V.E.C.T.O.R."
         if fokus:  # zweiter, ruhiger Ring wie im Vorschaubild
             r2 = D * 0.49
-            c.create_oval(self.cx - r2, self.cy - r2, self.cx + r2, self.cy + r2, outline="#7a4c10", width=1)
+            c.create_oval(self.cx - r2, self.cy - r2, self.cx + r2, self.cy + r2, outline="#107a51", width=1)
         if lage:
             ty = self.cy + D * 0.47
             c.create_text(self.cx, ty, text=name, fill=GOLD, font=self.f["head"])
-            self.t_state = c.create_text(self.cx, ty + S(22), text="", fill="#c89a58", font=self.f["tiny"])
-            self.t_say = c.create_text(X(800), Y(884), text="", fill="#ffe1b4", font=self.f["small"], width=int(S(900)))
+            self.t_state = c.create_text(self.cx, ty + S(22), text="", fill="#58c8a0", font=self.f["tiny"])
+            self.t_say = c.create_text(X(800), Y(884), text="", fill="#b4ffe5", font=self.f["small"], width=int(S(900)))
         elif fokus:
             ty = self.cy + D * 0.47 + S(10)
             c.create_text(self.cx, ty, text=name, fill=GOLD, font=self.f["name"])
-            self.t_state = c.create_text(self.cx, ty + S(30), text="", fill="#c89a58", font=self.f["small"])
-            self.t_say = c.create_text(self.cx, ty + S(62), text="", fill="#ffe1b4", font=self.f["say"],
+            self.t_state = c.create_text(self.cx, ty + S(30), text="", fill="#58c8a0", font=self.f["small"])
+            self.t_say = c.create_text(self.cx, ty + S(62), text="", fill="#b4ffe5", font=self.f["say"],
                                        width=int(W * 0.75), justify="center")
         else:
             c.create_text(X(800), Y(830), text=name, fill=GOLD, font=self.f["name"])
@@ -622,17 +622,17 @@ class HudWindow:
                 c.tag_bind(tag, "<Button-1>", lambda e, cmd=cmd: self.on_command(cmd))
             self._hand(tag)
         # Modus-Umschalter oben rechts: FOKUS · INFO · LAGE
-        accent = "#ffb446" if dark else CY
+        accent = "#46ffbd" if dark else CY
         mode_buttons = (("◉", "FOKUS", "fokus"), ("▦", "INFO", "info"), ("◍", "LAGE", "lage"))
         for i, (icon, label, mode) in enumerate(mode_buttons):
             on = mode == self.mode
             x1 = W - S(20) - (len(mode_buttons) - 1 - i) * S(118)
             x0, y0, y1 = x1 - S(108), (S(22) if dark else Y(38)), (S(22) if dark else Y(38)) + S(32)
             tag = f"mode_{mode}"
-            self._pill(x0, y0, x1, y1, ("#3a2608" if dark else "#0a3348") if on else ("#0c0c10" if dark else "#03101a"),
-                       accent if on else ("#46402c" if dark else CYD), tag)
+            self._pill(x0, y0, x1, y1, ("#083a28" if dark else "#0a3348") if on else ("#0c0c10" if dark else "#03101a"),
+                       accent if on else ("#2c4641" if dark else CYD), tag)
             c.create_text((x0 + x1) / 2, (y0 + y1) / 2, text=f"{icon}  {label}", font=self.f["small"],
-                          fill=accent if on else ("#968264" if dark else DIM), tags=tag)
+                          fill=accent if on else ("#649684" if dark else DIM), tags=tag)
             c.tag_bind(tag, "<Button-1>", lambda e, mode=mode: self.set_mode(mode))
             self._hand(tag)
         # (der alte "Oben"-Pfeil ist weg; "immer im Vordergrund" gibt es weiter in den Einstellungen)
@@ -732,7 +732,7 @@ class HudWindow:
             u = k / 60
             pts += [sx + (ex - sx) * u, sy + (ey - sy) * u - S(170) * math.sin(math.pi * u)]
         self.lg["trail"] = pts
-        self.lage_trail = c.create_line(*pts, fill="#6a4a18", width=max(1, int(S(2))), smooth=True, tags="lagegfx")
+        self.lage_trail = c.create_line(*pts, fill="#186a4e", width=max(1, int(S(2))), smooth=True, tags="lagegfx")
         self.lage_pulse = c.create_oval(0, 0, 0, 0, fill=gold, outline="", tags="lagegfx")
         self.lage_end = [c.create_oval(ex - r, ey - r, ex + r, ey + r, outline=col, width=2, tags="lagegfx")
                          for r, col in ((S(22), "#3cc8ff"), (S(14), gold), (S(7), gold))]
@@ -749,7 +749,7 @@ class HudWindow:
                 self.lage_brackets.append((k, sxn, syn, l1, l2))
         # große Zahl oben links
         self.lage_big = c.create_text(X(64), Y(64), text="", anchor="nw", fill=gold, font=self.f["big"])
-        self.lage_sub = c.create_text(X(66), Y(124), text="", anchor="nw", fill="#ffdcaa", font=self.f["head"])
+        self.lage_sub = c.create_text(X(66), Y(124), text="", anchor="nw", fill="#aaffe0", font=self.f["head"])
         self.lage_hint = c.create_text(X(66), Y(150), text="„Wie ist die Lage?“ – Vector fliegt die Orte ab · ziehen = drehen · Mausrad = zoomen",
                       anchor="nw", fill="#7fb3c8", font=self.f["small"])
         c.create_line(X(64), Y(176), X(330), Y(176), fill="#16506a", tags="lagegfx")
@@ -805,7 +805,7 @@ class HudWindow:
             x0 = x1 - S(38) * (2 - i)
             tag = f"lagezoom{i}"
             self._pill(x0, y1 - S(32), x0 + S(32), y1, "#06141e", "#16506a", ("lagezoom", tag))
-            c.create_text(x0 + S(16), y1 - S(16), text=label, fill="#ffd28c", font=self.f["head"], tags=("lagezoom", tag))
+            c.create_text(x0 + S(16), y1 - S(16), text=label, fill="#8cffd8", font=self.f["head"], tags=("lagezoom", tag))
             c.tag_bind(tag, "<Button-1>", lambda e, f=f: self._lage_zoom_to((self._zoom_goal or self.lage_zoom) * f))
             self._hand(tag)
         self.lage_zoomtxt = c.create_text(x1 - S(84), y1 - S(16), text="", anchor="e", fill="#7fb3c8",
@@ -900,10 +900,10 @@ class HudWindow:
             on = view == self.lage_view
             x0 = cx - w - S(4) + i * (w + S(8))
             tag = f"lagetog_{view}"
-            self._pill(x0, y0, x0 + w, y0 + S(30), "#3a2608" if on else "#06141e", "#ffb446" if on else "#16506a",
+            self._pill(x0, y0, x0 + w, y0 + S(30), "#083a28" if on else "#06141e", "#46ffbd" if on else "#16506a",
                        ("lagetog", tag))
             c.create_text(x0 + w / 2, y0 + S(15), text=label, font=self.f["small"],
-                          fill="#ffd28c" if on else "#7fb3c8", tags=("lagetog", tag))
+                          fill="#8cffd8" if on else "#7fb3c8", tags=("lagetog", tag))
             c.tag_bind(tag, "<Button-1>", lambda e, view=view: self.set_lage_view(view))
             self._hand(tag)
 
@@ -921,10 +921,10 @@ class HudWindow:
             if x + w > X(660):
                 x, y = X(64), y + S(36)
             tag = f"lagechip{i}"
-            self._pill(x, y, x + w, y + S(28), "#3a2608" if on else "#06141e", "#ffb446" if on else "#16506a",
+            self._pill(x, y, x + w, y + S(28), "#083a28" if on else "#06141e", "#46ffbd" if on else "#16506a",
                        ("lagechip", tag))
             c.create_text(x + w / 2, y + S(14), text=label, font=self.f["small"],
-                          fill="#ffd28c" if on else "#9cc8dc", tags=("lagechip", tag))
+                          fill="#8cffd8" if on else "#9cc8dc", tags=("lagechip", tag))
             c.tag_bind(tag, "<Button-1>", lambda e, place=place: self.show_place(place))
             self._hand(tag)
             x += w + S(8)
@@ -1218,7 +1218,7 @@ class HudWindow:
             c.create_rectangle(*box, fill="#030c14", outline=col, width=1, tags=("lagegeo", tag))
             c.create_line(box[0], box[1], box[0], box[3], fill=col, width=max(2, int(S(3))), tags=("lagegeo", tag))
             c.create_text((box[0] + box[2]) / 2 + S(1), (box[1] + box[3]) / 2, text=name, anchor="center",
-                          fill="#ffffff" if sel else "#ffe6c4", font=self.f["label"], tags=("lagegeo", tag))
+                          fill="#ffffff" if sel else "#c4ffe9", font=self.f["label"], tags=("lagegeo", tag))
         self._lage_card()
         self._raise_top()
 
@@ -1271,7 +1271,7 @@ class HudWindow:
             return
         x0, y0, x1 = X(60), Y(600), X(440)
         pad = S(16)
-        col = "#6effcd" if q.get("art") == "lokal" else "#ff9c3c"
+        col = "#6effcd" if q.get("art") == "lokal" else self.colors["gold"]
         y = y0 + S(14)
         items = [c.create_text(x0 + pad, y, text=(q.get("titel") or "").upper() + " · " + (q.get("ort") or "").upper(),
                                anchor="nw", fill=col, font=self.f["head"], width=int(x1 - x0 - 2 * pad), tags="lagecard")]
@@ -1285,7 +1285,7 @@ class HudWindow:
             bb = c.bbox(items[-1])
             y = (bb[3] if bb else y + S(20)) + S(6)
         if q.get("link"):
-            items.append(c.create_text(x0 + pad, y + S(4), text="Artikel öffnen  ↗", anchor="nw", fill="#ffd28c",
+            items.append(c.create_text(x0 + pad, y + S(4), text="Artikel öffnen  ↗", anchor="nw", fill="#8cffd8",
                                        font=self.f["small"], tags=("lagecard", "lagelink")))
             import webbrowser
 

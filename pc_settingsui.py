@@ -125,9 +125,9 @@ def apply_style(top):
     st.configure("J.TButton", background=FIELD, foreground=FG, bordercolor=LINE, lightcolor=FIELD, darkcolor=FIELD,
                  padding=(14, 6), font=("Segoe UI", 10))
     st.map("J.TButton", background=[("active", "#0d3a52")], bordercolor=[("active", ACC)])
-    st.configure("Go.TButton", background="#3a2a0c", foreground=GOLD, bordercolor=GOLD, lightcolor="#3a2a0c",
-                 darkcolor="#3a2a0c", padding=(20, 6), font=("Segoe UI Semibold", 10))
-    st.map("Go.TButton", background=[("active", "#4d3810")])
+    st.configure("Go.TButton", background="#0c3a2c", foreground=GOLD, bordercolor=GOLD, lightcolor="#0c3a2c",
+                 darkcolor="#0c3a2c", padding=(20, 6), font=("Segoe UI Semibold", 10))
+    st.map("Go.TButton", background=[("active", "#104d3b")])
     st.configure("J.TNotebook", background=BG, borderwidth=0)
     st.configure("J.TNotebook.Tab", background=FIELD, foreground=FG, padding=(14, 6), borderwidth=0)
     st.map("J.TNotebook.Tab", background=[("selected", "#0a5675")], foreground=[("selected", "white")])

@@ -7,14 +7,14 @@
   const $ = (id) => document.getElementById(id);
   const css = document.createElement("style");
   css.textContent = `
-  #konto-ov{position:fixed;inset:0;z-index:9000;background:rgba(2,5,8,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#f3e6c8}
-  #konto-ov .ko-card{width:430px;max-width:92vw;padding:30px 30px 22px;border-radius:24px;border:1px solid rgba(255,180,60,.45);background:radial-gradient(120% 90% at 50% 0%,#2a1c06 0%,#070b0f 65%);display:flex;flex-direction:column;align-items:center}
-  #konto-ov .ko-orb{width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#fff6d8 0%,#ffcf6a 30%,#d68a10 60%,rgba(120,60,0,0) 72%);box-shadow:0 0 50px rgba(255,180,60,.5);margin-bottom:14px}
-  #konto-ov h1{margin:0;font-size:19px;letter-spacing:4px;color:#ffd678}
-  #konto-ov p{margin:8px 0 18px;color:#b9a77f;font-size:13.5px;text-align:center;line-height:1.45}
-  #konto-ov input{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid #5a4318;background:#0d1217;color:#f3e6c8;font-size:15px;margin-bottom:10px}
+  #konto-ov{position:fixed;inset:0;z-index:9000;background:rgba(2,5,8,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#c8f3e8}
+  #konto-ov .ko-card{width:430px;max-width:92vw;padding:30px 30px 22px;border-radius:24px;border:1px solid rgba(60, 255, 190,.45);background:radial-gradient(120% 90% at 50% 0%,#062a1e 0%,#070b0f 65%);display:flex;flex-direction:column;align-items:center}
+  #konto-ov .ko-orb{width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#d8fff8 0%,#9fe1cb 30%,#10d694 60%,rgba(0, 120, 66,0) 72%);box-shadow:0 0 50px rgba(60, 255, 190,.5);margin-bottom:14px}
+  #konto-ov h1{margin:0;font-size:19px;letter-spacing:4px;color:#9fe1cb}
+  #konto-ov p{margin:8px 0 18px;color:#7fb9aa;font-size:13.5px;text-align:center;line-height:1.45}
+  #konto-ov input{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid #185a46;background:#0d1217;color:#c8f3e8;font-size:15px;margin-bottom:10px}
   #konto-ov .ko-row{display:flex;gap:10px;width:100%}
-  #konto-ov button{flex:1;padding:12px;border-radius:12px;border:1px solid #ffb43c;background:linear-gradient(#3a2608,#1d1405);color:#ffd678;font-weight:700;font-size:14px;cursor:pointer}
+  #konto-ov button{flex:1;padding:12px;border-radius:12px;border:1px solid #1d9e75;background:linear-gradient(#083a28,#051d15);color:#9fe1cb;font-weight:700;font-size:14px;cursor:pointer}
   #konto-ov button.alt{border-color:#3a4a55;background:#0d1217;color:#cfd8dd;font-weight:600}
   #konto-ov .ko-msg{min-height:20px;font-size:13px;color:#ff9a8a;text-align:center;margin:2px 0 8px}
   #konto-ov .ko-msg.ok{color:#6effcd}

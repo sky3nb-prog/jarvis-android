@@ -152,7 +152,7 @@
       g.globalCompositeOperation = "lighter";
       for (let i = 0; i < hot.length; i++) for (let j = i + 1; j < hot.length; j++) {
         const a = hot[i].p, b = hot[j].p, al = Math.min(hot[i].r.hot, hot[j].r.hot) * .5 * pw;
-        g.strokeStyle = `rgba(255,210,130,${al})`; g.lineWidth = 1.2 * d; g.beginPath(); g.moveTo(a.x, a.y);
+        g.strokeStyle = `rgba(130, 255, 216,${al})`; g.lineWidth = 1.2 * d; g.beginPath(); g.moveTo(a.x, a.y);
         g.quadraticCurveTo(core.x + (a.y - b.y) * .2, core.y + (b.x - a.x) * .2, b.x, b.y); g.stroke();
       }
       // Impulse von aktiven Regionen zum Kern
@@ -162,7 +162,7 @@
         const a = proj(sp.r.v, sp.r.rad), u = sp.u, mx = (a.x + core.x) / 2 + (core.y - a.y) * sp.bend, my = (a.y + core.y) / 2 + (a.x - core.x) * sp.bend;
         const k = 1 - u, x = k * k * a.x + 2 * k * u * mx + u * u * core.x, y = k * k * a.y + 2 * k * u * my + u * u * core.y;
         const rr = 6 * d, gr = g.createRadialGradient(x, y, 0, x, y, rr);
-        gr.addColorStop(0, `rgba(255,245,215,${.9 * pw})`); gr.addColorStop(1, "rgba(255,190,90,0)");
+        gr.addColorStop(0, `rgba(215, 255, 247,${.9 * pw})`); gr.addColorStop(1, "rgba(90, 255, 198,0)");
         g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2);
       }
       this.sparks = this.sparks.filter((sp) => sp.u < 1);
@@ -172,13 +172,13 @@
         const alpha = (.3 + .32 * depth) * (.35 + .65 * pw) + h * .8;
         if (h > .02) {
           const gl = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 1.8);
-          gl.addColorStop(0, `rgba(255,190,80,${.55 * h * pw})`); gl.addColorStop(1, "rgba(255,150,30,0)");
+          gl.addColorStop(0, `rgba(80, 255, 199,${.55 * h * pw})`); gl.addColorStop(1, "rgba(30, 255, 161,0)");
           g.globalCompositeOperation = "lighter"; g.fillStyle = gl; g.fillRect(p.x - size * 1.8, p.y - size * 1.8, size * 3.6, size * 3.6);
         }
         g.globalCompositeOperation = "source-over";
         // dunkle Scheibe dahinter, damit man das Symbol vor dem hellen Kern erkennt
-        g.fillStyle = `rgba(14,8,2,${(.35 + .45 * h) * Math.min(1, alpha)})`; g.beginPath(); g.arc(p.x, p.y, size * .72, 0, 7); g.fill();
-        if (h > .05) { g.strokeStyle = `rgba(255,214,140,${.8 * h})`; g.lineWidth = 1.2 * d; g.beginPath(); g.arc(p.x, p.y, size * .72, 0, 7); g.stroke(); }
+        g.fillStyle = `rgba(2, 14, 9,${(.35 + .45 * h) * Math.min(1, alpha)})`; g.beginPath(); g.arc(p.x, p.y, size * .72, 0, 7); g.fill();
+        if (h > .05) { g.strokeStyle = `rgba(140, 255, 220,${.8 * h})`; g.lineWidth = 1.2 * d; g.beginPath(); g.arc(p.x, p.y, size * .72, 0, 7); g.stroke(); }
         const col = pw > .5 ? (h > .05 ? "255,236,190" : "255,200,110") : "190,195,205";
         g.strokeStyle = g.fillStyle = `rgba(${col},${Math.min(1, alpha)})`;
         g.save(); g.translate(p.x, p.y);

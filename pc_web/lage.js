@@ -6,8 +6,8 @@
   const TGT = document.getElementById("ltgt"), TGK = document.getElementById("ltgk"), TGN = document.getElementById("ltgn");
   const A = window.Android || null;
   const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
-  const COL = { konflikt: "#ff5a4a", politik: "#3cc8ff", wirtschaft: "#6effcd", katastrophe: "#ff9a3c", wetter: "#9ad8ff",
-    gesellschaft: "#d7a8ff", sport: "#8cff8c", wissenschaft: "#7af0ff", lokal: "#ffd678" };
+  const COL = { konflikt: "#ff5a4a", politik: "#3cc8ff", wirtschaft: "#6effcd", katastrophe: "#3cffa4", wetter: "#9ad8ff",
+    gesellschaft: "#d7a8ff", sport: "#8cff8c", wissenschaft: "#7af0ff", lokal: "#9fe1cb" };
   const ZOOM = { punkt: 17, strasse: 16, stadtteil: 14.2, stadt: 11.5, region: 8, land: 5 };
   let P = {}, lastTouch = 0, touring = false, orb = null, cur = -1, homeMk = null, hereMk = null, cluster = null;
   let map = null, data = null, mode = "welt", markers = [], mini = null, place = "";
@@ -45,27 +45,27 @@
   const VP = { "text-pitch-alignment": "viewport", "text-rotation-alignment": "viewport" };
   const LABELS = [
     { id: "border", type: "line", source: "ofm", "source-layer": "boundary", filter: ["all", ["<=", ["get", "admin_level"], 4], ["!=", ["get", "maritime"], 1]],
-      paint: { "line-color": "rgba(255,214,140,.5)", "line-width": ["interpolate", ["linear"], ["zoom"], 1, .6, 6, 1.2], "line-dasharray": [3, 2] } },
+      paint: { "line-color": "rgba(140, 255, 220,.5)", "line-width": ["interpolate", ["linear"], ["zoom"], 1, .6, 6, 1.2], "line-dasharray": [3, 2] } },
     { id: "roads", type: "line", source: "ofm", "source-layer": "transportation", minzoom: 10, filter: ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary"]]],
-      paint: { "line-color": ["match", ["get", "class"], "motorway", "rgba(255,190,90,.55)", "trunk", "rgba(255,200,110,.45)", "rgba(255,255,255,.28)"],
+      paint: { "line-color": ["match", ["get", "class"], "motorway", "rgba(90, 255, 198,.55)", "trunk", "rgba(110, 255, 207,.45)", "rgba(255,255,255,.28)"],
         "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 10, .6, 14, 2.2, 18, 8], "line-blur": .5 } },
     { id: "road-names", type: "symbol", source: "ofm", "source-layer": "transportation_name", minzoom: 14,
       layout: { "symbol-placement": "line", "text-field": NAME, "text-font": ["Noto Sans Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10, 18, 13],
         "text-keep-upright": true, "text-rotation-alignment": "map", "text-pitch-alignment": "viewport", "text-max-angle": 30 },
-      paint: { "text-color": "#f4ecdc", ...HALO } },
+      paint: { "text-color": "#dcf4ed", ...HALO } },
     { id: "poi", type: "symbol", source: "ofm", "source-layer": "poi", minzoom: 15.5, filter: ["<=", ["get", "rank"], 12],
       layout: { "text-field": NAME, "text-font": ["Noto Sans Regular"], "text-size": 11, "text-anchor": "top", "text-offset": [0, .4], "text-max-width": 8, ...VP },
-      paint: { "text-color": "#ffe2b0", ...HALO } },
+      paint: { "text-color": "#b0ffe6", ...HALO } },
     { id: "places", type: "symbol", source: "ofm", "source-layer": "place", filter: ["in", ["get", "class"], ["literal", ["city", "town", "village", "suburb", "neighbourhood"]]],
       layout: { "text-field": NAME, "text-font": ["match", ["get", "class"], ["city", "town"], ["literal", ["Noto Sans Bold"]], ["literal", ["Noto Sans Regular"]]],
         "text-size": ["interpolate", ["linear"], ["zoom"], 4, ["match", ["get", "class"], "city", 11, "town", 9, 8], 10, ["match", ["get", "class"], "city", 17, "town", 13, 10], 15, ["match", ["get", "class"], "city", 19, "town", 16, 13]],
         "text-transform": ["match", ["get", "class"], ["city", "town"], "uppercase", "none"], "text-letter-spacing": ["match", ["get", "class"], ["city", "town"], .12, 0],
         "text-max-width": 9, "symbol-sort-key": ["get", "rank"], ...VP },
-      paint: { "text-color": ["match", ["get", "class"], ["city", "town"], "#ffd678", "#ffffff"], ...HALO, "text-halo-width": 1.6 } },
+      paint: { "text-color": ["match", ["get", "class"], ["city", "town"], "#9fe1cb", "#ffffff"], ...HALO, "text-halo-width": 1.6 } },
     { id: "countries", type: "symbol", source: "ofm", "source-layer": "place", maxzoom: 7, filter: ["all", ["==", ["get", "class"], "country"], ["<=", ["get", "rank"], ["step", ["zoom"], 1, 1.6, 2, 2.4, 3, 3.5, 6]]],
       layout: { "text-field": NAME, "text-font": ["Noto Sans Bold"], "text-size": ["interpolate", ["linear"], ["zoom"], 1, 9, 5, 14], "text-transform": "uppercase",
         "text-letter-spacing": .2, "text-max-width": 7, ...VP },
-      paint: { "text-color": "rgba(255,236,200,.9)", ...HALO } },
+      paint: { "text-color": "rgba(200, 255, 239,.9)", ...HALO } },
   ];
   const LABEL_IDS = ["road-names", "poi", "places", "countries"];
 
@@ -274,7 +274,7 @@
 
   // ---------- Echte Satelliten (Bahndaten von CelesTrak, berechnet mit SGP4) ----------
   const SAT_NAMES = { 25544: "ISS", 48274: "TIANGONG", 20580: "HUBBLE", 40697: "SENTINEL-2A", 43013: "NOAA-20" };
-  const SAT_COL = { 25544: "#ffe2a0", 48274: "#ffb46a", 20580: "#9fd8ff", 40697: "#8fffd0", 43013: "#c8b0ff" };
+  const SAT_COL = { 25544: "#a0ffe7", 48274: "#6affbb", 20580: "#9fd8ff", 40697: "#8fffd0", 43013: "#c8b0ff" };
   let sats = [];
   function loadTle(txt) {
     if (!window.satellite) return;
@@ -322,9 +322,9 @@
       const q = geo(s.rec, new Date(now)); if (!q) continue;
       const p = scr(q); if (!p.vis) continue;
       g.globalAlpha = fade;
-      g.fillStyle = "#fff6dc"; g.shadowColor = s.col; g.shadowBlur = 12; g.beginPath(); g.arc(p.x, p.y, 3, 0, 7); g.fill(); g.shadowBlur = 0;
+      g.fillStyle = "#dcfff8"; g.shadowColor = s.col; g.shadowBlur = 12; g.beginPath(); g.arc(p.x, p.y, 3, 0, 7); g.fill(); g.shadowBlur = 0;
       g.font = "600 9px monospace"; g.fillStyle = s.col; g.fillText(s.name, p.x + 6, p.y - 5);
-      g.font = "500 8px monospace"; g.fillStyle = "rgba(255,230,190,.65)"; g.fillText(Math.round(q.h) + " km", p.x + 6, p.y + 5);
+      g.font = "500 8px monospace"; g.fillStyle = "rgba(190, 255, 233,.65)"; g.fillText(Math.round(q.h) + " km", p.x + 6, p.y + 5);
     }
     g.globalAlpha = 1;
   }

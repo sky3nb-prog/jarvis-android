@@ -21,7 +21,7 @@
     for (let y = -s; y < H + s; y += s * .866) for (let x = (Math.round(y / (s * .866)) % 2) * s / 2 - s; x < W + s; x += s) {
       const d = Math.hypot(x - cx, y - cy); if (d > reveal) continue;
       const a = Math.max(0, .09 - d / Math.hypot(W, H) * .1) * (1 - Math.max(0, d - reveal + 120) / 120);
-      if (a <= 0) continue; g.strokeStyle = `rgba(255,170,40,${a})`; g.beginPath();
+      if (a <= 0) continue; g.strokeStyle = `rgba(29, 158, 117,${a})`; g.beginPath();
       for (let k = 0; k < 6; k++) { const an = Math.PI / 3 * k + Math.PI / 6; const px = x + Math.cos(an) * s * .5, py = y + Math.sin(an) * s * .5; k ? g.lineTo(px, py) : g.moveTo(px, py); }
       g.closePath(); g.stroke();
     }
@@ -32,12 +32,12 @@
       const x1 = cx + Math.cos(l.a) * (r1 + Math.max(W, H) * .5 * grow * .0), y1 = cy + Math.sin(l.a) * r1;
       const xe = cx + Math.cos(l.a) * Math.max(W, H), ye = cy + Math.sin(l.a) * Math.max(W, H);
       const bend = Math.sin(t * l.sp + l.ph) * 40;
-      g.strokeStyle = `rgba(255,190,90,${.09 * grow})`; g.lineWidth = l.w * 3; g.beginPath(); g.moveTo(xe, ye);
+      g.strokeStyle = `rgba(90, 255, 198,${.09 * grow})`; g.lineWidth = l.w * 3; g.beginPath(); g.moveTo(xe, ye);
       g.quadraticCurveTo((xe + x1) / 2 + bend, (ye + y1) / 2 - bend, cx + Math.cos(l.a) * r2, cy + Math.sin(l.a) * r2); g.stroke();
-      g.strokeStyle = `rgba(255,214,120,${.38 * grow})`; g.lineWidth = l.w; g.stroke();
+      g.strokeStyle = `rgba(159, 225, 203,${.38 * grow})`; g.lineWidth = l.w; g.stroke();
       const u = ((t * l.sp * .5 + l.ph) % 1); // Impuls Richtung Kugel
       const px = xe + (cx + Math.cos(l.a) * r2 - xe) * u, py = ye + (cy + Math.sin(l.a) * r2 - ye) * u;
-      const gr = g.createRadialGradient(px, py, 0, px, py, 8); gr.addColorStop(0, `rgba(255,240,200,${.9 * grow})`); gr.addColorStop(1, "rgba(255,200,110,0)");
+      const gr = g.createRadialGradient(px, py, 0, px, py, 8); gr.addColorStop(0, `rgba(200, 255, 243,${.9 * grow})`); gr.addColorStop(1, "rgba(110, 255, 207,0)");
       g.fillStyle = gr; g.fillRect(px - 8, py - 8, 16, 16);
     }
     g.globalCompositeOperation = "source-over";

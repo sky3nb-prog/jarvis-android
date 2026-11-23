@@ -813,7 +813,7 @@ class WebHud:
         return True
 
     def _color_caption(self):
-        """Titelleiste des Edge-Fensters (mit dem X) in den HUD-Farben: fast schwarz mit goldener Schrift und goldenem Rand."""
+        """Titelleiste des Edge-Fensters (mit dem X) in den HUD-Farben: fast schwarz mit Teal-Schrift und Teal-Rand."""
         for _ in range(60):   # das Fenster braucht ein paar Sekunden
             time.sleep(0.25)
             h = self._hwnd()

@@ -37,7 +37,7 @@ def _hwnd():
 
 
 def _style_window():
-    """Titelleiste dunkel mit goldener Schrift, Taskleisten-Kennung von Jarvis."""
+    """Titelleiste dunkel mit Teal-Schrift, Taskleisten-Kennung von Jarvis."""
     h = None
     for _ in range(80):
         h = _hwnd()

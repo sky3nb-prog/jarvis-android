@@ -43,7 +43,7 @@
           background:radial-gradient(circle,#0b0f13 0 34%,transparent 35%),conic-gradient(from 90deg,red,#ff0,lime,cyan,blue,#f0f,red)}
         #jfarbe .knob{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.6);pointer-events:none}
         #jfarbe .prev{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;box-shadow:0 0 30px currentColor}
-        #jfarbe label{display:block;text-align:left;font-size:12.5px;color:#a8a294;margin:16px 0 4px}
+        #jfarbe label{display:block;text-align:left;font-size:12.5px;color:#94a8a3;margin:16px 0 4px}
         #jfarbe input[type=range]{width:100%;accent-color:#fff}
         #jfarbe .row{display:flex;gap:10px;margin-top:18px}
         #jfarbe button{flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#141a20;color:#e8e4da;font:inherit;font-size:14px;cursor:pointer}

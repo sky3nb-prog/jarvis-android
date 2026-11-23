@@ -1,7 +1,7 @@
 """
 Globus für den Lage-Modus im HUD – eine Kugel, zwei Ansichten:
 
-  GLOBUS   = Hologramm: dunkle Kugel, goldene Küstenlinien, Land aus leuchtenden Punkten, Gradnetz, Atmosphäre
+  GLOBUS   = Hologramm: dunkle Kugel, Teal-Küstenlinien, Land aus leuchtenden Punkten, Gradnetz, Atmosphäre
   SATELLIT = dieselbe Kugel mit echtem Satellitenbild (Blue Marble der NASA), blau schimmernde Atmosphäre
 
 Beide werden pro Bildpunkt mit numpy gerechnet (kein Zeichnen von tausenden Linien) – schnell genug für flüssige
@@ -417,8 +417,8 @@ def _grid(lat, lon, px_per_deg, step=15.0):
     return np.clip(1.0 - np.minimum(dl, dn), 0, 1)
 
 
-def render(size: int, lat0: float, lon0: float, color=(255, 166, 36), hot=(255, 214, 120),
-           glow=(255, 110, 20), quality: bool = True, sea=(40, 150, 235), zoom: float = 1.0,
+def render(size: int, lat0: float, lon0: float, color=(29, 158, 117), hot=(159, 225, 203),
+           glow=(20, 255, 122), quality: bool = True, sea=(40, 150, 235), zoom: float = 1.0,
            style: str = "globus", scale: float = 0.5) -> Image.Image:
     """Der Globus als Bild (RGB auf Schwarz). Radius = 0.42 * size * zoom. style: "globus" oder "satellit".
     quality=False: schnelle Vorschau in kleinerer Auflösung (scale), dann hochgerechnet."""
@@ -483,7 +483,7 @@ def render_flat(S, lat0, lon0, color, zoom, style):
                     lab.paste(tl.convert("RGBA"), ((tx - tx0) * 256, (ty - ty0) * 256))
     box = (x0 - tx0 * 256, y0 - ty0 * 256, x1 - tx0 * 256, y1 - ty0 * 256)
     img = base.resize((S, S), Image.BILINEAR, box=box)
-    if style != "satellit":  # dunkle Karte in Gold einfärben (Straßen leuchten)
+    if style != "satellit":  # dunkle Karte in Teal einfärben (Straßen leuchten)
         a = np.asarray(img, np.float32).mean(axis=2, keepdims=True)
         street = np.clip((a - 14.0) * 3.2, 0, 255) / 255.0
         img = Image.fromarray(np.clip(np.array((3, 10, 18), np.float32) + np.array(color, np.float32) * street * 1.05,
@@ -526,7 +526,7 @@ def render_core(S, lat0, lon0, color, hot, glow, sea, zoom, style, hq):
                 day = 1.0 - (1.0 - _daylight(lat, lon)[:, None]) * min(1.0, (3.0 - zoom) / 1.5)
                 nt = night_texture()
                 lights = _sample(nt, lat, lon, False)[:, None] if nt is not None else 0.0
-                col = col * (0.10 + 0.90 * day) + np.array((255, 196, 110), np.float32) * lights * (1 - day) * 0.95
+                col = col * (0.10 + 0.90 * day) + np.array((110, 255, 203), np.float32) * lights * (1 - day) * 0.95
             col = col * (1 - limb * 0.75) + np.array((70, 150, 255), np.float32) * limb * 1.05  # Atmosphäre am Rand
             gr = _grid(lat, lon, px_deg, 30.0)[:, None] * (0.10 if zoom < 2.5 else 0.0)
             col += np.array(color, np.float32) * gr
@@ -566,17 +566,17 @@ def render_core(S, lat0, lon0, color, hot, glow, sea, zoom, style, hq):
             col = col + (colv * 0.55 + hotv * 0.30)[None, :] * (dots * 0.95)[:, None] * shade   # leuchtende Landpunkte
             sea_dots = soft * (~land) * 0.12
             col = col + np.array(sea, np.float32)[None, :] * sea_dots[:, None] * shade
-            col = col + np.array((255, 205, 120), np.float32)[None, :] * (cst * 0.95)[:, None] * (0.45 + 0.55 * Z)[:, None]
+            col = col + np.array((120, 255, 212), np.float32)[None, :] * (cst * 0.95)[:, None] * (0.45 + 0.55 * Z)[:, None]
             gr = _grid(lat, lon, px_deg, 15.0 if zoom < 3 else 5.0)
             col = col + colv * (gr * 0.30)[:, None] * shade
-            if SUN and zoom < 3.0:  # Nachtseite dunkler, Städte leuchten golden
+            if SUN and zoom < 3.0:  # Nachtseite dunkler, Städte leuchten in Teal
                 day = 1.0 - (1.0 - _daylight(lat, lon)[:, None]) * min(1.0, (3.0 - zoom) / 1.5)
                 nt = night_texture()
                 col = col * (0.22 + 0.78 * day)
                 if nt is not None:
                     col = col + hotv[None, :] * _sample(nt, lat, lon, False)[:, None] * (1 - day) * 1.2
             col = col + np.array(glow, np.float32) * limb * 0.55  # glühender Rand
-            if L >= 6:  # nah dran: Straßenkarte in Gold (dunkle Karte, eingefärbt) mit Ortsnamen
+            if L >= 6:  # nah dran: Straßenkarte in Teal (dunkle Karte, eingefärbt) mit Ortsnamen
                 tc, ok = _tile_sample("Dunkel", "base", lat, lon, min(L, 18))
                 if ok.any():
                     lum = tc.mean(axis=1, keepdims=True)
@@ -586,7 +586,7 @@ def render_core(S, lat0, lon0, color, hot, glow, sea, zoom, style, hq):
                     col[ok] = col[ok] * (1 - mix) + tinted[ok] * mix
                 lc, okl = _tile_sample("Dunkel", "labels", lat, lon, min(L, 18))
                 al = (lc[:, 3:4] / 255.0) * okl[:, None]
-                col = col * (1 - al) + np.array((255, 236, 200), np.float32) * al
+                col = col * (1 - al) + np.array((200, 255, 239), np.float32) * al
             out[idx] = col * g["aa"]
     img = out.reshape(S, S, 3)
     if zoom > 1.15:  # nah dran: Ränder weich ausblenden, damit kein hartes Rechteck entsteht
@@ -611,7 +611,7 @@ def _vignette(S):
     return v
 
 
-def wipe(a: Image.Image, b: Image.Image, t: float, line=(255, 210, 120)) -> Image.Image:
+def wipe(a: Image.Image, b: Image.Image, t: float, line=(120, 255, 217)) -> Image.Image:
     """Übergang Globus <-> Satellit: eine leuchtende Abtastlinie läuft von oben nach unten (t = 0..1)."""
     A = np.asarray(a, np.float32)
     B = np.asarray(b, np.float32)

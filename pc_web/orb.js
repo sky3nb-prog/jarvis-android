@@ -111,10 +111,10 @@
         const tg = t.branch ? Math.max(0, (grow - t.at * .8) / .3) : grow;   // Abzweige wachsen nach dem Hauptstrang
         if (tg <= 0) continue;
         const upto = t.len * Math.min(1, tg);
-        g.strokeStyle = "rgba(255,170,40,.18)"; g.lineWidth = t.w * 4; drawPath(t.pts, upto); g.stroke();
-        g.strokeStyle = "rgba(255,214,120,.85)"; g.lineWidth = t.w; const tip = drawPath(t.pts, upto); g.stroke();
+        g.strokeStyle = "rgba(29, 158, 117,.18)"; g.lineWidth = t.w * 4; drawPath(t.pts, upto); g.stroke();
+        g.strokeStyle = "rgba(159, 225, 203,.85)"; g.lineWidth = t.w; const tip = drawPath(t.pts, upto); g.stroke();
         if (tg < 1 && !t.branch) {   // glühende Spitze, solange er wächst
-          g.fillStyle = "#fff3c8"; g.shadowColor = "#ffaa28"; g.shadowBlur = 14; g.beginPath(); g.arc(tip[0], tip[1], 2.6, 0, 7); g.fill(); g.shadowBlur = 0;
+          g.fillStyle = "#c8fff6"; g.shadowColor = "#1d9e75"; g.shadowBlur = 14; g.beginPath(); g.arc(tip[0], tip[1], 2.6, 0, 7); g.fill(); g.shadowBlur = 0;
         }
       }
       // Lichtimpulse, schneller wenn er spricht
@@ -124,12 +124,12 @@
       }
       for (const p of pulses) {
         p.at += p.v * dt; const [x, y] = pointAt(p.t.pts, Math.min(p.at, p.t.len));
-        g.fillStyle = "rgba(255,240,200," + (grow * .9) + ")"; g.shadowColor = "#ffaa28"; g.shadowBlur = 10; g.beginPath(); g.arc(x, y, 1.8, 0, 7); g.fill(); g.shadowBlur = 0;
+        g.fillStyle = "rgba(200, 255, 243," + (grow * .9) + ")"; g.shadowColor = "#1d9e75"; g.shadowBlur = 10; g.beginPath(); g.arc(x, y, 1.8, 0, 7); g.fill(); g.shadowBlur = 0;
       }
       pulses = pulses.filter((p) => p.at < p.t.len);
       // Knoten im Eck
       const cx = R ? W - 4 : 4, cy = B ? H - 4 : 4;
-      g.fillStyle = "rgba(255,214,120," + grow + ")"; g.beginPath(); g.arc(cx + (R ? -6 : 6), cy + (B ? -6 : 6), 3, 0, 7); g.fill();
+      g.fillStyle = "rgba(159, 225, 203," + grow + ")"; g.beginPath(); g.arc(cx + (R ? -6 : 6), cy + (B ? -6 : 6), 3, 0, 7); g.fill();
     }
     orb.classList.toggle("on", grow > .45);
     if (grow < .2) pill.classList.remove("on"); else if (grow > .8 && (state !== "idle" || txt.textContent)) pill.classList.add("on");

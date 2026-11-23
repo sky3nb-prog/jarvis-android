@@ -10,10 +10,10 @@
 
   // Arten: Symbol, Farbe, Filter
   const KIND = {
-    fahrt: ["🚲", "#0b2a3c", "fahrt"], heimweg: ["🏠", "#3a2608", "fahrt"], ankunft: ["💬", "#0b2a22", "fahrt"],
-    morgen: ["☀️", "#1f1430", "brief"], abend: ["🌙", "#1f1430", "brief"], woche: ["📊", "#2a1a05", "brief"],
-    anruf: ["📞", "#2a1306", "anruf"], erinnerung: ["📌", "#2a1a05", "brief"], test: ["🧪", "#0b2a3c", "fahrt"],
-    vorschau: ["🗓️", "#0b2a3c", "brief"], wecker: ["⏰", "#2a1a05", "brief"], bilanz: ["❤️", "#2a0f18", "brief"],
+    fahrt: ["🚲", "#0b2a3c", "fahrt"], heimweg: ["🏠", "#083a28", "fahrt"], ankunft: ["💬", "#0b2a22", "fahrt"],
+    morgen: ["☀️", "#1f1430", "brief"], abend: ["🌙", "#1f1430", "brief"], woche: ["📊", "#052a1c", "brief"],
+    anruf: ["📞", "#062a15", "anruf"], erinnerung: ["📌", "#052a1c", "brief"], test: ["🧪", "#0b2a3c", "fahrt"],
+    vorschau: ["🗓️", "#0b2a3c", "brief"], wecker: ["⏰", "#052a1c", "brief"], bilanz: ["❤️", "#2a0f18", "brief"],
   };
   const FILTERS = [["alle", "Alle"], ["fahrt", "Fahrten"], ["brief", "Updates"], ["anruf", "Anrufe"]];
   let filter = "alle", stack = [];

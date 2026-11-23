@@ -282,7 +282,7 @@ def wrap_text(font: tkfont.Font, text: str, maxw: int, max_lines: int):
 
 
 def gold_pill(w: int, h: int, radius: int, border: int) -> Image.Image:
-    """Dunkles Textfeld mit goldenem Rand (wie am Handy)."""
+    """Dunkles Textfeld mit Teal-Rand (wie am Handy)."""
     ss = 3
     W, H, r, b = w * ss, h * ss, radius * ss, border * ss
     outer = Image.new("L", (W, H), 0)
@@ -290,13 +290,13 @@ def gold_pill(w: int, h: int, radius: int, border: int) -> Image.Image:
     inner = Image.new("L", (W, H), 0)
     ImageDraw.Draw(inner).rounded_rectangle((b, b, W - 1 - b, H - 1 - b), radius=max(0, r - b), fill=255)
     img = Image.new("RGB", (W, H), KEY_RGB)
-    img.paste(Image.new("RGB", (W, H), (16, 11, 4)), (0, 0), outer)
-    img.paste(Image.new("RGB", (W, H), (190, 128, 40)), (0, 0), ImageChops.subtract(outer, inner))
+    img.paste(Image.new("RGB", (W, H), (6, 46, 32)), (0, 0), outer)
+    img.paste(Image.new("RGB", (W, H), (46, 200, 152)), (0, 0), ImageChops.subtract(outer, inner))
     return img.resize((w, h), Image.LANCZOS)
 
 
 class EdgeGlow:
-    """Goldener Schein am Bildschirmrand (Klicks gehen durch)."""
+    """Teal-Schein am Bildschirmrand (Klicks gehen durch)."""
 
     def __init__(self, root: tk.Tk, k: float):
         self.root, self.k = root, k
@@ -353,7 +353,7 @@ class EdgeGlow:
 
 # --- Kleiner Kreis oben links ------------------------------------------------------
 class NewSphere:
-    """Die neue goldene 3D-Kugel (wie im HUD/am Handy) als fertige Bilder aus pc_web/orb_frames/kugel.png (100 Bilder, nahtlos).
+    """Die neue Teal-3D-Kugel (wie im HUD/am Handy) als fertige Bilder aus pc_web/orb_frames/kugel.png (100 Bilder, nahtlos).
     Wird einmal pro Größe vorbereitet (fertige Tk-Bilder) – danach kostet jedes Bild fast nichts."""
 
     def __init__(self):
@@ -391,7 +391,7 @@ class NewSphere:
 
 
 class StrandOverlay:
-    """Goldener Nervenstrang wie im HUD-Hintergrund: geschwungene Leiterbahnen wachsen beim Aufwachen aus dem Bildschirm-Eck
+    """Teal-Nervenstrang wie im HUD-Hintergrund: geschwungene Leiterbahnen wachsen beim Aufwachen aus dem Bildschirm-Eck
     an den Rändern entlang bis zur Kugel, Lichtimpulse laufen darin (mehr und schneller, wenn er spricht), danach zieht er sich zurück.
     Eigenes durchsichtiges Fenster, Klicks gehen hindurch. Flüssig: Linien werden einmal angelegt, danach nur verschoben."""
 
@@ -472,10 +472,10 @@ class StrandOverlay:
         for t in self.traces:
             w = t["w"]
             t["ids"] = [cv.create_line(0, 0, 0, 0, fill=c, width=max(1, int(w * f * k)), capstyle="round", joinstyle="round", smooth=True,
-                                       state="hidden") for c, f in (("#2e1e06", 4.2), ("#8a5c18", 2.2), ("#ffd678", 1.0))]
-            t["node"] = cv.create_oval(0, 0, 0, 0, fill="#ffe2a0", outline="#8a5c18", state="hidden") if t["node"] else None
+                                       state="hidden") for c, f in (("#062e20", 4.2), ("#188a62", 2.2), ("#9fe1cb", 1.0))]
+            t["node"] = cv.create_oval(0, 0, 0, 0, fill="#a0ffe7", outline="#188a62", state="hidden") if t["node"] else None
         self.link = [cv.create_line(0, 0, 0, 0, fill=c, width=max(1, int(f * k)), smooth=True, capstyle="round", state="hidden")
-                     for c, f in (("#8a5c18", 3.0), ("#ffd678", 1.3))]
+                     for c, f in (("#188a62", 3.0), ("#9fe1cb", 1.3))]
         self._drawn = -1.0
 
     def _upto(self, t, length):
@@ -584,7 +584,7 @@ class StrandOverlay:
             mains = [t for t in self.traces if not t["branch"]]
             t = random.choice(mains)
             rr = 2.4 * k
-            pid = cv.create_oval(-9, -9, -9 + 2 * rr, -9 + 2 * rr, fill="#fff3d0", outline="#ffd678")
+            pid = cv.create_oval(-9, -9, -9 + 2 * rr, -9 + 2 * rr, fill="#d0fff5", outline="#9fe1cb")
             self.pulses.append([t, 0.0, (7 if busy else 4) * k * (1 + random.random() * .6), pid])
         keep = []
         for p in self.pulses:
@@ -698,18 +698,18 @@ class CompactOverlay:
             label = {"Du": "DU", "Assistent": "VECTOR"}.get(role, role.upper())
             self.canvas.create_text(
                 px + padx, py + padt, text=label, font=self.f_role,
-                fill="#6ec8ff" if role == "Du" else "#ffd678", anchor="nw", tags="txt",
+                fill="#6ec8ff" if role == "Du" else "#9fe1cb", anchor="nw", tags="txt",
             )
             y = py + padt + role_h
             for line in lines:
-                self.canvas.create_text(px + padx, y, text=line, font=self.f_msg, fill="#ffe9c8", anchor="nw", tags="txt")
+                self.canvas.create_text(px + padx, y, text=line, font=self.f_msg, fill="#c8ffec", anchor="nw", tags="txt")
                 y += line_h
         ox = (w - d) if ("rechts" in self.corner and text) else 0
         self._orb_x = ox
         self.canvas.coords(self.orb_item, ox, (h - d) // 2)
-        self.canvas.delete("ring")   # goldener Ring um die Kugel (wie im HUD)
+        self.canvas.delete("ring")   # Teal-Ring um die Kugel (wie im HUD)
         rr = max(1, int(1.2 * k))
-        self.canvas.create_oval(ox + rr, (h - d) // 2 + rr, ox + d - rr, (h + d) // 2 - rr, outline="#c8902e", width=rr, tags="ring")
+        self.canvas.create_oval(ox + rr, (h - d) // 2 + rr, ox + d - rr, (h + d) // 2 - rr, outline="#2ec898", width=rr, tags="ring")
         self.canvas.config(width=w, height=h)
         self._draw_close(w, h, bool(text))
         sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
@@ -735,10 +735,10 @@ class CompactOverlay:
             cx, cy = right_end - int(14 * k) - r, h // 2
         else:
             cx, cy = w - r - 1, (h + self.d) // 2 - r - 1
-        cv.create_oval(cx - r, cy - r, cx + r, cy + r, fill="#1a1006", outline="#a0702a", width=1, tags="xbtn")
+        cv.create_oval(cx - r, cy - r, cx + r, cy + r, fill="#061a11", outline="#2aa076", width=1, tags="xbtn")
         a = max(3, int(r * 0.42))
         for x1, y1, x2, y2 in ((-a, -a, a, a), (-a, a, a, -a)):
-            cv.create_line(cx + x1, cy + y1, cx + x2, cy + y2, fill="#ffd28c", width=max(2, int(1.8 * k)),
+            cv.create_line(cx + x1, cy + y1, cx + x2, cy + y2, fill="#8cffd8", width=max(2, int(1.8 * k)),
                            capstyle="round", tags="xbtn")
         cv.tag_bind("xbtn", "<Button-1>", lambda e: self._close_clicked())
         cv.tag_bind("xbtn", "<Enter>", lambda e: cv.config(cursor="hand2"))
@@ -767,7 +767,7 @@ class CompactOverlay:
         self._anim_job = self.root.after(50, self._animate)
 
     def _sphere_img(self, t):
-        """Die goldene HUD-Kugel in klein, auf durchsichtigem Grund (dunkle Ränder werden ausgeblendet)."""
+        """Die Teal-HUD-Kugel in klein, auf durchsichtigem Grund (dunkle Ränder werden ausgeblendet)."""
         sp = self.sphere
         if sp is None or sp.ready() < pc_sphere.FRAMES:
             return None
@@ -963,7 +963,7 @@ class UI:
                                           host=lambda: self.hud.win)  # Karte öffnet sich im HUD selbst
         self.hud.on_globe = lambda: self.globe.show("weltlage", region=None)
         self.hud.map = self.globe  # Satellitenbild im Lage-Screen
-        self.compact.sphere = self.hud.sphere  # das kleine Overlay zeigt dieselbe goldene Kugel wie das HUD
+        self.compact.sphere = self.hud.sphere  # das kleine Overlay zeigt dieselbe Teal-Kugel wie das HUD
         self.q: queue.Queue = queue.Queue()
         self._idle_job = None
         self.web = None   # neues HUD (wie am Handy) im Edge-Fenster

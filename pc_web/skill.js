@@ -17,20 +17,20 @@
   css.textContent = `
   #skl{position:fixed;inset:0;pointer-events:none;z-index:90}
   #skl .skl-hex{position:absolute;width:86px;height:96px;transform:translate(-50%,-50%) scale(0);display:flex;align-items:center;justify-content:center;
-    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:radial-gradient(circle at 50% 40%,#fff3c8,#ffd678 30%,#c8861e 70%,#5a3a0c);
-    font-size:38px;filter:drop-shadow(0 0 18px rgba(255,190,90,.9));transition:transform .5s cubic-bezier(.2,1.6,.4,1),opacity .6s}
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:radial-gradient(circle at 50% 40%,#c8fff6,#9fe1cb 30%,#1ec88f 70%,#0c5a3e);
+    font-size:38px;filter:drop-shadow(0 0 18px rgba(90, 255, 198,.9));transition:transform .5s cubic-bezier(.2,1.6,.4,1),opacity .6s}
   #skl .skl-hex.in{transform:translate(-50%,-50%) scale(1)}
   #skl .skl-hex.away{transform:translate(-50%,-50%) scale(.05);opacity:0;transition:transform .7s cubic-bezier(.6,0,.8,.4),opacity .7s}
-  #skl .skl-burst{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,214,120,.9);transform:translate(-50%,-50%) scale(1);opacity:1;
+  #skl .skl-burst{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid rgba(159, 225, 203,.9);transform:translate(-50%,-50%) scale(1);opacity:1;
     transition:transform .9s ease-out,opacity .9s ease-out}
   #skl .skl-burst.go{transform:translate(-50%,-50%) scale(14);opacity:0}
   #skl .skl-burst.s.go{transform:translate(-50%,-50%) scale(3.5)}
   #skl .skl-card{position:absolute;transform:translate(-50%,0) translateY(14px);opacity:0;min-width:240px;max-width:min(420px,86vw);text-align:center;
-    background:rgba(12,9,4,.94);border:1px solid #8a5c18;border-radius:16px;padding:10px 16px;box-shadow:0 0 24px rgba(255,170,40,.25);transition:opacity .4s,transform .4s}
+    background:rgba(4, 12, 9,.94);border:1px solid #188a62;border-radius:16px;padding:10px 16px;box-shadow:0 0 24px rgba(29, 158, 117,.25);transition:opacity .4s,transform .4s}
   #skl .skl-card.in{opacity:1;transform:translate(-50%,0)}
-  #skl .skl-card small{display:block;font-size:10px;letter-spacing:.22em;color:#ffaa28;font-weight:700}
-  #skl .skl-card b{display:block;color:#ffd678;font-size:16px;margin-top:3px}
-  #skl .skl-card span{display:block;color:#ffe1b4;font-size:13px;margin-top:3px;line-height:1.3}`;
+  #skl .skl-card small{display:block;font-size:10px;letter-spacing:.22em;color:#1d9e75;font-weight:700}
+  #skl .skl-card b{display:block;color:#9fe1cb;font-size:16px;margin-top:3px}
+  #skl .skl-card span{display:block;color:#b4ffe5;font-size:13px;margin-top:3px;line-height:1.3}`;
   document.head.appendChild(css);
   const root = document.createElement("div"); root.id = "skl"; document.body.appendChild(root);
   const queue = []; let busy = false;
@@ -53,7 +53,7 @@
     const hex = document.createElement("div"); hex.className = "skl-hex";
     // gleiches Strich-Symbol wie in der Kugel (dunkel auf Gold)
     const ic = document.createElement("canvas"); ic.width = ic.height = 120; ic.style.width = ic.style.height = "48px";
-    const ig = ic.getContext("2d"); ig.translate(60, 60); ig.strokeStyle = ig.fillStyle = "#3a2204";
+    const ig = ic.getContext("2d"); ig.translate(60, 60); ig.strokeStyle = ig.fillStyle = "#043a25";
     if (B && B.drawIcon) B.drawIcon(ig, kind, 74); else { ig.font = "60px sans-serif"; ig.textAlign = "center"; ig.textBaseline = "middle"; ig.fillText(ICON[kind] || "✦", 0, 4); }
     hex.appendChild(ic); hex.style.left = c.x + "px"; hex.style.top = c.y + "px";
     const card = document.createElement("div"); card.className = "skl-card"; card.style.left = c.x + "px"; card.style.top = Math.min(innerHeight - 110, c.y + Math.max(70, c.r * .75)) + "px";
