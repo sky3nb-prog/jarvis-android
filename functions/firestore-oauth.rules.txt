@@ -1,0 +1,20 @@
+// Ergänzung für die bereits im Firebase-Konsolen-Projekt "jarvis-konto" hinterlegten Firestore-Regeln.
+// NICHT die ganze Regeldatei ersetzen - diese vier Blöcke in die bestehenden rules_version='2' / service cloud.firestore
+// match-Datenbank einfügen (dort, wo auch die Regel für "users/{uid}" steht).
+//
+// Grundprinzip: Diese vier Sammlungen sind reine Backend-Interna der Cloud Function ("api" in functions/index.js),
+// die mit dem Admin-SDK schreibt und dabei die Regeln umgeht. Kein Nutzer darf sie direkt lesen oder schreiben -
+// sonst könnte sich jemand selbst ein Access-Token ausstellen oder einen fremden Login-Code abgreifen.
+
+match /oauth_clients/{clientId} {
+  allow read, write: if false;
+}
+match /oauth_codes/{code} {
+  allow read, write: if false;
+}
+match /oauth_tokens/{token} {
+  allow read, write: if false;
+}
+match /device_codes/{deviceCode} {
+  allow read, write: if false;
+}
