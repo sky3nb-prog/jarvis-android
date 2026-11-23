@@ -8,17 +8,22 @@
 //   https://europe-west3-jarvis-konto.cloudfunctions.net/api
 //
 // Endpunkte:
-//   GET  /authorize              - zeigt die Login-Seite (E-Mail+Passwort), danach Weiterleitung zur Freundesseite
-//   POST /token                  - tauscht einen Code (Browser-Login ODER Device/QR) gegen ein Access-Token
-//   GET  /userinfo               - liefert Profil (nur: hat ein echtes Vector-Konto, E-Mail, Name, Bild)
-//   POST /device_authorization   - startet den Code/QR-Login (für den Button auf der Freundesseite)
-//   GET  /device                 - Bestätigungsseite im Browser/der App-WebView (Code eintippen oder per Link aus der App)
-//   POST /device/decide          - die App ruft das auf, wenn der Nutzer "Ja"/"Nein" tippt
+//   GET  /widget.js               - fertiges Einbau-Skript für die Freundesseite ("Mit Vector anmelden"-Button)
+//   GET  /authorize               - zeigt die Login-Seite (E-Mail+Passwort), danach Weiterleitung zur Freundesseite
+//   POST /token                   - tauscht einen Code (Browser-Login ODER Device/QR) gegen ein Access-Token
+//   GET  /userinfo                - liefert Profil (nur: hat ein echtes Vector-Konto, E-Mail, Name, Bild)
+//   POST /device_authorization    - startet den Code/QR-Login (für den Button auf der Freundesseite)
+//   GET  /device                  - Bestätigungsseite im Browser/der App-WebView (Code eintippen oder per Link aus der App)
+//   POST /device/decide           - die App ruft das auf, wenn der Nutzer "Ja"/"Nein" tippt
+//
+// Alle Endpunkte außer /widget.js, /authorize und /device erlauben Cross-Origin-Aufrufe (CORS),
+// weil das Widget direkt vom Browser der Freundesseite aus mit fetch() darauf zugreift.
 
 const { onRequest } = require("firebase-functions/v1").https;
 const functionsV1 = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const express = require("express");
+const cors = require("cors");
 const crypto = require("crypto");
 
 admin.initializeApp();
@@ -76,8 +81,121 @@ function page(title, bodyHtml) {
 }
 
 const app = express();
+app.use(cors({ origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+function qrImageUrl(data, size = 220) {
+  // Kostenloser QR-Bild-Dienst ohne eigenen Schlüssel - reicht völlig, da der QR-Inhalt
+  // (eine URL mit einem kurzlebigen Code) ohnehin nicht geheim ist, nur schwer abzutippen.
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`;
+}
+
+// ---------- 0. Einbau-Widget für die Freundesseite ----------
+//
+// Einbau beim Freund:
+//   <div data-vector-login data-client-id="DEINE_CLIENT_ID"></div>
+//   <script src="https://europe-west3-jarvis-konto.cloudfunctions.net/api/widget.js"></script>
+//
+// Nach erfolgreichem Login ruft das Widget window.onVectorLogin(userinfo) auf (falls definiert)
+// und feuert zusätzlich ein "vector-login"-Event auf dem jeweiligen data-vector-login-Element
+// (event.detail = userinfo), damit der Freund selbst entscheiden kann, was er damit macht
+// (z. B. Cosmetics freischalten).
+app.get("/widget.js", (req, res) => {
+  res.set("Content-Type", "application/javascript; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=300");
+  res.send(`(function(){
+  var SELF = document.currentScript || (function(){var s=document.getElementsByTagName("script");return s[s.length-1];})();
+  var API = SELF.src.replace(/\\/widget\\.js.*$/, "");
+  function el(tag, attrs, children){
+    var e = document.createElement(tag);
+    for (var k in (attrs||{})) { if (k === "text") e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]); }
+    (children||[]).forEach(function(c){ e.appendChild(c); });
+    return e;
+  }
+  function mount(root){
+    var clientId = root.getAttribute("data-client-id");
+    if (!clientId) { root.textContent = "Vector-Login: data-client-id fehlt."; return; }
+    var redirectUri = root.getAttribute("data-redirect-uri") || window.location.origin + window.location.pathname;
+    var btn = el("button", { text: "Mit Vector anmelden", type: "button" }, []);
+    btn.style.cssText = "font:inherit;font-size:15px;font-weight:600;padding:10px 18px;border-radius:8px;border:0;background:#1D9E75;color:#04342C;cursor:pointer";
+    var panel = el("div", {}, []);
+    panel.style.cssText = "display:none;margin-top:12px;max-width:280px;font:14px/1.5 system-ui,sans-serif;color:#222";
+    root.appendChild(btn); root.appendChild(panel);
+    var pollTimer = null;
+    function stopPoll(){ if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+    function success(token){
+      fetch(API + "/userinfo", { headers: { Authorization: "Bearer " + token } })
+        .then(function(r){ return r.json(); })
+        .then(function(info){
+          panel.innerHTML = "";
+          panel.appendChild(el("p", { text: "Angemeldet als " + (info.name || info.email || info.vector_id || "Vector-Nutzer") + "." }));
+          if (window.onVectorLogin) window.onVectorLogin(info);
+          root.dispatchEvent(new CustomEvent("vector-login", { detail: info, bubbles: true }));
+        });
+    }
+    function showPasswordTab(){
+      stopPoll();
+      var url = API + "/authorize?client_id=" + encodeURIComponent(clientId) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(Math.random().toString(36).slice(2));
+      panel.innerHTML = "";
+      panel.appendChild(el("a", { href: url, text: "Mit E-Mail und Passwort anmelden \\u2192" }));
+    }
+    function showDeviceTab(){
+      stopPoll();
+      panel.innerHTML = "";
+      panel.appendChild(el("p", { text: "Lädt Code \\u2026" }));
+      fetch(API + "/device_authorization", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: clientId })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.error) { panel.innerHTML = ""; panel.appendChild(el("p", { text: "Fehler: " + d.error })); return; }
+        panel.innerHTML = "";
+        var img = el("img", {});
+        img.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(d.verification_uri_complete);
+        img.alt = "QR-Code zum Scannen mit der Vector-App";
+        img.style.cssText = "display:block;margin-bottom:10px;border-radius:6px";
+        panel.appendChild(img);
+        panel.appendChild(el("p", { text: "Mit der Vector-App scannen, oder dort den Code eingeben:" }));
+        panel.appendChild(el("p", { text: d.user_code, style: "font:600 20px monospace;letter-spacing:2px" }));
+        var status = el("p", { text: "Warte auf Bestätigung \\u2026", style: "color:#888" });
+        panel.appendChild(status);
+        var tries = 0;
+        pollTimer = setInterval(function(){
+          tries++;
+          fetch(API + "/token", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ grant_type: "urn:ietf:params:oauth:grant-type:device_code", device_code: d.device_code, client_id: clientId })
+          }).then(function(r){ return r.json(); }).then(function(t){
+            if (t.access_token) { stopPoll(); success(t.access_token); return; }
+            if (t.error === "authorization_pending") { return; }
+            stopPoll();
+            status.textContent = t.error === "access_denied" ? "Login abgelehnt." : "Code abgelaufen - bitte neu starten.";
+          });
+        }, (d.interval || 4) * 1000);
+      });
+    }
+    btn.addEventListener("click", function(){
+      if (panel.style.display === "none") {
+        panel.style.display = "block";
+        var tabs = el("div", {}, []);
+        tabs.style.cssText = "display:flex;gap:10px;margin-bottom:10px";
+        var t1 = el("a", { href: "#", text: "Passwort" });
+        var t2 = el("a", { href: "#", text: "QR-Code / Code" });
+        [t1, t2].forEach(function(t){ t.style.cssText = "font-size:13px;color:#1D9E75;cursor:pointer"; });
+        t1.addEventListener("click", function(e){ e.preventDefault(); showPasswordTab(); });
+        t2.addEventListener("click", function(e){ e.preventDefault(); showDeviceTab(); });
+        tabs.appendChild(t1); tabs.appendChild(t2);
+        panel.appendChild(tabs);
+        showDeviceTab();
+      } else {
+        panel.style.display = "none";
+        stopPoll();
+      }
+    });
+  }
+  document.querySelectorAll("[data-vector-login]").forEach(mount);
+})();`);
+});
 
 // ---------- 1. Browser-Login (E-Mail + Passwort) ----------
 
@@ -239,9 +357,11 @@ app.post("/device_authorization", async (req, res) => {
 // Die eigentliche Bestätigung passiert über /device/decide, aufgerufen von der App (mit idToken).
 app.get("/device", async (req, res) => {
   const presetCode = (req.query.code || "").toString().toUpperCase();
+  const qr = qrImageUrl(`https://europe-west3-jarvis-konto.cloudfunctions.net/api/device?code=${encodeURIComponent(presetCode || "")}`, 180);
   const html = `
     <h1>Gerät verbinden</h1>
     <p class="sub">Öffne diese Seite in der Vector-App (oder scanne den QR-Code dort), um einen Login zu bestätigen.</p>
+    ${presetCode ? `<img src="${qr}" alt="QR-Code" style="display:block;margin:0 0 16px;border-radius:6px">` : ""}
     <input id="code" placeholder="XXXX-XXXX" value="${escapeHtml(presetCode)}" style="text-transform:uppercase">
     <p class="sub">Dieser Schritt läuft normalerweise automatisch in der App ab, wenn du den QR-Code scannst oder den Code dort eingibst.</p>
   `;
