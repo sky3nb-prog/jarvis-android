@@ -423,6 +423,7 @@ class MainActivity : ComponentActivity() {
             .put("model", VoskModel.ready(this@MainActivity))
             .put("link_code", prefs.getString("link_code", ""))
             .put("jarvis_volume", prefs.getInt("jarvis_volume", 70))
+            .put("voice_rate", prefs.getInt("voice_rate", 0))
             .put("synced", prefs.getLong("snap_got", 0L))
             .put("facts", Memory.facts(this@MainActivity).size)
             .put("lage_orte", prefs.getString("lage_orte", "Stuttgart"))
@@ -468,6 +469,11 @@ class MainActivity : ComponentActivity() {
                 .putBoolean("background", o.optBoolean("background", true))
                 .putString("link_code", o.optString("link_code", "").trim().uppercase())
                 .putInt("jarvis_volume", o.optInt("jarvis_volume", 70).coerceIn(10, 100))
+                .putInt("voice_rate", o.optInt("voice_rate", 0).coerceIn(-10, 10))
+                // tts_rate ist der eigentliche Wert, den Piper/Android-TTS beim Reden benutzen (siehe JarvisService/
+                // ReadAloud/PiperPhone) - dieselbe Formel wie am PC (pc_eleven.py _speed), nur um den am Handy schon
+                // eingespielten Grundwert 1.05 herum statt um 1.0, damit sich "normal" (0) nicht anders anhört als vorher.
+                .putFloat("tts_rate", (1.05f + o.optInt("voice_rate", 0).coerceIn(-10, 10) * 0.025f).coerceIn(0.7f, 1.6f))
                 .putString("lage_orte", o.optString("lage_orte", "Stuttgart").trim())
                 .apply { if (o.has("themen_selbst")) Themen.setManual(this@MainActivity, o.optString("themen_selbst")) }
                 .putString("assistant_name", o.optString("assistant_name").trim())

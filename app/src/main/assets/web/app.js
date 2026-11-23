@@ -213,6 +213,8 @@
   }
   // Schalter (an/aus) in den Einstellungen
   const sw = (id, on) => { const e = $(id); if (on === undefined) return e.classList.contains("on"); e.classList.toggle("on", !!on); };
+  // Dieselbe Formel wie am PC (pc_eleven.py _speed): 1.0 + rate*0.02, also -10..10 -> 0.8x..1.2x
+  const rateLabel = (r) => r === 0 ? "normal" : `${(1 + r * 0.02).toFixed(2)}× ${r > 0 ? "schneller" : "langsamer"}`;
   document.querySelectorAll(".sheet .sw").forEach((e) => e.addEventListener("click", () => {
     e.classList.toggle("on");
     if (e.id === "set-loc" && e.classList.contains("on") && A && A.askLocation) A.askLocation();
@@ -482,6 +484,9 @@
       $("set-level").value = String(c.wake_level);
       $("set-cloud").value = c.wake_cloud ? "1" : "0";
       $("set-jvol").value = c.jarvis_volume || 70;
+      $("set-rate").value = c.voice_rate || 0;
+      $("rate-l").textContent = rateLabel(c.voice_rate || 0);
+      $("set-rate").addEventListener("input", () => { $("rate-l").textContent = rateLabel(parseInt($("set-rate").value, 10)); });
       $("set-orte").value = c.lage_orte || "";
       $("set-tselbst").value = c.themen_selbst || "";
       showThemen();
@@ -1088,6 +1093,7 @@
       wake_cloud: $("set-cloud").value === "1",
       link_code: $("set-link").value.trim(),
       jarvis_volume: parseInt($("set-jvol").value, 10),
+      voice_rate: parseInt($("set-rate").value, 10),
       lage_orte: $("set-orte").value.trim(),
       themen_selbst: $("set-tselbst").value.trim(),
       assistant_name: $("set-name").value.trim(), anrede: $("set-anrede").value.trim(),
