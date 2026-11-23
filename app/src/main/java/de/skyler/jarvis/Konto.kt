@@ -314,4 +314,23 @@ object Konto {
         val a = pull(ctx); val b = push(ctx, force = true)
         JSONObject().put("ok", true).put("text", (if (a) "Neuen Stand geholt. " else "") + (if (b) "Hochgeladen." else "Alles aktuell."))
     } catch (e: Exception) { JSONObject().put("ok", false).put("text", e.message ?: "Ging nicht.") }
+
+    // ---- Gerät-Login per QR-Code: fremde Website zeigt einen Code, hier bestätigen oder ablehnen -------------------
+    private const val DEVICE_URL = "https://europe-west3-jarvis-konto.cloudfunctions.net/api/device/decide"
+
+    /** Den Code aus dem gescannten QR-Code herauslösen (URL mit ?code=XXXX-XXXX, der Rest der Adresse ist egal). */
+    fun deviceCodeFromUrl(url: String): String? = Regex("[?&]code=([^&\\s]+)").find(url)?.groupValues?.get(1)?.let {
+        try { java.net.URLDecoder.decode(it, "UTF-8") } catch (_: Exception) { it }
+    }?.takeIf { it.isNotBlank() }
+
+    /** "approve" oder "deny" an den Login-Server melden – mit dem aktuellen Firebase-idToken dieses Kontos. */
+    fun decideDeviceLogin(ctx: Context, userCode: String, approve: Boolean): JSONObject = try {
+        if (!loggedIn(ctx)) throw RuntimeException("Dafür musst du erst mit deinem Vector-Konto angemeldet sein.")
+        val body = JSONObject().put("idToken", token(ctx)).put("user_code", userCode).put("decision", if (approve) "approve" else "deny")
+        post(DEVICE_URL, body.toString())
+        JSONObject().put("ok", true).put("text", if (approve) "Angemeldet – du kannst auf der anderen Seite weitermachen." else "Okay, abgelehnt.")
+    } catch (e: Exception) {
+        Log.w(TAG, "decideDeviceLogin: $e")
+        JSONObject().put("ok", false).put("text", "Das hat nicht geklappt – der Login-Server ist gerade nicht erreichbar (${e.message ?: "unbekannter Fehler"}).")
+    }
 }

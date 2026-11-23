@@ -85,4 +85,7 @@ dependencies {
     // Gleiche Stimmen wie am PC (Piper), offline auf dem Handy – sherpa-onnx (nur arm64) + Entpacken der Stimmen
     implementation(files("libs/sherpa-onnx-1.13.8-arm64.aar"))
     implementation("org.apache.commons:commons-compress:1.21")
+    // QR-Code scannen fürs Vector-Konto-Login auf fremden Websites: fertige Scan-UI von Google Play Services,
+    // ohne eigene Kamera-Vorschau und ohne dass wir selbst nach der Kamera-Berechtigung fragen müssen
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 }

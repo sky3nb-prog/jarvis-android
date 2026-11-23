@@ -149,6 +149,7 @@
       else if (type === "user" || type === "partial") $("last-you").textContent = data.text;
       else if (type === "needkey") askKey();
       else if (type === "konto" && data && data.reset) toast(data.text || "");
+      else if (type === "scanlogin") toast((data && data.text) || "");
       else if (type === "agent") $("last-jar").textContent = data.text;
       else if (type === "level") { if (data.kind === "out" || !talking) target = data.value; else target = Math.max(target * 0.8, data.value * 0.6); }
       else if (type === "error") { toast(data.text); setState("ended"); }
@@ -914,17 +915,24 @@
   $("upd-allow").addEventListener("click", () => { try { A.updAllow(); } catch (e) {} setTimeout(updShow, 4000); });
   // Selbstzerstörung + Konto (nur Ausgabe für alle): dreimal tippen, dann Animation, dann löschen
   try {
-    if (A && A.canDestroy && A.canDestroy()) {
-      $("sec-weg").style.display = ""; $("si-weg").style.display = ""; $("sec-konto").style.display = "";
-      $("si-weg").addEventListener("click", () => setTimeout(() => { try { $("sec-weg").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }, 350));
-      const kInfo = () => { try { const i = JSON.parse(A.kontoInfo()); $("kt-info").textContent = i.loggedIn ? "Angemeldet als " + i.email : "Nicht angemeldet."; return i; } catch (e) { return {}; } };
-      kInfo();
+    const kInfo = () => { try { const i = JSON.parse(A.kontoInfo()); $("kt-info").textContent = i.loggedIn ? "Angemeldet als " + i.email : "Nicht angemeldet."; return i; } catch (e) { return {}; } };
+    const ki = A && A.kontoInfo ? kInfo() : {};
+    const destroyOk = A && A.canDestroy && A.canDestroy();
+    if (destroyOk || ki.loggedIn) $("sec-konto").style.display = "";
+    if (ki.loggedIn && A.scanLogin) {
+      $("kt-scanlogin").addEventListener("click", () => { toast("Öffne den QR-Scanner …"); A.scanLogin(); });
+    } else if ($("kt-scanlogin")) $("kt-scanlogin").style.display = "none";
+    if (destroyOk || ki.loggedIn) {
       $("kt-reset").addEventListener("click", () => {
         const i = kInfo(); let m = i.email || "";
         if (!m) m = (window.prompt("An welche E-Mail soll die Mail gehen?", "") || "").trim();
         if (!m.includes("@")) return toast("Ohne E-Mail geht es nicht.");
         A.kontoReset(m); toast("Schicke dir eine Mail …");
       });
+    }
+    if (destroyOk) {
+      $("sec-weg").style.display = ""; $("si-weg").style.display = "";
+      $("si-weg").addEventListener("click", () => setTimeout(() => { try { $("sec-weg").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }, 350));
       const B = $("weg-btn"), I = $("weg-info"); let step = 0, tmr = null;
       const TXT = [["Selbstzerstörung", "Zum Bestätigen noch zweimal tippen"], ["Wirklich?", "Noch einmal tippen – dann ist alles weg"], ["JA, ZERSTÖREN", "Letzte Chance: jetzt tippen löscht Vector"]];
       const show = () => { B.textContent = TXT[step][0]; I.textContent = TXT[step][1]; };

@@ -21,6 +21,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.widget.FrameLayout
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -169,6 +172,7 @@ class MainActivity : ComponentActivity() {
         pendingFeed = intent?.getStringExtra("feed")
         if (intent?.getBooleanExtra("talk", false) == true) pendingWidgetTalk = true
         if (intent?.getBooleanExtra("outfit", false) == true) pendingOutfit = true
+        if (intent?.getStringExtra("open") == "scanlogin") pendingScanLogin = true
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
                 pageReady = true
@@ -247,9 +251,11 @@ class MainActivity : ComponentActivity() {
         intent.getStringExtra("feed")?.let { id -> if (pageReady) send("feed_open", JSONObject().put("id", id)) else pendingFeed = id }
         if (intent.getBooleanExtra("talk", false)) { if (pageReady) send("widget_talk", JSONObject()) else pendingWidgetTalk = true }
         if (intent.getBooleanExtra("outfit", false)) { if (pageReady) send("outfit_ask", JSONObject()) else pendingOutfit = true }
+        if (intent.getStringExtra("open") == "scanlogin") pendingScanLogin = true
     }
     @Volatile private var pendingWidgetTalk = false
     @Volatile private var pendingOutfit = false
+    @Volatile private var pendingScanLogin = false
 
     /** Vom Weckwort geöffnet: über dem Sperrbildschirm zeigen und Bildschirm anschalten (nur solange Jarvis offen ist). */
     private fun showOverLock(i: Intent?) {
@@ -267,6 +273,31 @@ class MainActivity : ComponentActivity() {
         try { Link.poke() } catch (_: Exception) {}
         try { Konto.tick(this) } catch (_: Exception) {}
         Bus.emit("app_visible", JSONObject().put("on", true))
+        if (pendingScanLogin) { pendingScanLogin = false; startQrLogin() }
+    }
+
+    // --- QR-Login fürs Vector-Konto: eine fremde Website zeigt einen QR-Code, hier bestätigen -------------------
+    private fun startQrLogin() {
+        if (!Konto.loggedIn(this)) { send("scanlogin", JSONObject().put("ok", false).put("text", "Dafür musst du erst mit deinem Vector-Konto angemeldet sein.")); return }
+        val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+        GmsBarcodeScanning.getClient(this, options).startScan()
+            .addOnSuccessListener { barcode ->
+                val raw = barcode.rawValue ?: barcode.displayValue ?: ""
+                val code = Konto.deviceCodeFromUrl(raw)
+                if (code == null) send("scanlogin", JSONObject().put("ok", false).put("text", "Das ist kein Vector-Anmelde-Code."))
+                else confirmDeviceLogin(code)
+            }
+            .addOnFailureListener { e -> send("scanlogin", JSONObject().put("ok", false).put("text", "Scannen ging nicht: ${e.message ?: "unbekannter Fehler"}")) }
+    }
+
+    private fun confirmDeviceLogin(code: String) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Anmelden bestätigen")
+            .setMessage("Soll ich dich auf einer anderen Website anmelden?")
+            .setPositiveButton("Ja") { _, _ -> Thread({ send("scanlogin", Konto.decideDeviceLogin(this, code, true)) }, "device-login").start() }
+            .setNegativeButton("Nein") { _, _ -> Thread({ send("scanlogin", Konto.decideDeviceLogin(this, code, false)) }, "device-login").start() }
+            .setCancelable(true)
+            .show()
     }
 
     override fun onPause() {
@@ -697,6 +728,10 @@ class MainActivity : ComponentActivity() {
         fun kontoLogin(email: String, pw: String, neu: Boolean) {
             Thread({ val r = Konto.signIn(this@MainActivity, email, pw, neu); send("konto", r.put("info", Konto.info(this@MainActivity))) }, "konto-login").start()
         }
+
+        /** QR-Code für die Anmeldung auf einer fremden Website scannen (Gerät-Login). Antwort kommt als "scanlogin". */
+        @JavascriptInterface
+        fun scanLogin() = runOnUiThread { try { startQrLogin() } catch (e: Exception) { send("scanlogin", JSONObject().put("ok", false).put("text", e.message ?: "QR-Scan ging nicht.")) } }
 
         @JavascriptInterface
         fun getDirect(): String = Link.directInfo(this@MainActivity).toString()

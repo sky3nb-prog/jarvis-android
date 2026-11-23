@@ -55,6 +55,7 @@ class Actions(private val ctx: Context) {
             "call" -> call(a.optString("who"))
             "pc" -> pc(a.optString("text"))
             "sticker" -> sticker(a.optString("to"), a.optInt("anzahl", 0))
+            "scan_login" -> scanLogin()
             "whatsapp" -> whatsapp(a.optString("to"), a.optString("text"), a.optBoolean("jarvis"), a.optBoolean("confirmed") || skipConfirm)
             "youtube" -> start(Intent(Intent.ACTION_SEARCH).setPackage("com.google.android.youtube")
                 .putExtra("query", a.optString("query")), "YouTube sucht nach ${a.optString("query")}.")
@@ -333,6 +334,12 @@ class Actions(private val ctx: Context) {
         if (!Link.paired(ctx)) return "Dafür brauche ich den PC – der ist noch nicht gekoppelt."
         val r = try { Link.command(ctx, JSONObject().put("type", "sticker").put("to", to).put("n", minOf(n, 1000))) } catch (_: Exception) { null }
         return r?.optString("text")?.takeIf { it.isNotBlank() } ?: "Der PC antwortet gerade nicht – die Sticker gehen nur über WhatsApp am PC."
+    }
+
+    /** „Gerät anmelden“ / „QR scannen“: öffnet den Scanner für den Vector-Login auf einer fremden Website. */
+    private fun scanLogin(): String {
+        val i = Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("open", "scanlogin")
+        return start(i, "Ich öffne den QR-Scanner – halt die Kamera über den Code auf der Website.") ?: "Der QR-Scanner lässt sich nicht öffnen."
     }
 
     private fun pc(text: String): String {
