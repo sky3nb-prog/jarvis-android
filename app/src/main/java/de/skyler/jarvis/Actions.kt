@@ -257,7 +257,7 @@ class Actions(private val ctx: Context) {
         val nr = number(who) ?: return "Ich finde „$who“ nicht in deinen Kontakten."
         val ll = Alltag.fix?.takeIf { System.currentTimeMillis() - it.time < 15 * 60_000L }?.let { it.latitude to it.longitude } ?: Here.latLon(ctx)
         val where = if (ll != null) "Standort: https://maps.google.com/?q=%.5f,%.5f".format(java.util.Locale.US, ll.first, ll.second) else "(Standort gerade nicht da)"
-        val ok = Butler.sms(ctx, nr, "TEST – nur ein Test der Jarvis-Notfallfunktion, alles in Ordnung! So sähe es im Notfall aus. $where", who)
+        val ok = Butler.sms(ctx, nr, "TEST – nur ein Test der Vector-Notfallfunktion, alles in Ordnung! So sähe es im Notfall aus. $where", who)
         return if (ok) "Test-SMS an $who ist raus (ohne Anruf). Im echten Notfall ruf ich danach sofort an." else "Die Test-SMS ging nicht – fehlt das SMS-Recht?"
     }
 
@@ -276,7 +276,7 @@ class Actions(private val ctx: Context) {
      * jarvis = "unter deinem Namen": beginnt mit "Hier ist Jarvis.", Antworten aus dem Chat werden angesagt.
      */
     private fun whatsapp(to: String, text0: String, jarvis: Boolean = false, confirmed: Boolean = false): String {
-        val text = if (jarvis) "Hier ist Jarvis. " + text0.replace(Regex("^hier ist jarvis[.,!]?\\s*", RegexOption.IGNORE_CASE), "") else text0
+        val text = if (jarvis) "Hier ist Vector. " + text0.replace(Regex("^hier ist vector[.,!]?\\s*", RegexOption.IGNORE_CASE), "") else text0
         // Erst vorlesen, dann senden (Einstellung „Nachrichten vorher bestätigen“, Standard an) – nichts geht zu früh raus
         if (!confirmed && ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getBoolean("wa_bestaetigen", true)) {
             pending = arrayOf(to, text0, jarvis, System.currentTimeMillis())

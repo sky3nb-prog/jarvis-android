@@ -26,7 +26,7 @@ object Groq {
                 .addFormDataPart("model", model)
                 .addFormDataPart("language", "de")
                 .addFormDataPart("temperature", "0")
-                .addFormDataPart("prompt", "Jarvis, öffne WhatsApp. Jarvis, wie ist das Wetter?")
+                .addFormDataPart("prompt", "Vector, öffne WhatsApp. Vector, wie ist das Wetter?")
                 .addFormDataPart("response_format", "json")
                 .addFormDataPart("file", "sprache.wav", wav.toRequestBody("audio/wav".toMediaType()))
                 .build()

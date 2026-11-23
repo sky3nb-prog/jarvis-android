@@ -3,13 +3,13 @@ package de.skyler.jarvis
 import android.content.Context
 
 /**
- * Aktivierungswort(e) mit Toleranz: "Jarvis", "Javis", "Dschawis" … zählen je nach Einstellung auch.
+ * Aktivierungswort(e) mit Toleranz: "Vector", "Vektor", "Wektor" … zählen je nach Einstellung auch.
  * Mehrere Wörter möglich (Einstellungen: mit Komma trennen).
  */
 object Wake {
     fun words(ctx: Context): List<String> {
-        val raw = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("wake_words", "jarvis") ?: "jarvis"
-        return raw.split(",", ";").map { it.trim().lowercase() }.filter { it.length >= 2 }.ifEmpty { listOf("jarvis") }
+        val raw = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE).getString("wake_words", "vector") ?: "vector"
+        return raw.split(",", ";").map { it.trim().lowercase() }.filter { it.length >= 2 }.ifEmpty { listOf("vector") }
     }
 
     /** 0 = streng, 1 = normal, 2 = locker */

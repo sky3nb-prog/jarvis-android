@@ -202,7 +202,7 @@ object Gassi {
     }
 
     /** SMS "Bin gleich da" (test = mit "Test" davor, sofort). */
-    fun send(ctx: Context, test: Boolean): String = sendTo(ctx, who(ctx), (if (test) "Test von Jarvis: " else "") + text(ctx))
+    fun send(ctx: Context, test: Boolean): String = sendTo(ctx, who(ctx), (if (test) "Test von Vector: " else "") + text(ctx))
 
     /** Für Brain und Einstellungen. */
     fun summary(ctx: Context): String {

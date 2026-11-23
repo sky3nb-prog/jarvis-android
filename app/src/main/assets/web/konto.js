@@ -23,8 +23,8 @@
   document.head.appendChild(css);
   const ov = document.createElement("div");
   ov.id = "konto-ov";
-  ov.innerHTML = `<div class="ko-orb"></div><h1>JARVIS-KONTO</h1>
-    <p>Einmal verbinden: Dann ist dein Jarvis in deinem Konto gesichert. Hier musst du dich danach nie wieder anmelden.</p>
+  ov.innerHTML = `<div class="ko-orb"></div><h1>VECTOR-KONTO</h1>
+    <p>Einmal verbinden: Dann ist dein Vector in deinem Konto gesichert. Hier musst du dich danach nie wieder anmelden.</p>
     <div class="ko-box"><input id="ko-mail" type="email" placeholder="E-Mail" autocapitalize="none"><input id="ko-pw" type="password" placeholder="Passwort (mind. 6 Zeichen)">
     <div class="ko-msg" id="ko-msg"></div><div class="ko-btn" id="ko-in">Anmelden</div><div class="ko-btn alt" id="ko-neu">Neues Konto anlegen</div></div>
     <div class="ko-skip" id="ko-forgot">Passwort vergessen?</div>

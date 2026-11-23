@@ -17,7 +17,7 @@ import java.util.Locale
  */
 object Wecker {
     private val de = Locale.GERMANY
-    const val LABEL = "Jarvis"
+    const val LABEL = "Vector"
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
 
     private fun hm(s: String): Pair<Int, Int>? = Regex("(\\d{1,2})(?:[:.](\\d{2}))?").find(s.trim())?.groupValues?.let {
@@ -112,7 +112,7 @@ object Wecker {
         if (times.isEmpty()) {   // "alle aus": auch Vorgemerktes (morgen einmalig, Erinnerungen) vergessen und nach Name "Jarvis" ausschalten
             try {
                 ctx.startActivity(Intent(AlarmClock.ACTION_DISMISS_ALARM).putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_LABEL)
-                    .putExtra(AlarmClock.EXTRA_MESSAGE, "Jarvis").putExtra(AlarmClock.EXTRA_SKIP_UI, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    .putExtra(AlarmClock.EXTRA_MESSAGE, "Vector").putExtra(AlarmClock.EXTRA_SKIP_UI, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             } catch (_: Exception) {}
             prefs(ctx).edit().remove("aufstehen").remove("wecker_einmal").remove("wecker_offen").putString("wecker_liste", "[]").apply()
         } else {

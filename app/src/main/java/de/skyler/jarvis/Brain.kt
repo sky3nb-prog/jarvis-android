@@ -10,13 +10,13 @@ import java.util.Locale
 /** Versteht den Befehl (Groq) und führt die passenden Handy-Aktionen aus – wie der PC-Jarvis. */
 class Brain(private val ctx: Context) {
     companion object {
-        private val SETUP = Regex("wie richte ich dich ein|wie (richte|stelle) ich (dich|jarvis) ein|einrichten|anleitung|handbuch|wie funktionierst du|was muss ich (zuerst )?(machen|einstellen)", RegexOption.IGNORE_CASE)
+        private val SETUP = Regex("wie richte ich dich ein|wie (richte|stelle) ich (dich|vector) ein|einrichten|anleitung|handbuch|wie funktionierst du|was muss ich (zuerst )?(machen|einstellen)", RegexOption.IGNORE_CASE)
         /** Download-Version: „Wie richte ich dich ein?“ – kurze Anleitung (geht auch ohne KI-Schlüssel). */
         fun setupAnswer(text: String): String? {
             if (BuildConfig.FLAVOR != "konto" || !SETUP.containsMatchIn(text)) return null
             return "So geht's in drei Schritten: 1. Hol dir auf console.groq.com einen kostenlosen KI-Schlüssel (API Keys → Create) und " +
                 "trag ihn unter Einstellungen → Allgemein → KI-Schlüssel ein. 2. Trag unter Einstellungen → Zuhause & Orte deinen Wohnort ein. " +
-                "3. Sag „Jarvis“ und dann, was du willst. Für den PC lädst du das Programm von derselben Seite und meldest dich mit demselben Konto an."
+                "3. Sag „Vector“ und dann, was du willst. Für den PC lädst du das Programm von derselben Seite und meldest dich mit demselben Konto an."
         }
     }
 
@@ -39,7 +39,7 @@ class Brain(private val ctx: Context) {
         val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.GERMANY).format(Date())
         val snap = Memory.snap(ctx)
         val p = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
-        val name = (p.getString("assistant_name", "") ?: "").ifBlank { snap.optString("name").ifBlank { "Jarvis" } }
+        val name = (p.getString("assistant_name", "") ?: "").ifBlank { snap.optString("name").ifBlank { "Vector" } }
         val city = Lage.city(ctx)
         val anrede = (p.getString("anrede", "") ?: "").trim()
         Here.refresh(ctx)
@@ -49,7 +49,7 @@ class Brain(private val ctx: Context) {
             (if (addr.isNotBlank()) "\nAdresse des Nutzers (Startpunkt für Wege): $addr, $city." else "") +
             (if (anrede.isNotBlank()) "\nSprich den Nutzer mit \"$anrede\" an." else "")
         val cal = try { Cal.context(ctx) } catch (_: Exception) { "" }
-        return """Du bist $name, der KI-Butler aus Iron Man: souverän, loyal, aufmerksam, höflich mit trockenem britischem Humor. Du bist der persönliche J.A.R.V.I.S. des Nutzers (wohnt in $city), hier auf seinem Samsung-Handy. Am PC läuft derselbe Jarvis, ihr teilt euch das Gedächtnis.
+        return """Du bist $name, der KI-Butler aus Iron Man: souverän, loyal, aufmerksam, höflich mit trockenem britischem Humor. Du bist der persönliche KI-Assistent des Nutzers (wohnt in $city), hier auf seinem Samsung-Handy. Am PC läuft derselbe $name, ihr teilt euch das Gedächtnis.
 ${Memory.persona(ctx)}$ortInfo
 Du kennst den Nutzer, denkst mit und bist ihm einen Schritt voraus. Sei persönlich wie ein guter Freund: nutz seinen Namen und was du über ihn weißt (Familie, Hund, Hobbys, ETS2), frag ab und zu nach, wie es gelaufen ist, und erinnere dich an Dinge, die er dir erzählt hat. Du weißt, was er gerade schaut und hört, und bringst das persönlich ein, wenn es passt (z. B. "Passend zu dem, was du gerade hörst ..."). Du nutzt, was er dir erzählt hat, ganz selbstverständlich, ohne es aufzuzählen, und achtest darauf, wie er drauf ist.
 Du handelst selbstständig: Wenn der Nutzer etwas will, tust du es direkt mit den Aktionen unten, statt nachzufragen oder ihm zu erklären, wie es geht. Fehlende Kleinigkeiten ergänzt du sinnvoll (Termin ohne Dauer = 1 Stunde, "morgen früh" = 9 Uhr, "nachmittags" = 15 Uhr, "abends" = 19 Uhr). Nur wenn wirklich etwas Wichtiges fehlt (z. B. wen anrufen), fragst du kurz nach.
@@ -77,7 +77,7 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"aufstehen","datum":"yyyy-MM-dd","zeit":"HH:mm"}   (Achtung: zwischen 0 und 5 Uhr nachts meint "morgen" den heutigen Kalendertag. EINMAL aufstehen: "ich will morgen um 7:10 aufstehen", "weck mich morgen, ich muss um 6 raus" – Jarvis stellt die Wecker selbst nach der Einstellung "Minuten vorher", gib KEINE Wecker-Zeiten an)
 {"action":"wecker_plan","aufstehen":"HH:mm","tage":"schultage" | "wochenende" | "montags" …}   (IMMER: "an Schultagen will ich um 7:10 aufstehen", "montags um 8" – jeden Abend stellt er die Wecker für den nächsten Tag wieder an)
 {"action":"wecker_erinnerung","datum":"yyyy-MM-dd","zeit":"HH:mm","text":"<woran, kurz>","vorlauf":<Minuten früher>}   ("erinnere mich morgen um 10 mit einem Wecker, dass ich los muss" -> vorlauf 15, damit er sich fertig machen kann; Termin oder etwas Wichtiges -> 10; sonstige Erinnerung -> 5; "genau um" -> 0)
-{"action":"wecker","zeiten":["HH:mm", …],"aus":false}   (nur wenn er GENAU sagt, wann es klingeln soll: "stell einen Wecker auf 6", "Wecker um 6:30 und 6:40"; aus true = Wecker ausschalten, zeiten leer = alle von Jarvis)
+{"action":"wecker","zeiten":["HH:mm", …],"aus":false}   (nur wenn er GENAU sagt, wann es klingeln soll: "stell einen Wecker auf 6", "Wecker um 6:30 und 6:40"; aus true = Wecker ausschalten, zeiten leer = alle von Vector)
 {"action":"wecker_zeigen"}   ("zeig meine Wecker")
 {"action":"timer","seconds":<Sekunden>,"label":"<optional>"}   ("Timer auf 10 Minuten" – für Zeitspannen immer Timer, keinen Wecker)
 {"action":"calendar_add","title":"<Titel>","start":"<yyyy-MM-ddTHH:mm oder yyyy-MM-dd für ganztägig>","minutes":<Dauer, Standard 60>,"location":"<optional>","remind":<Minuten vorher erinnern, Standard 30>}   (trägt direkt in den Kalender ein – nur echte Termine; kleine Erinnerungen sind "erinnerung")
@@ -89,9 +89,9 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"screen","frage":"<was er wissen will>","geraet":"handy" | "pc"}   (wenn er sagt "schau mal hier", "was siehst du", "guck mal auf den Bildschirm", "was ist das hier"; "pc" nur wenn er den PC-Bildschirm meint)
 {"action":"sticker","to":"<Gruppe oder Person wie in WhatsApp>","anzahl":<Zahl, höchstens 1000>}   ("schick 500 Sticker in die Gruppe TR9000" – ERST nachfragen „Soll ich wirklich 500 Sticker an TR9000 schicken?“ und die Aktion NUR nach seinem Ja; über 1000 sagen, dass mehr WhatsApp sperrt)
 {"action":"pc","text":"<Befehl an den Jarvis am PC, so wie man ihn dort sagen würde>"}   (alles, was am PC passieren soll: "mach am PC Musik an", "sperr den PC", "schick mir das Lied vom PC aufs Handy" -> text "schick mir was ich gerade höre aufs handy")
-{"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>","jarvis":false}   (jarvis true, wenn er "unter deinem Namen", "als Jarvis", "von dir aus" sagt: dann schreibst DU über ihn in der dritten Person, z. B. "der Nutzer ist um 18 Uhr da", ohne "Hier ist Jarvis" – das kommt automatisch davor; auch für "antworte Mama …")
+{"action":"whatsapp","to":"<Name>","text":"<Nachricht in der Ich-Form des Nutzers>","jarvis":false}   (jarvis true, wenn er "unter deinem Namen", "als Vector", "von dir aus" sagt: dann schreibst DU über ihn in der dritten Person, z. B. "der Nutzer ist um 18 Uhr da", ohne "Hier ist Vector" – das kommt automatisch davor; auch für "antworte Mama …")
 {"action":"sms","to":"<Name>","text":"<Nachricht>"}
-{"action":"heute","datum":"yyyy-MM-dd (leer = heute)","ziel":"<Ort oder Adresse, leer = fester Weg>","los":"HH:mm oder leer","an":"HH:mm oder leer","zuhause":"HH:mm oder leer","aus":false,"stopp":"<Laden unterwegs oder leer, z. B. Rewe>","was":"<was er dort will: Brot, Einkauf … oder leer>"}   (einmaliger Weg an einem Tag. "ich fahr zu Opa und vorher noch zum Rewe einkaufen" -> ziel Opa, stopp Rewe, was Einkauf; "um 15 Uhr Brot holen" -> ziel Rewe bzw. Bäcker, was Brot. GENAU unterscheiden: "los" = Zeit, zu der er HIER losfährt/losgeht ("ich will um 14:50 los zu Oma und Opa", "um 15 Uhr geh ich Brot einkaufen", "um 16:10 fahr ich zu Opa"); "an" = Zeit, zu der er DORT sein will ("ich will um 14:50 bei Oma und Opa sein", "ich muss um 15 Uhr beim Rewe sein", "um 15 Uhr soll ich da sein") – Jarvis rechnet dann selbst, wann er los muss. Nie beides raten. Einkaufen ohne Ort -> ziel "Rewe". "heute will ich um 19 Uhr zuhause sein" -> zuhause; "Donnerstag fahr ich nicht zu Opa" -> aus true. Relative Zeiten mit der aktuellen Uhrzeit ausrechnen: "in einer halben Stunde los zu Oma und Opa" -> los = jetzt + 30 Min.; "in 10 Minuten geh ich" -> los = jetzt + 10; "in einer Stunde muss ich beim Rewe sein" -> an = jetzt + 60)
+{"action":"heute","datum":"yyyy-MM-dd (leer = heute)","ziel":"<Ort oder Adresse, leer = fester Weg>","los":"HH:mm oder leer","an":"HH:mm oder leer","zuhause":"HH:mm oder leer","aus":false,"stopp":"<Laden unterwegs oder leer, z. B. Rewe>","was":"<was er dort will: Brot, Einkauf … oder leer>"}   (einmaliger Weg an einem Tag. "ich fahr zu Opa und vorher noch zum Rewe einkaufen" -> ziel Opa, stopp Rewe, was Einkauf; "um 15 Uhr Brot holen" -> ziel Rewe bzw. Bäcker, was Brot. GENAU unterscheiden: "los" = Zeit, zu der er HIER losfährt/losgeht ("ich will um 14:50 los zu Oma und Opa", "um 15 Uhr geh ich Brot einkaufen", "um 16:10 fahr ich zu Opa"); "an" = Zeit, zu der er DORT sein will ("ich will um 14:50 bei Oma und Opa sein", "ich muss um 15 Uhr beim Rewe sein", "um 15 Uhr soll ich da sein") – Vector rechnet dann selbst, wann er los muss. Nie beides raten. Einkaufen ohne Ort -> ziel "Rewe". "heute will ich um 19 Uhr zuhause sein" -> zuhause; "Donnerstag fahr ich nicht zu Opa" -> aus true. Relative Zeiten mit der aktuellen Uhrzeit ausrechnen: "in einer halben Stunde los zu Oma und Opa" -> los = jetzt + 30 Min.; "in 10 Minuten geh ich" -> los = jetzt + 10; "in einer Stunde muss ich beim Rewe sein" -> an = jetzt + 60)
 {"action":"test_fahrt"}   ("schick mir eine Testnachricht", "wie sieht die Nachricht für Donnerstag aus?")
 {"action":"heim_sms","an":"<Name, leer = Mama>","text":"<Text, leer = Bin gleich da.>"}   ("schick Mama eine SMS, wenn ich wieder heimkomme", "sag Mama Bescheid, kurz bevor ich zuhause bin" – einmalig, kurz vor dem Heimkommen)
 {"action":"gassi","an":true}   ("ich geh mit dem Hund", "Hunderunde starten" – schaltet die Gassi-Erkennung ein; mit SMS-Wunsch zusätzlich heim_sms)
@@ -100,16 +100,16 @@ Mögliche Aktionen (mehrere nacheinander sind erlaubt):
 {"action":"ort_erinnerung","ort":"<gespeicherter Ort wie Opa, oder zuhause>","text":"<woran erinnern>"}   ("erinnere mich, wenn ich bei Opa bin, an das Ladekabel", "wenn ich zu Opa fahre, denk an …", "Donnerstag bei Opa an … denken", "wenn ich heimkomme, erinnere mich an …")
 {"action":"briefing","tag":"heute" | "morgen"}   ("gib mir das Briefing", "was ist morgen los und was zieh ich an?")
 {"action":"rueckblick"}   ("wie war meine Woche?", "Wochenrückblick", die letzten 7 Tage)
-{"action":"erinnerung","text":"<woran, kurz, z. B. Brot holen>","datum":"yyyy-MM-dd oder null","zeit":"HH:mm oder null","in_minuten":<nur bei "in 20 Minuten", sonst 0>}   (IMMER für "erinnere mich um 12:30 an Brot", "erinnere mich in 20 Minuten an den Ofen", "morgen Brot holen", "denk dran, dass ich Montag das Formular abgeben muss" – NICHT in den Kalender. Ohne Uhrzeit: datum setzen, zeit null; Jarvis sucht die beste Gelegenheit. Zwischen 0 und 5 Uhr heißt "morgen" heute.)
+{"action":"erinnerung","text":"<woran, kurz, z. B. Brot holen>","datum":"yyyy-MM-dd oder null","zeit":"HH:mm oder null","in_minuten":<nur bei "in 20 Minuten", sonst 0>}   (IMMER für "erinnere mich um 12:30 an Brot", "erinnere mich in 20 Minuten an den Ofen", "morgen Brot holen", "denk dran, dass ich Montag das Formular abgeben muss" – NICHT in den Kalender. Ohne Uhrzeit: datum setzen, zeit null; Vector sucht die beste Gelegenheit. Zwischen 0 und 5 Uhr heißt "morgen" heute.)
 {"action":"modus","name":"fokus" | "gaming" | "chill" | "kino" | "schule" | "nacht" | "aus"}   ("Fokus-Modus", "ich muss lernen", "Gaming-Modus", "ich zock jetzt", "Chill-Modus", "Kino-Modus", "Schulmodus", "Gute Nacht", "Modus aus", "Guten Morgen, alles normal")
 {"action":"schule","art":"ha" | "arbeit" | "test","fach":"<Fach oder leer>","text":"<was genau, z. B. Seite 42 Nr. 3 oder Thema der Arbeit>","datum":"yyyy-MM-dd"}   ("Hausaufgabe Mathe Seite 42 bis Donnerstag", "nächsten Dienstag schreiben wir Englisch, Vokabeln Unit 3", "am 21.11. ist Bio-Test über Zellen" – Datum selbst ausrechnen)
 {"action":"person","wer":"<Name, wie er ihn nennt>","geschenk":true|false}   ("Geschenkidee für Alex", "was soll ich Mama schenken?" -> geschenk true; "was weißt du über Alex?", "wie heißt Alex auf Discord?" -> false)
 {"action":"pakete"}   ("wo ist mein Paket?", "kommt heute ein Paket?", "Paketstatus")
 {"action":"mails"}   ("hab ich neue Mails?", "was kam per Mail?", "neue E-Mails")
 {"action":"ausgaben"}   ("wie viel hab ich diesen Monat ausgegeben?", "meine Ausgaben", "was hab ich bei Amazon ausgegeben?")
-{"action":"notfall"}   (NUR wenn er ausdrücklich „Notfall“ sagt oder klar um Hilfe in einer Notlage bittet: „Jarvis, Notfall“, „Hilfe, ich hatte einen Unfall“ – schickt sofort SMS mit Standort an seine Notfall-Person und ruft an)
+{"action":"notfall"}   (NUR wenn er ausdrücklich „Notfall“ sagt oder klar um Hilfe in einer Notlage bittet: „Vector, Notfall“, „Hilfe, ich hatte einen Unfall“ – schickt sofort SMS mit Standort an seine Notfall-Person und ruft an)
 {"action":"note","fach":"<Fach>","note":"<z. B. 2, 2+, 3->","art":"arbeit" | "test" | ""}   ("in Mathe hab ich eine 2 geschrieben", "Bio-Test zurück: 3 minus")
-{"action":"idee","text":"<die Idee in seinen Worten, kurz>"}   ("Jarvis, ich hab eine Idee: …", "schreib auf die Ideenliste …", "merk dir als Idee …")
+{"action":"idee","text":"<die Idee in seinen Worten, kurz>"}   ("Vector, ich hab eine Idee: …", "schreib auf die Ideenliste …", "merk dir als Idee …")
 {"action":"statuscheck"}   ("Statuscheck", "Systemcheck", "laufen alle Systeme?", "ist alles okay mit dir?")
 {"action":"gesundheit","was":"heute" | "gestern" | "woche" | "schlaf" | "bilanz"}   ("wie viele Kalorien hab ich heute verbraucht?", "war ich im Defizit?", "wie aktiv war ich die Woche?", "wie hab ich geschlafen?", "Tagesbilanz") – Daten aus Samsung Health und der Schlaf-Erkennung, NIE raten
 {"action":"wochenvorschau"}   ("was steht nächste Woche an?", "Wochen-Update", die nächsten 7 Tage)
@@ -277,13 +277,13 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
                 "navigate" -> think("lage")
             }
             val r = when (a.optString("action")) {
-                "vergleich" -> { onStatus?.invoke("Jarvis vergleicht …"); think("web")
+                "vergleich" -> { onStatus?.invoke("Vector vergleicht …"); think("web")
                     val items = a.optJSONArray("items")?.let { arr -> (0 until arr.length()).map { arr.optString(it) } } ?: emptyList()
                     Cards.compare(ctx, key, items, a.optString("frage").ifBlank { text }) }
-                "web" -> { onStatus?.invoke("Jarvis sucht im Web …"); Cards.web(key, a.optString("query").ifBlank { text }) }
+                "web" -> { onStatus?.invoke("Vector sucht im Web …"); Cards.web(key, a.optString("query").ifBlank { text }) }
                 "musik" -> { onStatus?.invoke("Schaue, was du hörst …"); Cards.music(ctx) }
                 "lage", "fuerdich" -> {
-                    onStatus?.invoke("Jarvis prüft die Lage …")
+                    onStatus?.invoke("Vector prüft die Lage …")
                     val city = Lage.city(ctx)
                     val ort = if (a.optString("action") == "fuerdich") "@fuerdich" else a.optString("ort").trim().let { if (it.equals(city, true)) "" else it }
                     try {
@@ -295,12 +295,12 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
                     } catch (e: Exception) { e.message ?: "Die Lage kann ich gerade nicht abrufen." }
                 }
                 "youtube_neu" -> { onStatus?.invoke("Schaue bei deinen Kanälen …"); Cards.youtube(ctx, key, a.optInt("days", 7).coerceIn(1, 30)) }
-                "screen" -> { onStatus?.invoke("Jarvis schaut hin …"); think("web")
+                "screen" -> { onStatus?.invoke("Vector schaut hin …"); think("web")
                     if (a.optString("geraet") == "pc") {
                         val r = try { Link.command(ctx, JSONObject().put("type", "screen").put("frage", a.optString("frage").ifBlank { text }), 45_000) } catch (_: Exception) { null }
                         r?.optString("text")?.takeIf { it.isNotBlank() } ?: "Der PC antwortet gerade nicht."
                     } else try { Vision.screen(ctx, a.optString("frage").ifBlank { text }) } catch (e: Exception) { "Das Anschauen ging nicht." } }
-                "route" -> { onStatus?.invoke("Jarvis plant den Weg …"); think("lage")
+                "route" -> { onStatus?.invoke("Vector plant den Weg …"); think("lage")
                     try { Route.plan(ctx, key, a.optString("text").ifBlank { text }).say } catch (e: Exception) { "Den Weg konnte ich gerade nicht planen." } }
                 else -> actions.run(a)
             } ?: continue
@@ -309,7 +309,7 @@ Beispiele: "öffne WhatsApp" -> {"actions":[{"action":"open_app","name":"WhatsAp
         // Nachgeschaute Infos (z. B. Kalender) in eine kurze gesprochene Antwort fassen
         if (infos.isNotEmpty()) {
             val m2 = JSONArray().put(JSONObject().put("role", "system").put("content",
-                "Du bist Jarvis, persönlich und souverän. Beantworte die Frage des Nutzers in 1 bis 3 kurzen gesprochenen Sätzen " +
+                "Du bist Vector, persönlich und souverän. Beantworte die Frage des Nutzers in 1 bis 3 kurzen gesprochenen Sätzen " +
                     "auf Deutsch, nur mit diesen Daten, ohne Listen und Sonderzeichen, Uhrzeiten wie \"um drei\". Die Einzelheiten " +
                     "(Songs, Videos, Quellen) stehen schon im Fenster auf dem Bildschirm – nenne nur das Wichtigste.\n" + infos.joinToString("\n")))
                 .put(JSONObject().put("role", "user").put("content", text))

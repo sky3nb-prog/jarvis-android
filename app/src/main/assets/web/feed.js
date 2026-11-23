@@ -44,7 +44,7 @@
   const todos = (a) => (a || []).map((x) => `<div class="fp-todo"><span class="fp-box"></span>${esc(x)}</div>`).join("");
   const wxBox = (label, w) => (w ? `<div class="fp-w"><small>${label}</small><div class="i">${wxIcon(w.code, w.dark)}</div><b>${w.temp}°</b>
     <div class="f">gefühlt ${w.feel}° · ${w.rain_mm > 0.05 ? "Regen " + w.rain_mm + " mm" : "Wind " + w.wind}${w.dark ? " · dunkel" : ""}</div></div>` : "");
-  const say = (t) => card("JARVIS SAGT", "var(--gold-l)", `<div class="fp-say">${esc(t)}</div>`);
+  const say = (t) => card("VECTOR SAGT", "var(--gold-l)", `<div class="fp-say">${esc(t)}</div>`);
 
   // --- Einzelansichten ---
   function viewFahrt(m) {
@@ -234,9 +234,9 @@
       if ((d.schlaf || []).length && d.schlaf_avg) add("SCHLAF", `Geschlafen im Schnitt ${Math.floor(d.schlaf_avg / 60)} Stunden ${d.schlaf_avg % 60} Minuten.`);
       add("WAS LOS WAR", (d.termine || []).length ? "Was los war: " + d.termine.map((t) => t.zeit + " " + t.titel).join(". ") : "");
     } else {
-      add("JARVIS SAGT", m.text);
+      add("VECTOR SAGT", m.text);
     }
-    if (!out.length) add("JARVIS SAGT", m.text);
+    if (!out.length) add("VECTOR SAGT", m.text);
     readKeys = cards;
     return out;
   }

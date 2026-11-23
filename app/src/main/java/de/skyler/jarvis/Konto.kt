@@ -145,7 +145,7 @@ object Konto {
                 .putLong("exp", System.currentTimeMillis() + (r.optString("expiresIn", "3600").toLongOrNull() ?: 3600) * 1000 - 60_000)
                 .putString("secret", seal(secretOf(email, pw, 2))).putString("secret_old", seal(secretOf(email, pw, 1)))
                 .putString("err", "").commit()
-            if (backup(ctx)) { push(ctx, force = true); return JSONObject().put("ok", true).put("text", "Verbunden – dein Jarvis ist jetzt in deinem Konto gesichert.") }
+            if (backup(ctx)) { push(ctx, force = true); return JSONObject().put("ok", true).put("text", "Verbunden – dein Vector ist jetzt in deinem Konto gesichert.") }
             val doc = getDoc(ctx)
             val txt = if (doc != null && doc.has("android")) {
                 val ok = try { pull(ctx, doc, force = true); true } catch (e: Exception) { false }

@@ -92,14 +92,14 @@ object Themen {
             val pcMedia = snap.optJSONObject("pc_media")
             val pcMusik = pcMedia?.optJSONArray("music")?.let { a -> (0 until a.length()).joinToString(", ") { a.optString(it) } } ?: ""
             val pcVideo = pcMedia?.optJSONArray("video")?.let { a -> (0 until a.length()).joinToString(", ") { a.optString(it) } } ?: ""
-            val sys = """Du lernst, wofür sich der Nutzer interessiert, damit sein Assistent Jarvis ihm passende Nachrichten zeigt.
+            val sys = """Du lernst, wofür sich der Nutzer interessiert, damit sein Assistent Vector ihm passende Nachrichten zeigt.
 Leite aus den Hinweisen 5 bis 10 Themen ab, die ihn wirklich interessieren (Hobbys, Spiele, Sport/Vereine, Technik, Marken, Orte, Berufliches).
-Gewichte: [mehr] und [klick] zählen viel, [weniger] heißt: dieses Thema NICHT nehmen. Fragen an Jarvis zählen mittel, YouTube/Musik zählen mittel.
+Gewichte: [mehr] und [klick] zählen viel, [weniger] heißt: dieses Thema NICHT nehmen. Fragen an Vector zählen mittel, YouTube/Musik zählen mittel.
 Keine allgemeinen Themen wie "Nachrichten" oder "Wetter". Keine Gesundheits-, Politik- oder Religionsvorlieben ableiten, die er nicht selbst klar zeigt.
 Für jedes Thema: "name" (kurz, Deutsch, z. B. "Euro Truck Simulator 2"), "suche" (gute Google-News-Suche, z. B. "\"Euro Truck Simulator 2\" OR ETS2"),
 "gewicht" (1 bis 3). Bisherige Themen (behalte sie, wenn sie noch passen): $old
 Antworte NUR mit JSON: {"themen": [ ... ]}"""
-            val user = "FRAGEN AN JARVIS (HANDY):\n$fragen\n\nFRAGEN AN JARVIS (PC):\n$pcFragen\n\nLAGE-SEITE:\n$klicks\n\nYOUTUBE-KANÄLE: $yt\nYOUTUBE AM PC: $pcVideo\nMUSIK: $mu\nMUSIK AM PC: $pcMusik\n\nGEDÄCHTNIS:\n$mem"
+            val user = "FRAGEN AN VECTOR (HANDY):\n$fragen\n\nFRAGEN AN VECTOR (PC):\n$pcFragen\n\nLAGE-SEITE:\n$klicks\n\nYOUTUBE-KANÄLE: $yt\nYOUTUBE AM PC: $pcVideo\nMUSIK: $mu\nMUSIK AM PC: $pcMusik\n\nGEDÄCHTNIS:\n$mem"
             val raw = Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content", sys))
                 .put(JSONObject().put("role", "user").put("content", user)), 900, json = true)
             val obj = JSONObject(Regex("\\{.*\\}", RegexOption.DOT_MATCHES_ALL).find(raw)?.value ?: raw)

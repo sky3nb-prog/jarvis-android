@@ -19,7 +19,7 @@ object Cal {
     private val de = Locale.GERMANY
 
     private fun can(ctx: Context, p: String) = ContextCompat.checkSelfPermission(ctx, p) == PackageManager.PERMISSION_GRANTED
-    private const val NO_PERM = "Ich darf deinen Kalender noch nicht benutzen. Öffne einmal die Jarvis-App und erlaube den Kalender."
+    private const val NO_PERM = "Ich darf deinen Kalender noch nicht benutzen. Öffne einmal die Vector-App und erlaube den Kalender."
 
     private fun parse(s: String): Pair<Date, Boolean>? {
         val t = s.trim().replace(' ', 'T')

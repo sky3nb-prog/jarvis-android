@@ -3,14 +3,14 @@
   const REL = "https://github.com/sky3nb-prog/jarvis-android/releases/latest";
   const SEITE = "https://sky3nb-prog.github.io/jarvis-android/";
   const STEPS = [
-    ["Mikrofon & Benachrichtigungen erlauben", "Beim ersten Start fragt Android danach. Ohne Mikrofon hört Jarvis nicht zu, ohne Benachrichtigungen meldet er sich nicht."],
+    ["Mikrofon & Benachrichtigungen erlauben", "Beim ersten Start fragt Android danach. Ohne Mikrofon hört Vector nicht zu, ohne Benachrichtigungen meldet er sich nicht."],
     ["Konto (optional)", "Unter Einstellungen → Systemstatus → „Dein Konto“ anmelden oder neu anlegen. Damit sind PC und Handy gleich eingerichtet – alles wird vorher mit deinem Passwort verschlüsselt. Geht auch ganz ohne Konto."],
-    ["KI-Schlüssel eintragen (kostenlos)", 'Auf <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> anmelden → „Create API Key“. Den Schlüssel (beginnt mit <code>gsk_</code>) unter Einstellungen → Allgemein → KI-Schlüssel einfügen. Ohne ihn versteht Jarvis nur feste Befehle.'],
+    ["KI-Schlüssel eintragen (kostenlos)", 'Auf <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> anmelden → „Create API Key“. Den Schlüssel (beginnt mit <code>gsk_</code>) unter Einstellungen → Allgemein → KI-Schlüssel einfügen. Ohne ihn versteht Vector nur feste Befehle.'],
     ["Wohnort eintragen", "Unter Einstellungen → Zuhause &amp; Orte – für Wetter, Lage und den Weg zur Schule/Arbeit."],
-    ["Reden", 'Einfach „<i>Jarvis</i>“ sagen und dann, was du willst – z. B. „Jarvis, wie wird das Wetter?“. Das Weckwort kannst du in den Einstellungen ändern.'],
+    ["Reden", 'Einfach „<i>Vector</i>“ sagen und dann, was du willst – z. B. „Vector, wie wird das Wetter?“. Das Weckwort kannst du in den Einstellungen ändern.'],
     ["PC dazu holen (optional)", 'Das PC-Programm gibt es auf <a href="' + SEITE + '" target="_blank" rel="noopener">derselben Seite</a>, von der du die App hast. Mit demselben Konto anmelden – PC und Handy finden sich dann von selbst.'],
     ["Updates", "Kommen von selbst (Einstellungen → System → Updates). Du musst nichts tun – nur beim allerersten Mal einmal „Unbekannte Apps installieren“ erlauben."],
-    ["Nochmal fragen", "Jederzeit einfach „Jarvis, wie richte ich dich ein?“ sagen oder tippen – dann kommt diese Anleitung in Kurzform auch gesprochen."],
+    ["Nochmal fragen", "Jederzeit einfach „Vector, wie richte ich dich ein?“ sagen oder tippen – dann kommt diese Anleitung in Kurzform auch gesprochen."],
   ];
   let built = false;
   function build() {
@@ -30,7 +30,7 @@
 #janl .close{margin-top:14px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,206,120,.3);background:#ffcf6e;color:#1a1006;font-weight:700;font-size:14px}`;
     document.head.appendChild(css);
     const ov = document.createElement("div"); ov.id = "janl";
-    ov.innerHTML = `<div class="box"><h2>JARVIS EINRICHTEN</h2><div class="sub">In ein paar Minuten fertig – Schritt für Schritt.</div>`
+    ov.innerHTML = `<div class="box"><h2>VECTOR EINRICHTEN</h2><div class="sub">In ein paar Minuten fertig – Schritt für Schritt.</div>`
       + STEPS.map((s, i) => `<div class="st"><div class="n">${i + 1}</div><div><div class="tt">${s[0]}</div><div class="dd">${s[1]}</div></div></div>`).join("")
       + `<button class="close" id="janl-close">Fertig</button></div>`;
     document.body.appendChild(ov);

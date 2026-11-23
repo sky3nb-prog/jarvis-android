@@ -219,8 +219,8 @@ object Link {
         code == 403 -> "PC lehnt ab (Schlüssel passt nicht – Kopplungscode gleich?)"
         code == 404 -> "PC kennt die direkte Verbindung noch nicht (PC-Update?)"
         code > 0 -> "PC antwortet mit Fehler $code"
-        e is java.net.SocketTimeoutException -> "Keine Antwort vom PC – meist blockiert die Windows-Firewall Jarvis (Port 8765)"
-        e is java.net.ConnectException -> "PC lehnt die Verbindung ab – läuft Jarvis am PC?"
+        e is java.net.SocketTimeoutException -> "Keine Antwort vom PC – meist blockiert die Windows-Firewall Vector (Port 8765)"
+        e is java.net.ConnectException -> "PC lehnt die Verbindung ab – läuft Vector am PC?"
         e is java.net.UnknownHostException || e is java.net.NoRouteToHostException -> "PC nicht erreichbar – Tailscale am Handy an?"
         else -> e.javaClass.simpleName + ": " + (e.message ?: "")
     }

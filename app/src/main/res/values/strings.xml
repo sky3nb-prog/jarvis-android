@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="screen_desc">Jarvis macht nur dann ein Bildschirmfoto, wenn du „Schau mal hier“ sagst oder schreibst, und schaut es sich mit der KI an. Er speichert keine Bilder. Für die Schlaf-Erkennung merkt er sich nur, WANN du das Display zuletzt berührt hast – nicht, was. In WhatsApp liest er die Nachrichten mit, die gerade auf dem Bildschirm stehen, um deinen Schreibstil pro Person zu lernen (abschaltbar unter Einstellungen → Leute → Schreibstil), und drückt dort „Senden“, wenn er gerade selbst etwas für dich verschickt.</string>
-    <string name="widget_desc">Jarvis auf dem Startbildschirm: Kugel, Uhr, was als Nächstes ansteht, Mikro-Knopf. Größe frei verstellbar.</string>
+    <string name="screen_desc">Vector macht nur dann ein Bildschirmfoto, wenn du „Schau mal hier“ sagst oder schreibst, und schaut es sich mit der KI an. Er speichert keine Bilder. Für die Schlaf-Erkennung merkt er sich nur, WANN du das Display zuletzt berührt hast – nicht, was. In WhatsApp liest er die Nachrichten mit, die gerade auf dem Bildschirm stehen, um deinen Schreibstil pro Person zu lernen (abschaltbar unter Einstellungen → Leute → Schreibstil), und drückt dort „Senden“, wenn er gerade selbst etwas für dich verschickt.</string>
+    <string name="widget_desc">Vector auf dem Startbildschirm: Kugel, Uhr, was als Nächstes ansteht, Mikro-Knopf. Größe frei verstellbar.</string>
 </resources>

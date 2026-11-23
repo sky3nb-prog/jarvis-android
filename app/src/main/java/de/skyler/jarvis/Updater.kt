@@ -113,7 +113,7 @@ object Updater {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 @Suppress("DEPRECATION") val confirm = i.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: return
                 confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                note(ctx, "Jarvis-Update bereit", "Einmal antippen und „Aktualisieren“ – danach installiert Jarvis Updates selbst.",
+                note(ctx, "Vector-Update bereit", "Einmal antippen und „Aktualisieren“ – danach installiert Vector Updates selbst.",
                     PendingIntent.getActivity(ctx, 778, confirm, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             }
             PackageInstaller.STATUS_SUCCESS -> {}
@@ -121,7 +121,7 @@ object Updater {
                 Log.w(TAG, "Update ging nicht: $st ${i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}")
                 prefs(ctx).edit().remove("upd_pending").apply()
                 val open = PendingIntent.getActivity(ctx, 779, Intent(Intent.ACTION_VIEW, Uri.parse(APK)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
-                note(ctx, "Neue Jarvis-Version da", "Selbst installieren ging nicht – antippen zum Herunterladen.", open)
+                note(ctx, "Neue Vector-Version da", "Selbst installieren ging nicht – antippen zum Herunterladen.", open)
             }
         }
     }
@@ -134,7 +134,7 @@ object Updater {
         ctx.cacheDir.listFiles()?.filter { it.name.startsWith("upd-") }?.forEach { it.delete() }
         val v = try { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName } catch (_: Exception) { "" }
         val open = PendingIntent.getActivity(ctx, 780, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
-        note(ctx, "Jarvis ist aktualisiert ($v)", "Antippen, damit ich wieder zuhöre.", open)
+        note(ctx, "Vector ist aktualisiert ($v)", "Antippen, damit ich wieder zuhöre.", open)
     }
 
     private fun note(ctx: Context, title: String, text: String, tap: PendingIntent) {

@@ -382,7 +382,7 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun getSettings(): String = JSONObject()
-            .put("wake_words", prefs.getString("wake_words", "jarvis"))
+            .put("wake_words", prefs.getString("wake_words", "vector"))
             .put("wake_level", prefs.getInt("wake_level", 1))
             .put("wake_cloud", prefs.getBoolean("wake_cloud", false))
             .put("background", prefs.getBoolean("background", !Konto.parallel(this@MainActivity)))
@@ -431,7 +431,7 @@ class MainActivity : ComponentActivity() {
         fun saveSettings(json: String) {
             val o = JSONObject(json)
             prefs.edit()
-                .putString("wake_words", o.optString("wake_words", "jarvis").ifBlank { "jarvis" })
+                .putString("wake_words", o.optString("wake_words", "vector").ifBlank { "vector" })
                 .putInt("wake_level", o.optInt("wake_level", 1))
                 .putBoolean("wake_cloud", o.optBoolean("wake_cloud", false))
                 .putBoolean("background", o.optBoolean("background", true))
@@ -537,7 +537,7 @@ class MainActivity : ComponentActivity() {
         fun testSms(wer: String): String {
             val w = wer.trim().ifBlank { return "Wem soll ich die Test-SMS schicken?" }
             val nr = Actions(this@MainActivity).number(w) ?: return "„$w“ finde ich nicht in deinen Kontakten."
-            val ok = Butler.sms(this@MainActivity, nr, "Hier ist Jarvis, das ist nur ein Test.", w)
+            val ok = Butler.sms(this@MainActivity, nr, "Hier ist Vector, das ist nur ein Test.", w)
             return if (ok) "Test-SMS an $w ist raus." else "Die SMS ging nicht raus – erlaube SMS in den Einstellungen unter Leute."
         }
 
@@ -799,7 +799,7 @@ class MainActivity : ComponentActivity() {
         fun remindDone(id: String) = Remind.done(this@MainActivity, id)
 
         @JavascriptInterface
-        fun remindTest() { val r = Remind.add(this@MainActivity, "Test-Erinnerung: So sehen Jarvis-Erinnerungen aus.", System.currentTimeMillis() + 5_000L) }
+        fun remindTest() { val r = Remind.add(this@MainActivity, "Test-Erinnerung: So sehen Vector-Erinnerungen aus.", System.currentTimeMillis() + 5_000L) }
 
         @JavascriptInterface
         fun openCalNotif(want: String) = runOnUiThread {   // Benachrichtigungen der Kalender-App/TimeTree ausschalten (Android-Einstellungen der App)
@@ -1117,7 +1117,7 @@ class MainActivity : ComponentActivity() {
             if (!Link.paired(this@MainActivity)) { send("sticker", JSONObject().put("ok", false).put("text", "Handy und PC sind noch nicht gekoppelt.")); return }
             Thread({
                 val r = try { Link.command(this@MainActivity, cmd, 30_000) } catch (_: Exception) { null }
-                send("sticker", (r ?: JSONObject().put("ok", false).put("text", "Der PC antwortet nicht. Läuft Jarvis am PC?")).put("op", cmd.optString("type")))
+                send("sticker", (r ?: JSONObject().put("ok", false).put("text", "Der PC antwortet nicht. Läuft Vector am PC?")).put("op", cmd.optString("type")))
             }, "jarvis-sticker").start()
         }
 
@@ -1134,7 +1134,7 @@ class MainActivity : ComponentActivity() {
             if (!Link.paired(this@MainActivity)) { send("pc_reply", JSONObject().put("ok", false).put("text", "Handy und PC sind noch nicht gekoppelt (Einstellungen → PC & Fernzugriff → Kopplungscode).")); return }
             Thread({
                 val r = try { Link.command(this@MainActivity, cmd) } catch (e: Exception) { null }
-                if (r == null) send("pc_reply", JSONObject().put("ok", false).put("text", "Der PC antwortet nicht. Läuft Jarvis am PC?"))
+                if (r == null) send("pc_reply", JSONObject().put("ok", false).put("text", "Der PC antwortet nicht. Läuft Vector am PC?"))
                 else {
                     r.optJSONObject("status")?.let { prefs.edit().putString("pc_status", it.toString()).apply() }
                     send("pc_reply", r)

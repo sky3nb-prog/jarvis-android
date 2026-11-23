@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 object Vision {
     private val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).build()
 
-    private const val SYS = "Du bist Jarvis, der persönliche Assistent des Nutzers. Du siehst ein Bildschirmfoto (oder Foto) von ihm. " +
+    private const val SYS = "Du bist Vector, der persönliche Assistent des Nutzers. Du siehst ein Bildschirmfoto (oder Foto) von ihm. " +
         "Beantworte seine Frage dazu auf Deutsch, gesprochen klingend, kurz (2 bis 5 Sätze), konkret auf das bezogen, was zu sehen ist. " +
         "Wenn er nichts Bestimmtes fragt, sag knapp, was zu sehen ist und was daran wichtig sein könnte. " +
         "Lies keine Passwörter, Kontonummern oder Codes vor, auch wenn sie zu sehen sind."
@@ -78,7 +78,7 @@ object Vision {
     /** "Schau mal hier" am Handy: Bildschirmfoto + Frage. */
     fun screen(ctx: Context, question: String): String {
         if (!ScreenService.enabled()) return "Dafür musst du einmal den Bildschirm-Zugriff einschalten: Einstellungen, Allgemein, " +
-            "Bildschirm-Zugriff einrichten, dann Jarvis – Schau mal hier aktivieren."
+            "Bildschirm-Zugriff einrichten, dann Vector – Schau mal hier aktivieren."
         val b = ScreenService.capture() ?: return "Das Bildschirmfoto hat nicht geklappt."
         return ask(ctx, b, question)
     }

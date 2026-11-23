@@ -49,7 +49,7 @@ object Cards {
         val artists = Interests.top(ctx, "music", 5).map { it.first }
         if (tops.isEmpty() && artists.isEmpty())
             return if (Interests.hasAccess(ctx)) "MUSIK: Ich lerne gerade noch, was du hörst. Hör ein paar Songs auf Deezer, dann kann ich dir etwas vorschlagen."
-            else "MUSIK: Ich weiß noch nicht, was du hörst. Erlaube in der Jarvis-App unter Einstellungen den Zugriff auf das, was du schaust und hörst."
+            else "MUSIK: Ich weiß noch nicht, was du hörst. Erlaube in der Vector-App unter Einstellungen den Zugriff auf das, was du schaust und hörst."
         val top = JSONArray()
         for ((title, artist, n) in tops) deezerTrack(title, artist)?.let { top.put(trackItem(it, n)) }
             ?: top.put(JSONObject().put("title", title).put("artist", artist).put("count", n).put("cover", "")
@@ -118,7 +118,7 @@ object Cards {
         val about = try { Memory.facts(ctx).takeLast(25).joinToString("; ") } catch (_: Exception) { "" }
         val msgs = JSONArray()
             .put(JSONObject().put("role", "system").put("content",
-                "Du bist Jarvis und hilfst bei einem Vergleich oder einer Kaufentscheidung. Suche im Internet nach aktuellen Tests, Daten und Preisen. " +
+                "Du bist Vector und hilfst bei einem Vergleich oder einer Kaufentscheidung. Suche im Internet nach aktuellen Tests, Daten und Preisen. " +
                 "Antworte auf Deutsch ohne Markdown in 5 bis 8 Sätzen: erst die wichtigsten Unterschiede (Preis, Qualität, Ausstattung, was für ihn zählt), " +
                 "dann eine klare Empfehlung mit Begründung (Ich würde … nehmen, weil …). Hängt es von etwas ab (z. B. Budget), sag es kurz. Erfinde keine Zahlen."))
             .put(JSONObject().put("role", "user").put("content", "Vergleich: $things. $frage" + if (about.isNotBlank()) "\nWas ich über den Nutzer weiß: $about" else ""))

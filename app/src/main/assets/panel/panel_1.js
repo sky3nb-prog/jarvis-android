@@ -28,9 +28,9 @@ function setState(s, text) {
   pw.classList.remove("hidden", "listen", "busy");
   if (s === "listening") pw.classList.add("listen");
   else if (s === "thinking") { pw.classList.add("busy"); setText(text || "Einen Moment …", true); }
-  else if (s === "searching") { pw.classList.add("busy"); setText(text || "Jarvis sucht im Web …", true); }
-  else if (s === "speaking") setText("Frag Jarvis", false);
-  else setText("Frag Jarvis", false);
+  else if (s === "searching") { pw.classList.add("busy"); setText(text || "Vector sucht im Web …", true); }
+  else if (s === "speaking") setText("Frag Vector", false);
+  else setText("Frag Vector", false);
   $("micicon").innerHTML = (s === "thinking" || s === "searching")
     ? '<rect x="7" y="7" width="10" height="10" rx="2.5" stroke-width="2.2"/>'
     : '<path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>';

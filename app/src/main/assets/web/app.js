@@ -118,7 +118,7 @@
     $("callbtn").textContent = talking ? "Gespräch beenden" : "Gespräch starten";
     $("callbtn").classList.toggle("live", talking);
     $("fokus-hint").textContent = talking ? "Sprich einfach – du kannst ihn jederzeit unterbrechen"
-                                          : "Tipp auf die Kugel, um mit Jarvis zu reden";
+                                          : "Tipp auf die Kugel, um mit Vector zu reden";
     Object.values(spheres).forEach((s) => (s.state = st));
     if (!talking) target = 0;
     applyLook();
@@ -195,7 +195,7 @@
       const on = !$("powerbtn").classList.contains("on");
       A.setPower(on);
       showPower(on);
-      toast(on ? "Jarvis ist an und hört auf sein Aktivierungswort." : "Jarvis ist aus. Er hört nicht mehr zu.");
+      toast(on ? "Vector ist an und hört auf sein Aktivierungswort." : "Vector ist aus. Er hört nicht mehr zu.");
     });
     if (A) readPower();
     document.addEventListener("visibilitychange", () => { if (!document.hidden && A) readPower(); });
@@ -477,7 +477,7 @@
     try {
       const c = JSON.parse(A.getSettings());
       sw("set-bg", c.background);
-      $("set-wake").value = c.wake_words || "jarvis";
+      $("set-wake").value = c.wake_words || "vector";
       $("set-level").value = String(c.wake_level);
       $("set-cloud").value = c.wake_cloud ? "1" : "0";
       $("set-jvol").value = c.jarvis_volume || 70;
@@ -518,7 +518,7 @@
       $("set-link").value = c.link_code || "";
       $("set-linkstate").textContent = c.link_code
         ? (c.synced ? "Gekoppelt · zuletzt abgeglichen " + new Date(c.synced).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + " · " + c.facts + " Dinge über dich"
-                    : "Code eingetragen – warte auf den PC (Jarvis am PC muss laufen).")
+                    : "Code eingetragen – warte auf den PC (Vector am PC muss laufen).")
         : "Noch nicht gekoppelt. Ohne Code merkt sich das Handy alles nur für sich.";
       $("set-status").textContent = c.model ? "Spracherkennung fürs Aktivierungswort ist geladen." : "Spracherkennung wird noch geladen (45 MB, einmalig) – bis dahin prüft Groq.";
     } catch (e) {}
@@ -533,10 +533,10 @@
   $("set-overlay").addEventListener("click", () => A.askOverlay());
   $("set-overlay2").addEventListener("click", () => A.askOverlay());
   $("set-battery").addEventListener("click", () => A.askBattery());
-  $("set-media").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
-  $("set-usage").addEventListener("click", () => { A.askUsage(); toast("Bei „Jarvis“ den Nutzungszugriff einschalten."); });
-  $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Jarvis“ den Benachrichtigungszugriff einschalten."); });
-  $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Jarvis“ den Zugriff auf alle Dateien einschalten."); });
+  $("set-media").addEventListener("click", () => { A.askMedia(); toast("Bei „Vector“ den Benachrichtigungszugriff einschalten."); });
+  $("set-usage").addEventListener("click", () => { A.askUsage(); toast("Bei „Vector“ den Nutzungszugriff einschalten."); });
+  $("set-media2").addEventListener("click", () => { A.askMedia(); toast("Bei „Vector“ den Benachrichtigungszugriff einschalten."); });
+  $("set-files").addEventListener("click", () => { A.askFiles(); toast("Bei „Vector“ den Zugriff auf alle Dateien einschalten."); });
   $("set-butlerok").addEventListener("click", () => A.askButler());
   // Uhrzeiten immer im 24-Stunden-Format (kein AM/PM): eigenes Feld "HH:MM"
   function fix24(el) {
@@ -803,7 +803,7 @@
     let a = []; try { a = JSON.parse(A.remindList() || "[]"); } catch (e) {}
     const when = (r) => r.at ? new Date(r.at).toLocaleString("de-DE", { weekday: "short", hour: "2-digit", minute: "2-digit" }) : (r.datum ? new Date(r.datum + "T12:00").toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" }) + " · ohne Uhrzeit" : "");
     $("rm-list").innerHTML = a.length ? a.map((r) => `<div class="srow"><div>${r.text}<small>${when(r)}</small></div><div class="sbtn" data-rmdone="${r.id}">Erledigt</div></div>`).join("")
-      : '<div class="note" style="margin:0">Keine offenen Erinnerungen. Sag z. B. „Friday, erinnere mich um 12:30 an Brot“.</div>';
+      : '<div class="note" style="margin:0">Keine offenen Erinnerungen. Sag z. B. „Vector, erinnere mich um 12:30 an Brot“.</div>';
     $("rm-list").querySelectorAll("[data-rmdone]").forEach((e) => e.addEventListener("click", () => { A.remindDone(e.dataset.rmdone); rmList(); }));
   }
   document.querySelectorAll("[data-calnotif]").forEach((e) => e.addEventListener("click", () => A && A.openCalNotif && A.openCalNotif(e.dataset.calnotif)));
@@ -926,7 +926,7 @@
         A.kontoReset(m); toast("Schicke dir eine Mail …");
       });
       const B = $("weg-btn"), I = $("weg-info"); let step = 0, tmr = null;
-      const TXT = [["Selbstzerstörung", "Zum Bestätigen noch zweimal tippen"], ["Wirklich?", "Noch einmal tippen – dann ist alles weg"], ["JA, ZERSTÖREN", "Letzte Chance: jetzt tippen löscht Jarvis"]];
+      const TXT = [["Selbstzerstörung", "Zum Bestätigen noch zweimal tippen"], ["Wirklich?", "Noch einmal tippen – dann ist alles weg"], ["JA, ZERSTÖREN", "Letzte Chance: jetzt tippen löscht Vector"]];
       const show = () => { B.textContent = TXT[step][0]; I.textContent = TXT[step][1]; };
       B.addEventListener("click", () => {
         clearTimeout(tmr);
@@ -1075,7 +1075,7 @@
     if (k) A.setGroqKey(k);
     const o = {
       background: sw("set-bg"),
-      wake_words: $("set-wake").value.trim() || "jarvis",
+      wake_words: $("set-wake").value.trim() || "vector",
       wake_level: parseInt($("set-level").value, 10),
       wake_cloud: $("set-cloud").value === "1",
       link_code: $("set-link").value.trim(),
@@ -1114,7 +1114,7 @@
     const box = $("set-themen");
     const learned = t.filter((x) => !x.selbst);
     box.innerHTML = learned.length ? learned.map((x) => `<span data-n="${String(x.name).replace(/"/g, "&quot;")}">${x.name}<b>×</b></span>`).join("")
-      : `<span class="none">Noch nichts gelernt – frag Jarvis einfach Dinge und tipp Meldungen an, dann lernt er dich kennen.</span>`;
+      : `<span class="none">Noch nichts gelernt – frag Vector einfach Dinge und tipp Meldungen an, dann lernt er dich kennen.</span>`;
     box.querySelectorAll("span[data-n] b").forEach((b) => b.addEventListener("click", () => { A.themaWeg(b.parentNode.dataset.n); b.parentNode.remove(); }));
   }
 

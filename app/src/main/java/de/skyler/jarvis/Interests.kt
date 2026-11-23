@@ -191,7 +191,7 @@ object Interests {
         val chans = top(ctx, "video", 8)
         if (chans.isEmpty()) return if (hasAccess(ctx))
             "YOUTUBE: Ich habe noch nicht genug gesehen, was du schaust. Schau ein paar Videos, dann lerne ich es."
-        else "YOUTUBE: Ich weiß noch nicht, was du schaust. Erlaube in der Jarvis-App unter Einstellungen den Zugriff " +
+        else "YOUTUBE: Ich weiß noch nicht, was du schaust. Erlaube in der Vector-App unter Einstellungen den Zugriff " +
             "„Was ich schaue und höre“."
         val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
         val cutoff = System.currentTimeMillis() - days * 86_400_000L

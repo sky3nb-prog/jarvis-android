@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src * data: blob:; media-src * data: blob:; connect-src *; font-src 'self' file: data:; worker-src 'self' file: blob:; child-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Jarvis</title>
+<title>Vector</title>
 <link rel="stylesheet" href="maplibre-gl.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -14,27 +14,27 @@
 
   <!-- 1) FOKUS -->
   <section id="v-fokus" class="view active">
-    <div class="switch on" id="powerbtn" role="switch" aria-label="Jarvis an oder aus"><span class="knob"></span></div>
+    <div class="switch on" id="powerbtn" role="switch" aria-label="Vector an oder aus"><span class="knob"></span></div>
     <div class="roundbtn feedbtn" id="feedbtn-f" title="Mitteilungen">🔔<i class="fdot"></i></div>
     <div class="roundbtn cleanbtn" id="cleanbtn" title="Nur die Kugel">◉</div>
     <div class="roundbtn mdround" id="mdbtn-f" title="Modi">◈</div>
-    <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Jarvis zu reden</div>
+    <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Vector zu reden</div>
     <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
-    <div class="name">J.A.R.V.I.S.</div>
+    <div class="name">VECTOR</div>
     <div class="state" id="fokus-state">bereit</div>
     <div class="talkbox" id="talkbox">
       <div class="line"><span class="who you">DU</span><span id="last-you">–</span></div>
-      <div class="line"><span class="who jar">JARVIS</span><span id="last-jar">Guten Abend. Ich bin bereit.</span></div>
+      <div class="line"><span class="who jar">VECTOR</span><span id="last-jar">Guten Abend. Ich bin bereit.</span></div>
     </div>
     <button class="callbtn" id="callbtn">Gespräch starten</button>
-    <div class="typebar"><input id="tb-in" placeholder="Oder schreib Jarvis … (Antwort leise als Text)" autocomplete="off" enterkeyhint="send"><button id="tb-send">➤</button></div>
+    <div class="typebar"><input id="tb-in" placeholder="Oder schreib Vector … (Antwort leise als Text)" autocomplete="off" enterkeyhint="send"><button id="tb-send">➤</button></div>
   </section>
 
   <!-- 2) INFO -->
   <section id="v-info" class="view info">
     <div class="topbar">
       <div class="roundbtn" id="btn-settings">⚙</div>
-      <div class="title">J.A.R.V.I.S.</div>
+      <div class="title">VECTOR</div>
       <div style="display:flex;gap:8px"><div class="roundbtn mdround2" id="mdbtn-i" title="Modi">◈</div>
       <div class="roundbtn feedbtn2" id="feedbtn-i" title="Mitteilungen">🔔<i class="fdot"></i></div></div>
     </div>
@@ -65,7 +65,7 @@
     </div>
     <div class="card orange">
       <div class="ctitle">LAGE</div>
-      <div class="row muted" id="info-lage">Wisch nach rechts zur Lage – oder frag Jarvis „Wie ist die Lage?“</div>
+      <div class="row muted" id="info-lage">Wisch nach rechts zur Lage – oder frag Vector „Wie ist die Lage?“</div>
     </div>
   </section>
 
@@ -83,7 +83,7 @@
       <div class="seg"><span class="on" data-m="welt">WELT</span><span data-m="stadt" id="seg-stadt">ZUHAUSE</span><span data-m="fuer">FÜR DICH</span><span data-m="orte">ORTE</span></div>
     </div>
     <div class="lorte" id="lorte"></div>
-    <div class="ljar" id="ljar"><canvas id="lmini"></canvas><div><small>JARVIS</small><span id="ljartxt">holt die Lage …</span></div></div>
+    <div class="ljar" id="ljar"><canvas id="lmini"></canvas><div><small>VECTOR</small><span id="ljartxt">holt die Lage …</span></div></div>
     <div class="ltgt" id="ltgt"><i></i><i></i><div class="cross"></div><div class="cross2"></div><b></b>
       <div class="tag"><small id="ltgk">ZIEL</small><div id="ltgn">–</div></div></div>
     <div class="lcards" id="lcards"></div>
@@ -115,7 +115,7 @@
     <div class="gtitle green">SCHNELL</div>
     <div class="tiles">
       <div class="tile g" data-pc='{"type":"youtube"}'><i>▶</i>YouTube<small>am PC</small></div>
-      <div class="tile g" data-pc='{"type":"hud"}'><i>◐</i>Jarvis-HUD<small>ein/aus</small></div>
+      <div class="tile g" data-pc='{"type":"hud"}'><i>◐</i>Vector-HUD<small>ein/aus</small></div>
       <div class="tile g" id="t-text"><i>⌨</i>Befehl<small>an den PC</small></div>
     </div>
     <div style="height:20px"></div>
@@ -158,13 +158,13 @@
           <div class="sitem" data-go="leute"><i style="background:#2a1306">👥</i><div><b>Leute & Anrufe</b><small>Wichtige Leute, wer ist wie, Anruf-Butler</small></div><span>›</span></div>
           <div class="sitem" data-go="fit"><i style="background:#2a0f18">❤️</i><div><b>Gesundheit & Schlaf</b><small>Samsung Health, Aktivität, Schlaf, Tagesbilanz</small></div><span>›</span></div>
         </div>
-        <div class="sgrp">JARVIS</div>
+        <div class="sgrp">VECTOR</div>
         <div class="slist">
           <div class="sitem" data-go="allg"><i style="background:#3a2608">⚙️</i><div><b>Allgemein</b><small>Persönlichkeit, KI-Schlüssel, Kalender, Ideen</small></div><span>›</span></div>
           <div class="sitem" data-go="hoer"><i style="background:#0b2a3c">🎙️</i><div><b>Zuhören & Stimme</b><small>Aktivierungswort, Stimme, wann er redet, Rechte</small></div><span>›</span></div>
           <div class="sitem" data-go="anz"><i style="background:#13202a">◐</i><div><b>Anzeige</b><small>Farbe, Strang, Startanimation, Leuchtrand</small></div><span>›</span></div>
           <div class="sitem" data-go="sys"><i style="background:#0b2a22">●</i><div><b>Systemstatus</b><small id="sys-sub">Läuft alles? Grüne und rote Punkte</small></div><span>›</span></div>
-          <div class="sitem" id="si-weg" data-go="sys" style="display:none"><i style="background:#3a0b0b">✸</i><div><b style="color:#ff9a8a">Selbstzerstörung</b><small>Jarvis komplett von diesem Handy löschen · Konto-Passwort</small></div><span>›</span></div>
+          <div class="sitem" id="si-weg" data-go="sys" style="display:none"><i style="background:#3a0b0b">✸</i><div><b style="color:#ff9a8a">Selbstzerstörung</b><small>Vector komplett von diesem Handy löschen · Konto-Passwort</small></div><span>›</span></div>
         </div>
         <div class="sgrp">PC & WELT</div>
         <div class="slist">
@@ -177,7 +177,7 @@
         <div class="sec" style="--c:#ffa03c"><h3>WELTLAGE</h3>
           <div class="note" style="margin:0 0 6px">Nachrichten von tagesschau, DW, BBC und aus deiner Gegend – alle 15 Minuten frisch.</div>
           <div class="f"><label>Lieblingsorte (mit Komma trennen)</label><input id="set-orte" type="text" placeholder="Stuttgart, Seoul"></div>
-          <div class="f"><label>Das interessiert dich (lernt Jarvis von selbst – × zum Entfernen)</label><div class="tchips" id="set-themen"></div></div>
+          <div class="f"><label>Das interessiert dich (lernt Vector von selbst – × zum Entfernen)</label><div class="tchips" id="set-themen"></div></div>
           <div class="f"><label>Eigene Themen dazu (mit Komma trennen)</label><input id="set-tselbst" type="text" placeholder="z. B. Euro Truck Simulator, VfB Stuttgart, KI"></div>
           <div class="srow"><div>Bei „Wie ist die Lage?“ zur Lage springen</div><div class="sw" id="set-ljump"></div></div>
           <div class="srow"><div>Bei der Tour auf jeden Ort zoomen<small>z. B. Polizeirevier, Tunnel, Bahnhof</small></div><div class="sw" id="set-lzoom"></div></div>
@@ -188,7 +188,7 @@
       </div>
       <div class="spane" id="sp-morgen">
         <div class="sec" style="--c:#d7a8ff"><h3>WECKER</h3>
-          <div class="srow"><div>Wecker automatisch stellen<small>Jeden Abend ab 19 Uhr stellt Jarvis die Wecker für morgen in der Samsung Uhr. Steht morgen „Ferien“ oder „Feiertag“ im Kalender, lässt er es.</small></div><div class="sw" id="wk-an"></div></div>
+          <div class="srow"><div>Wecker automatisch stellen<small>Jeden Abend ab 19 Uhr stellt Vector die Wecker für morgen in der Samsung Uhr. Steht morgen „Ferien“ oder „Feiertag“ im Kalender, lässt er es.</small></div><div class="sw" id="wk-an"></div></div>
           <div class="note" style="margin:0 0 6px">Aufstehen um … – pro Tag. Leer = an dem Tag kein Wecker.</div>
           <div class="wk-days" id="wk-days"></div>
           <input id="wk-schule" type="hidden"><input id="wk-we" type="hidden">
@@ -206,11 +206,11 @@
           <div class="srow"><div>Was anziehen – Kleiderschrank<small>Deine Sachen mit Temperaturen, drinnen/draußen pro Ort, lernt dazu</small></div><div class="sbtn" id="go-schrank">Öffnen</div></div>
           <textarea id="set-anzieh" rows="5" style="display:none"></textarea>
         </div>
-        <div class="sec" style="--c:#ff9a8a"><h3>ERINNERUNGEN – NUR JARVIS</h3>
-          <div class="note" style="margin:0 0 6px">„Erinnere mich um 12:30 an Brot“ merkt sich Jarvis selbst (nicht im Kalender): auffällige Benachrichtigung mit Ton, „Erledigt“ und „In 15 Min. nochmal“, zuhause sagt er es laut, ohne Reaktion nach 5 Min. nochmal. „Morgen Brot holen“ ohne Uhrzeit: im Briefing, wenn du unterwegs bist, sonst wenn du heimkommst.</div>
+        <div class="sec" style="--c:#ff9a8a"><h3>ERINNERUNGEN – NUR VECTOR</h3>
+          <div class="note" style="margin:0 0 6px">„Erinnere mich um 12:30 an Brot“ merkt sich Vector selbst (nicht im Kalender): auffällige Benachrichtigung mit Ton, „Erledigt“ und „In 15 Min. nochmal“, zuhause sagt er es laut, ohne Reaktion nach 5 Min. nochmal. „Morgen Brot holen“ ohne Uhrzeit: im Briefing, wenn du unterwegs bist, sonst wenn du heimkommst.</div>
           <div class="srow"><div>Auch Kalender-Termine erinnern<small>Auch Termine von anderen (z. B. TimeTree) – genauso auffällig</small></div><div class="sw" id="set-termerin"></div></div>
           <div class="f"><label>So viele Minuten vor Terminen</label><input id="set-termvor" type="number" min="0" max="180" placeholder="15"></div>
-          <div class="note" style="margin:0 0 4px">Damit nur Jarvis erinnert: Benachrichtigungen der Kalender-App und von TimeTree ausschalten.</div>
+          <div class="note" style="margin:0 0 4px">Damit nur Vector erinnert: Benachrichtigungen der Kalender-App und von TimeTree ausschalten.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div class="sbtn" data-calnotif="com.samsung.android.calendar">Samsung Kalender</div><div class="sbtn" data-calnotif="com.google.android.calendar">Google Kalender</div><div class="sbtn" data-calnotif="com.timetree.android">TimeTree</div></div>
           <div id="rm-list"></div>
         </div>
@@ -240,14 +240,14 @@
       </div>
       <div class="spane" id="sp-wege">
         <div class="sec" style="--c:#6effcd"><h3>ZUHAUSE & WEG</h3>
-          <div class="srow"><div>Standort „Immer erlauben“<small>Damit Jarvis merkt, wann du losfährst und ankommst. Bleibt auf dem Handy.</small></div><div class="sbtn" id="set-locall">Erlauben</div></div>
+          <div class="srow"><div>Standort „Immer erlauben“<small>Damit Vector merkt, wann du losfährst und ankommst. Bleibt auf dem Handy.</small></div><div class="sbtn" id="set-locall">Erlauben</div></div>
           <div class="f"><label>Heim-WLAN</label><div style="display:flex;gap:8px"><input id="set-wlan" type="text" placeholder="Name deines WLANs" style="flex:1"><div class="sbtn" id="set-wlanget">Aktuelles</div></div></div>
           <div class="srow"><div>PC herunterfahren, wenn ich weg bin<small>5 Minuten aus dem Haus: Hinweis mit „Abbrechen“, 2 Minuten später Musik aus, ETS2 speichern, Programme schließen, PC aus. Sitzt jemand dran, fragt er. Wieder da: „Willkommen zurück“ am PC.</small></div><div class="sw" id="set-wegauto"></div></div>
         </div>
         <div class="sec" style="--c:#6effcd"><h3>STANDORT</h3>
           <div class="f"><label>Wohnort</label><input id="set-city" type="text" placeholder="z. B. Musterstadt"></div>
           <div class="f"><label>Meine Adresse (für Routen, optional)</label><input id="set-addr" type="text" placeholder="Straße, Hausnummer"></div>
-          <div class="srow"><div>Aktuellen Standort des Handys nutzen<small>Dann weiß Jarvis, wo du gerade bist – „Was ist hier los?“</small></div><div class="sw" id="set-loc"></div></div>
+          <div class="srow"><div>Aktuellen Standort des Handys nutzen<small>Dann weiß Vector, wo du gerade bist – „Was ist hier los?“</small></div><div class="sw" id="set-loc"></div></div>
           <div class="note" id="set-locstate"></div>
         </div>
         <div class="sec" style="--c:#6effcd"><h3>MEINE ORTE</h3>
@@ -310,7 +310,7 @@
           <div class="srow"><div>Regen-Warnung<small>Bist du unterwegs und es soll gleich regnen, sag ich dir rechtzeitig: „Jetzt heim, sonst wirst du nass.“ Aus Regenradar, mehreren Wettermodellen und wie lange du nach Hause brauchst.</small></div><div class="sw" id="set-regen"></div></div>
         </div>
         <div class="sec" style="--c:#3cc8ff"><h3>ANKUNFT ANKÜNDIGEN</h3>
-          <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Ort aus „Meine Orte“, Doppelpunkt, wer Bescheid bekommt. Etwa 5 Minuten vorher geht eine SMS raus: „Hier ist Jarvis. der Nutzer ist um … da“.</div>
+          <div class="note" style="margin:0 0 6px">Eine Zeile pro Ort: Ort aus „Meine Orte“, Doppelpunkt, wer Bescheid bekommt. Etwa 5 Minuten vorher geht eine SMS raus: „Hier ist Vector. der Nutzer ist um … da“.</div>
           <div class="f"><textarea id="set-ankunft" rows="2" placeholder="Oma: Mama"></textarea></div>
         </div>
         <div class="sec" data-neu="n80" style="--c:#6effcd"><h3>GASSI – HUNDERUNDE</h3>
@@ -318,7 +318,7 @@
           <div class="srow"><div>SMS, wenn du zurück bist<small>Erst wenn du wirklich am Haus bist (Heim-WLAN oder direkt vor der Tür)</small></div><div class="sw" id="gs-sms"></div></div>
           <div style="display:flex;gap:10px"><div class="f" style="flex:1"><label>SMS an</label><input id="gs-wer" type="text" placeholder="Mama"></div>
             <div class="f" style="flex:1"><label>Text</label><input id="gs-text" type="text" placeholder="Bin wieder da."></div></div>
-          <div class="srow"><div>Test-SMS<small>Schickt jetzt „Test von Jarvis: Bin wieder da.“ an die Person oben</small></div><div class="sbtn" id="gs-test">Senden</div></div>
+          <div class="srow"><div>Test-SMS<small>Schickt jetzt „Test von Vector: Bin wieder da.“ an die Person oben</small></div><div class="sbtn" id="gs-test">Senden</div></div>
           <div class="srow"><div>Hunderunden<small id="gs-info" style="white-space:pre-line">Was er gerade sieht und warum (noch) keine SMS</small></div><div class="sbtn" id="gs-infobtn">Zeigen</div></div>
           <div class="srow"><div>Protokoll an den PC<small>Standorte der Runde – damit Claude nachsehen kann (geht auch automatisch nach jeder Runde)</small></div><div class="sbtn" id="gs-share">Schicken</div></div>
         </div>
@@ -327,9 +327,9 @@
         <div class="sec" style="--c:#ff9de2"><h3>SCHREIBSTIL – ER LERNT MIT</h3>
           <div class="note" id="stil-st" style="margin:0 0 6px">–</div>
           <details style="margin:0 0 6px"><summary style="cursor:pointer;color:var(--dim);font-size:13px">📂 Diese Chats kenne ich schon</summary><div id="stil-list" class="note" style="margin:6px 0 0"></div></details>
-          <div class="srow"><div>Chat-Export laden<small>Schneller lernen: in WhatsApp Chat öffnen → ⋮ → Mehr → „Chat exportieren“ → „Ohne Medien“ → Jarvis. Oder hier eine Datei wählen.</small></div><div class="sbtn" id="stil-imp">Datei</div></div>
-          <div class="srow"><div>Mitlesen in WhatsApp<small>Wenn du einen Chat offen hast oder hochscrollst, lerne ich, wie du mit genau dieser Person schreibst. Braucht die Bedienungshilfe „Jarvis – Schau mal hier“.</small></div><div class="sw" id="stil-mit"></div></div>
-          <div class="srow" id="stil-accrow" style="display:none"><div>Bedienungshilfe ist aus<small>Einstellungen → Bedienungshilfen → Installierte Apps → „Jarvis – Schau mal hier“ an</small></div><div class="sbtn" id="stil-acc">Öffnen</div></div>
+          <div class="srow"><div>Chat-Export laden<small>Schneller lernen: in WhatsApp Chat öffnen → ⋮ → Mehr → „Chat exportieren“ → „Ohne Medien“ → Vector. Oder hier eine Datei wählen.</small></div><div class="sbtn" id="stil-imp">Datei</div></div>
+          <div class="srow"><div>Mitlesen in WhatsApp<small>Wenn du einen Chat offen hast oder hochscrollst, lerne ich, wie du mit genau dieser Person schreibst. Braucht die Bedienungshilfe „Vector – Schau mal hier“.</small></div><div class="sw" id="stil-mit"></div></div>
+          <div class="srow" id="stil-accrow" style="display:none"><div>Bedienungshilfe ist aus<small>Einstellungen → Bedienungshilfen → Installierte Apps → „Vector – Schau mal hier“ an</small></div><div class="sbtn" id="stil-acc">Öffnen</div></div>
           <div class="srow"><div>Stil-Training 🎮<small>Eine echte Stelle aus deinen Chats: wer, worum es ging, zwei Antworten – eine von dir, eine von mir. Tipp, was DU schreiben würdest – oder schreib's selbst.</small></div><div class="sbtn" id="stil-qbtn">Spielen</div></div>
           <div id="stil-quiz" style="display:none;margin:6px 0;padding:10px;border:1px solid #ff9de244;border-radius:14px">
             <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.8"><b id="stil-who"></b><span id="stil-xp"></span></div>
@@ -345,20 +345,20 @@
           <div class="f"><label>Für diese Chats (Namen wie in WhatsApp, mit Komma)</label><input id="stil-chats" type="text" placeholder="z. B. Max, Marius"></div>
           <div class="f"><label>Test-Chat (z. B. deine Zweitnummer – Name wie in WhatsApp)</label><input id="stil-test" type="text" placeholder="z. B. Ich 2"></div>
           <div class="srow"><div>Test: Nachricht an den PC<small id="t-wapc">So, als käme eine Nachricht aus dem Test-Chat – der PC sagt sie an</small></div><div class="sbtn" id="tb-wapc">Testen</div></div>
-          <div class="srow"><div>Test: Sprachnachricht an den Test-Chat<small id="t-voice">Mit der Jarvis-Stimme vom Handy</small></div><div class="sbtn" id="tb-voice">Testen</div></div>
-          <div class="srow"><div>Test: Gespräch übernehmen<small id="t-take">Jarvis führt den Test-Chat 3 Std. selbst – „ich übernehme wieder“ stoppt</small></div><div class="sbtn" id="tb-take">Starten</div></div>
-          <div class="note" style="margin:0 0 6px">Nachrichten aus diesem Chat liest Jarvis am PC immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt – und du kannst sagen „antworte du“, „… als Sprachnachricht“ usw. Zum Ausprobieren.</div>
+          <div class="srow"><div>Test: Sprachnachricht an den Test-Chat<small id="t-voice">Mit der Vector-Stimme vom Handy</small></div><div class="sbtn" id="tb-voice">Testen</div></div>
+          <div class="srow"><div>Test: Gespräch übernehmen<small id="t-take">Vector führt den Test-Chat 3 Std. selbst – „ich übernehme wieder“ stoppt</small></div><div class="sbtn" id="tb-take">Starten</div></div>
+          <div class="note" style="margin:0 0 6px">Nachrichten aus diesem Chat liest Vector am PC immer vor – auch wenn WhatsApp offen ist oder keiner am PC sitzt – und du kannst sagen „antworte du“, „… als Sprachnachricht“ usw. Zum Ausprobieren.</div>
           <div class="srow"><div>Termine aus WhatsApp<small>Wird im Chat was fest ausgemacht, trag ich's ein (mit „Rückgängig“). Abgesagt oder verschoben – auch per Sprachnachricht – nehm ich's raus bzw. verschieb es.</small></div><div class="sw" id="stil-term"></div></div>
           <div class="note" id="stil-tl" style="margin:4px 0 0"></div>
-          <div class="note" style="margin:6px 0 0">Geburtstag: morgens liegt eine Glückwunsch-Nachricht in deinem Stil bereit. „Friday, plan ein Treffen mit Max am Wochenende“ schlägt freie Zeiten vor.</div>
+          <div class="note" style="margin:6px 0 0">Geburtstag: morgens liegt eine Glückwunsch-Nachricht in deinem Stil bereit. „Vector, plan ein Treffen mit Max am Wochenende“ schlägt freie Zeiten vor.</div>
         </div>
         <div class="sec" style="--c:#6effcd"><h3>WICHTIGE LEUTE</h3>
           <div class="f"><label>Namen wie in WhatsApp, mit Komma getrennt</label><input id="set-wichtig" type="text" placeholder="z. B. Mama, Papa, bester Freund"></div>
           <div class="f"><label>Immer vorlesen (auch beim Zocken, bei offenem WhatsApp, im Fokus)</label><input id="wa-immer" type="text" placeholder="z. B. Mama"></div>
           <div class="srow"><div>Nachrichten erst vorlesen<small>Bevor ich etwas in deinem Namen schicke, sag ich dir den Text und warte auf dein „Ja“</small></div><div class="sw" id="wa-conf"></div></div>
           <div class="f"><label>Beim Zocken / Discord</label><select id="wa-zocken"><option value="ansagen">Trotzdem ansagen</option><option value="sammeln">Sammeln und danach sagen</option><option value="nie">Gar nicht ansagen</option></select></div>
-          <div class="note">Schreiben sie dir, sagt Jarvis es am PC an – auch mitten im Spiel – und fragt, ob du antworten willst. Die Antwort geht über die WhatsApp-Benachrichtigung, WhatsApp geht nicht auf. Gilt auch am PC.</div>
-          <div class="srow"><div>Benachrichtigungszugriff<small>Damit Jarvis die WhatsApp-Benachrichtigungen lesen kann</small></div><div class="sbtn" id="set-media2">Erlauben</div></div>
+          <div class="note">Schreiben sie dir, sagt Vector es am PC an – auch mitten im Spiel – und fragt, ob du antworten willst. Die Antwort geht über die WhatsApp-Benachrichtigung, WhatsApp geht nicht auf. Gilt auch am PC.</div>
+          <div class="srow"><div>Benachrichtigungszugriff<small>Damit Vector die WhatsApp-Benachrichtigungen lesen kann</small></div><div class="sbtn" id="set-media2">Erlauben</div></div>
           <div class="srow"><div>Sprachnachrichten<small>„Zugriff auf alle Dateien“, nur um die Sprachnachrichten aus dem WhatsApp-Ordner zu lesen</small></div><div class="sbtn" id="set-files">Erlauben</div></div>
         </div>
         <div class="sec" data-neu="n91" style="--c:#ffd678"><h3>STICKER-REGEN</h3>
@@ -379,7 +379,7 @@
           <div class="srow"><div>Jetzt lernen<small>Alle Chats, aus denen ich etwas habe (bis zu 15) – sonst jeden Abend um 20 Uhr</small></div><div class="sbtn" id="leute-learn">Lernen</div></div>
         </div>
         <div class="sec" data-neu="n103" style="--c:#ff5a5a"><h3>NOTFALL</h3>
-          <div class="note" style="margin:0 0 6px">Sag „Jarvis, Notfall“: Ich schicke sofort eine SMS mit deinem Standort und rufe dann an.</div>
+          <div class="note" style="margin:0 0 6px">Sag „Vector, Notfall“: Ich schicke sofort eine SMS mit deinem Standort und rufe dann an.</div>
           <div class="f"><label>Wen soll ich im Notfall benachrichtigen? (Name wie in deinen Kontakten)</label><input id="nf-wer" type="text" placeholder="Mama"></div>
           <div class="srow"><div id="nf-state" class="note" style="margin:0"></div><div class="sbtn" id="nf-save">Speichern</div></div>
           <div class="srow"><div>Notfall testen<small>Schickt eine echte SMS mit Standort, klar als TEST markiert – ohne Anruf. Sag der Person vorher Bescheid.</small></div><div class="sbtn" id="nf-test">Testen</div></div>
@@ -393,17 +393,17 @@
       </div>
       <div class="spane" id="sp-allg">
         <div class="sec" style="--c:#ffd678"><h3>PERSÖNLICHKEIT</h3>
-          <div class="f"><label>Name des Assistenten</label><input id="set-name" type="text" placeholder="Jarvis"></div>
+          <div class="f"><label>Name des Assistenten</label><input id="set-name" type="text" placeholder="Vector"></div>
           <div class="f"><label>Anrede</label><input id="set-anrede" type="text" placeholder="z. B. Sir oder dein Name (leer = keine)"></div>
         </div>
         <div class="sec"><h3>KI & SCHLÜSSEL</h3>
           <div class="f"><label>Groq-Schlüssel (kostenlos, console.groq.com)</label><input id="set-key" type="password" placeholder="gsk_…  (leer lassen = nicht ändern)"></div>
           <div class="f"><label>Gemini-Schlüssel für „Schau mal hier“ (kostenlos, aistudio.google.com)</label><input id="set-gkey" type="password" placeholder="leer lassen = nicht ändern"><div class="note" id="set-gstate"></div></div>
-          <div class="srow"><div>Bildschirm-Zugriff für „Schau mal hier“<small>Einmal in den Bedienungshilfen „Jarvis – Schau mal hier“ einschalten. Er schaut nur hin, wenn du es sagst.</small></div><div class="sbtn" id="set-screen">Einrichten</div></div>
+          <div class="srow"><div>Bildschirm-Zugriff für „Schau mal hier“<small>Einmal in den Bedienungshilfen „Vector – Schau mal hier“ einschalten. Er schaut nur hin, wenn du es sagst.</small></div><div class="sbtn" id="set-screen">Einrichten</div></div>
           <div class="note" id="set-version"></div>
         </div>
         <div class="sec" data-neu="n92" style="--c:#ff7a5a"><h3>GMAIL – POSTFACH</h3>
-          <div class="note" style="margin:0 0 6px">Damit ich Pakete und neue Mails aus deinem ganzen Postfach kenne (nur lesen). Dafür brauchst du ein <b>App-Passwort</b>: myaccount.google.com → Sicherheit → Bestätigung in zwei Schritten (muss an sein) → ganz unten „App-Passwörter“ → Name „Jarvis“ → die 16 Zeichen hier einfügen. Nicht dein normales Passwort.</div>
+          <div class="note" style="margin:0 0 6px">Damit ich Pakete und neue Mails aus deinem ganzen Postfach kenne (nur lesen). Dafür brauchst du ein <b>App-Passwort</b>: myaccount.google.com → Sicherheit → Bestätigung in zwei Schritten (muss an sein) → ganz unten „App-Passwörter“ → Name „Vector“ → die 16 Zeichen hier einfügen. Nicht dein normales Passwort.</div>
           <div class="f"><label>Gmail-Adresse</label><input id="gm-user" type="text" placeholder="du@gmail.com" autocapitalize="none"></div>
           <div class="f"><label>App-Passwort (16 Zeichen)</label><input id="gm-pw" type="password" placeholder="leer lassen = nicht ändern" autocomplete="off"></div>
           <div class="srow"><div id="gm-state" class="note" style="margin:0"></div><div class="sbtn" id="gm-save">Speichern & testen</div></div>
@@ -415,26 +415,26 @@
           <div class="note">Google-Kalender erscheinen auch am PC und im Browser, Samsung-Kalender nur auf diesem Handy.</div>
         </div>
         <div class="sec" data-neu="n82" style="--c:#d7a8ff"><h3>MEINE IDEEN</h3>
-          <div class="note" style="margin:0 0 6px">Sag „Jarvis, ich hab eine Idee: …“ – landet hier und am PC.</div>
+          <div class="note" style="margin:0 0 6px">Sag „Vector, ich hab eine Idee: …“ – landet hier und am PC.</div>
           <div id="ideen-list"></div>
         </div>
       </div>
       <div class="spane" id="sp-hoer">
         <div class="sec"><h3>AKTIVIERUNG</h3>
           <div class="srow"><div>Im Hintergrund zuhören<small>Gleich wie der Schalter oben rechts</small></div><div class="sw" id="set-bg"></div></div>
-          <div class="f"><label>Aktivierungswort(e) – mehrere mit Komma trennen</label><input id="set-wake" type="text" placeholder="jarvis"></div>
+          <div class="f"><label>Aktivierungswort(e) – mehrere mit Komma trennen</label><input id="set-wake" type="text" placeholder="vector"></div>
           <div class="f"><label>Wie genau muss ich das Wort sagen?</label>
             <select id="set-level"><option value="0">Streng – nur ziemlich genau</option><option value="1">Normal – kleine Abweichungen okay</option><option value="2">Locker – auch nuschelig (öfter Fehlalarm)</option></select></div>
           <div class="f"><label>Erkennung</label>
             <select id="set-cloud"><option value="0">Sparsam – Handy hört vor, Groq prüft nur Treffer</option><option value="1">Genau – Groq prüft jeden kurzen Satz (mehr Daten)</option></select></div>
         </div>
         <div class="sec"><h3>STIMME</h3>
-          <div class="f"><label>Jarvis-Stimme – dieselben wie am PC</label><select id="set-piper"></select></div>
+          <div class="f"><label>Vector-Stimme – dieselben wie am PC</label><select id="set-piper"></select></div>
           <div class="srow"><div>Probehören<small id="piper-st">Offline, kein Internet nötig. Jede Stimme wird einmal geladen (im WLAN). Am PC umgestellt = hier auch.</small></div><div class="sbtn" id="piper-test">Testen</div></div>
           <div class="f"><label>Stimme beim Reden</label><select id="set-mode"><option value="free">Kostenlos (Handy-Stimme + Groq)</option><option value="auto">George (ElevenLabs) beim Gespräch-Knopf, sonst kostenlos</option></select></div>
           <div class="f"><label>Android-Stimme (nur wenn oben „Handy-Stimme“ gewählt ist)</label><select id="set-voice"><option value="">Automatisch (männlich, wenn vorhanden)</option></select></div>
           <div class="note">Mehr Stimmen: Android-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache → Google bzw. Samsung als Modul wählen und „Sprachdaten installieren“ (Deutsch).</div>
-          <div class="f"><label>Lautstärke von Jarvis (eigene, unabhängig von der Musik)</label><input id="set-jvol" type="range" min="10" max="100" step="5"></div>
+          <div class="f"><label>Lautstärke von Vector (eigene, unabhängig von der Musik)</label><input id="set-jvol" type="range" min="10" max="100" step="5"></div>
           <div class="note">Tipp: Drück die Lautstärketasten, während er spricht – das merkt er sich als seine Lautstärke.</div>
         </div>
         <div class="sec" data-neu="n94" style="--c:#3cc8ff"><h3>WANN DARF ICH REDEN?</h3>
@@ -503,15 +503,15 @@
         <div class="sec" style="--c:#6effcd"><h3>SYSTEMSTATUS</h3>
           <div class="note" id="sys-sum" style="margin:0 0 6px">–</div>
           <div id="sys-list"></div>
-          <div class="srow"><div>Neu prüfen<small>Auch per Sprache: „Friday, Statuscheck“. Einmal am Tag prüft er still und meldet sich nur bei Problemen.</small></div><div class="sbtn" id="sys-again">Prüfen</div></div>
+          <div class="srow"><div>Neu prüfen<small>Auch per Sprache: „Vector, Statuscheck“. Einmal am Tag prüft er still und meldet sich nur bei Problemen.</small></div><div class="sbtn" id="sys-again">Prüfen</div></div>
         </div>
         <div class="sec" style="--c:#ffcf6e"><h3>ANLEITUNG</h3>
           <div class="srow"><div>Einrichtung Schritt für Schritt<small>Mikrofon, Konto, KI-Schlüssel, Wohnort, PC koppeln – mit Links zum Antippen</small></div><div class="sbtn" id="anl-open">Öffnen</div></div>
         </div>
         <div class="sec" style="--c:#7fd4ff"><h3>UPDATES</h3>
           <div class="note" id="upd-state" style="margin:0 0 6px">–</div>
-          <div class="srow"><div>Updates selbst installieren<small>Lädt neue Versionen im Hintergrund und spielt sie ein, wenn der Bildschirm aus ist (7–22 Uhr, nicht beim Telefonieren). Danach kommt „Jarvis ist aktualisiert“ – einmal antippen.</small></div><div class="sw" id="upd-auto"></div></div>
-          <div class="srow" id="upd-allowrow"><div>Erlaubnis geben<small>Einmalig: bei „Unbekannte Apps installieren“ Jarvis erlauben. Beim ersten Update fragt Android noch einmal, danach nicht mehr.</small></div><div class="sbtn" id="upd-allow">Öffnen</div></div>
+          <div class="srow"><div>Updates selbst installieren<small>Lädt neue Versionen im Hintergrund und spielt sie ein, wenn der Bildschirm aus ist (7–22 Uhr, nicht beim Telefonieren). Danach kommt „Vector ist aktualisiert“ – einmal antippen.</small></div><div class="sw" id="upd-auto"></div></div>
+          <div class="srow" id="upd-allowrow"><div>Erlaubnis geben<small>Einmalig: bei „Unbekannte Apps installieren“ Vector erlauben. Beim ersten Update fragt Android noch einmal, danach nicht mehr.</small></div><div class="sbtn" id="upd-allow">Öffnen</div></div>
           <div class="srow"><div>Jetzt nachsehen<small>Prüft sofort, ob es eine neue Version gibt</small></div><div class="sbtn" id="upd-now">Prüfen</div></div>
         </div>
         <div class="sec" data-neu="n80" style="--c:#6effcd"><h3>VORSCHLÄGE – ER LERNT MIT</h3>
@@ -520,13 +520,13 @@
           <div class="srow"><div>Alles wieder vorschlagen<small>Pausen zurücksetzen</small></div><div class="sbtn" id="lern-reset">Zurücksetzen</div></div>
         </div>
         <div class="sec" style="--c:#ffd678"><h3>TESTEN – SO SIEHT ES AUS</h3>
-          <div class="srow"><div>Nachricht auf der Uhr<small>So sieht eine Jarvis-Meldung auf deiner Galaxy Watch aus</small></div><div class="sbtn" id="tst-uhr">Testen</div></div>
+          <div class="srow"><div>Nachricht auf der Uhr<small>So sieht eine Vector-Meldung auf deiner Galaxy Watch aus</small></div><div class="sbtn" id="tst-uhr">Testen</div></div>
           <div class="srow"><div>Skill freischalten<small>Ploppt auf und fliegt in die Kugel (verschwindet nach dem Test wieder)</small></div><div class="sbtn" id="tst-skill">Zeigen</div></div>
-          <div class="srow"><div>Jarvis-Erinnerung<small>Kommt in 5 Sekunden – mit Ton, Erledigt und 15 Min. später</small></div><div class="sbtn" id="tst-rem">Testen</div></div>
+          <div class="srow"><div>Vector-Erinnerung<small>Kommt in 5 Sekunden – mit Ton, Erledigt und 15 Min. später</small></div><div class="sbtn" id="tst-rem">Testen</div></div>
           <div class="srow"><div>Fahrt-Mitteilung<small>Briefing mit Wetter, Anziehen, Bahn/Ticket</small></div><div class="sbtn" id="tst-fahrt">Testen</div></div>
           <div class="f" style="margin-top:6px"><label>Test-SMS an (Name aus deinen Kontakten)</label><input id="tst-smswer" type="text" placeholder="z. B. Mama"></div>
-          <div class="srow"><div>SMS-Test<small>Schickt „Hier ist Jarvis, das ist nur ein Test.“ – so siehst du, ob SMS klappen</small></div><div class="sbtn" id="tst-sms">Senden</div></div>
-          <div class="srow"><div>Startanimation<small>So startet Jarvis</small></div><div class="sbtn" id="tst-boot">Zeigen</div></div>
+          <div class="srow"><div>SMS-Test<small>Schickt „Hier ist Vector, das ist nur ein Test.“ – so siehst du, ob SMS klappen</small></div><div class="sbtn" id="tst-sms">Senden</div></div>
+          <div class="srow"><div>Startanimation<small>So startet Vector</small></div><div class="sbtn" id="tst-boot">Zeigen</div></div>
           <div class="srow"><div>Statuscheck-Animation<small>Alle Punkte laufen durch</small></div><div class="sbtn" id="tst-check">Zeigen</div></div>
           <div class="srow"><div>Bahn + Ticket<small>Echte Bahnverbindung zu Oma und Opa ab jetzt (VVS), mit „Ticket kaufen“</small></div><div class="sbtn" id="tst-bahn">Testen</div></div>
           <div class="srow"><div>Neue Fähigkeiten nochmal zeigen<small>Was das letzte Update gebracht hat</small></div><div class="sbtn" id="tst-neu">Zeigen</div></div>
@@ -536,14 +536,14 @@
           <div class="srow"><div>Passwort zurücksetzen<small>Du bekommst eine Mail mit einem Link für ein neues Passwort. Danach hier neu anmelden.</small></div><div class="sbtn" id="kt-reset">Mail schicken</div></div>
         </div>
         <div class="sec" id="sec-weg" style="--c:#ff5a5a;display:none"><h3>SELBSTZERSTÖRUNG</h3>
-          <div class="note" style="margin:0 0 6px">Löscht Jarvis komplett von diesem Handy: Einstellungen, Gedächtnis, Stimmen, Modelle und von Jarvis gestellte Wecker. Dein Konto bleibt – installierst du Jarvis neu und meldest dich an, ist alles wieder da. Danach fragt Android, ob die App deinstalliert werden soll.</div>
+          <div class="note" style="margin:0 0 6px">Löscht Vector komplett von diesem Handy: Einstellungen, Gedächtnis, Stimmen, Modelle und von Vector gestellte Wecker. Dein Konto bleibt – installierst du Vector neu und meldest dich an, ist alles wieder da. Danach fragt Android, ob die App deinstalliert werden soll.</div>
           <div class="srow"><div>Selbstzerstörung<small id="weg-info">Zum Bestätigen noch zweimal tippen</small></div><div class="sbtn" id="weg-btn" style="color:#ff9a8a;border-color:#ff5a5a">Selbstzerstörung</div></div>
         </div>
       </div>
       <div class="spane" id="sp-fit">
         <div class="sec" style="--c:#ff7a9a"><h3>SAMSUNG HEALTH</h3>
           <div class="note" id="fit-state">–</div>
-          <div class="srow"><div>Mit Health Connect verbinden<small>Jarvis liest nur: verbrauchte Kalorien, Schritte, Sport und – falls du Essen einträgst – gegessene Kalorien. Er schreibt nichts.</small></div><div class="sbtn" id="fit-connect">Verbinden</div></div>
+          <div class="srow"><div>Mit Health Connect verbinden<small>Vector liest nur: verbrauchte Kalorien, Schritte, Sport und – falls du Essen einträgst – gegessene Kalorien. Er schreibt nichts.</small></div><div class="sbtn" id="fit-connect">Verbinden</div></div>
           <div class="note" style="margin:0 0 6px">Einmal in Samsung Health: Einstellungen → Health Connect → Samsung Health darf Daten <b>schreiben</b> (Kalorien, Schritte, Training, Ernährung).</div>
           <div class="srow"><div>Health Connect öffnen<small>Rechte ansehen oder ändern</small></div><div class="sbtn" id="fit-open">Öffnen</div></div>
         </div>
@@ -554,7 +554,7 @@
           <div class="note" id="fit-sleep" style="margin:0 0 6px">–</div>
           <div class="note" style="margin:0 0 6px">Ohne Uhr: Schlaf = vom letzten Finger auf dem Display bis zum Entsperren am Morgen. Läuft nachts noch ein Video, zählt trotzdem die letzte Berührung. Kurz aufs Handy schauen (unter 10 Min.) ist nur eine Unterbrechung.</div>
           <div class="srow"><div>Nachts Schlafenszeit-Hinweis<small>Ab 22:30 noch am Handy: „Wenn du jetzt schläfst, sind es noch X Stunden bis zum Aufstehen.“ Höchstens zweimal pro Nacht, leise.</small></div><div class="sw" id="set-schlaftipp"></div></div>
-          <div class="srow"><div>Genau mit Berührungen<small>Bedienungshilfe „Jarvis“ an – er merkt sich nur, WANN du das Display berührt hast, nicht was. Ohne: ab „Bildschirm aus“.</small></div><div class="sbtn" id="fit-touch">Einrichten</div></div>
+          <div class="srow"><div>Genau mit Berührungen<small>Bedienungshilfe „Vector“ an – er merkt sich nur, WANN du das Display berührt hast, nicht was. Ohne: ab „Bildschirm aus“.</small></div><div class="sbtn" id="fit-touch">Einrichten</div></div>
         </div>
         <div class="sec" style="--c:#ffd678"><h3>TAGESBILANZ</h3>
           <div class="srow"><div>Kalorien & Aktivität am Abend<small>Steckt im Tagesabschluss (ist der aus, kommt die Bilanz allein). Kalorien verbraucht, Defizit (wenn du Essen einträgst), wie aktiv im Vergleich zu sonst, Schlaf, kleiner Tipp. Am PC, wenn du dran sitzt, sonst am Handy. Sonntags kommt die Woche in den Rückblick.</small></div><div class="sw" id="set-bilanz"></div></div>
@@ -565,7 +565,7 @@
       <div class="spane" id="sp-anz">
         <div class="sec" style="--c:#ffd678"><h3>ANZEIGE</h3>
           <div class="srow"><div>Deine Farbe<small>Farbkreis, Helligkeit und Kräftigkeit – alles Goldene inklusive Kugel nimmt sie an</small></div><div class="sbtn" id="set-farbe">Ändern</div></div>
-          <div class="srow"><div>Jarvis-Strang im Hintergrund</div><div class="sw" id="set-strand"></div></div>
+          <div class="srow"><div>Vector-Strang im Hintergrund</div><div class="sw" id="set-strand"></div></div>
           <div class="srow"><div>Startanimation beim Öffnen<small>Lichtpunkte, Ringe, Systemstatus – Tippen überspringt</small></div><div class="sw" id="set-bootanim"></div></div>
           <div class="srow"><div>Leuchtrand über anderen Apps einrichten</div><div class="sbtn" id="set-overlay2">Öffnen</div></div>
         </div>

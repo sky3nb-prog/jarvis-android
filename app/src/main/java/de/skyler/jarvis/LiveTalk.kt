@@ -161,7 +161,7 @@ class LiveTalk(
                 reason.contains("quota", true) || reason.contains("credits", true) ->
                     "Das ElevenLabs-Guthaben ist für diesen Monat aufgebraucht. Live-Gespräche gehen erst wieder, " +
                         "wenn es sich erneuert oder aufgeladen wird."
-                else -> "Keine Verbindung zu Jarvis: $reason"
+                else -> "Keine Verbindung zu Vector: $reason"
             }
             emit("error", JSONObject().put("text", text))
         }

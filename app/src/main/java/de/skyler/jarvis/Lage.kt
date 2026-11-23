@@ -80,7 +80,7 @@ object Lage {
    als Suchbegriff für eine Karte, immer mit Stadt, z. B. "Römerberg, Frankfurt", "Hauptbahnhof, Köln";
    bei Ländern nur das Land). Nimm den genauesten Ort, den die Meldung hergibt."""
 
-    private fun prompt(city: String, themen: String = "") = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).
+    private fun prompt(city: String, themen: String = "") = """Du bist der Lage-Analyst von Vector. Unten stehen nummerierte Schlagzeilen (#Nummer [Quelle] Titel: Text).
 ${if (themen.isNotBlank()) "Der Nutzer interessiert sich besonders für: $themen. Meldungen dazu nimmst du bevorzugt auf (art passend, \"fuer_dich\": true)." else ""}
 Meldungen mit [Lokal ...] stammen aus dem Wohnort des Nutzers ($city) und der Umgebung.
 Erstelle:
@@ -96,7 +96,7 @@ Erstelle:
 $GENAU
 Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
 
-    private fun placePrompt(place: String) = """Du bist der Lage-Analyst von J.A.R.V.I.S. Unten stehen nummerierte Schlagzeilen über $place.
+    private fun placePrompt(place: String) = """Du bist der Lage-Analyst von Vector. Unten stehen nummerierte Schlagzeilen über $place.
 Erstelle:
 1. "briefing": eine kurze gesprochene Einleitung auf Deutsch, 1 Satz, beginnt mit "Aus $place:".
 2. "brennpunkte": die 4 bis 10 interessantesten Meldungen aus $place und Umgebung. Die 3 bis 5 wichtigsten mit "im_briefing": true zuerst.
@@ -267,7 +267,7 @@ Antworte NUR mit JSON: {"briefing": "...", "brennpunkte": [ ... ]}"""
             if (seen.add(it.optString("titel").lowercase().take(60))) items.add(it)
         if (items.isEmpty()) throw RuntimeException("Zu deinen Themen gibt es gerade nichts Neues.")
         val names = themen.joinToString(", ") { it.optString("name") }
-        val sys = """Du bist der persönliche Nachrichten-Butler von J.A.R.V.I.S. Der Nutzer interessiert sich für: $names.
+        val sys = """Du bist der persönliche Nachrichten-Butler von Vector. Der Nutzer interessiert sich für: $names.
 Unten stehen nummerierte Meldungen zu diesen Themen (#Nummer [Thema: ...] Titel: Text).
 Erstelle:
 1. "briefing": 1 bis 2 gesprochene Sätze auf Deutsch, persönlich ("Passend zu deinen Interessen, Sir: ..."), was es Neues gibt.

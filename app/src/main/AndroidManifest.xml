@@ -100,7 +100,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- WhatsApp „Chat exportieren“ → Jarvis: Schreibstil lernen -->
-            <intent-filter android:label="Jarvis: Schreibstil lernen">
+            <intent-filter android:label="Vector: Schreibstil lernen">
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />

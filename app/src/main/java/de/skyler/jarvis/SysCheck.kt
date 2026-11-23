@@ -43,19 +43,19 @@ object SysCheck {
         else { val c = get("https://generativelanguage.googleapis.com/v1beta/models?key=$gem&pageSize=1")
             a.put(if (c == 200) item("gemini", "Gemini (Sehen)", true, "Schlüssel gültig") else item("gemini", "Gemini (Sehen)", false, "Fehler $c", "Gemini-Schlüssel prüfen (Google AI Studio).")) }
         a.put(if (perm(ctx, Manifest.permission.RECORD_AUDIO)) item("mic", "Mikrofon", true, "erlaubt") else item("mic", "Mikrofon", false, "nicht erlaubt", "App öffnen und Mikrofon erlauben."))
-        a.put(if (VoskModel.ready(ctx)) item("wake", "Weckwort „Friday“", true, "bereit") else item("wake", "Weckwort „Friday“", false, "Sprachmodell fehlt", "App einmal mit Internet öffnen – das Modell lädt dann."))
+        a.put(if (VoskModel.ready(ctx)) item("wake", "Weckwort „Vector“", true, "bereit") else item("wake", "Weckwort „Vector“", false, "Sprachmodell fehlt", "App einmal mit Internet öffnen – das Modell lädt dann."))
         if (!Link.paired(ctx)) a.put(item("pc", "PC-Kopplung", null, "nicht gekoppelt", "Einstellungen → PC & Fernzugriff: Kopplungscode vom PC eintragen."))
         else if (Link.limited()) a.put(item("pc", "PC-Kopplung", false, "Tageslimit erreicht", "Der Kopplungsdienst lässt heute keine Nachrichten mehr durch (250 pro Tag). Ab nachts geht es wieder."))
         else a.put(if (Link.pcOnline(ctx)) item("pc", "PC-Kopplung", true, "PC online") else item("pc", "PC-Kopplung", null, "PC aus oder schläft"))
         val listeners = Settings.Secure.getString(ctx.contentResolver, "enabled_notification_listeners") ?: ""
         a.put(if (listeners.contains(ctx.packageName)) item("notif", "Benachrichtigungen lesen", true, "an (WhatsApp, Musik)")
-            else item("notif", "Benachrichtigungen lesen", false, "aus", "Einstellungen → Leute & Anrufe: Benachrichtigungszugriff für Jarvis einschalten."))
+            else item("notif", "Benachrichtigungen lesen", false, "aus", "Einstellungen → Leute & Anrufe: Benachrichtigungszugriff für Vector einschalten."))
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
         a.put(if (pm.isIgnoringBatteryOptimizations(ctx.packageName)) item("akku", "Läuft im Hintergrund", true, "Akku: nicht eingeschränkt")
-            else item("akku", "Läuft im Hintergrund", false, "Akku spart Jarvis aus", "Android-Einstellungen → Apps → Jarvis → Akku: „Nicht eingeschränkt“."))
+            else item("akku", "Läuft im Hintergrund", false, "Akku spart Vector aus", "Android-Einstellungen → Apps → Vector → Akku: „Nicht eingeschränkt“."))
         val locAlways = perm(ctx, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         a.put(if (locAlways) item("loc", "Standort (immer)", true, "erlaubt") else item("loc", "Standort (immer)", false, "nur beim Öffnen", "Einstellungen → Zuhause & Orte: Standort „Immer erlauben“ (für Wege und Ankunft)."))
-        a.put(if (JarvisService.running) item("svc", "Jarvis-Dienst", true, "läuft") else item("svc", "Jarvis-Dienst", false, "läuft nicht", "App öffnen und „Im Hintergrund zuhören“ einschalten."))
+        a.put(if (JarvisService.running) item("svc", "Vector-Dienst", true, "läuft") else item("svc", "Vector-Dienst", false, "läuft nicht", "App öffnen und „Im Hintergrund zuhören“ einschalten."))
         try {
             a.put(if (Health.connected(ctx)) item("health", "Samsung Health", true, "verbunden") else item("health", "Samsung Health", null, "nicht verbunden", "Einstellungen → Gesundheit: Verbinden."))
         } catch (_: Exception) {}
@@ -72,14 +72,14 @@ object SysCheck {
         when (id) {
             "net" -> { val t0 = System.currentTimeMillis(); val c = get("https://www.google.com/generate_204"); if (c in 200..399) "Internet antwortet in ${System.currentTimeMillis() - t0} ms." else "Keine Verbindung." }
             "groq" -> "Groq sagt: " + Groq.chat(p.getString("groq_key", "") ?: "", JSONArray().put(JSONObject().put("role", "user")
-                .put("content", "Sag in höchstens 8 Wörtern auf Deutsch hallo, als Jarvis.")), 40).trim()
+                .put("content", "Sag in höchstens 8 Wörtern auf Deutsch hallo, als Vector.")), 40).trim()
             "gemini" -> if (get("https://generativelanguage.googleapis.com/v1beta/models?key=${p.getString("gemini_key", "")}&pageSize=1") == 200) "Gemini antwortet." else "Gemini antwortet nicht – Schlüssel prüfen."
-            "mic", "wake" -> "Sag jetzt „Friday“ – wenn die Kugel reagiert und „hört zu“ erscheint, passt alles."
+            "mic", "wake" -> "Sag jetzt „Vector“ – wenn die Kugel reagiert und „hört zu“ erscheint, passt alles."
             "pc" -> Link.command(ctx, JSONObject().put("type", "say").put("text", "Test vom Handy – die Verbindung steht.").put("need_active", false), 15_000)
-                ?.let { if (it.optBoolean("ok")) "Der PC hat geantwortet und sagt gleich einen Testsatz." else "Der PC hat abgelehnt: ${it.optString("text")}" } ?: "Der PC antwortet nicht (aus oder Jarvis zu)."
+                ?.let { if (it.optBoolean("ok")) "Der PC hat geantwortet und sagt gleich einen Testsatz." else "Der PC hat abgelehnt: ${it.optString("text")}" } ?: "Der PC antwortet nicht (aus oder Vector zu)."
             "notif" -> "Schick dir eine WhatsApp von einem deiner wichtigen Leute – am PC wird sie angesagt, wenn alles passt."
             "akku" -> { val b = ctx.registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
-                "Akku ${(b?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1)} %, " + (if ((ctx.getSystemService(Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)) "Jarvis darf im Hintergrund laufen." else "Android bremst Jarvis noch.") }
+                "Akku ${(b?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1)} %, " + (if ((ctx.getSystemService(Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)) "Vector darf im Hintergrund laufen." else "Android bremst Vector noch.") }
             "loc" -> Alltag.fix?.let { "Letzter Standort vor ${(System.currentTimeMillis() - it.time) / 60_000} Min., genau auf ${it.accuracy.toInt()} m. " + (if (Alltag.isHome(ctx)) "Du bist zuhause." else "Du bist unterwegs.") } ?: "Noch kein Standort – kurz rausgehen oder die App öffnen."
             "svc" -> { JarvisService.say(ctx, "Test. Ich laufe im Hintergrund."); "Ich sage gleich einen Testsatz." }
             "health" -> Health.text(Health.day(ctx, 0))

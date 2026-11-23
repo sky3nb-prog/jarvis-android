@@ -206,7 +206,7 @@ object Melden {
 
     fun note(ctx: Context, title: String, text: String, feedId: String? = null) = try {
         val nm = ctx.getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CH, "Jarvis meldet sich", NotificationManager.IMPORTANCE_DEFAULT))
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CH, "Vector meldet sich", NotificationManager.IMPORTANCE_DEFAULT))
         val open = PendingIntent.getActivity(ctx, (feedId ?: title).hashCode(), Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .apply { if (feedId != null) putExtra("feed", feedId) }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         nm.notify(6000 + (title.hashCode() and 0xff), NotificationCompat.Builder(ctx, CH).setSmallIcon(android.R.drawable.ic_dialog_info)

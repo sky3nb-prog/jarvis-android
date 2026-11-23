@@ -99,7 +99,7 @@ class JarvisService : Service() {
     @Volatile private var busy = false     // denkt gerade nach
     private var lastCloudCheck = 0L
     private val worker = java.util.concurrent.Executors.newSingleThreadExecutor()  // Sätze der Reihe nach
-    private var words = listOf("jarvis")
+    private var words = listOf("vector")
     private var level = 1
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -108,8 +108,8 @@ class JarvisService : Service() {
         super.onCreate()
         val nm = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
-            nm.createNotificationChannel(NotificationChannel(CH, "Jarvis hört zu", NotificationManager.IMPORTANCE_LOW).apply {
-                setShowBadge(false); description = "Damit Jarvis im Hintergrund auf sein Aktivierungswort hören kann."
+            nm.createNotificationChannel(NotificationChannel(CH, "Vector hört zu", NotificationManager.IMPORTANCE_LOW).apply {
+                setShowBadge(false); description = "Damit Vector im Hintergrund auf sein Aktivierungswort hören kann."
             })
         }
         micOff = !prefs.getBoolean("background", !Konto.parallel(this))   // Konto-App neben der normalen: Mikro erst mal aus (sonst antworten beide)
@@ -199,10 +199,10 @@ class JarvisService : Service() {
     /** Von sich aus etwas sagen (Losfahren, Briefing, Ortserinnerung): Karte + Stimme, danach kurz zuhören. */
     private fun announce(text: String) = main.post {
         // Am Handy laut nur zuhause oder mit Kopfhörern; "Nicht stören" = nur Nachricht; in der Schulstunde: bis zur Pause aufheben
-        if (quietNow()) { Thread { Melden.note(this, "Jarvis", text) }.start(); return@post }   // Mikro aus / Schulmodus: nur als Nachricht (Uhr)
+        if (quietNow()) { Thread { Melden.note(this, "Vector", text) }.start(); return@post }   // Mikro aus / Schulmodus: nur als Nachricht (Uhr)
         when (try { Melden.route(this) } catch (_: Exception) { "speak" }) {
-            "hold" -> { Thread { Melden.deliver(this, "Jarvis", text) }.start(); return@post }
-            "note" -> { Thread { Melden.note(this, "Jarvis", text) }.start(); overlay?.card(JSONObject().put("kind", "text").put("text", text)); return@post }
+            "hold" -> { Thread { Melden.deliver(this, "Vector", text) }.start(); return@post }
+            "note" -> { Thread { Melden.note(this, "Vector", text) }.start(); overlay?.card(JSONObject().put("kind", "text").put("text", text)); return@post }
         }
         if (!alive || speaking || busy) { overlay?.card(JSONObject().put("kind", "text").put("text", text)); return@post }
         overlay?.card(JSONObject().put("kind", "text").put("text", text))
@@ -287,14 +287,14 @@ class JarvisService : Service() {
             val on = PendingIntent.getService(this, 2, Intent(this, JarvisService::class.java).setAction(ACTION_MIC_ON), PendingIntent.FLAG_IMMUTABLE)
             val sch = Modes.silent(this)
             b.setSmallIcon(android.R.drawable.ic_lock_silent_mode)
-                .setContentTitle(if (sch) "Jarvis ist im Schulmodus" else "Jarvis hört nicht zu")
+                .setContentTitle(if (sch) "Vector ist im Schulmodus" else "Vector hört nicht zu")
                 .setContentText("Mikro und Stimme aus – Meldungen kommen als Nachricht.")
                 .setContentIntent(open).setOngoing(true)
             if (!sch) b.addAction(Notification.Action.Builder(null, "Zuhören an", on).build())
             return b.build()
         }
         return b.setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("Jarvis hört zu")
+            .setContentTitle("Vector hört zu")
             .setContentText("Sag „${words.first().replaceFirstChar { it.uppercase() }}“ – ich bin da.")
             .setContentIntent(open)
             .addAction(Notification.Action.Builder(null, "Ausschalten", stop).build())

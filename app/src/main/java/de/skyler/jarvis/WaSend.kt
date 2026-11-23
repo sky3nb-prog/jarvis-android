@@ -45,21 +45,21 @@ object WaSend {
      *  raw=true (Normalfall/Diktat): spricht GENAU `wish`, Wort für Wort - keine Umrahmung, nichts dazuerfunden.
      *  raw=false (nur bei „Antworte …“): Jarvis formuliert selbst eine kurze Antwort zum Thema `wish`. */
     fun voice(ctx: Context, name: String, wish: String, raw: Boolean = true): String {
-        if (!PiperPhone.active(ctx)) return "Dafür brauch ich meine Stimme: Einstellungen → Zuhören & Stimme → „Jarvis-Stimme“ wählen und einmal laden."
+        if (!PiperPhone.active(ctx)) return "Dafür brauch ich meine Stimme: Einstellungen → Zuhören & Stimme → „Vector-Stimme“ wählen und einmal laden."
         val j = jid(ctx, name) ?: return "Ich finde $name nicht in deinen Kontakten."
         val key = prefs(ctx).getString("groq_key", "") ?: ""
         val spoken = if (raw) wish.trim() else try {
-            if (key.isBlank()) "Hey $name, hier ist Jarvis. Ich soll dir ausrichten: $wish"
+            if (key.isBlank()) "Hey $name, hier ist Vector. Ich soll dir ausrichten: $wish"
             else Groq.chat(key, JSONArray().put(JSONObject().put("role", "system").put("content",
-                "Du bist Jarvis, der KI-Assistent des Nutzers, und sprichst eine kurze WhatsApp-Sprachnachricht an $name. " +
-                    "Fang locker an (z. B. „Hey $name, hier ist Jarvis“), dann sag den Inhalt in 1–3 kurzen Sätzen, über den Nutzer in der dritten Person " +
+                "Du bist Vector, der KI-Assistent des Nutzers, und sprichst eine kurze WhatsApp-Sprachnachricht an $name. " +
+                    "Fang locker an (z. B. „Hey $name, hier ist Vector“), dann sag den Inhalt in 1–3 kurzen Sätzen, über den Nutzer in der dritten Person " +
                     "(„er“), ohne seinen Namen zu erfinden. Nur der gesprochene Text, keine Emojis."))
                 .put(JSONObject().put("role", "user").put("content", wish)), 200).trim().trim('"')
-        } catch (_: Exception) { "Hey $name, hier ist Jarvis. Ich soll dir ausrichten: $wish" }
+        } catch (_: Exception) { "Hey $name, hier ist Vector. Ich soll dir ausrichten: $wish" }
         val dir = File(ctx.cacheDir, "wa").apply { mkdirs() }
         dir.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 3600_000L }?.forEach { it.delete() }
         val out = PiperPhone.render(ctx, spoken) ?: return "Die Sprachnachricht konnte ich nicht aufnehmen."
-        var f = File(dir, "Jarvis-${System.currentTimeMillis()}.ogg")
+        var f = File(dir, "Vector-${System.currentTimeMillis()}.ogg")
         if (!opus(out.first, out.second, f)) { f = File(dir, f.nameWithoutExtension + ".wav"); wav(out.first, out.second, f) }
         return try {
             val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".files", f)
@@ -68,7 +68,7 @@ object WaSend {
                 .putExtra(Intent.EXTRA_STREAM, uri).putExtra("jid", j)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION))
             if (ScreenService.enabled()) "Sprachnachricht an $name ist raus: „$spoken“"
-            else "Die Sprachnachricht an $name ist fertig – tipp in WhatsApp noch auf Senden. (Schalte die Bedienungshilfe „Jarvis – Schau mal hier“ an, dann schick ich sie selbst.)"
+            else "Die Sprachnachricht an $name ist fertig – tipp in WhatsApp noch auf Senden. (Schalte die Bedienungshilfe „Vector – Schau mal hier“ an, dann schick ich sie selbst.)"
         } catch (e: Exception) { Log.w(TAG, "voice: $e"); "WhatsApp ging nicht auf (${e.message})." }
     }
 

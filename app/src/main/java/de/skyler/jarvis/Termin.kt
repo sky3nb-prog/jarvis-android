@@ -24,7 +24,7 @@ object Termin {
     /** Will er etwas eintragen? ("Trag … in den Kalender ein", "kannst du mir was im Kalender eintragen in 48 Stunden") */
     fun wants(text: String): Boolean {
         var low = text.lowercase().trim()
-        low = low.replace(Regex("^(?:jarvis|friday|hey|okay|ok)[ ,]+"), "").replace(Regex("^(?:kannst du|könntest du|würdest du|bitte)\\s+(?:mir\\s+)?"), "")
+        low = low.replace(Regex("^(?:vector|hey|okay|ok)[ ,]+"), "").replace(Regex("^(?:kannst du|könntest du|würdest du|bitte)\\s+(?:mir\\s+)?"), "")
         if (QUESTION.containsMatchIn(low) && !Regex("\\b(?:ein)?trag|einträg").containsMatchIn(low)) return false
         // "Erinnere mich um 12:30 an Brot" ist KEIN Kalendertermin – das merkt sich Jarvis selbst (Aktion "erinnerung")
         return (WORD.containsMatchIn(low) && VERB.containsMatchIn(low)) || low.startsWith("neuer termin")

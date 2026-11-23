@@ -154,7 +154,7 @@ object Butler {
                 elevation = 12 * d
             }
             val title = android.widget.TextView(ctx).apply {
-                text = if (wa) "JARVIS · $name ruft über WhatsApp an" else if (name.isNotBlank()) "JARVIS · $name ruft an" else "JARVIS · unbekannte Nummer"
+                text = if (wa) "VECTOR · $name ruft über WhatsApp an" else if (name.isNotBlank()) "VECTOR · $name ruft an" else "VECTOR · unbekannte Nummer"
                 setTextColor(0xFFFFD678.toInt()); textSize = 12f; letterSpacing = .12f
             }
             val btn = android.widget.TextView(ctx).apply {

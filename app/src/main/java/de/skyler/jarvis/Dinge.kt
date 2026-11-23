@@ -26,7 +26,7 @@ object Dinge {
     private val PUT2 = Regex("^ich (?:hab|habe) (?:mein(?:e|en|em)? |die |den |das )?([\\p{L} -]{2,30}?) ((?:in|im|auf|auf dem|auf der|unter|unterm|neben|hinter|bei|beim|an|am|vor|hier)\\b.{0,60}?) (?:gelegt|gestellt|abgestellt|hingelegt|getan|gepackt|verstaut|geparkt|gelassen)$")
     private val ASK = Regex("^(?:wo (?:ist|sind|liegt|liegen|steht|stehen|hab ich|habe ich)|weißt du wo) (?:mein(?:e|en)? |die |der |das |den )?([\\p{L} -]{2,30}?)(?: (?:hingelegt|gelegt|hingestellt|abgestellt|gelassen|ist|sind|liegt))?$")
 
-    private fun clean(s: String) = s.lowercase().trim().trim('.', '!', '?', ',').replace(Regex("^(?:jarvis|friday|hey)[ ,]+"), "")
+    private fun clean(s: String) = s.lowercase().trim().trim('.', '!', '?', ',').replace(Regex("^(?:vector|hey)[ ,]+"), "")
 
     /** null = nichts für mich; sonst die Antwort. */
     fun handle(ctx: Context, text: String): String? {

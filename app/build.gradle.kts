@@ -42,7 +42,7 @@ android {
     productFlavors {
         create("privat") {
             dimension = "art"
-            manifestPlaceholders["appLabel"] = "Jarvis"
+            manifestPlaceholders["appLabel"] = "Vector"
             buildConfigField("String", "RELEASE_TAG", "\"neueste\"")
             buildConfigField("String", "APK_NAME", "\"Jarvis.apk\"")
             // Eigener Sprach-Agent (ElevenLabs) – kommt aus einem geheimen GitHub-Wert, steht nicht im Code
@@ -52,7 +52,7 @@ android {
             dimension = "art"
             applicationIdSuffix = ".konto"
             versionNameSuffix = "-konto"
-            manifestPlaceholders["appLabel"] = "Jarvis Konto"
+            manifestPlaceholders["appLabel"] = "Vector Konto"
             buildConfigField("String", "RELEASE_TAG", "\"konto-neueste\"")
             buildConfigField("String", "APK_NAME", "\"Jarvis-Konto.apk\"")
             buildConfigField("String", "LIVE_AGENT", "\"\"")   // für alle: ohne fremden Agenten (kostenlose Stimme)

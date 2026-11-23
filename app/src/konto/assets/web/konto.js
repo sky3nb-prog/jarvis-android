@@ -25,9 +25,9 @@
 
   const ov = document.createElement("div");
   ov.id = "konto-ov"; ov.hidden = true;
-  ov.innerHTML = `<div class="ko-orb"></div><h1>JARVIS</h1>
-    <p>Melde dich mit deinem Jarvis-Konto an – dann ist alles so wie auf deinen anderen Geräten.</p>
-    <div class="ko-warn" id="ko-warn" hidden>Auf diesem Handy ist auch die normale Jarvis-App. Die Konto-App hört deshalb nicht von selbst im Hintergrund zu (sonst antworten beide).</div>
+  ov.innerHTML = `<div class="ko-orb"></div><h1>VECTOR</h1>
+    <p>Melde dich mit deinem Vector-Konto an – dann ist alles so wie auf deinen anderen Geräten.</p>
+    <div class="ko-warn" id="ko-warn" hidden>Auf diesem Handy ist auch die normale Vector-App. Die Konto-App hört deshalb nicht von selbst im Hintergrund zu (sonst antworten beide).</div>
     <div class="ko-box">
       <input id="ko-mail" type="email" placeholder="E-Mail" autocomplete="email" autocapitalize="none">
       <input id="ko-pw" type="password" placeholder="Passwort (mind. 6 Zeichen)" autocomplete="current-password">
@@ -71,7 +71,7 @@
   function addPane() {
     const home = $("sp-home"); if (!home || $("sp-konto")) return;
     const grp = document.createElement("div");
-    grp.innerHTML = `<div class="sgrp">KONTO</div><div class="slist"><div class="sitem" data-go="konto"><i style="background:#2a1c06">👤</i><div><b>Jarvis-Konto</b><small id="ko-sub">…</small></div><span>›</span></div></div>`;
+    grp.innerHTML = `<div class="sgrp">KONTO</div><div class="slist"><div class="sitem" data-go="konto"><i style="background:#2a1c06">👤</i><div><b>Vector-Konto</b><small id="ko-sub">…</small></div><span>›</span></div></div>`;
     home.insertBefore(grp, home.firstChild);
     const pane = document.createElement("div");
     pane.className = "spane"; pane.id = "sp-konto";
@@ -83,7 +83,7 @@
     const stabs = $("stabs"); if (stabs) stabs.insertAdjacentHTML("afterbegin", '<span data-p="konto">Konto</span>');
     grp.querySelector(".sitem").addEventListener("click", () => {
       document.querySelectorAll(".spane").forEach((x) => x.classList.toggle("on", x.id === "sp-konto"));
-      const t = document.querySelector("#settings .sttl"); if (t) t.textContent = "JARVIS-KONTO";
+      const t = document.querySelector("#settings .sttl"); if (t) t.textContent = "VECTOR-KONTO";
       $("settings").classList.add("ssub"); paint();
     });
     $("ko-sync").onclick = () => { $("ko-state").textContent = "Gleiche ab …"; A.kontoSync(); };
