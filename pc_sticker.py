@@ -1,11 +1,13 @@
 """
 Sticker-Regen: „Schick 500 Sticker in die Gruppe TR9000“ / „… an Max“ – Jarvis fragt einmal nach und schickt dann
-den ausgewählten Sticker so oft über WhatsApp Desktop (höchstens 1000 auf einmal).
-WICHTIG: Es wird bewusst JEDER Sticker einzeln eingefügt+abgeschickt (kein Mehrfach-Einfügen mehr) - WhatsApp
-erkennt ein einzeln eingefügtes 512×512-Webp als echten Sticker, bei mehreren Dateien auf einmal zeigt es sie
-stattdessen als normale Fotos. Dafür laufen die Pausen so knapp wie vertretbar, damit es trotzdem zügig geht.
+das ausgewählte Bild so oft über WhatsApp Desktop (höchstens 1000 auf einmal), als normales Foto statt als
+echten Sticker - dafür in Päckchen von PHOTO_BATCH auf einmal (siehe _run_photos), statt eins nach dem anderen.
+Grund: WhatsApp erkennt nur ein einzeln eingefügtes Bild als echten Sticker, bei mehreren auf einmal zeigt es
+sie ohnehin nur als Fotos - wer also schnell viele raushauen will, bekommt automatisch Fotos. Die alte,
+langsamere Sticker-für-Sticker-Variante (_run, echte 512×512-Webp-Sticker) bleibt im Code, ist aber gerade
+nicht angeschlossen.
 Auswahl: HUD → Einstellungen → Leute & Anrufe → Sticker (Bilder liegen im Ordner „Sticker“ neben dem Programm;
-eigene .png/.webp/.gif reinlegen – er macht daraus WhatsApp-Sticker 512×512).
+eigene .png/.webp/.gif reinlegen).
 Stopp: „Stopp“ / „hör auf mit den Stickern“ – oder einfach ein anderes Fenster anklicken: er schickt nur, solange
 WhatsApp vorne ist (damit nie etwas in ein falsches Fenster eingefügt wird).
 Vom Handy: kommt als Befehl {"type": "sticker", "to", "n"} (am Handy schon bestätigt).
@@ -207,6 +209,9 @@ def _open_chat(to: str) -> bool:
 
 
 def _run(to: str, n: int, name: str):
+    """Alte Variante: echte, einzeln verschickte Sticker (eins nach dem anderen, bleibt dadurch als Sticker
+    erkennbar). Aktuell ungenutzt - start() schickt standardmäßig Fotos (_run_photos), siehe dort warum.
+    Bleibt im Code, falls später doch mal ein echter Sticker gebraucht wird (z. B. über eine Einstellung)."""
     import pyautogui
     RUN.update(on=True, stop=False, sent=0, n=n, to=to)
     try:
@@ -236,16 +241,61 @@ def _run(to: str, n: int, name: str):
         RUN["on"] = False
 
 
+PHOTO_BATCH = 30   # WhatsApp nimmt pro Einfügen/Senden nur eine begrenzte Anzahl Bilder an - mehr auf einen
+                    # Schlag werden abgeschnitten oder gar nicht erst angenommen. Deshalb in 30er-Päckchen.
+
+
+def _run_photos(to: str, n: int, name: str):
+    """Schickt dasselbe Bild n-mal, aber als ganz normales Foto statt als Sticker - dafür in Päckchen von
+    PHOTO_BATCH auf einmal (mehrere Dateien zusammen in die Zwischenablage, ein Strg+V, ein Enter schickt das
+    ganze Päckchen). Grund für den Wechsel weg vom echten Sticker: WhatsApp erkennt nur ein EINZELN
+    eingefügtes Bild als Sticker - sobald mehrere zusammen eingefügt werden, zeigt WhatsApp sie ohnehin nur
+    noch als normale Fotos an. Wer also wirklich viele auf einmal raushauen will, bekommt zwangsläufig Fotos,
+    keine Sticker - dafür geht's so deutlich schneller als eins nach dem anderen."""
+    import pyautogui
+    RUN.update(on=True, stop=False, sent=0, n=n, to=to)
+    try:
+        path = os.path.join(folder(), name)
+        if not _open_chat(to):
+            _say("WhatsApp ließ sich nicht öffnen – keine Bilder geschickt.")
+            return
+        rest = n
+        first = True
+        while rest > 0:
+            if RUN["stop"]:
+                break
+            if not _wa_front():
+                _say(f"Du hast ein anderes Fenster geöffnet – ich höre auf. {RUN['sent']} Bilder sind raus.")
+                return
+            chunk = min(PHOTO_BATCH, rest)
+            _clip_files([path] * chunk)
+            time.sleep(0.15)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.9 + 0.03 * chunk if first else 0.5 + 0.03 * chunk)   # je mehr Vorschaubilder, desto mehr Zeit zum Laden
+            first = False
+            if not _wa_front():
+                continue
+            pyautogui.press("enter")
+            RUN["sent"] += chunk
+            rest -= chunk
+            time.sleep(0.6)
+        _say(f"Fertig: {RUN['sent']} Bilder an {to}." if not RUN["stop"] else f"Gestoppt. {RUN['sent']} Bilder sind raus.")
+    except Exception as e:
+        _say(f"Bilder gingen nicht weiter: {e}")
+    finally:
+        RUN["on"] = False
+
+
 def start(to: str, n: int) -> str:
     """Ohne Rückfrage loslegen (Handy hat schon gefragt)."""
     if RUN["on"]:
-        return f"Ich schicke gerade schon Sticker an {RUN['to']} ({RUN['sent']} von {RUN['n']})."
+        return f"Ich schicke gerade schon welche an {RUN['to']} ({RUN['sent']} von {RUN['n']})."
     name = chosen()
     if not name:
         return "Du hast noch keinen Sticker. Leg einen in den Sticker-Ordner – Einstellungen → Leute & Anrufe → Sticker."
     n = max(1, min(MAX, int(n)))
-    threading.Thread(target=_run, args=(to, n, name), daemon=True).start()
-    return f"Los geht's: {n} Sticker an {to}. Sag „Stopp“, wenn ich aufhören soll – und bitte nicht wegklicken."
+    threading.Thread(target=_run_photos, args=(to, n, name), daemon=True).start()
+    return f"Los geht's: {n} Bilder an {to}, in {-(-n // PHOTO_BATCH)} Päckchen. Sag „Stopp“, wenn ich aufhören soll – und bitte nicht wegklicken."
 
 
 def _num(s: str):
