@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anmelden – Vector</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#07090b">
+<link rel="icon" href="kugel.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="./"><i></i>VECTOR</a>
+  <nav><a href="./#download">Download</a><a href="./#konto">Konto</a></nav>
+</div></header>
+
+<main class="wrap">
+  <section>
+    <div class="sh"><h2>Anmelden</h2><span>mit deinem Vector-Konto</span></div>
+    <div class="grid" style="max-width:420px">
+      <div class="card" id="c-login">
+        <div class="kicker" id="app-name">Lädt …</div>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></svg> Mit Vector anmelden</h3>
+        <p id="app-desc">Prüfe die Anfrage …</p>
+        <div id="login-form" hidden>
+          <input id="mail" type="email" placeholder="E-Mail" autocomplete="username">
+          <input id="pw" type="password" placeholder="Passwort" autocomplete="current-password">
+          <div class="msg" id="msg"></div>
+          <div class="row"><button class="btn block" id="b-in">Anmelden</button></div>
+        </div>
+        <p class="note">Noch kein Vector-Konto? Lege eines <a href="./#konto">hier auf der Vector-Seite</a> an und komm danach zurück.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <span>© 2026 Vector · privates Projekt</span>
+  <nav><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></nav>
+  <span class="ai">Texte und Teile des Programms wurden mit Unterstützung von KI erstellt.</span>
+</div></footer>
+<script src="login.js"></script>
+</body>
+</html>
