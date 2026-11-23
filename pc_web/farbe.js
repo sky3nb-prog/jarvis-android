@@ -1,9 +1,9 @@
-// Eigene Farbe für Jarvis: Farbkreis (Farbton) + Schieber für Helligkeit und Kräftigkeit.
-// Alles, was golden ist, nimmt die gewählte Farbe an – auch die Kugel. Gleiche Datei in App und PC-HUD.
+// Eigene Farbe für Vector: Farbkreis (Farbton) + Schieber für Helligkeit und Kräftigkeit.
+// Alles, was Teal (Vector-Grundfarbe) ist, nimmt die gewählte Farbe an – auch die Kugel. Gleiche Datei in App und PC-HUD.
 //   JFarbe.open()  -> Fenster mit Farbkreis
 //   JFarbe.apply() -> gespeicherte Farbe anwenden (passiert beim Laden von selbst)
 (function () {
-  const BASE = 38;            // Farbton des Original-Golds (Grad)
+  const BASE = 161;           // Farbton des Vector-Teal (Grad) - vorher 38 (Gold), seit der Umstellung auf Teal
   const KEY = "jarvis_farbe";
   const DEF = { h: BASE, b: 1, s: 1 };
   let cur = load();
@@ -54,7 +54,7 @@
         <div class="wheel" id="jf-wheel"><div class="prev" id="jf-prev"></div><div class="knob" id="jf-knob"></div></div>
         <label>Helligkeit</label><input type="range" id="jf-b" min="0.6" max="1.4" step="0.01">
         <label>Kräftigkeit</label><input type="range" id="jf-s" min="0" max="1.6" step="0.01">
-        <div class="row"><button id="jf-reset">Gold</button><button id="jf-no">Abbrechen</button><button class="ok" id="jf-ok">Fertig</button></div>
+        <div class="row"><button id="jf-reset">Teal</button><button id="jf-no">Abbrechen</button><button class="ok" id="jf-ok">Fertig</button></div>
       </div>`;
     document.body.appendChild(ov);
     const $ = (id) => ov.querySelector("#" + id);
