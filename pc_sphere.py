@@ -21,7 +21,7 @@ BASE = 640  # Kantenlänge der gespeicherten Bilder
 VERSION = "v2"
 # Farbe -> (Grundfarbe, helle Farbe, Kern)
 COLORS = {
-    "Gold": ((255, 166, 36), (255, 214, 120), (255, 232, 176)),
+    "Gold": ((29, 158, 117), (159, 225, 203), (214, 245, 234)),  # Name "Gold" bleibt (Einstellungs-Wert), Farbe ist jetzt Teal
     "Cyan": ((40, 190, 255), (150, 235, 255), (210, 248, 255)),
     "Rot": ((255, 70, 50), (255, 150, 120), (255, 210, 190)),
     "Grün": ((60, 230, 120), (170, 255, 190), (220, 255, 225)),

@@ -26,7 +26,7 @@ FIELD = "#0a2233"
 FG = "#d2ecf8"
 DIM = "#7fb3c8"
 ACC = "#3cc8ff"
-GOLD = "#ffd678"
+GOLD = "#9fe1cb"  # Name bleibt, Farbe ist jetzt Teal
 LINE = "#16506a"
 HOVER = "#0a2a3c"
 
