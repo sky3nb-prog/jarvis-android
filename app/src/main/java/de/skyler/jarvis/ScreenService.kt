@@ -51,6 +51,9 @@ class ScreenService : AccessibilityService() {
 
         /** Jarvis verschickt gleich selbst etwas über WhatsApp: in den nächsten 20 Sekunden einmal „Senden“ drücken. */
         fun armSend() { sendUntil = System.currentTimeMillis() + 20_000L }
+
+        /** Paket der App gerade vorne (null = Bedienungshilfe aus oder nichts zu sehen) – für den Sticker-Regen: nur senden, solange WhatsApp offen ist. */
+        fun foregroundPkg(): String? = try { inst?.rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
     }
 
     private var lastRead = 0L

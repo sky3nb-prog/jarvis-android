@@ -328,12 +328,16 @@ class Actions(private val ctx: Context) {
     }
 
     /** Auftrag an den PC-Jarvis ("schick mir das Lied vom PC aufs Handy", "mach am PC Musik an"). */
-    /** Sticker-Regen über WhatsApp am PC (hier schon bestätigt). Den Sticker wählst du am PC aus. */
+    /** Sticker-Regen: zuerst über WhatsApp am PC (dort wählst du den Sticker aus). Läuft der PC nicht oder ist
+     *  nicht gekoppelt, fällt Vector auf den Sticker-Regen direkt am Handy zurück (StickerRain, echte WhatsApp-App). */
     private fun sticker(to: String, n: Int): String {
         if (to.isBlank() || n <= 0) return "An wen und wie viele Sticker?"
-        if (!Link.paired(ctx)) return "Dafür brauche ich den PC – der ist noch nicht gekoppelt."
-        val r = try { Link.command(ctx, JSONObject().put("type", "sticker").put("to", to).put("n", minOf(n, 1000))) } catch (_: Exception) { null }
-        return r?.optString("text")?.takeIf { it.isNotBlank() } ?: "Der PC antwortet gerade nicht – die Sticker gehen nur über WhatsApp am PC."
+        if (Link.paired(ctx)) {
+            val r = try { Link.command(ctx, JSONObject().put("type", "sticker").put("to", to).put("n", minOf(n, 1000))) } catch (_: Exception) { null }
+            if (r != null) return r.optString("text").takeIf { it.isNotBlank() } ?: "Erledigt."
+        }
+        StickerRain.send(ctx, to, n) { text -> try { JarvisService.say(ctx, text) } catch (_: Exception) {} }
+        return "Der PC ist gerade nicht da – ich schick die Sticker direkt vom Handy über WhatsApp, das dauert einen Moment."
     }
 
     /** „Gerät anmelden“ / „QR scannen“: öffnet den Scanner für den Vector-Login auf einer fremden Website. */

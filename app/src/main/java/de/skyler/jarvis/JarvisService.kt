@@ -714,6 +714,10 @@ class JarvisService : Service() {
                 Bus.emit("read_stop", JSONObject()); main.post { setState("idle") }; return
             }
         }
+        // Sticker-Regen übers Handy läuft gerade (PC-Fallback): "Stopp" bricht ab
+        if (StickerRain.running && Regex("^(?:stopp?|halt|aufhören|hör auf|abbrech\\w*|genug)\\b").containsMatchIn(cmd.lowercase().trim().trim('.', '!', '?'))) {
+            StickerRain.cancel(); main.post { setState("idle") }; return
+        }
         setState("thinking")
         brain.onStatus = { t -> main.post { overlay?.panel?.state("searching", t) } }
         val reply = try { brain.handle(key, cmd) } catch (e: Exception) { "Das hat nicht geklappt. ${e.message ?: ""}" }
