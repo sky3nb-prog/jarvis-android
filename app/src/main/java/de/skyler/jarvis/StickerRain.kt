@@ -16,6 +16,11 @@ import java.io.File
  * drückt die Bedienungshilfe ScreenService "Senden") und Chats.kt (Zugriff auf den WhatsApp-Medienordner, braucht
  * "Zugriff auf alle Dateien" – ist in dieser App schon vorhanden/genutzt).
  *
+ * Bewusst EINZELN nacheinander, nicht alle auf einmal (gilt genauso am PC, siehe pc_sticker.py): WhatsApp
+ * erkennt nur ein einzeln eingefügtes/verschicktes Bild als echten Sticker - mehrere auf einen Schlag zeigt
+ * WhatsApp stattdessen als normale Fotos an (am PC schon getestet und deshalb extra dokumentiert). Die Pause
+ * ist daher nur so knapp wie vertretbar, nicht null.
+ *
  * Bild-Quelle (Design-Entscheidung, siehe Abschlussbericht): Es gibt in dieser App noch keinen eigenen Sticker-
  * Speicher nur fürs Handy – die Galerie-Auswahl (MainActivity.stickerPickImage/stickerCmd) schickt Bilder direkt
  * zum PC. Als erster, einfacher Wurf nimmt der Sticker-Regen deshalb die zuletzt empfangenen/benutzten WhatsApp-
@@ -93,7 +98,7 @@ object StickerRain {
                         .putExtra(Intent.EXTRA_STREAM, uri).putExtra("jid", jid)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION))
                     sent++
-                    Thread.sleep(500)
+                    Thread.sleep(300)   // knapp wie am PC (pc_sticker.py PAUSE) - nicht niedriger, siehe Hinweis in der Datei-Beschreibung oben
                 }
             } catch (e: Exception) { Log.w(TAG, "send: $e") }
             running = false
