@@ -16,18 +16,21 @@ import java.io.File
  * drückt die Bedienungshilfe ScreenService "Senden") und Chats.kt (Zugriff auf den WhatsApp-Medienordner, braucht
  * "Zugriff auf alle Dateien" – ist in dieser App schon vorhanden/genutzt).
  *
- * Bewusst EINZELN nacheinander, nicht alle auf einmal (gilt genauso am PC, siehe pc_sticker.py): WhatsApp
- * erkennt nur ein einzeln eingefügtes/verschicktes Bild als echten Sticker - mehrere auf einen Schlag zeigt
- * WhatsApp stattdessen als normale Fotos an (am PC schon getestet und deshalb extra dokumentiert). Die Pause
- * ist daher nur so knapp wie vertretbar, nicht null.
+ * Schickt als normale Fotos, in Päckchen von PHOTO_BATCH auf einmal (ACTION_SEND_MULTIPLE statt ACTION_SEND
+ * einzeln je Bild) - genau wie am PC (pc_sticker.py, _run_photos). Grund für den Wechsel weg vom echten
+ * Sticker: WhatsApp erkennt nur ein einzeln verschicktes Bild als Sticker, mehrere zusammen zeigt es ohnehin
+ * nur als Fotos an - wer schnell viele raushauen will, bekommt also automatisch Fotos statt Sticker, dafür
+ * geht's in Päckchen deutlich schneller als eins nach dem anderen.
  *
  * Bild-Quelle (Design-Entscheidung, siehe Abschlussbericht): Es gibt in dieser App noch keinen eigenen Sticker-
  * Speicher nur fürs Handy – die Galerie-Auswahl (MainActivity.stickerPickImage/stickerCmd) schickt Bilder direkt
  * zum PC. Als erster, einfacher Wurf nimmt der Sticker-Regen deshalb die zuletzt empfangenen/benutzten WhatsApp-
- * Sticker aus WhatsApps eigenem Medienordner (dort liegen sie schon fertig als .webp).
+ * Sticker aus WhatsApps eigenem Medienordner (dort liegen sie schon fertig als .webp) - werden hier aber als
+ * ganz normale Bilddateien verschickt, nicht als Sticker.
  */
 object StickerRain {
     private const val TAG = "JarvisStickerRain"
+    private const val PHOTO_BATCH = 30   // wie am PC: WhatsApp nimmt pro Mal nur begrenzt viele Bilder an
     @Volatile var running = false
         private set
     @Volatile private var stopFlag = false
@@ -81,32 +84,42 @@ object StickerRain {
             try {
                 val pkg = waPkg(ctx)
                 val dir = File(ctx.cacheDir, "wa/stickers").apply { mkdirs() }
-                for (i in 0 until count) {
+                // bis zu PHOTO_BATCH Kopien einmal anlegen, dann für jedes Päckchen wiederverwenden
+                val cached = (0 until minOf(PHOTO_BATCH, stickers.size.coerceAtLeast(1))).mapNotNull { i ->
+                    val src = stickers[i % stickers.size]
+                    val dst = File(dir, "s$i.webp")
+                    try {
+                        if (!dst.exists() || dst.length() != src.length()) src.copyTo(dst, overwrite = true)
+                        FileProvider.getUriForFile(ctx, ctx.packageName + ".files", dst)
+                    } catch (_: Exception) { null }
+                }
+                if (cached.isEmpty()) { onDone("Die Bilder gingen nicht raus."); running = false; return@Thread }
+                var rest = count
+                while (rest > 0) {
                     if (stopFlag) break
-                    // Sicherheitsregel wie am PC ("nur solange WhatsApp-Fenster aktiv ist"): nach dem ersten Sticker
+                    // Sicherheitsregel wie am PC ("nur solange WhatsApp vorne ist"): nach dem ersten Päckchen
                     // abbrechen, wenn WhatsApp nicht mehr vorne ist (z. B. weil der Nutzer die App gewechselt hat).
                     if (sent > 0) {
                         val fg = ScreenService.foregroundPkg()
                         if (fg != null && fg !in WA) break
                     }
-                    val src = stickers[i % stickers.size]
-                    val dst = File(dir, "s${i % stickers.size}.webp")
-                    if (!dst.exists() || dst.length() != src.length()) try { src.copyTo(dst, overwrite = true) } catch (_: Exception) { continue }
-                    val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".files", dst)
+                    val chunk = minOf(PHOTO_BATCH, rest)
+                    val uris = ArrayList((0 until chunk).map { cached[it % cached.size] })
                     ScreenService.armSend()
-                    ctx.startActivity(Intent(Intent.ACTION_SEND).setType("image/webp").setPackage(pkg)
-                        .putExtra(Intent.EXTRA_STREAM, uri).putExtra("jid", jid)
+                    ctx.startActivity(Intent(Intent.ACTION_SEND_MULTIPLE).setType("image/*").setPackage(pkg)
+                        .putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris).putExtra("jid", jid)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION))
-                    sent++
-                    Thread.sleep(300)   // knapp wie am PC (pc_sticker.py PAUSE) - nicht niedriger, siehe Hinweis in der Datei-Beschreibung oben
+                    sent += chunk
+                    rest -= chunk
+                    Thread.sleep((600 + 40L * chunk).coerceAtMost(2500))   // mehr Bilder im Päckchen = mehr Zeit für die Vorschau
                 }
             } catch (e: Exception) { Log.w(TAG, "send: $e") }
             running = false
             onDone(when {
-                stopFlag && sent > 0 -> "Gestoppt – $sent von $count Stickern waren raus."
-                sent >= count -> "Fertig – $sent Sticker an $to, direkt über WhatsApp am Handy."
-                sent > 0 -> "$sent von $count Stickern an $to raus, dann hat WhatsApp nicht mehr vorne gelegen – abgebrochen."
-                else -> "Die Sticker gingen nicht raus."
+                stopFlag && sent > 0 -> "Gestoppt – $sent von $count Bildern waren raus."
+                sent >= count -> "Fertig – $sent Bilder an $to, direkt über WhatsApp am Handy."
+                sent > 0 -> "$sent von $count Bildern an $to raus, dann hat WhatsApp nicht mehr vorne gelegen – abgebrochen."
+                else -> "Die Bilder gingen nicht raus."
             })
         }, "jarvis-stickerrain").start()
     }
