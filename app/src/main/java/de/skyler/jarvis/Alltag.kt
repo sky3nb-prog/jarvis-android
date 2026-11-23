@@ -74,6 +74,26 @@ object Alltag {
 
     // --- Standort und WLAN ----------------------------------------------------------------------------------
     fun onFix(loc: Location) { fix = loc }
+
+    /**
+     * Schulmodus automatisch: an, sobald du wirklich an der Schule bist (50 m, zur Schulzeit), wieder aus,
+     * sobald du gehst. Machst du ihn selbst aus, während du noch da bist, bleibt er für den restlichen Tag aus
+     * (siehe Modes.set, Parameter "auto"). Einstellung "schule_auto" (Standard an) schaltet das ganz ab.
+     * Aufruf bei jedem frischen Standort-Fix (JarvisService).
+     */
+    fun checkSchoolAuto(ctx: Context) {
+        if (!on(ctx, "schule_auto")) return
+        if (prefs(ctx).getString("schule_off_day", "") == today()) return
+        val near = try { Melden.nearSchool(ctx) } catch (_: Exception) { false }
+        val wasAuto = prefs(ctx).getBoolean("schule_auto_an", false)
+        if (near && !wasAuto) {
+            prefs(ctx).edit().putBoolean("schule_auto_an", true).apply()
+            if (Modes.current(ctx) != "schule") Modes.set(ctx, "schule", auto = true)
+        } else if (!near && wasAuto) {
+            prefs(ctx).edit().putBoolean("schule_auto_an", false).apply()
+            if (Modes.current(ctx) == "schule") Modes.set(ctx, "aus", auto = true)
+        }
+    }
     /** JarvisService schaut danach: genaue Ortung (GPS, 20 s) oder sparsam (1 Min.). */
     @Volatile var wantFine = false
     @Volatile var atHomeWifi = false   // im Heim-WLAN: Standort seltener (Akku)

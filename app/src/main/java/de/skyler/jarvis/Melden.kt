@@ -85,6 +85,17 @@ object Melden {
         return Route.distKm(sp, Route.P(fx.latitude, fx.longitude, "")) < 0.35
     }
 
+    /** Wirklich direkt an der Schule (50 m) – enger als reallyAtSchool, fürs automatische Ein-/Ausschalten des Schulmodus. */
+    fun nearSchool(ctx: Context): Boolean {
+        if (!schoolDay(ctx)) return false
+        val now = Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
+        val l = lessons(ctx); val from = mins(l.first().optString("von")) - 20; val to = mins(l.last().optString("bis")) + 15
+        if (now !in from..to) return false
+        val sp = schoolPlace(ctx) ?: return false
+        val fx = Alltag.fix?.takeIf { System.currentTimeMillis() - it.time < 20 * 60_000L } ?: return false
+        return Route.distKm(sp, Route.P(fx.latitude, fx.longitude, "")) < 0.05
+    }
+
     /** Ist gerade Schulzeit (heute Schultag, zwischen erster und letzter Stunde)? */
     fun schoolHours(ctx: Context): Boolean {
         if (!schoolDay(ctx)) return false

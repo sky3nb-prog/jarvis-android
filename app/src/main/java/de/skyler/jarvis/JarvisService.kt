@@ -169,7 +169,7 @@ class JarvisService : Service() {
         }
     }
 
-    private val locListener = android.location.LocationListener { l -> Alltag.onFix(l) }
+    private val locListener = android.location.LocationListener { l -> Alltag.onFix(l); try { Alltag.checkSchoolAuto(this@JarvisService) } catch (_: Exception) {} }
     @Volatile private var locFine = false
     @Volatile private var locSlow = false
 
@@ -192,7 +192,7 @@ class JarvisService : Service() {
                 lm.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 20_000L, 0f, locListener, Looper.getMainLooper())
             else lm.requestLocationUpdates(prov, if (locSlow) 5 * 60_000L else 60_000L, 0f, locListener, Looper.getMainLooper())   // zuhause (Heim-WLAN): alle 5 Min. reicht
             listOf(android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.GPS_PROVIDER)
-                .mapNotNull { try { lm.getLastKnownLocation(it) } catch (_: Exception) { null } }.maxByOrNull { it.time }?.let { Alltag.onFix(it) }
+                .mapNotNull { try { lm.getLastKnownLocation(it) } catch (_: Exception) { null } }.maxByOrNull { it.time }?.let { Alltag.onFix(it); try { Alltag.checkSchoolAuto(this@JarvisService) } catch (_: Exception) {} }
         } catch (e: Exception) { Log.w(tag, "standort: $e") }
     }
 

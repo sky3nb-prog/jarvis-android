@@ -121,13 +121,17 @@ object Modes {
     }
 
     /** name = Modus-Kennung (auch alte Wörter wie "zocken", "gute nacht"); handyOverride kommt vom PC mit. */
-    fun set(ctx: Context, name: String, handyOverride: String? = null): String {
+    fun set(ctx: Context, name: String, handyOverride: String? = null, auto: Boolean = false): String {
         val n = name.lowercase()
         val id = when {
             n.startsWith("fok") || n.startsWith("lern") -> "fokus"; n.startsWith("gam") || n.startsWith("zock") -> "gaming"
             n.startsWith("chill") -> "chill"; n.startsWith("kino") || n.startsWith("film") -> "kino"; n.startsWith("schul") -> "schule"
             n.startsWith("nacht") || n.startsWith("gute") -> "nacht"; n == "aus" || n.startsWith("normal") || n.startsWith("morgen") -> "aus"
             else -> n
+        }
+        // Schulmodus selbst ausgemacht (nicht die Automatik), während er automatisch an war: heute nicht wieder automatisch anschalten
+        if (id == "aus" && !auto && current(ctx) == "schule" && prefs(ctx).getBoolean("schule_auto_an", false)) {
+            prefs(ctx).edit().putBoolean("schule_auto_an", false).putString("schule_off_day", SimpleDateFormat("yyyy-MM-dd", de).format(Date())).apply()
         }
         val m = if (id == "aus") null else find(ctx, id)
         clearFokus(ctx)
