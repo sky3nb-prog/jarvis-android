@@ -54,7 +54,7 @@
     $("acc-mail").textContent = s.email;
     $("acc-mail2").value = s.email;
     $("st-and").textContent = $("st-pc").textContent = $("st-link").textContent = "…";
-    $("acc-id").textContent = "Jarvis-ID: …";
+    $("acc-id").textContent = "Vector-ID: …";
     try {
       let f = {};
       try { f = (await j(docUrl(s.uid), null, await token())).fields || {}; } catch (e) { if (e.code !== 404) throw e; }
@@ -67,10 +67,10 @@
       $("acc-name").value = curFields.name;
       paintAvatar(curFields.photo, curFields.name || s.email);
       if (curFields.jid) {
-        $("acc-id").textContent = "Jarvis-ID: " + curFields.jid;
+        $("acc-id").textContent = "Vector-ID: " + curFields.jid;
       } else {   // einmalig anlegen, danach bleibt sie fest
         curFields.jid = newJid();
-        $("acc-id").textContent = "Jarvis-ID: " + curFields.jid;
+        $("acc-id").textContent = "Vector-ID: " + curFields.jid;
         patchDoc(s.uid, { jid: curFields.jid }).catch(() => {});
       }
       msg("msg2", "");

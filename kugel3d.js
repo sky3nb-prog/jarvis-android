@@ -1,4 +1,4 @@
-// Echte 3D-Kugel für Jarvis: Leiterbahn-Netz auf mehreren Schalen, innerer Kern, Ringband, dreht sich, wabert und
+// Echte 3D-Kugel für Vector: Leiterbahn-Netz auf mehreren Schalen, innerer Kern, Ringband, dreht sich, wabert und
 // atmet mit der Stimme. WebGL mit Leucht-Effekt (Bloom). Gleiche Schnittstelle wie die alte 2D-Kugel:
 //   new Sphere3D(canvas, seed);  s.state = "speaking"; s.level = 0..1; s.power = true/false; s.draw(dt)
 (function () {
