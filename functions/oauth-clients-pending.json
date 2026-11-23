@@ -1,0 +1,10 @@
+[
+  {
+    "client_id": "kittysquiz",
+    "name": "KittysRätsel (kittysquiz.app)",
+    "redirect_uris": [
+      "https://kittysquiz.app/vector_callback.php"
+    ],
+    "note": "Freund von Skyler. PHP-Seite (vgl. vorhandene google_callback.php/callback.php). Noch NICHT in Firestore eingetragen - erst möglich nach Blaze-Aktivierung + Deploy. Dann: für jeden Eintrag hier ein Dokument in der Collection oauth_clients anlegen, Dokument-ID = client_id, Felder name + redirect_uris wie oben."
+  }
+]
