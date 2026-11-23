@@ -5,14 +5,16 @@
 (function () {
   const BASE = 161;           // Farbton des Vector-Teal (Grad) - vorher 38 (Gold), seit der Umstellung auf Teal
   const KEY = "jarvis_farbe";
+  const PV = 2;                // Paletten-Version: bei Wechsel der Grundfarbe (wie Gold->Teal) hochzählen,
+                                // damit alte gespeicherte Werte (die sich auf die alte Grundfarbe beziehen) automatisch verworfen werden
   const DEF = { h: BASE, b: 1, s: 1 };
   let cur = load();
 
   function load() {
-    try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (v && typeof v.h === "number") return v; } catch (e) {}
+    try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (v && typeof v.h === "number" && v.pv === PV) return v; } catch (e) {}
     return Object.assign({}, DEF);
   }
-  function save(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
+  function save(v) { v = Object.assign({}, v, { pv: PV }); try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
 
   let styleEl = null;
   function apply(v) {
