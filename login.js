@@ -9,7 +9,7 @@
   const CLIENTS = {
     kittysquiz: {
       name: "KittysRätsel",
-      redirect_uris: ["https://kittysquiz.app/vector_callback.php"],
+      redirect_uris: ["https://kittysquiz.app/index.php", "https://kittysquiz.app/vector_callback.php"],
     },
   };
 
