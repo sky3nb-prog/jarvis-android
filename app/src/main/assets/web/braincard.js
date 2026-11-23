@@ -9,29 +9,29 @@
   #bcard-bg{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,0);backdrop-filter:blur(0);transition:background .45s,backdrop-filter .45s;pointer-events:none}
   #bcard-bg.on{background:rgba(0,0,0,.55);backdrop-filter:blur(3px);pointer-events:auto}
   .bc-fly{position:fixed;z-index:97;width:64px;height:72px;transform:translate(-50%,-50%) scale(.2);display:flex;align-items:center;justify-content:center;
-    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:radial-gradient(circle at 50% 40%,#fff3c8,#ffd678 30%,#c8861e 70%,#5a3a0c);
-    filter:drop-shadow(0 0 16px rgba(255,190,90,.9));transition:left .55s cubic-bezier(.2,.9,.3,1),top .55s cubic-bezier(.2,.9,.3,1),transform .55s cubic-bezier(.2,1.4,.4,1),opacity .4s}
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:radial-gradient(circle at 50% 40%,#c8fff6,#9fe1cb 30%,#1ec88f 70%,#0c5a3e);
+    filter:drop-shadow(0 0 16px rgba(90, 255, 198,.9));transition:left .55s cubic-bezier(.2,.9,.3,1),top .55s cubic-bezier(.2,.9,.3,1),transform .55s cubic-bezier(.2,1.4,.4,1),opacity .4s}
   .bc-card{position:fixed;z-index:96;left:50%;top:50%;width:min(420px,88vw);transform:translate(-50%,-40%) scale(.6);opacity:0;
-    background:linear-gradient(160deg,rgba(26,18,6,.97),rgba(10,7,3,.97));border:1px solid #8a5c18;border-radius:18px;padding:52px 18px 16px;
-    box-shadow:0 0 40px rgba(255,170,40,.28);transition:transform .5s cubic-bezier(.2,1.2,.3,1),opacity .4s;font-family:inherit;color:#ffe1b4}
+    background:linear-gradient(160deg,rgba(6, 26, 19,.97),rgba(3, 10, 7,.97));border:1px solid #188a62;border-radius:18px;padding:52px 18px 16px;
+    box-shadow:0 0 40px rgba(29, 158, 117,.28);transition:transform .5s cubic-bezier(.2,1.2,.3,1),opacity .4s;font-family:inherit;color:#b4ffe5}
   .bc-card.on{transform:translate(-50%,-50%) scale(1);opacity:1}
-  .bc-card small{display:block;text-align:center;font-size:10px;letter-spacing:.24em;color:#ffaa28;font-weight:700}
-  .bc-card h4{margin:4px 0 10px;text-align:center;color:#ffd678;font-size:17px;font-weight:600}
-  .bc-card textarea{width:100%;box-sizing:border-box;min-height:84px;background:rgba(0,0,0,.35);border:1px solid #5a3e14;border-radius:12px;color:#ffe1b4;
+  .bc-card small{display:block;text-align:center;font-size:10px;letter-spacing:.24em;color:#1d9e75;font-weight:700}
+  .bc-card h4{margin:4px 0 10px;text-align:center;color:#9fe1cb;font-size:17px;font-weight:600}
+  .bc-card textarea{width:100%;box-sizing:border-box;min-height:84px;background:rgba(0,0,0,.35);border:1px solid #145a42;border-radius:12px;color:#b4ffe5;
     font-family:inherit;font-size:14px;line-height:1.4;padding:10px;resize:vertical;outline:none}
-  .bc-card textarea:focus{border-color:#ffaa28;box-shadow:0 0 10px rgba(255,170,40,.3)}
-  .bc-card .meta{font-size:11px;color:#a07a44;margin:6px 2px 0}
+  .bc-card textarea:focus{border-color:#1d9e75;box-shadow:0 0 10px rgba(29, 158, 117,.3)}
+  .bc-card .meta{font-size:11px;color:#44a07f;margin:6px 2px 0}
   .bc-card .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-  .bc-card .btns div{flex:1;min-width:110px;text-align:center;padding:10px 8px;border-radius:12px;border:1px solid #8a5c18;color:#ffd678;cursor:pointer;font-size:13px;user-select:none}
-  .bc-card .btns .go{background:linear-gradient(180deg,#5a3a0c,#3a2406);border-color:#ffaa28}
+  .bc-card .btns div{flex:1;min-width:110px;text-align:center;padding:10px 8px;border-radius:12px;border:1px solid #188a62;color:#9fe1cb;cursor:pointer;font-size:13px;user-select:none}
+  .bc-card .btns .go{background:linear-gradient(180deg,#0c5a3e,#063a27);border-color:#1d9e75}
   .bc-card .btns .del{border-color:#7a2a1a;color:#ff9a7a}
-  .bc-card .x{position:absolute;right:12px;top:10px;color:#8a6a3a;font-size:18px;cursor:pointer}`;
+  .bc-card .x{position:absolute;right:12px;top:10px;color:#3a8a6e;font-size:18px;cursor:pointer}`;
   document.head.appendChild(css);
 
   let open = null;
   function hexIcon(kind) {
     const ic = document.createElement("canvas"); ic.width = ic.height = 120; ic.style.width = ic.style.height = "40px";
-    const g = ic.getContext("2d"); g.translate(60, 60); g.strokeStyle = g.fillStyle = "#3a2204";
+    const g = ic.getContext("2d"); g.translate(60, 60); g.strokeStyle = g.fillStyle = "#043a25";
     if (window.JarvisBrain) JarvisBrain.drawIcon(g, kind || "wissen", 74);
     return ic;
   }

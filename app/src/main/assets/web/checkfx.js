@@ -6,29 +6,29 @@
   css.textContent = `
   #chkfx{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background .4s;font-family:"Segoe UI",system-ui,sans-serif}
   #chkfx.on{background:rgba(0,0,0,.72)}
-  #chkfx .pan{width:min(460px,90vw);background:linear-gradient(160deg,rgba(24,17,6,.97),rgba(8,6,3,.97));border:1px solid #8a5c18;border-radius:18px;padding:18px;
-    box-shadow:0 0 40px rgba(255,170,40,.25);transform:scale(.85) translateY(20px);opacity:0;transition:transform .45s cubic-bezier(.2,1.3,.3,1),opacity .35s}
+  #chkfx .pan{width:min(460px,90vw);background:linear-gradient(160deg,rgba(6, 24, 18,.97),rgba(3, 8, 6,.97));border:1px solid #188a62;border-radius:18px;padding:18px;
+    box-shadow:0 0 40px rgba(29, 158, 117,.25);transform:scale(.85) translateY(20px);opacity:0;transition:transform .45s cubic-bezier(.2,1.3,.3,1),opacity .35s}
   #chkfx.on .pan{transform:none;opacity:1}
   #chkfx .hd{display:flex;align-items:center;gap:14px;margin-bottom:10px}
   #chkfx .ring{position:relative;width:74px;height:74px;flex:0 0 74px}
   #chkfx .ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
-  #chkfx .ring .scan{position:absolute;inset:6px;border-radius:50%;background:conic-gradient(rgba(255,214,120,.55),transparent 30%);animation:chkspin 1.1s linear infinite;
+  #chkfx .ring .scan{position:absolute;inset:6px;border-radius:50%;background:conic-gradient(rgba(159, 225, 203,.55),transparent 30%);animation:chkspin 1.1s linear infinite;
     -webkit-mask:radial-gradient(circle,transparent 52%,#000 54%);mask:radial-gradient(circle,transparent 52%,#000 54%)}
-  #chkfx .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffd678;font-size:16px;font-weight:600}
+  #chkfx .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fe1cb;font-size:16px;font-weight:600}
   @keyframes chkspin{to{transform:rotate(360deg)}}
-  #chkfx .tt small{display:block;font-size:10px;letter-spacing:.26em;color:#ffaa28;font-weight:700}
-  #chkfx .tt div{color:#ffd678;font-size:17px;font-weight:600;margin-top:3px}
+  #chkfx .tt small{display:block;font-size:10px;letter-spacing:.26em;color:#1d9e75;font-weight:700}
+  #chkfx .tt div{color:#9fe1cb;font-size:17px;font-weight:600;margin-top:3px}
   #chkfx .rows{max-height:52vh;overflow:hidden}
-  #chkfx .r{display:flex;align-items:center;gap:10px;padding:6px 2px;border-bottom:1px solid rgba(255,170,40,.1);opacity:0;transform:translateX(24px);transition:opacity .25s,transform .25s;font-size:13px}
+  #chkfx .r{display:flex;align-items:center;gap:10px;padding:6px 2px;border-bottom:1px solid rgba(29, 158, 117,.1);opacity:0;transform:translateX(24px);transition:opacity .25s,transform .25s;font-size:13px}
   #chkfx .r.v{opacity:1;transform:none}
-  #chkfx .r i{flex:0 0 12px;height:12px;border-radius:50%;border:2px solid rgba(255,214,120,.25);border-top-color:#ffd678;animation:chkspin .7s linear infinite;box-sizing:border-box}
+  #chkfx .r i{flex:0 0 12px;height:12px;border-radius:50%;border:2px solid rgba(159, 225, 203,.25);border-top-color:#9fe1cb;animation:chkspin .7s linear infinite;box-sizing:border-box}
   #chkfx .r.g i{animation:none;border:none;background:#6effcd;box-shadow:0 0 10px #6effcd}
   #chkfx .r.x i{animation:none;border:none;background:#ff6a4a;box-shadow:0 0 10px #ff6a4a}
-  #chkfx .r.n i{animation:none;border:none;background:#6a6050}
-  #chkfx .r b{flex:1;color:#ffe1b4;font-weight:500}#chkfx .r small{color:#8aa8b8;font-size:11px;text-align:right;max-width:46%}
+  #chkfx .r.n i{animation:none;border:none;background:#506a61}
+  #chkfx .r b{flex:1;color:#b4ffe5;font-weight:500}#chkfx .r small{color:#8aa8b8;font-size:11px;text-align:right;max-width:46%}
   #chkfx .r.x small{color:#ff9a7a}
   #chkfx .end{margin-top:12px;text-align:center;font-size:12px;letter-spacing:.2em;color:#6effcd;opacity:0;transition:opacity .4s}
-  #chkfx .end.v{opacity:1}#chkfx .end.bad{color:#ffaa28}`;
+  #chkfx .end.v{opacity:1}#chkfx .end.bad{color:#1d9e75}`;
   document.head.appendChild(css);
   let open = false;
   function play(items) {
@@ -44,8 +44,8 @@
     items = (items && items.length ? items : [{ name: "Kern", ok: true }, { name: "Gedächtnis", ok: true }, { name: "Sprache", ok: true }, { name: "Netz", ok: true }]).slice(0, 14);
     const box = document.createElement("div"); box.id = "chkfx";
     const C = 2 * Math.PI * 32;
-    box.innerHTML = `<div class="pan"><div class="hd"><div class="ring"><svg viewBox="0 0 74 74"><circle cx="37" cy="37" r="32" fill="none" stroke="rgba(255,170,40,.15)" stroke-width="4"/>
-      <circle class="pr" cx="37" cy="37" r="32" fill="none" stroke="#ffd678" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" style="transition:stroke-dashoffset .3s"/></svg>
+    box.innerHTML = `<div class="pan"><div class="hd"><div class="ring"><svg viewBox="0 0 74 74"><circle cx="37" cy="37" r="32" fill="none" stroke="rgba(29, 158, 117,.15)" stroke-width="4"/>
+      <circle class="pr" cx="37" cy="37" r="32" fill="none" stroke="#9fe1cb" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" style="transition:stroke-dashoffset .3s"/></svg>
       <div class="scan"></div><b>0%</b></div><div class="tt"><small>SYSTEMCHECK</small><div>Ich prüfe alle Systeme …</div></div></div><div class="rows"></div><div class="end"></div></div>`;
     document.body.appendChild(box);
     requestAnimationFrame(() => box.classList.add("on"));

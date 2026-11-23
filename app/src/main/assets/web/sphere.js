@@ -1,6 +1,6 @@
-// Goldene Daten-Kugel (wie am PC) und Hologramm-Globus – gezeichnet auf <canvas>, atmet mit der Stimme.
+// Teal-Daten-Kugel (wie am PC) und Hologramm-Globus – gezeichnet auf <canvas>, atmet mit der Stimme.
 (function () {
-  const GOLD = [255, 170, 40], HOT = [255, 214, 120], CORE = [255, 240, 200];
+  const GOLD = [29, 158, 117], HOT = [159, 225, 203], CORE = [214, 245, 234];
   function rnd(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 
   function makeDesign(seed) {
@@ -53,8 +53,8 @@
       g.clearRect(0, 0, W, H);
       // Halo
       const halo = g.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.35);
-      halo.addColorStop(0, `rgba(255,150,30,${0.22 + this.level * 0.25})`);
-      halo.addColorStop(0.6, "rgba(120,50,0,0.12)"); halo.addColorStop(1, "rgba(0,0,0,0)");
+      halo.addColorStop(0, `rgba(30, 255, 161,${0.22 + this.level * 0.25})`);
+      halo.addColorStop(0.6, "rgba(0, 120, 56,0.12)"); halo.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = halo; g.fillRect(0, 0, W, H);
       g.globalCompositeOperation = "lighter";
       g.lineCap = "round";
@@ -96,8 +96,8 @@
       });
       // leuchtender Kern
       const core = g.createRadialGradient(cx, cy, 0, cx, cy, R * (0.22 + this.level * 0.1));
-      core.addColorStop(0, `rgba(${CORE},1)`); core.addColorStop(0.35, "rgba(255,200,90,0.6)");
-      core.addColorStop(1, "rgba(255,140,20,0)");
+      core.addColorStop(0, `rgba(${CORE},1)`); core.addColorStop(0.35, "rgba(90, 255, 208,0.6)");
+      core.addColorStop(1, "rgba(20, 255, 152,0)");
       g.fillStyle = core; g.beginPath(); g.arc(cx, cy, R * 0.4, 0, Math.PI * 2); g.fill();
       g.globalCompositeOperation = "source-over";
     }
@@ -121,7 +121,7 @@
     }
   }
 
-  class Globe {   // goldener Hologramm-Globus (Platzhalter bis Etappe 5)
+  class Globe {   // Teal-Hologramm-Globus (Platzhalter bis Etappe 5)
     constructor(canvas) { this.c = canvas; this.g = canvas.getContext("2d"); this.t = 0; const r = rnd(3);
       this.dots = []; for (let i = 0; i < 1600; i++) this.dots.push([Math.asin(r() * 2 - 1) * 180 / Math.PI, r() * 360]); }
     draw(dt) {
@@ -138,7 +138,7 @@
           if (z < 0) { first = true; continue; }
           first ? g.moveTo(c + x * R, c - y * R) : g.lineTo(c + x * R, c - y * R); first = false;
         }
-        g.strokeStyle = "rgba(255,170,40,0.28)"; g.stroke();
+        g.strokeStyle = "rgba(29, 158, 117,0.28)"; g.stroke();
       }
       for (let lo = 0; lo < 360; lo += 15) {
         g.beginPath(); let first = true;
@@ -147,16 +147,16 @@
           if (z < 0) { first = true; continue; }
           first ? g.moveTo(c + x * R, c - y * R) : g.lineTo(c + x * R, c - y * R); first = false;
         }
-        g.strokeStyle = "rgba(255,170,40,0.22)"; g.stroke();
+        g.strokeStyle = "rgba(29, 158, 117,0.22)"; g.stroke();
       }
       for (const [la, lo] of this.dots) {
         const [x, y, z] = rot(la, lo, rx, ry);
         if (z < 0) continue;
-        g.fillStyle = `rgba(255,214,120,${0.2 + 0.8 * z})`;
+        g.fillStyle = `rgba(159, 225, 203,${0.2 + 0.8 * z})`;
         g.fillRect(c + x * R, c - y * R, 2, 2);
       }
       const halo = g.createRadialGradient(c, c, R * 0.98, c, c, R * 1.08);
-      halo.addColorStop(0, "rgba(255,110,20,0.5)"); halo.addColorStop(1, "rgba(255,110,20,0)");
+      halo.addColorStop(0, "rgba(20,255,122,0.5)"); halo.addColorStop(1, "rgba(20,255,122,0)");
       g.fillStyle = halo; g.beginPath(); g.arc(c, c, R * 1.08, 0, Math.PI * 2); g.fill();
     }
   }

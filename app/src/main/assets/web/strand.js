@@ -17,8 +17,8 @@
       const LBL = { videos: "VIDEOS", musik: "MUSIK", web: "WEB", kalender: "KALENDER", lage: "LAGE", wetter: "WETTER" };
       this.grabs.push({ kind, a: (ANG[kind] ?? -40) * Math.PI / 180, label: LBL[kind] || kind.toUpperCase(), t: 0, seed: Math.random() * 10 });
     }
-    icon(g, kind, x, y, s, a) {   // eigene Symbole im Jarvis-Gold (keine Firmenlogos)
-      g.save(); g.translate(x, y); g.globalAlpha = a; g.strokeStyle = "#ffd678"; g.fillStyle = "#ffd678"; g.lineWidth = s * .09; g.lineJoin = "round"; g.lineCap = "round";
+    icon(g, kind, x, y, s, a) {   // eigene Symbole im Jarvis-Teal (keine Firmenlogos)
+      g.save(); g.translate(x, y); g.globalAlpha = a; g.strokeStyle = "#9fe1cb"; g.fillStyle = "#9fe1cb"; g.lineWidth = s * .09; g.lineJoin = "round"; g.lineCap = "round";
       if (kind === "videos") { g.beginPath(); g.arc(0, 0, s * .5, 0, 7); g.stroke(); g.beginPath(); g.moveTo(-s * .14, -s * .22); g.lineTo(s * .26, 0); g.lineTo(-s * .14, s * .22); g.closePath(); g.fill(); }
       else if (kind === "musik") { g.beginPath(); g.moveTo(-s * .18, s * .25); g.lineTo(-s * .18, -s * .32); g.lineTo(s * .3, -s * .42); g.lineTo(s * .3, s * .15); g.stroke();
         g.beginPath(); g.ellipse(-s * .28, s * .27, s * .13, s * .1, -.4, 0, 7); g.fill(); g.beginPath(); g.ellipse(s * .2, s * .17, s * .13, s * .1, -.4, 0, 7); g.fill(); }
@@ -46,30 +46,30 @@
       if (end > 0) {
         for (const [w, a] of [[6, .12], [2.4, .5], [1, .95]]) {
           g.beginPath(); for (let u = 0; u <= end + 1e-3; u += .04) { const [x, y] = tip(Math.min(u, end)); u === 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
-          g.strokeStyle = `rgba(255,200,110,${a})`; g.lineWidth = w * d; g.stroke();
+          g.strokeStyle = `rgba(110, 255, 207,${a})`; g.lineWidth = w * d; g.stroke();
         }
         // Datenfunken laufen die Ranke entlang
         for (let k = 0; k < 3; k++) { const u = ((t * 1.6 + k / 3) % 1) * end; const [x, y] = tip(u);
-          const gg = g.createRadialGradient(x, y, 0, x, y, 7 * d); gg.addColorStop(0, "rgba(255,240,200,.9)"); gg.addColorStop(1, "rgba(255,200,110,0)"); g.fillStyle = gg; g.fillRect(x - 7 * d, y - 7 * d, 14 * d, 14 * d); }
+          const gg = g.createRadialGradient(x, y, 0, x, y, 7 * d); gg.addColorStop(0, "rgba(200, 255, 243,.9)"); gg.addColorStop(1, "rgba(110, 255, 207,0)"); g.fillStyle = gg; g.fillRect(x - 7 * d, y - 7 * d, 14 * d, 14 * d); }
       }
       // Symbol: erscheint an der Spitze, wird gepackt, fliegt mit der Ranke in die Kugel und schrumpft
       const appear = ease((t - .3) / .4), [ix, iy] = t < 1.35 ? [nx, ny] : tip(Math.max(0, 1 - back));
       const fly = Math.max(0, Math.min(1, (t - 1.35) / .8)), size = (30 * d) * (1 - .75 * fly) * (t < 1.35 ? (1 + .12 * Math.sin(Math.max(0, t - .9) * 18) * (t > .9 ? 1 : 0)) : 1);
       const alpha = appear * (t > 2.15 ? 0 : 1);
       if (alpha > 0) {
-        const halo = g.createRadialGradient(ix, iy, 0, ix, iy, size * 1.4); halo.addColorStop(0, `rgba(255,180,60,${.35 * alpha})`); halo.addColorStop(1, "rgba(255,150,30,0)");
+        const halo = g.createRadialGradient(ix, iy, 0, ix, iy, size * 1.4); halo.addColorStop(0, `rgba(60, 255, 190,${.35 * alpha})`); halo.addColorStop(1, "rgba(30, 255, 161,0)");
         g.fillStyle = halo; g.fillRect(ix - size * 1.4, iy - size * 1.4, size * 2.8, size * 2.8);
-        g.beginPath(); g.arc(ix, iy, size * .78, 0, 7); g.strokeStyle = `rgba(255,210,120,${.7 * alpha})`; g.lineWidth = 1.4 * d; g.stroke();
-        if (t > .9 && t < 1.35) { g.beginPath(); g.arc(ix, iy, size * (0.78 + (t - .9) * .8), 0, 7); g.strokeStyle = `rgba(255,230,170,${.6 * (1 - (t - .9) / .45)})`; g.stroke(); }
+        g.beginPath(); g.arc(ix, iy, size * .78, 0, 7); g.strokeStyle = `rgba(120, 255, 217,${.7 * alpha})`; g.lineWidth = 1.4 * d; g.stroke();
+        if (t > .9 && t < 1.35) { g.beginPath(); g.arc(ix, iy, size * (0.78 + (t - .9) * .8), 0, 7); g.strokeStyle = `rgba(170, 255, 234,${.6 * (1 - (t - .9) / .45)})`; g.stroke(); }
         g.globalCompositeOperation = "source-over";
-        g.fillStyle = `rgba(20,12,2,${.75 * alpha})`; g.beginPath(); g.arc(ix, iy, size * .74, 0, 7); g.fill();
+        g.fillStyle = `rgba(2, 20, 13,${.75 * alpha})`; g.beginPath(); g.arc(ix, iy, size * .74, 0, 7); g.fill();
         this.icon(g, gr.kind, ix, iy, size * .9, alpha);
-        if (fly < .3) { g.font = `700 ${9 * d}px monospace`; g.textAlign = "center"; g.fillStyle = `rgba(255,214,140,${alpha * (1 - fly / .3)})`; g.fillText(gr.label, ix, iy + size * 1.15); }
+        if (fly < .3) { g.font = `700 ${9 * d}px monospace`; g.textAlign = "center"; g.fillStyle = `rgba(140, 255, 220,${alpha * (1 - fly / .3)})`; g.fillText(gr.label, ix, iy + size * 1.15); }
         g.globalCompositeOperation = "lighter";
       }
       // Ankunft: Lichtring in der Kugel
       if (t > 2.1 && t < 2.8) { const k = (t - 2.1) / .7; g.beginPath(); g.arc(cx, cy, R * (.25 + .5 * k), 0, 7);
-        g.strokeStyle = `rgba(255,220,150,${.7 * (1 - k)})`; g.lineWidth = (4 - 3 * k) * d; g.stroke(); }
+        g.strokeStyle = `rgba(150, 255, 225,${.7 * (1 - k)})`; g.lineWidth = (4 - 3 * k) * d; g.stroke(); }
       g.restore();
     }
     // Aufbau der Bahnen in Seiten-Koordinaten (x: 0..pages, y: 0..1 der Höhe)
@@ -119,15 +119,15 @@
       const off = document.createElement("canvas"); off.width = Math.ceil(W * P); off.height = H;
       const g = off.getContext("2d"); g.lineCap = "round"; g.lineJoin = "round";
       const stroke = (p, col, wmul, blur) => { g.beginPath(); p.pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
-        g.strokeStyle = col; g.lineWidth = p.w * wmul * (W / 400); g.shadowBlur = blur; g.shadowColor = "rgba(255,150,30,.9)"; g.stroke(); };
-      for (const p of paths) stroke(p, `rgba(255,150,40,${p.a * .18})`, 3, 6 * (W / 400));
-      for (const p of paths) stroke(p, `rgba(255,190,90,${p.a * .7})`, 1, 0);
+        g.strokeStyle = col; g.lineWidth = p.w * wmul * (W / 400); g.shadowBlur = blur; g.shadowColor = "rgba(30, 255, 161,.9)"; g.stroke(); };
+      for (const p of paths) stroke(p, `rgba(40, 255, 161,${p.a * .18})`, 3, 6 * (W / 400));
+      for (const p of paths) stroke(p, `rgba(90, 255, 198,${p.a * .7})`, 1, 0);
       g.shadowBlur = 0;
       for (const p of paths) if (p.dot) { const [x, y] = p.pts[p.pts.length - 1];
-        g.beginPath(); g.arc(x, y, 2 * (W / 400), 0, 7); g.fillStyle = `rgba(255,205,120,${p.a + .25})`; g.fill(); }
-      for (const R of rings) { g.beginPath(); g.arc(R.x, R.y, R.r, 0, 7); g.strokeStyle = "rgba(255,170,60,.08)"; g.lineWidth = 1.2 * (W / 400); g.stroke(); }
+        g.beginPath(); g.arc(x, y, 2 * (W / 400), 0, 7); g.fillStyle = `rgba(120, 255, 212,${p.a + .25})`; g.fill(); }
+      for (const R of rings) { g.beginPath(); g.arc(R.x, R.y, R.r, 0, 7); g.strokeStyle = "rgba(60, 255, 180,.08)"; g.lineWidth = 1.2 * (W / 400); g.stroke(); }
       for (const [x, y] of this.nodes) { const rr = 9 * (W / 400), gg = g.createRadialGradient(x, y, 0, x, y, rr);
-        gg.addColorStop(0, "rgba(255,225,160,.75)"); gg.addColorStop(.25, "rgba(255,180,80,.3)"); gg.addColorStop(1, "rgba(255,150,40,0)");
+        gg.addColorStop(0, "rgba(160, 255, 230,.75)"); gg.addColorStop(.25, "rgba(80, 255, 189,.3)"); gg.addColorStop(1, "rgba(40, 255, 161,0)");
         g.fillStyle = gg; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
       this.img = off;
     }

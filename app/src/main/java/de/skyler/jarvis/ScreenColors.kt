@@ -67,7 +67,7 @@ object ScreenColors {
         return cols
     }
 
-    val DEFAULT = intArrayOf(Color.rgb(255, 176, 60), Color.rgb(60, 200, 255), Color.rgb(255, 120, 30))
+    val DEFAULT = intArrayOf(Color.rgb(60, 255, 186), Color.rgb(60, 200, 255), Color.rgb(30, 255, 131))
 
     private fun wallpaper(ctx: Context): IntArray? {
         if (Build.VERSION.SDK_INT < 27) return null

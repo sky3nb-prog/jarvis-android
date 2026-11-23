@@ -19,15 +19,15 @@
     css.textContent = `
 #janl{position:fixed;inset:0;z-index:10000;display:none;background:rgba(2,3,4,.86);backdrop-filter:blur(3px)}
 #janl.on{display:flex;align-items:center;justify-content:center}
-#janl .box{width:min(520px,94%);max-height:88vh;overflow-y:auto;background:#07090b;border:1px solid rgba(255,206,120,.25);border-radius:20px;padding:22px 20px 18px;box-shadow:0 20px 70px rgba(0,0,0,.6)}
-#janl h2{margin:0 0 2px;font-size:22px;letter-spacing:.14em;color:#ffcf6e}
-#janl .sub{color:#a39a88;margin:0 0 18px;font-size:13px}
-#janl .st{display:flex;gap:12px;margin:10px 0;padding:12px 14px;border:1px solid rgba(255,206,120,.16);border-radius:14px;background:#0f1317}
-#janl .n{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,206,120,.4);display:grid;place-items:center;color:#ffcf6e;font-size:12px;font-weight:700}
+#janl .box{width:min(520px,94%);max-height:88vh;overflow-y:auto;background:#07090b;border:1px solid rgba(120, 255, 213,.25);border-radius:20px;padding:22px 20px 18px;box-shadow:0 20px 70px rgba(0,0,0,.6)}
+#janl h2{margin:0 0 2px;font-size:22px;letter-spacing:.14em;color:#9fe1cb}
+#janl .sub{color:#88a39b;margin:0 0 18px;font-size:13px}
+#janl .st{display:flex;gap:12px;margin:10px 0;padding:12px 14px;border:1px solid rgba(120, 255, 213,.16);border-radius:14px;background:#0f1317}
+#janl .n{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid rgba(120, 255, 213,.4);display:grid;place-items:center;color:#9fe1cb;font-size:12px;font-weight:700}
 #janl b{color:#fff}#janl a{color:#7fd4ff}#janl code{background:#1a1f24;padding:1px 6px;border-radius:5px}
-#janl .tt{color:#efe7d6;font-weight:600;margin-bottom:3px}
-#janl .dd{color:#a39a88;font-size:13px;line-height:1.5}
-#janl .close{margin-top:14px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,206,120,.3);background:#ffcf6e;color:#1a1006;font-weight:700;font-size:14px}`;
+#janl .tt{color:#d6efe8;font-weight:600;margin-bottom:3px}
+#janl .dd{color:#88a39b;font-size:13px;line-height:1.5}
+#janl .close{margin-top:14px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(120, 255, 213,.3);background:#9fe1cb;color:#061a11;font-weight:700;font-size:14px}`;
     document.head.appendChild(css);
     const ov = document.createElement("div"); ov.id = "janl";
     ov.innerHTML = `<div class="box"><h2>VECTOR EINRICHTEN</h2><div class="sub">In ein paar Minuten fertig – Schritt für Schritt.</div>`

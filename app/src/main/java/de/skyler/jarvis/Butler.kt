@@ -150,19 +150,19 @@ object Butler {
             val box = android.widget.LinearLayout(ctx).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
                 setPadding((18 * d).toInt(), (12 * d).toInt(), (18 * d).toInt(), (12 * d).toInt())
-                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 26 * d; setColor(0xF0140C04.toInt()); setStroke((2 * d).toInt(), 0xFFFFAA28.toInt()) }
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 26 * d; setColor(0xF004140D.toInt()); setStroke((2 * d).toInt(), 0xFF1D9E75.toInt()) }
                 elevation = 12 * d
             }
             val title = android.widget.TextView(ctx).apply {
                 text = if (wa) "VECTOR · $name ruft über WhatsApp an" else if (name.isNotBlank()) "VECTOR · $name ruft an" else "VECTOR · unbekannte Nummer"
-                setTextColor(0xFFFFD678.toInt()); textSize = 12f; letterSpacing = .12f
+                setTextColor(0xFF9FE1CB.toInt()); textSize = 12f; letterSpacing = .12f
             }
             val btn = android.widget.TextView(ctx).apply {
                 text = if (wa) "Wegdrücken + kurz schreiben" else if (name.isNotBlank()) "Auflegen + „${text(ctx)}“ schicken" else "Auflegen"
-                setTextColor(0xFF1A1206.toInt()); textSize = 16f; typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setTextColor(0xFF04342C.toInt()); textSize = 16f; typeface = android.graphics.Typeface.DEFAULT_BOLD
                 gravity = android.view.Gravity.CENTER
                 setPadding((14 * d).toInt(), (12 * d).toInt(), (14 * d).toInt(), (12 * d).toInt())
-                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 22 * d; setColor(0xFFFFC04A.toInt()) }
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 22 * d; setColor(0xFF1D9E75.toInt()) }
                 setOnClickListener {
                     hideFloat(ctx)
                     if (wa) waDecline(ctx)

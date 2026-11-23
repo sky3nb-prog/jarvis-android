@@ -5,8 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
-  :root { --gold: #ffb446; --gold-l: #ffd68c; --bg: #0a0a0e; --line: #2a2a33; --txt: #f2f2f6; --dim: #a0a5b4;
-          --c0: #ffb03c; --c1: #3cc8ff; --c2: #ff7a3c; --maxh: 520px; }
+  :root { --gold: #46ffbd; --gold-l: #8cffdc; --bg: #0a0a0e; --line: #2a2a33; --txt: #f2f2f6; --dim: #a0a5b4;
+          --c0: #3cffba; --c1: #3cc8ff; --c2: #ff7a3c; --maxh: 520px; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { background: transparent; overflow: hidden; font-family: "Roboto", "Segoe UI", sans-serif; color: var(--txt);
                -webkit-font-smoothing: antialiased; user-select: none; }
@@ -32,7 +32,7 @@
   .sec { color: var(--gold); font-size: 11.5px; font-weight: 800; letter-spacing: .6px; margin: 16px 0 8px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { padding: 7px 13px; border-radius: 15px; background: #1c1c22; border: 1px solid #3a3a46; font-size: 13px; color: #d6d6de; }
-  .chip.on { background: #3a2608; border-color: var(--gold); color: var(--gold-l); }
+  .chip.on { background: #083a28; border-color: var(--gold); color: var(--gold-l); }
   .row { display: flex; align-items: center; gap: 12px; padding: 7px 0; border-radius: 12px; transition: background .15s; }
   .row:active { background: #17171d; }
   .cover { width: 46px; height: 46px; border-radius: 9px; flex: none; background: #222 center/cover no-repeat; }
@@ -45,11 +45,11 @@
   .t2 b { color: var(--gold); font-weight: 700; }
   .n { color: #8f93a3; font-size: 12.5px; }
   .play { width: 32px; height: 32px; border-radius: 50%; background: var(--gold); flex: none; position: relative; }
-  .play::after { content: ""; position: absolute; left: 12px; top: 9px; border-left: 11px solid #1a1104;
+  .play::after { content: ""; position: absolute; left: 12px; top: 9px; border-left: 11px solid #041a12;
                  border-top: 7px solid transparent; border-bottom: 7px solid transparent; }
   .btns { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
   .btn { padding: 9px 15px; border-radius: 17px; background: #1c1c22; border: 1px solid #3a3a46; font-size: 13.5px; font-weight: 700; }
-  .btn.gold { background: #3a2608; border-color: var(--gold); color: var(--gold-l); }
+  .btn.gold { background: #083a28; border-color: var(--gold); color: var(--gold-l); }
   .src { font-size: 12.5px; }
   .fade-in { animation: fin .35s ease both; }
   .fade-in:nth-child(2) { animation-delay: .04s } .fade-in:nth-child(3) { animation-delay: .08s }
@@ -81,7 +81,7 @@
   #pillwrap.listen #wave { display: flex } #pillwrap.listen #ptext { display: none }
   #mic { background: transparent; }
   #pillwrap.listen #mic, #pillwrap.busy #mic { background: var(--gold); }
-  #pillwrap.listen #mic svg path, #pillwrap.busy #mic svg rect { stroke: #1a1104; }
+  #pillwrap.listen #mic svg path, #pillwrap.busy #mic svg rect { stroke: #041a12; }
   .shimmer { background: linear-gradient(90deg, #8a8a96 0%, #fff 45%, #8a8a96 90%); background-size: 200% 100%;
              -webkit-background-clip: text; background-clip: text; color: transparent; animation: flow 1.8s linear infinite; }
 </style>

@@ -8,13 +8,13 @@
   const $ = (id) => document.getElementById(id);
   const css = document.createElement("style");
   css.textContent = `
-  #konto-ov{position:fixed;inset:0;z-index:9000;background:radial-gradient(120% 80% at 50% 0%,#2a1c06 0%,#05080b 60%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px;color:#f3e6c8}
-  #konto-ov .ko-orb{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#fff6d8 0%,#ffcf6a 30%,#d68a10 60%,rgba(120,60,0,0) 72%);box-shadow:0 0 60px rgba(255,180,60,.55);margin-bottom:16px}
-  #konto-ov h1{margin:0;font-size:20px;letter-spacing:4px;color:#ffd678}
-  #konto-ov p{margin:8px 0 18px;color:#b9a77f;font-size:14px;text-align:center;line-height:1.45;max-width:330px}
+  #konto-ov{position:fixed;inset:0;z-index:9000;background:radial-gradient(120% 80% at 50% 0%,#062a1e 0%,#05080b 60%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px;color:#c8f3e8}
+  #konto-ov .ko-orb{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#d8fff8 0%,#9fe1cb 30%,#10d694 60%,rgba(0, 120, 66,0) 72%);box-shadow:0 0 60px rgba(60, 255, 190,.55);margin-bottom:16px}
+  #konto-ov h1{margin:0;font-size:20px;letter-spacing:4px;color:#9fe1cb}
+  #konto-ov p{margin:8px 0 18px;color:#7fb9aa;font-size:14px;text-align:center;line-height:1.45;max-width:330px}
   #konto-ov .ko-box{width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}
-  #konto-ov input{width:100%;box-sizing:border-box;padding:14px;border-radius:14px;border:1px solid #5a4318;background:#0d1217;color:#f3e6c8;font-size:16px}
-  #konto-ov .ko-btn{padding:14px;border-radius:14px;border:1px solid #ffb43c;background:linear-gradient(#3a2608,#1d1405);color:#ffd678;font-weight:700;font-size:16px;text-align:center}
+  #konto-ov input{width:100%;box-sizing:border-box;padding:14px;border-radius:14px;border:1px solid #185a46;background:#0d1217;color:#c8f3e8;font-size:16px}
+  #konto-ov .ko-btn{padding:14px;border-radius:14px;border:1px solid #1d9e75;background:linear-gradient(#083a28,#051d15);color:#9fe1cb;font-weight:700;font-size:16px;text-align:center}
   #konto-ov .ko-btn.alt{border-color:#3a4a55;background:#0d1217;color:#cfd8dd;font-weight:600}
   #konto-ov .ko-msg{min-height:20px;font-size:13px;color:#ff9a8a;text-align:center}
   #konto-ov .ko-msg.ok{color:#6effcd}

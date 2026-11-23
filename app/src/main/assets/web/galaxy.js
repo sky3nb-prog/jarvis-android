@@ -1,4 +1,4 @@
-// Hinter dem Globus: Sternenhimmel und ganz weit hinten ein goldener Nervenstrang wie ein Band durch die Galaxie.
+// Hinter dem Globus: Sternenhimmel und ganz weit hinten ein Teal-Nervenstrang wie ein Band durch die Galaxie.
 // Dreht man den Globus, wandert der Hintergrund langsam mit (Parallaxe). Läuft nur, wenn die Lage-Seite sichtbar ist.
 (function () {
   const page = document.getElementById("v-lage"), mapEl = document.getElementById("lmap");
@@ -35,7 +35,7 @@
     g.clearRect(0, 0, W, H);
     // Nebel hinter dem Band
     const neb = g.createLinearGradient(0, H * .9, W, H * .1);
-    neb.addColorStop(0, "rgba(20,10,2,0)"); neb.addColorStop(.5, "rgba(60,32,6,.18)"); neb.addColorStop(1, "rgba(20,10,2,0)");
+    neb.addColorStop(0, "rgba(2, 20, 11,0)"); neb.addColorStop(.5, "rgba(6, 60, 35,.18)"); neb.addColorStop(1, "rgba(2, 20, 11,0)");
     g.fillStyle = neb; g.fillRect(0, 0, W, H);
     // Sterne (langsamer als das Band -> Tiefe)
     for (const s of stars) {
@@ -43,18 +43,18 @@
       const a = s.a * (.7 + .3 * Math.sin(t * 1.3 + s.tw));
       g.fillStyle = `rgba(255,${230 - s.s * 20},${200 - s.s * 40},${a})`; g.fillRect(x, s.y * H, s.s, s.s);
     }
-    // goldenes Band (Nervenstrang ganz weit hinten)
+    // Teal-Band (Nervenstrang ganz weit hinten)
     g.globalCompositeOperation = "lighter"; g.lineCap = "round";
     for (const f of fibers) {
       g.beginPath();
       for (let x = -10; x <= W + 10; x += 8) { const u = ((x / W + shift) % 2 + 2) % 2; const y = bandY(u, f); x === -10 ? g.moveTo(x, y) : g.lineTo(x, y); }
-      g.strokeStyle = `rgba(255,190,90,${f.a * .35})`; g.lineWidth = f.w * 5; g.stroke();
-      g.strokeStyle = `rgba(255,214,140,${f.a})`; g.lineWidth = f.w; g.stroke();
+      g.strokeStyle = `rgba(90, 255, 198,${f.a * .35})`; g.lineWidth = f.w * 5; g.stroke();
+      g.strokeStyle = `rgba(140, 255, 220,${f.a})`; g.lineWidth = f.w; g.stroke();
     }
     // Lichtimpulse entlang des Bandes
     for (let i = 0; i < 6; i++) {
       const x = ((t * 40 * (1 + i * .15) + i * 230) % (W + 200)) - 100, u = ((x / W + shift) % 2 + 2) % 2, y = bandY(u, fibers[4] || { off: 0, ph: 0, sp: 0 });
-      const gr = g.createRadialGradient(x, y, 0, x, y, 10); gr.addColorStop(0, "rgba(255,240,200,.8)"); gr.addColorStop(1, "rgba(255,190,90,0)");
+      const gr = g.createRadialGradient(x, y, 0, x, y, 10); gr.addColorStop(0, "rgba(200, 255, 243,.8)"); gr.addColorStop(1, "rgba(90, 255, 198,0)");
       g.fillStyle = gr; g.fillRect(x - 10, y - 10, 20, 20);
     }
     g.globalCompositeOperation = "source-over";

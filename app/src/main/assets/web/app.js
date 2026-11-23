@@ -371,7 +371,7 @@
     function go(it) {
       inp.value = ""; out.style.display = "none"; out.innerHTML = "";
       const si = document.querySelector(`.sitem[data-go="${it.pid}"]`); if (si) si.click();
-      setTimeout(() => { try { it.el.scrollIntoView({ behavior: "smooth", block: "center" }); it.el.style.transition = "background .6s"; it.el.style.background = "#ffd67822"; setTimeout(() => { it.el.style.background = ""; }, 1600); } catch (e) {} }, 250);
+      setTimeout(() => { try { it.el.scrollIntoView({ behavior: "smooth", block: "center" }); it.el.style.transition = "background .6s"; it.el.style.background = "#9fe1cb22"; setTimeout(() => { it.el.style.background = ""; }, 1600); } catch (e) {} }, 250);
     }
     inp.addEventListener("input", () => {
       const q = norm(inp.value.trim()); if (!q) { out.style.display = "none"; out.innerHTML = ""; return; }
@@ -811,7 +811,7 @@
 
   // --- Kleiderschrank ---
   let WS = null;
-  const LAYERS = [["jacke", "🧥 JACKEN – DRÜBER", "#ffd678"], ["drunter", "👕 OBERTEILE – DRUNTER", "#6effcd"], ["mitte", "🧶 PULLIS & CO.", "#d7a8ff"], ["hose", "👖 HOSEN", "#3cc8ff"], ["extra", "🧢 EXTRAS", "#ff9a8a"]];
+  const LAYERS = [["jacke", "🧥 JACKEN – DRÜBER", "#9fe1cb"], ["drunter", "👕 OBERTEILE – DRUNTER", "#6effcd"], ["mitte", "🧶 PULLIS & CO.", "#d7a8ff"], ["hose", "👖 HOSEN", "#3cc8ff"], ["extra", "🧢 EXTRAS", "#ff9a8a"]];
   const LO = -15, HI = 35;
   const tlabel = (v, lo) => (lo && v <= LO ? "kalt" : !lo && v >= HI ? "heiß" : v + " °C");
   function wsSave() { if (A && A.schrankSave) A.schrankSave(JSON.stringify(WS)); wsToday(); }

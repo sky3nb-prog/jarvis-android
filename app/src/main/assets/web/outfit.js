@@ -7,13 +7,13 @@
   css.textContent = `
   #of-ov{position:fixed;inset:0;z-index:8500;background:rgba(2,6,10,.86);display:flex;align-items:flex-end;justify-content:center}
   #of-ov[hidden]{display:none}
-  #of-ov .of-sheet{width:100%;max-width:520px;max-height:88vh;overflow:auto;background:linear-gradient(#1a1206,#070b0f 40%);border:1px solid rgba(255,180,60,.45);border-bottom:0;border-radius:24px 24px 0 0;padding:20px 16px 26px;color:#f3e6c8}
-  #of-ov h2{margin:0;font-size:13px;letter-spacing:2px;color:#ffd678}
-  #of-ov .of-sub{color:#a7987a;font-size:13.5px;margin:6px 0 12px;line-height:1.4}
-  #of-ov .of-grp{font-size:10.5px;letter-spacing:1.6px;color:#9a7a3c;margin:12px 2px 6px;font-weight:700}
+  #of-ov .of-sheet{width:100%;max-width:520px;max-height:88vh;overflow:auto;background:linear-gradient(#061a13,#070b0f 40%);border:1px solid rgba(60, 255, 190,.45);border-bottom:0;border-radius:24px 24px 0 0;padding:20px 16px 26px;color:#c8f3e8}
+  #of-ov h2{margin:0;font-size:13px;letter-spacing:2px;color:#9fe1cb}
+  #of-ov .of-sub{color:#7aa79a;font-size:13.5px;margin:6px 0 12px;line-height:1.4}
+  #of-ov .of-grp{font-size:10.5px;letter-spacing:1.6px;color:#3c9a7f;margin:12px 2px 6px;font-weight:700}
   #of-ov .of-chips{display:flex;flex-wrap:wrap;gap:8px}
   #of-ov .of-chip{padding:9px 12px;border-radius:999px;border:1px solid #2c3b44;background:#0b1820;font-size:14.5px}
-  #of-ov .of-chip.on{border-color:#ffb43c;background:#2a1c06;color:#ffd678}
+  #of-ov .of-chip.on{border-color:#1d9e75;background:#062a1e;color:#9fe1cb}
   #of-ov .of-row{display:flex;gap:8px;margin-top:18px}
   #of-ov .of-btn{flex:1;padding:14px 6px;border-radius:14px;border:1px solid #3a4a55;background:#0d1217;text-align:center;font-weight:700;font-size:15px}
   #of-ov .of-btn.ok{border-color:#6effcd;color:#6effcd}
