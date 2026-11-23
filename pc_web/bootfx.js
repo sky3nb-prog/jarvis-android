@@ -13,30 +13,30 @@
   #bootfx .rings{position:absolute;transform:translate(-50%,-50%);pointer-events:none;transition:all .9s cubic-bezier(.5,0,.3,1)}
   #bootfx .ring{position:absolute;border-radius:50%;opacity:0;transform:scale(.2)}
   #bootfx.rg .ring{animation:bfin 1s forwards, bfspin var(--sp) linear infinite}
-  #bootfx .r1{inset:-6%;border:1px dashed rgba(255,190,90,.55);--sp:26s}
-  #bootfx .r2{inset:-16%;border:2px solid rgba(255,170,40,.15);border-top-color:rgba(255,214,120,.9);border-bottom-color:rgba(255,214,120,.5);--sp:7s;animation-direction:normal,reverse!important}
-  #bootfx .r3{inset:-27%;border:1px dotted rgba(60,200,255,.4);--sp:40s}
-  #bootfx .r4{inset:-36%;border:1px solid rgba(255,170,40,.1);border-left-color:rgba(255,214,120,.6);--sp:13s}
+  #bootfx .r1{inset:-6%;border:1px dashed rgba(159,225,203,.55);--sp:26s}
+  #bootfx .r2{inset:-16%;border:2px solid rgba(29,158,117,.18);border-top-color:rgba(159,225,203,.9);border-bottom-color:rgba(159,225,203,.5);--sp:7s;animation-direction:normal,reverse!important}
+  #bootfx .r3{inset:-27%;border:1px dotted rgba(55,138,221,.45);--sp:40s}
+  #bootfx .r4{inset:-36%;border:1px solid rgba(29,158,117,.12);border-left-color:rgba(159,225,203,.6);--sp:13s}
   #bootfx.rg .r2{animation-delay:.15s,0s}#bootfx.rg .r3{animation-delay:.3s,0s}#bootfx.rg .r4{animation-delay:.45s,0s}
   @keyframes bfin{to{opacity:1;transform:scale(1)}}
   @keyframes bfspin{to{rotate:360deg}}
   #bootfx .rings.away{opacity:0;transform:translate(-50%,-50%) scale(.35)}
   #bootfx .bt{position:absolute;left:0;right:0;text-align:center}
-  #bootfx .title{font-size:min(4.6vh,7vw);letter-spacing:.55em;font-weight:600;color:#ffd678;text-shadow:0 0 22px rgba(255,170,40,.7);padding-left:.55em}
+  #bootfx .title{font-size:min(4.6vh,7vw);letter-spacing:.55em;font-weight:600;color:#9fe1cb;text-shadow:0 0 22px rgba(29,158,117,.7);padding-left:.55em}
   #bootfx .title span{display:inline-block;opacity:0;transform:translateY(10px) scale(.9);filter:blur(4px);transition:all .35s cubic-bezier(.2,1.4,.4,1)}
   #bootfx .title span.v{opacity:1;transform:none;filter:none}
-  #bootfx .sub{font-size:min(1.9vh,3vw);letter-spacing:.32em;color:#c8965a;opacity:0;transition:opacity .6s}
+  #bootfx .sub{font-size:min(1.9vh,3vw);letter-spacing:.32em;color:#5ab7a0;opacity:0;transition:opacity .6s}
   #bootfx .sub.v{opacity:1}
   #bootfx .sys{position:absolute;font-size:min(1.8vh,3.2vw)}
-  #bootfx .sys h4{margin:0 0 8px;font-size:.78em;letter-spacing:.3em;color:#c8965a;font-weight:700;opacity:0;transition:opacity .5s}
+  #bootfx .sys h4{margin:0 0 8px;font-size:.78em;letter-spacing:.3em;color:#85b7eb;font-weight:700;opacity:0;transition:opacity .5s}
   #bootfx .sys h4.v{opacity:1}
-  #bootfx .row{display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid rgba(255,170,40,.1);opacity:0;transform:translateX(26px);transition:opacity .3s,transform .3s}
+  #bootfx .row{display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid rgba(29,158,117,.12);opacity:0;transform:translateX(26px);transition:opacity .3s,transform .3s}
   #bootfx .row.v{opacity:1;transform:none}
-  #bootfx .row i{flex:0 0 9px;height:9px;border-radius:50%;background:#554a30;transition:background .3s,box-shadow .3s}
-  #bootfx .row.g i{background:#6effcd;box-shadow:0 0 10px #6effcd}#bootfx .row.r i{background:#ff6a4a;box-shadow:0 0 10px #ff6a4a}
-  #bootfx .row b{font-weight:600;color:#ffe1b4;flex:1}#bootfx .row small{color:#78a0b4;font-size:.85em}
-  #bootfx .log{position:absolute;left:4vw;top:16vh;font:min(1.5vh,1.1vw)/1.7 Consolas,monospace;color:rgba(110,200,255,.7);white-space:pre}
-  #bootfx .skip{position:absolute;right:16px;bottom:12px;font-size:11px;color:#4a3a20;letter-spacing:.1em}
+  #bootfx .row i{flex:0 0 9px;height:9px;border-radius:50%;background:#2e4a44;transition:background .3s,box-shadow .3s}
+  #bootfx .row.g i{background:#6effcd;box-shadow:0 0 10px #6effcd}#bootfx .row.r i{background:#ef9f27;box-shadow:0 0 10px #ef9f27}
+  #bootfx .row b{font-weight:600;color:#cdeedf;flex:1}#bootfx .row small{color:#85b7eb;font-size:.85em}
+  #bootfx .log{position:absolute;left:4vw;top:16vh;font:min(1.5vh,1.1vw)/1.7 Consolas,monospace;color:rgba(133,183,235,.75);white-space:pre}
+  #bootfx .skip{position:absolute;right:16px;bottom:12px;font-size:11px;color:#2a4a42;letter-spacing:.1em}
   .bootin{animation:bootin .7s cubic-bezier(.2,.9,.3,1) both}
   @keyframes bootin{from{opacity:0;transform:translateY(18px) scale(.98);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
   .bootin-top{animation:bootintop .6s cubic-bezier(.2,.9,.3,1) both}
@@ -115,7 +115,7 @@
         if (h.dd > front) continue;
         const age = (front - h.dd) / maxD, al = (Math.max(0, .12 - age * .3) + (h.dd > front - 26 ? .22 : 0)) * (narrow ? .7 : 1);
         if (al <= .01) continue;
-        g.strokeStyle = `rgba(255,170,40,${al * (t > 3.6 ? Math.max(0, 1 - (t - 3.6)) : 1)})`;
+        g.strokeStyle = `rgba(29,158,117,${al * (t > 3.6 ? Math.max(0, 1 - (t - 3.6)) : 1)})`;
         g.beginPath(); for (let k = 0; k < 6; k++) { const an = k * Math.PI / 3; const px = h.x + Math.cos(an) * hs * .48, py = h.y + Math.sin(an) * hs * .48; k ? g.lineTo(px, py) : g.moveTo(px, py); } g.closePath(); g.stroke();
       }
       g.globalCompositeOperation = "lighter";
@@ -129,25 +129,25 @@
         } else { p.x = C.x + Math.cos(p.a + t * 2.8) * p.rr * .32; p.y = C.y + Math.sin(p.a + t * 2.8) * p.rr * .2; }
         const al = Math.min(1, (t - p.delay) * 2) * (1 - Math.max(0, t - 2.6) * 1.2);
         if (al <= 0) continue;
-        g.fillStyle = `rgba(255,${190 + p.s * 30},${90 + p.s * 40},${al * .9})`; g.beginPath(); g.arc(p.x, p.y, p.s, 0, 7); g.fill();
+        g.fillStyle = `rgba(${150 + p.s * 10},${220 + p.s * 10},${190 + p.s * 10},${al * .9})`; g.beginPath(); g.arc(p.x, p.y, p.s, 0, 7); g.fill();
       }
       if (t > 2.0 && !flash) { flash = now; box.classList.add("rg"); }
       if (flash) {
         const k = (now - flash) / 1000;
         const gr = g.createRadialGradient(C.x, C.y, 0, C.x, C.y, C.r * (.7 + k * 1.1));
-        gr.addColorStop(0, `rgba(255,240,200,${Math.max(0, .7 - k * .9)})`); gr.addColorStop(.4, `rgba(255,180,60,${Math.max(0, .28 - k * .4)})`); gr.addColorStop(1, "rgba(255,150,30,0)");
+        gr.addColorStop(0, `rgba(210,245,230,${Math.max(0, .7 - k * .9)})`); gr.addColorStop(.4, `rgba(29,158,117,${Math.max(0, .28 - k * .4)})`); gr.addColorStop(1, "rgba(8,80,65,0)");
         g.fillStyle = gr; g.fillRect(0, 0, W, H);
-        // Kern bleibt als pulsierende goldene Kugel stehen (Übergang zur echten Kugel)
+        // Kern bleibt als pulsierende Teal-Kugel stehen (Übergang zur echten Kugel)
         const pr = C.r * (.42 + .04 * Math.sin(k * 5)) * Math.min(1, k * 2.5);
         const cg = g.createRadialGradient(C.x, C.y - pr * .2, pr * .1, C.x, C.y, pr);
-        cg.addColorStop(0, "rgba(255,236,190,.55)"); cg.addColorStop(.6, "rgba(255,170,50,.18)"); cg.addColorStop(1, "rgba(255,150,30,0)");
+        cg.addColorStop(0, "rgba(159,225,203,.55)"); cg.addColorStop(.6, "rgba(29,158,117,.22)"); cg.addColorStop(1, "rgba(8,80,65,0)");
         g.fillStyle = cg; g.beginPath(); g.arc(C.x, C.y, pr, 0, 7); g.fill();
-        g.strokeStyle = `rgba(255,214,140,${.5 * Math.min(1, k * 2)})`; g.lineWidth = 1.2; g.beginPath(); g.arc(C.x, C.y, pr * .92, 0, 7); g.stroke();
-        // goldene Leitungen von außen zur Kugel (alt)
+        g.strokeStyle = `rgba(159,225,203,${.5 * Math.min(1, k * 2)})`; g.lineWidth = 1.2; g.beginPath(); g.arc(C.x, C.y, pr * .92, 0, 7); g.stroke();
+        // Teal-Leitungen von außen zur Kugel
         for (let i = 0; i < 14; i++) { const an = i / 14 * 6.283 + k * .3, r0 = Math.max(W, H) * .6, u = (k * .9 + i * .07) % 1;
           const x0 = C.x + Math.cos(an) * r0, y0 = C.y + Math.sin(an) * r0, x = x0 + (C.x - x0) * u, y = y0 + (C.y - y0) * u;
-          g.strokeStyle = `rgba(255,200,110,${.12 * Math.max(0, 1 - k / 3)})`; g.beginPath(); g.moveTo(x0, y0); g.lineTo(C.x, C.y); g.stroke();
-          g.fillStyle = `rgba(255,236,190,${.8 * Math.max(0, 1 - k / 3)})`; g.beginPath(); g.arc(x, y, 1.8, 0, 7); g.fill(); }
+          g.strokeStyle = `rgba(55,138,221,${.12 * Math.max(0, 1 - k / 3)})`; g.beginPath(); g.moveTo(x0, y0); g.lineTo(C.x, C.y); g.stroke();
+          g.fillStyle = `rgba(159,225,203,${.8 * Math.max(0, 1 - k / 3)})`; g.beginPath(); g.arc(x, y, 1.8, 0, 7); g.fill(); }
       }
       g.globalCompositeOperation = "source-over";
       requestAnimationFrame(frame);
@@ -173,6 +173,8 @@
   }
   api.play = play;
   window.JBoot = api;
+  // Baustein 1 "Hochfahren": gleicher Aufruf, nur unter dem Bausteine-Namen, falls von dort gerufen.
+  if (window.VectorFX) window.VectorFX.playBootSequence = play;
   if (A) {   // App: bei jedem Start (abschaltbar unter Einstellungen → Anzeige)
     let on = true; try { on = localStorage.getItem("boot_anim") !== "0"; } catch (e) {}
     if (on) { api.pending = true; setTimeout(play, 60); }

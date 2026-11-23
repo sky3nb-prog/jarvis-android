@@ -139,7 +139,9 @@
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); return { f, t, w, h }; }
 
   const mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
-  const GOLD = [1.0, 0.5, 0.14], HOT = [1.0, 0.84, 0.58], GREY = [0.55, 0.57, 0.62], GREY_HOT = [0.7, 0.72, 0.76];
+  // Vector-Farbschema (siehe VectorColors weiter unten): Hauptfarbe der Kugel ist Teal/Petrol statt des alten Golds.
+  function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; }
+  const GOLD = hex2rgb("#1D9E75"), HOT = hex2rgb("#9FE1CB"), GREY = [0.3, 0.37, 0.37], GREY_HOT = [0.42, 0.5, 0.48];
 
   class Sphere3D {
     constructor(canvas, seed) {
@@ -227,4 +229,118 @@
     }
   }
   window.Sphere3D = Sphere3D;
+
+  // ---------------- Vector-Bausteine ---------------------------------------------------------------------------
+  // Gemeinsames Farbschema fürs ganze HUD (Boot, HUD-Kugel, Kacheln, Alarme, Login). Eine Stelle für alle Hex-Werte.
+  const VectorColors = {
+    tealLight: "#9FE1CB", tealMid: "#1D9E75", tealDark: "#085041", tealDarkest: "#04342C",   // Hauptfarbe: Hochfahren, Ring, Core
+    blueLight: "#85B7EB", blueMid: "#378ADD", blueDark: "#0C447C",                           // Akzent: Datenkacheln, zweiter Ring
+    alarm: "#EF9F27",                                                                         // Alarme/wichtige Hinweise
+  };
+
+  // Kleine, wiederverwendbare Bausteine-Sammlung für Ring-/Kachel-Effekte, die überall im HUD aufgerufen werden
+  // können (Boot nutzt Sphere3D+bootfx.js direkt, der Rest läuft hier als leichte DOM/CSS-Overlays):
+  //   VectorFX.playThinkingPulse() / .stop()   – dezenter Puls, während Jarvis/Vector verarbeitet
+  //   VectorFX.flyInDataTile(wert, einheit, opts) – Zahl+Einheit fliegt als Kachel rein (z. B. Wetter, Tankstand)
+  //   VectorFX.playAlertPulse(opts)            – kurzer Ring-Puls in der Alarmfarbe
+  //   VectorFX.playLoginWaitRing(opts)         – "wartet auf Bestätigung"-Ring für den Login
+  //   VectorFX.vectorRing(opts)                – der gemeinsame Baustein, auf dem alle vier oben aufbauen
+  const VectorFX = (function () {
+    let styleEl = null;
+    function ensureCss() {
+      if (styleEl) return;
+      styleEl = document.createElement("style");
+      styleEl.textContent = `
+      .vfx-wrap{position:fixed;z-index:9000;pointer-events:none;transform:translate(-50%,-50%)}
+      .vfx-ring{position:absolute;left:50%;top:50%;border-radius:50%;box-sizing:border-box;transform:translate(-50%,-50%) scale(.6);opacity:0}
+      .vfx-wrap.vfx-pulse .vfx-ring{animation:vfxPulse var(--vd,1.6s) ease-in-out infinite}
+      .vfx-wrap.vfx-sweep .vfx-ring{animation:vfxSweep var(--vd,1.4s) linear infinite}
+      .vfx-wrap.vfx-once .vfx-ring{animation:vfxOnce var(--vd,.9s) cubic-bezier(.2,.9,.3,1) forwards}
+      @keyframes vfxPulse{0%{transform:translate(-50%,-50%) scale(.62);opacity:.9}70%{transform:translate(-50%,-50%) scale(1.18);opacity:0}100%{transform:translate(-50%,-50%) scale(1.18);opacity:0}}
+      @keyframes vfxSweep{0%{transform:translate(-50%,-50%) scale(1) rotate(0deg)}100%{transform:translate(-50%,-50%) scale(1) rotate(360deg)}}
+      @keyframes vfxOnce{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}30%{opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+      .vfx-tile{position:fixed;z-index:9000;padding:10px 20px;border-radius:14px;text-align:center;font-family:"Segoe UI",system-ui,sans-serif;
+        pointer-events:none;opacity:0;transform:translate(-50%,8px) scale(.85);filter:blur(2px);
+        transition:opacity .35s ease,transform .4s cubic-bezier(.2,1.4,.4,1),filter .35s ease;
+        background:rgba(6,20,30,.72);border:1px solid rgba(133,183,235,.45);box-shadow:0 0 22px rgba(55,138,221,.35)}
+      .vfx-tile.v{opacity:1;transform:translate(-50%,0) scale(1);filter:none}
+      .vfx-tile.out{opacity:0;transform:translate(-50%,-10px) scale(.92);filter:blur(2px)}
+      .vfx-tile b{display:block;font-size:26px;font-weight:700;color:${VectorColors.blueLight};text-shadow:0 0 14px ${VectorColors.blueMid}}
+      .vfx-tile small{display:block;margin-top:2px;font-size:11px;letter-spacing:.18em;color:${VectorColors.blueLight};opacity:.8}`;
+      document.head.appendChild(styleEl);
+    }
+    function center() {
+      for (const sel of ["#f-sph", "#sphere-fokus", ".pv.on .sph", ".view.active .sphere-wrap"]) {
+        const s = document.querySelector(sel);
+        if (s) { const r = s.getBoundingClientRect(); if (r.width > 20) return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2 }; }
+      }
+      return { x: innerWidth / 2, y: innerHeight * .42, r: Math.min(innerWidth, innerHeight) * .22 };
+    }
+
+    // Der gemeinsame Baustein: ein oder mehrere Ringe, die pulsieren/rotieren/einmal aufblitzen, in frei wählbarer
+    // Farbe und Größe. Alle anderen Bausteine (Denkt-nach, Alarm, Login) sind nur vorbelegte Aufrufe hiervon.
+    function vectorRing(opts) {
+      opts = Object.assign({
+        color: VectorColors.tealMid, x: null, y: null, size: null, thickness: 3,
+        mode: "pulse",      // "pulse" (dezenter Dauer-Puls), "sweep" (drehender Ring), "once" (einmaliger Blitz)
+        rings: 2, speed: 1.6, hold: 0, label: "",
+      }, opts || {});
+      ensureCss();
+      const c = center();
+      const size = opts.size || c.r * 1.9;
+      const x = opts.x != null ? opts.x : c.x, y = opts.y != null ? opts.y : c.y;
+      const wrap = document.createElement("div");
+      wrap.className = "vfx-wrap vfx-" + opts.mode;
+      wrap.style.left = x + "px"; wrap.style.top = y + "px"; wrap.style.width = size + "px"; wrap.style.height = size + "px";
+      wrap.style.setProperty("--vd", opts.speed + "s");
+      let html = "";
+      for (let i = 0; i < opts.rings; i++) {
+        const grow = 1 - i * .16, delay = (opts.mode === "pulse") ? (i * opts.speed / opts.rings) : 0;
+        html += `<div class="vfx-ring" style="width:${Math.round(size * grow)}px;height:${Math.round(size * grow)}px;` +
+          `border:${opts.thickness}px solid ${opts.color};box-shadow:0 0 ${18 + i * 6}px ${opts.color};animation-delay:${delay}s"></div>`;
+      }
+      wrap.innerHTML = html;
+      document.body.appendChild(wrap);
+      const ctrl = { el: wrap, stop() { wrap.remove(); } };
+      if (opts.hold > 0) setTimeout(() => ctrl.stop(), opts.hold);
+      return ctrl;
+    }
+
+    // 2) "Denkt nach" – dezenter Puls in der Teal-Hauptfarbe, solange Jarvis/Vector noch verarbeitet.
+    let thinking = null;
+    function playThinkingPulse(opts) {
+      stopThinkingPulse();
+      thinking = vectorRing(Object.assign({ color: VectorColors.tealMid, mode: "pulse", rings: 2, thickness: 2, speed: 1.7 }, opts));
+      return thinking;
+    }
+    function stopThinkingPulse() { if (thinking) { thinking.stop(); thinking = null; } }
+
+    // 3) Zahlen-Antwort-Kachel – fliegt mit Zahl + Einheit in Blau-Akzentfarbe rein, z. B. flyInDataTile(17, "°C")
+    function flyInDataTile(value, unit, opts) {
+      ensureCss();
+      opts = Object.assign({ x: innerWidth / 2, y: innerHeight * .18, hold: 2200, label: "" }, opts || {});
+      const el = document.createElement("div"); el.className = "vfx-tile";
+      el.style.left = opts.x + "px"; el.style.top = opts.y + "px";
+      el.innerHTML = `<b>${value}${unit ? " " + unit : ""}</b>${opts.label ? `<small>${opts.label}</small>` : ""}`;
+      document.body.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("v"));
+      setTimeout(() => { el.classList.remove("v"); el.classList.add("out"); setTimeout(() => el.remove(), 400); }, opts.hold);
+      return el;
+    }
+
+    // 4) Alarm-Puls – kurzer, deutlich abweichender Ring-Puls in der Signalfarbe (Amber)
+    function playAlertPulse(opts) {
+      return vectorRing(Object.assign({ color: VectorColors.alarm, mode: "once", rings: 3, thickness: 4, speed: .55, hold: 1700 }, opts));
+    }
+
+    // 5) Login-Bestätigungs-Ring – "wartet auf Bestätigung" für den (separat gebauten) OAuth-Login
+    function playLoginWaitRing(opts) {
+      return vectorRing(Object.assign({ color: VectorColors.blueMid, mode: "sweep", rings: 1, thickness: 3, speed: 2.2, size: 120 }, opts));
+    }
+
+    return { vectorRing, playThinkingPulse, stopThinkingPulse, flyInDataTile, playAlertPulse, playLoginWaitRing };
+  })();
+
+  window.VectorColors = VectorColors;
+  window.VectorFX = VectorFX;
 })();

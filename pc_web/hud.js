@@ -87,8 +87,10 @@
     const h = window.PC.get("home") || { lat: 48.8, lon: 9.01 };
     $("i-city").textContent = (window.PC.get("city") || "WETTER").toUpperCase();
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${h.lat}&longitude=${h.lon}&current=temperature_2m,apparent_temperature&daily=precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=1`)
-      .then((r) => r.json()).then((j) => { $("i-temp").textContent = Math.round(j.current.temperature_2m) + "°"; $("i-feel").textContent = Math.round(j.current.apparent_temperature) + "°";
-        const p = (j.daily.precipitation_probability_max || [null])[0]; $("i-rain").textContent = p == null ? "–" : p + " %"; }).catch(() => {});
+      .then((r) => r.json()).then((j) => { const temp = Math.round(j.current.temperature_2m); $("i-temp").textContent = temp + "°"; $("i-feel").textContent = Math.round(j.current.apparent_temperature) + "°";
+        const p = (j.daily.precipitation_probability_max || [null])[0]; $("i-rain").textContent = p == null ? "–" : p + " %";
+        // Baustein "Zahlen-Antwort-Kachel": Temperatur fliegt kurz als Kachel rein (Beispiel-Einhängung)
+        if (window.VectorFX && mode === "info") window.VectorFX.flyInDataTile(temp, "°C", { label: "AUSSENTEMPERATUR" }); }).catch(() => {});
   }
   let lastInfo = 0;
   function info(force) {
@@ -141,6 +143,8 @@
     for (const k in sph) if (sph[k].s) sph[k].s.state = st === "idle" ? "idle" : st;
     $("f-state").textContent = $("i-state").textContent = $("s-state").textContent = !power && st === "idle" ? "schläft" : (STATES[st] || st);
     if (st === "idle") target = 0;
+    // Baustein "Denkt nach": dezenter Teal-Puls, solange Vector verarbeitet
+    if (window.VectorFX) { if (st === "thinking") window.VectorFX.playThinkingPulse(); else window.VectorFX.stopThinkingPulse(); }
   }
   function onEvent(type, d) {
     if (type === "modi") { if (window.JModi) window.JModi.update(d); return; }
