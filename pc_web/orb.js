@@ -36,13 +36,13 @@
         else { y += sy * st; if (r() < .28) { const j = (r() < .5 ? 1 : -1) * (4 + r() * 6); y += sy * Math.abs(j); x += sx * j * .7; } }
         pts.push([x, y]);
       }
-      traces.push({ pts, w, len: pathLen(pts) });
+      traces.push({ pts, w, len: pathLen(pts), ph: r() * 6.283 });
       // Abzweige
       for (let i = 2; i < pts.length - 1; i += 2 + ((r() * 3) | 0)) {
         if (r() < .55) {
           const [bx, by] = pts[i], bl = 10 + r() * 22;
           const dx = horiz ? sx * bl * .7 : sx * bl, dy = horiz ? sy * bl : sy * bl * .7;
-          traces.push({ pts: [[bx, by], [bx + dx * .6, by + dy * .6], [bx + dx, by + dy]], w: w * .6, len: bl, branch: true, at: i / pts.length });
+          traces.push({ pts: [[bx, by], [bx + dx * .6, by + dy * .6], [bx + dx, by + dy]], w: w * .6, len: bl, branch: true, at: i / pts.length, ph: r() * 6.283 });
         }
       }
     };
@@ -67,6 +67,26 @@
       l += s;
     }
     return p[p.length - 1];
+  }
+
+  // --- Bewegung: der Gedankenschweif schwingt, statt starr zu liegen --------------------------------------
+  // Jeder Punkt wird quer zur Laufrichtung ausgelenkt. Die Welle wandert am Strang entlang, außen stärker als
+  // am Knoten, und wird schneller/größer, je nachdem was er gerade tut (zuhören, denken, sprechen).
+  function waved(t, now) {
+    const sp = state === "thinking" ? 3.2 : state === "speaking" ? 2.4 : state === "listening" ? 1.9 : 1.1;
+    const base = t.branch ? 2.2 : 3.4;
+    const k = base * (state === "idle" ? .5 : .8 + level * .9);
+    const pts = t.pts, n = pts.length, out = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[Math.min(i + 1, n - 1)];
+      let dx = b[0] - a[0], dy = b[1] - a[1];
+      const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+      const u = n > 1 ? i / (n - 1) : 0;                       // am Eck ruhig, zur Spitze hin mehr Ausschlag
+      const w = Math.sin(now / 1000 * sp + i * .38 + t.ph) * k * (.18 + u * 1.1)
+              + Math.sin(now / 1000 * sp * .43 + t.ph * 2) * k * .25 * u;
+      out[i] = [a[0] - dy * w, a[1] + dx * w];
+    }
+    return out;
   }
 
   // --- Zustand ---------------------------------------------------------------------------------------------
@@ -107,24 +127,37 @@
     g.clearRect(0, 0, W, H);
     if (grow > .01) {
       g.lineCap = "round"; g.lineJoin = "round";
+      const WV = new Map();
+      for (const t of traces) WV.set(t, waved(t, now));
       for (const t of traces) {
         const tg = t.branch ? Math.max(0, (grow - t.at * .8) / .3) : grow;   // Abzweige wachsen nach dem Hauptstrang
         if (tg <= 0) continue;
-        const upto = t.len * Math.min(1, tg);
-        g.strokeStyle = "rgba(29, 158, 117,.18)"; g.lineWidth = t.w * 4; drawPath(t.pts, upto); g.stroke();
-        g.strokeStyle = "rgba(159, 225, 203,.85)"; g.lineWidth = t.w; const tip = drawPath(t.pts, upto); g.stroke();
+        const upto = t.len * Math.min(1, tg), pts = WV.get(t);
+        g.strokeStyle = "rgba(29, 158, 117,.18)"; g.lineWidth = t.w * 4; drawPath(pts, upto); g.stroke();
+        g.strokeStyle = "rgba(159, 225, 203,.85)"; g.lineWidth = t.w; const tip = drawPath(pts, upto); g.stroke();
         if (tg < 1 && !t.branch) {   // glühende Spitze, solange er wächst
           g.fillStyle = "#c8fff6"; g.shadowColor = "#1d9e75"; g.shadowBlur = 14; g.beginPath(); g.arc(tip[0], tip[1], 2.6, 0, 7); g.fill(); g.shadowBlur = 0;
         }
       }
-      // Lichtimpulse, schneller wenn er spricht
-      if (grow > .9 && Math.random() < (state === "speaking" ? .25 : .08)) {
-        const mains = traces.filter((t) => !t.branch); const t = mains[(Math.random() * mains.length) | 0];
-        pulses.push({ t, at: 0, v: (state === "speaking" ? .35 : .18) * (1 + Math.random()) });
+      // Gedanken, die durch den Strang laufen: in der Akzentfarbe, mit kurzem Schweif, dichter beim Denken
+      const AK = (window.VectorColors && window.VectorColors.akzent) || "#C45CFF";
+      const rate = state === "thinking" ? .34 : state === "speaking" ? .25 : state === "listening" ? .14 : .07;
+      if (grow > .9 && Math.random() < rate) {
+        const t = traces[(Math.random() * traces.length) | 0];
+        pulses.push({ t, at: 0, v: (state === "thinking" ? .42 : state === "speaking" ? .35 : .18) * (1 + Math.random()) });
       }
       for (const p of pulses) {
-        p.at += p.v * dt; const [x, y] = pointAt(p.t.pts, Math.min(p.at, p.t.len));
-        g.fillStyle = "rgba(200, 255, 243," + (grow * .9) + ")"; g.shadowColor = "#1d9e75"; g.shadowBlur = 10; g.beginPath(); g.arc(x, y, 1.8, 0, 7); g.fill(); g.shadowBlur = 0;
+        p.at += p.v * dt;
+        const pts = WV.get(p.t) || p.t.pts;
+        for (let k = 0; k < 4; k++) {                      // Schweif: vier Punkte, nach hinten schwächer
+          const at = p.at - k * 7; if (at < 0) break;
+          const [x, y] = pointAt(pts, Math.min(at, p.t.len));
+          const a = grow * (.9 - k * .2);
+          g.fillStyle = k ? AK : "rgba(255,255,255,.95)";
+          g.globalAlpha = a; g.shadowColor = AK; g.shadowBlur = k ? 8 : 14;
+          g.beginPath(); g.arc(x, y, 2.2 - k * .4, 0, 7); g.fill();
+        }
+        g.globalAlpha = 1; g.shadowBlur = 0;
       }
       pulses = pulses.filter((p) => p.at < p.t.len);
       // Knoten im Eck

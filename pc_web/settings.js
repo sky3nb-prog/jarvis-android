@@ -294,10 +294,52 @@
       setTimeout(after, 3000);
     }, 1000);
   }
+
+  // Akzentfarbe: zweite Farbe für seinen Kern, den Zustand und die Pegel. Drei feste Töne, sofort sichtbar.
+  function openAkzent() {
+    if (!window.VectorAccent || document.getElementById("jakz")) return;
+    const TONE = [["Orchidee", "#C45CFF"], ["Violett", "#8B5CF6"], ["Magenta", "#FF4D9D"]];
+    const start = window.VectorAccent.get();
+    const ov = document.createElement("div");
+    ov.id = "jakz";
+    ov.innerHTML = '<style>' +
+      '#jakz{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font-family:inherit}' +
+      '#jakz .box{width:320px;max-width:92vw;padding:22px 20px 18px;border-radius:22px;background:#0b0f13;border:1px solid rgba(255,255,255,.12);color:#e8e4da;text-align:center}' +
+      '#jakz h3{margin:0 0 6px;font-size:14px;letter-spacing:3px;font-weight:600}' +
+      '#jakz p{margin:0 0 16px;font-size:12px;color:#94a8a3;line-height:1.5}' +
+      '#jakz .t{display:flex;gap:10px}' +
+      '#jakz .t button{flex:1;padding:14px 6px 11px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:#141a20;color:#e8e4da;font:inherit;font-size:12px;cursor:pointer}' +
+      '#jakz .t button.on{border-color:currentColor;box-shadow:0 0 0 1px currentColor,0 0 22px -6px currentColor}' +
+      '#jakz .t i{display:block;width:26px;height:26px;border-radius:50%;margin:0 auto 7px}' +
+      '#jakz .row{display:flex;gap:10px;margin-top:18px}' +
+      '#jakz .row button{flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#141a20;color:#e8e4da;font:inherit;font-size:14px;cursor:pointer}' +
+      '#jakz .row button.ok{background:#e8e4da;color:#0b0f13;font-weight:600}</style>' +
+      '<div class="box"><h3>AKZENTFARBE</h3>' +
+      '<p>Die zweite Farbe: sein Gehirn im Kern der Kugel, der Zustand unter dem Namen, Pegel und was gerade läuft.</p>' +
+      '<div class="t">' + TONE.map(function (t) {
+        return '<button data-a="' + t[1] + '" style="color:' + t[1] + '"><i style="background:' + t[1] + '"></i>' + t[0] + '</button>';
+      }).join("") + '</div>' +
+      '<div class="row"><button id="jakz-no">Abbrechen</button><button class="ok" id="jakz-ok">Fertig</button></div></div>';
+    document.body.appendChild(ov);
+    const mark = function () {
+      const cur = window.VectorAccent.get().toLowerCase();
+      ov.querySelectorAll("button[data-a]").forEach(function (b) {
+        b.classList.toggle("on", b.dataset.a.toLowerCase() === cur);
+      });
+    };
+    ov.addEventListener("click", function (e) {
+      const b = e.target.closest("button[data-a]");
+      if (b) { window.VectorAccent.set(b.dataset.a); mark(); return; }
+      if (e.target.id === "jakz-no") { window.VectorAccent.set(start); ov.remove(); return; }
+      if (e.target.id === "jakz-ok" || e.target === ov) ov.remove();
+    });
+    mark();
+  }
   const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Vector von diesem PC"]];
   function run(a, btn) {
     if (a === "konto_open" && window.JKonto) { close(false); window.JKonto.open(); return; }
     if (a === "farbe_open" && window.JFarbe) { window.JFarbe.open(); return; }
+    if (a === "akzent_open") { openAkzent(); return; }
     if (a === "selbstzerstoerung" && wegStep < 2 && !btn.dataset.boom) {
       clearTimeout(wegT); wegStep++;
       btn.textContent = WEG[wegStep][0]; btn.style.color = "#ff9a8a"; btn.style.borderColor = "#ff5a5a";

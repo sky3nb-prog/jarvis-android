@@ -1,9 +1,9 @@
-// Vector-Start (PC-HUD und App) – mehrstufige HUD-Choreografie, komplett eigenständig in Form/Farbe:
+// Vector-Start (PC-HUD und App) – mehrstufige HUD-Choreografie:
 //   Phase 1 Hex-Gitter   – Sechseck-Raster blendet von der Mitte nach außen gestaffelt ein (Hintergrundtextur)
-//   Phase 2 Doppel-Ring  – zwei konzentrische Ringe drehen sich gegenläufig (außen langsam/durchgehend, innen schnell/gestrichelt)
-//   Phase 3 Kern-Puls    – heller Kernpunkt wächst/pulsiert auf ("Aufwachen") + Strahlen-Ausbruch nach außen
-//   Phase 4 Text-Reveal  – "VECTOR" baut sich buchstabenweise auf
-//   Phase 5 Status-Kacheln – Uhrzeit/Datum/"Bereit" fliegen als Kacheln ein (nutzt VectorFX.flyInDataTile)
+//   Phase 2 Doppel-Ring  – zwei konzentrische Ringe drehen sich gegenläufig
+//   Phase 3 Er selbst    – seine echte Kugel (Sphere3D) wächst in der Mitte auf, der Kern zündet
+//   Phase 4 Text-Reveal  – "VECTOR" baut sich buchstabenweise auf, darunter wofür der Name steht
+//   Phase 5 Infos        – Uhrzeit, Datum, Wetter, Skills fliegen einzeln ein und rasten in eine Reihe
 // Dazwischen läuft wie bisher der echte Systemcheck (grüne/rote Punkte) und am Ende fliegen die Ringe in die Kugel.
 // Klick oder Esc überspringt. Einstiegspunkt bleibt unverändert:  JBoot.play()
 (function () {
@@ -21,6 +21,8 @@
   #bootfx{position:fixed;inset:0;z-index:200;background:#000;transition:opacity .9s ease;overflow:hidden;font-family:"Segoe UI",system-ui,sans-serif}
   #bootfx.out{opacity:0;pointer-events:none}
   #bootfx canvas.bg{position:absolute;inset:0;width:100%;height:100%}
+  #bootfx canvas.him{position:absolute;transform:translate(-50%,-50%);opacity:0;transition:opacity .8s ease}
+  #bootfx canvas.him.v{opacity:1}
   #bootfx .rings{position:absolute;transform:translate(-50%,-50%);pointer-events:none;transition:all .9s cubic-bezier(.5,0,.3,1)}
   #bootfx .ring{position:absolute;border-radius:50%;opacity:0;transform:scale(.2)}
   #bootfx.rg .ring{animation:bfin 1s forwards, bfspin var(--sp) linear infinite}
@@ -40,6 +42,10 @@
   #bootfx .title span.v{opacity:1;transform:none;filter:none}
   #bootfx .sub{font-size:min(1.9vh,3vw);letter-spacing:.32em;color:#5ab7a0;opacity:0;transition:opacity .6s}
   #bootfx .sub.v{opacity:1}
+  /* wofür der Name steht – Anfangsbuchstaben hell, Rest gedämpft */
+  #bootfx .mean{font:600 min(1.45vh,2.4vw)/1 Consolas,monospace;letter-spacing:.3em;color:${VC.tealMid};opacity:0;transition:opacity .7s}
+  #bootfx .mean.v{opacity:1}
+  #bootfx .mean b{color:${VC.tealLight};font-weight:700}
   #bootfx .sys{position:absolute;font-size:min(1.8vh,3.2vw)}
   #bootfx .sys h4{margin:0 0 8px;font-size:.78em;letter-spacing:.3em;color:${VC.blueLight};font-weight:700;opacity:0;transition:opacity .5s}
   #bootfx .sys h4.v{opacity:1}
@@ -50,6 +56,15 @@
   #bootfx .row b{font-weight:600;color:#cdeedf;flex:1}#bootfx .row small{color:${VC.blueLight};font-size:.85em}
   #bootfx .log{position:absolute;left:4vw;top:16vh;font:min(1.5vh,1.1vw)/1.7 Consolas,monospace;color:rgba(${RGB.blueMid},.75);white-space:pre}
   #bootfx .skip{position:absolute;right:16px;bottom:12px;font-size:11px;color:#2a4a42;letter-spacing:.1em}
+  /* Infos fliegen aus dem Bild herein und rasten unten in eine Reihe ein */
+  #bootfx .rail{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);display:flex;gap:min(1.2vw,14px)}
+  #bootfx .inf{min-width:min(13vw,150px);padding:8px 12px 9px;border-radius:10px;background:rgba(6,20,17,.86);
+    border:1px solid rgba(${RGB.tealMid},.4);border-left:2px solid var(--akzent,${VC.tealLight});
+    opacity:0;transform:translate(var(--fx,0),var(--fy,-60px)) scale(.6);
+    transition:opacity .25s ease,transform .7s cubic-bezier(.16,.9,.25,1)}
+  #bootfx .inf.v{opacity:1;transform:none}
+  #bootfx .inf small{display:block;font:700 9px Consolas,monospace;letter-spacing:.18em;color:${VC.blueLight}}
+  #bootfx .inf b{display:block;margin-top:3px;font-size:min(2.3vh,4.2vw);font-weight:600;color:${VC.tealLight}}
   .bootin{animation:bootin .7s cubic-bezier(.2,.9,.3,1) both}
   @keyframes bootin{from{opacity:0;transform:translateY(18px) scale(.98);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
   .bootin-top{animation:bootintop .6s cubic-bezier(.2,.9,.3,1) both}
@@ -149,30 +164,38 @@
     [...title.children].forEach((sp, i) => setTimeout(() => sp.classList.add("v"), startDelay + i * 70));
   }
 
-  // ---------- Phase 5: Status-Kacheln fliegen ein --------------------------------------------------------------
-  // Nutzt den vorhandenen Baustein VectorFX.flyInDataTile für Uhrzeit / Datum / Platzhalter-Status "Bereit".
-  function launchStatusTiles(startDelay, narrow) {
-    const tiles = [];
-    if (!window.VectorFX || !window.VectorFX.flyInDataTile) return tiles;
+  // ---------- Phase 5: Infos fliegen einzeln ein und rasten in eine Reihe --------------------------------------
+  // Jede Kachel kommt aus einer anderen Richtung aus dem Bild geflogen und bremst in ihre Position ab.
+  function launchInfoRow(box, startDelay, narrow) {
+    const rail = document.createElement("div"); rail.className = "rail";
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
     const dd = now.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
-    const baseY = narrow ? innerHeight * .13 : innerHeight * .1;
-    const spacing = narrow ? 92 : 128;
-    const startX = innerWidth / 2 - spacing;
-    const defs = [{ value: hh, label: "UHRZEIT" }, { value: dd, label: "DATUM" }, { value: "BEREIT", label: "STATUS" }];
-    defs.forEach((def, i) => setTimeout(() => {
-      tiles.push(window.VectorFX.flyInDataTile(def.value, "", { x: startX + i * spacing, y: baseY, hold: 2200, label: def.label }));
-    }, startDelay + i * 180));
-    return tiles;
+    const skills = (window.JarvisBrain && window.JarvisBrain.learned && window.JarvisBrain.learned.length) || 0;
+    const defs = [["UHRZEIT", hh], ["DATUM", dd], ["SKILLS", String(skills)], ["STATUS", "BEREIT"]];
+    const use = narrow ? defs.slice(0, 2) : defs;
+    use.forEach((d, i) => {
+      const el = document.createElement("div"); el.className = "inf";
+      el.innerHTML = "<small></small><b></b>";
+      el.querySelector("small").textContent = d[0]; el.querySelector("b").textContent = d[1];
+      const side = i % 4;      // aus allen vier Richtungen herein
+      el.style.setProperty("--fx", side === 0 ? "-60vw" : side === 1 ? "60vw" : (i % 2 ? "22vw" : "-22vw"));
+      el.style.setProperty("--fy", side === 2 ? "-60vh" : side === 3 ? "60vh" : "-20vh");
+      rail.appendChild(el);
+      setTimeout(() => el.classList.add("v"), startDelay + i * 170);
+    });
+    box.appendChild(rail);
+    return rail;
   }
 
   function play() {
     if (api.running) return; api.running = true;
     const narrow = innerWidth < 700;
     const box = document.createElement("div"); box.id = "bootfx";
-    box.innerHTML = '<canvas class="bg"></canvas><div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div></div>' +
-      '<div class="bt title"></div><div class="bt sub">PERSÖNLICHER ASSISTENT · ONLINE</div>' + (narrow ? "" : '<div class="log"></div>') +
+    box.innerHTML = '<canvas class="bg"></canvas><canvas class="him"></canvas>' +
+      '<div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div></div>' +
+      '<div class="bt title"></div><div class="bt sub">PERSÖNLICHER ASSISTENT · ONLINE</div>' +
+      '<div class="bt mean"></div>' + (narrow ? "" : '<div class="log"></div>') +
       '<div class="sys"><h4>SYSTEMSTATUS</h4><div class="rows"></div></div><div class="skip">Tippen = überspringen</div>';
     document.body.appendChild(box);
     const cv = box.querySelector("canvas"), g = cv.getContext("2d"), d = Math.min(2, devicePixelRatio || 1);
@@ -180,6 +203,11 @@
     const C = sphereCenter();
     // Ringe um die Kugel, Titel darunter, Status rechts (PC) bzw. unten (Handy)
     const rg = box.querySelector(".rings"); Object.assign(rg.style, { left: C.x + "px", top: C.y + "px", width: C.r * 1.5 + "px", height: C.r * 1.5 + "px" });
+    // Er selbst: dieselbe Kugel wie im HUD, mitten in der Animation
+    const himCv = box.querySelector("canvas.him"), himS = Math.round(C.r * 3.1);
+    Object.assign(himCv.style, { left: C.x + "px", top: C.y + "px", width: himS + "px", height: himS + "px" });
+    let him = null;
+    try { him = new Sphere3D(himCv, 3); him.state = "thinking"; him.power = true; him.level = .25; } catch (e) {}
     const ty = Math.min(H - 150, C.y + C.r * 1.25);
     box.querySelector(".title").style.top = ty + "px"; box.querySelector(".sub").style.top = (ty + Math.min(H * .06, 44)) + "px";
     const sys = box.querySelector(".sys");
@@ -190,6 +218,10 @@
     const P = buildEnergyParticles(W, H, C);
     // Phase 4 vorbereiten: Buchstaben-Spans anlegen (Einblenden erfolgt zeitversetzt weiter unten)
     const T = "V.E.C.T.O.R."; const title = box.querySelector(".title"); title.innerHTML = [...T].map((c) => `<span>${c}</span>`).join("");
+    const meanEl = box.querySelector(".mean");
+    meanEl.innerHTML = ["Very", "Efficient", "Companion", "That", "Organizes", "Reality"]
+      .map((w) => `<b>${w[0]}</b>${w.slice(1).toUpperCase()}`).join(" ");
+    meanEl.style.top = (ty + Math.min(H * .105, 76)) + "px";
 
     const t0 = performance.now(); let flash = 0, done = false, last = t0;
     const logEl = box.querySelector(".log");
@@ -215,21 +247,24 @@
       g.fillStyle = "rgba(0,0,0,.28)"; g.fillRect(0, 0, W, H);
       drawHexGrid(g, grid, t, narrow);                 // Phase 1
       drawEnergyParticles(g, P, C, t, dt);              // Zulauf zum Kern (Übergang zu Phase 2/3)
-      if (t > 2.0 && !flash) { flash = now; box.classList.add("rg"); }   // Phase 2 startet: Doppel-Ring blendet ein
-      if (flash) drawCorePulse(g, box, rg, C, now, flash);                // Phase 3: Kern-Puls + Strahlen-Ausbruch
+      if (t > 2.0 && !flash) { flash = now; box.classList.add("rg"); himCv.classList.add("v"); }   // Phase 2/3: Ringe + er selbst
+      if (flash) drawCorePulse(g, box, rg, C, now, flash);                // Zündung (dezent, die Kugel macht den Rest)
+      if (him) { him.state = t > 4.2 ? "idle" : "thinking"; him.level = Math.max(0, .45 - Math.abs(t - 2.6) * .25);
+                 try { him.draw(dt); } catch (e) {} }
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
 
     revealTitle(title, 2150);                                          // Phase 4
     setTimeout(() => box.querySelector(".sub").classList.add("v"), 2900);
-    const tiles = launchStatusTiles(3150, narrow);                     // Phase 5
+    setTimeout(() => meanEl.classList.add("v"), 3250);                 // wofür der Name steht
+    const rail = launchInfoRow(box, 3200, narrow);                     // Phase 5: Infos fliegen ein
 
     const finish = () => {
       if (done) return; done = true;
       rg.classList.add("away");   // Ringe fliegen in die Kugel
       setTimeout(() => box.classList.add("out"), 250);
-      tiles.forEach((el) => { if (el && el.remove) el.remove(); });     // Status-Kacheln sauber mit abräumen
+      if (rail) { rail.style.transition = "opacity .4s"; rail.style.opacity = "0"; }   // Info-Reihe mit abräumen
       const top = document.querySelector(".top, .view.active .topbar"); if (top) { top.classList.remove("bootin-top"); void top.offsetWidth; top.classList.add("bootin-top"); }
       const parts = [...document.querySelectorAll(".pv.on > *, #typebar, .view.active > *, .tabs")].filter((e) => e.offsetParent !== null);
       parts.forEach((e, i) => { e.style.animationDelay = (.25 + i * .06) + "s"; e.classList.remove("bootin"); void e.offsetWidth; e.classList.add("bootin");
@@ -240,7 +275,7 @@
     };
     const key = (e) => { if (e.key === "Escape" || e.key === " " || e.key === "Enter") finish(); };
     addEventListener("keydown", key); box.addEventListener("click", finish);
-    setTimeout(finish, 4900);
+    setTimeout(finish, 6800);
   }
   api.play = play;
   window.JBoot = api;
