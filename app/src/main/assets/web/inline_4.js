@@ -18,3 +18,26 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   mark();
 });
+
+// System-Knopf auf der Kugel-Seite: öffnet direkt Systemstatus, Tests und Updates (wie SYSTEME am PC).
+// Ist etwas nicht in Ordnung, färbt sich der Punkt orange.
+document.addEventListener("DOMContentLoaded", () => {
+  const b = document.getElementById("sysbtn-f");
+  if (!b) return;
+  b.addEventListener("click", () => {
+    const item = document.querySelector('.sitem[data-go="sys"]');
+    const open = document.getElementById("btn-settings");
+    if (open) open.click();
+    setTimeout(() => { if (item) item.click(); }, 60);
+  });
+  const pruefen = () => {
+    try {
+      const r = JSON.parse(window.Android.sysCheck(false)) || {};
+      const schlecht = (r.items || []).filter((i) => i.ok === false).length;
+      b.classList.toggle("warn", schlecht > 0);
+      b.title = schlecht ? schlecht + " Punkt(e) brauchen Aufmerksamkeit" : "Systemstatus, Tests und Updates";
+    } catch (e) {}
+  };
+  setTimeout(pruefen, 2500);
+  setInterval(pruefen, 10 * 60 * 1000);
+});
