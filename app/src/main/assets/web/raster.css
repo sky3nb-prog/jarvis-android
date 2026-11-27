@@ -1,0 +1,69 @@
+/* Modulares HUD: Raster, Widgets, Bearbeiten-Modus. Gleiche Datei am PC und am Handy. */
+.jw-brett { position: absolute; z-index: 3; }
+.jw-raster { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .2s;
+  background-image: linear-gradient(rgba(29,158,117,.16) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(29,158,117,.16) 1px, transparent 1px);
+  background-position: -1px -1px; }
+body.jw-edit .jw-raster { opacity: 1; }
+
+.jw { position: absolute; background: rgba(6,22,19,.72); border: 1px solid rgba(29,158,117,.22);
+  border-radius: 12px; padding: 9px 11px; overflow: hidden;
+  transition: left .18s, top .18s, width .18s, height .18s, box-shadow .15s; }
+.jw.jw-live { border-color: var(--akzent, #C45CFF); box-shadow: 0 0 22px -9px var(--akzent, #C45CFF); }
+.jw.jw-kugel { background: transparent; border: 0; padding: 0; }
+body.jw-edit .jw { cursor: grab; border-style: dashed; border-color: rgba(29,158,117,.5);
+  user-select: none; -webkit-user-select: none; }
+body.jw-edit .jw.jw-kugel { background: rgba(196,92,255,.05); border-style: dashed; border-width: 1px; }
+.jw.jw-zieht { transition: none; z-index: 30; cursor: grabbing; opacity: .96;
+  box-shadow: 0 18px 40px rgba(0,0,0,.75); }
+
+.jw-geist { position: absolute; display: none; z-index: 20; pointer-events: none; border-radius: 12px;
+  border: 1.5px dashed var(--akzent, #C45CFF); background: rgba(196,92,255,.09); }
+.jw-geist.jw-nein { border-color: #ff6b6b; background: rgba(255,107,107,.1); }
+
+/* Greifpunkte liegen innen, damit man nicht aus Versehen den Nachbarn erwischt */
+.jw-g { position: absolute; display: none; z-index: 6; }
+body.jw-edit .jw-g { display: block; }
+.jw-g.n { left: 14px; right: 14px; top: 0; height: 8px; cursor: ns-resize; }
+.jw-g.s { left: 14px; right: 14px; bottom: 0; height: 8px; cursor: ns-resize; }
+.jw-g.w { top: 14px; bottom: 14px; left: 0; width: 8px; cursor: ew-resize; }
+.jw-g.e { top: 14px; bottom: 14px; right: 0; width: 8px; cursor: ew-resize; }
+.jw-g.nw { left: 0; top: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+.jw-g.ne { right: 0; top: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+.jw-g.sw { left: 0; bottom: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+.jw-g.se { right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+.jw-g.se::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 9px; height: 9px;
+  border-right: 2px solid var(--akzent, #C45CFF); border-bottom: 2px solid var(--akzent, #C45CFF);
+  border-radius: 0 0 3px 0; }
+
+.jw-x { position: absolute; top: 4px; right: 4px; width: 19px; height: 19px; border-radius: 50%;
+  display: none; place-items: center; background: rgba(10,4,16,.92); color: var(--akzent-l, #D98BFF);
+  border: 1px solid var(--akzent, #C45CFF); font-size: 11px; cursor: pointer; z-index: 7; }
+body.jw-edit .jw-x { display: grid; }
+.jw-gr { position: absolute; left: 6px; bottom: 4px; display: none; z-index: 7;
+  font: 700 8px/1 Consolas, monospace; letter-spacing: 1px; color: var(--akzent-l, #D98BFF);
+  background: rgba(10,4,16,.8); padding: 2px 5px; border-radius: 4px; }
+body.jw-edit .jw-gr { display: block; }
+
+/* Katalog: schiebt das Brett zur Seite statt es zu überdecken */
+.jw-kat { position: absolute; z-index: 40; display: none; flex-direction: column; gap: 5px; overflow: auto;
+  background: rgba(3,12,10,.97); border: 1px solid var(--akzent, #C45CFF); border-radius: 12px; padding: 10px; }
+body.jw-edit .jw-kat { display: flex; }
+.jw-kat h4 { margin: 0 0 2px; font: 700 9px/1 Consolas, monospace; letter-spacing: 2px;
+  color: var(--akzent-l, #D98BFF); }
+.jk-i { border: 1px solid rgba(29,158,117,.22); border-radius: 9px; padding: 7px 9px; font-size: 11px;
+  color: #bfe3d6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.jk-i:hover { border-color: var(--akzent, #C45CFF); color: #fff; }
+.jk-i small { font: 9px Consolas, monospace; color: #6d9b8d; }
+.jk-leer { font-size: 11px; color: #6d9b8d; line-height: 1.5; }
+
+/* Inhalte in den Widgets – bewusst schlicht, damit sie bei jeder Größe funktionieren */
+.jw-t { font: 700 8.5px/1 Consolas, monospace; letter-spacing: 1.9px; color: var(--blue-l, #85b7eb);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.jw-t s { flex: 1; height: 1px; text-decoration: none;
+  background: linear-gradient(90deg, rgba(133,183,235,.3), transparent); }
+.jw-gross { font-size: clamp(16px, 2vw, 26px); font-weight: 600; color: var(--gold-l, #9fe1cb); line-height: 1.05; }
+.jw-z { display: flex; justify-content: space-between; font-size: clamp(9.5px,.95vw,12px);
+  color: #8fb9ac; padding: 2px 0; }
+.jw-z b { color: #e2f6ee; font-weight: 600; }
+.jw-mut { font-size: clamp(9.5px,.95vw,12px); color: #8fb9ac; line-height: 1.5; }

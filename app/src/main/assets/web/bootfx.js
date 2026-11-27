@@ -166,14 +166,37 @@
 
   // ---------- Phase 5: Infos fliegen einzeln ein und rasten in eine Reihe --------------------------------------
   // Jede Kachel kommt aus einer anderen Richtung aus dem Bild geflogen und bremst in ihre Position ab.
+  // Welche Infos einfliegen, steht in den Einstellungen (Anzeige -> Infos beim Start).
+  // Gespeichert als Liste: bekannte Kennungen ("uhrzeit") oder eigene Einträge {l:"ÜBERSCHRIFT", v:"Text"}.
+  const BOOT_INFOS = "vector_boot_infos";
+  function infoWerte() {
+    const now = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return {
+      uhrzeit:   ["UHRZEIT", p(now.getHours()) + ":" + p(now.getMinutes())],
+      datum:     ["DATUM", now.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })],
+      wochentag: ["TAG", now.toLocaleDateString("de-DE", { weekday: "long" })],
+      skills:    ["SKILLS", String((window.JarvisBrain && window.JarvisBrain.learned && window.JarvisBrain.learned.length) || 0)],
+      status:    ["STATUS", "BEREIT"],
+      kalenderwoche: ["WOCHE", "KW " + Math.ceil((((now - new Date(now.getFullYear(), 0, 1)) / 86400000) + 1) / 7)],
+    };
+  }
+  function infoListe(narrow) {
+    const werte = infoWerte();
+    let wahl = null;
+    try { wahl = JSON.parse(localStorage.getItem(BOOT_INFOS) || "null"); } catch (e) {}
+    if (!Array.isArray(wahl) || !wahl.length) wahl = ["uhrzeit", "datum", "skills", "status"];
+    const out = [];
+    wahl.forEach((e) => {
+      if (typeof e === "string") { if (werte[e]) out.push(werte[e]); return; }
+      if (e && e.l) out.push([String(e.l).toUpperCase(), String(e.v == null ? "" : e.v)]);
+    });
+    return out.slice(0, narrow ? 2 : 4);
+  }
   function launchInfoRow(box, startDelay, narrow) {
     const rail = document.createElement("div"); rail.className = "rail";
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
-    const dd = now.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
-    const skills = (window.JarvisBrain && window.JarvisBrain.learned && window.JarvisBrain.learned.length) || 0;
-    const defs = [["UHRZEIT", hh], ["DATUM", dd], ["SKILLS", String(skills)], ["STATUS", "BEREIT"]];
-    const use = narrow ? defs.slice(0, 2) : defs;
+    const use = infoListe(narrow);
+    if (!use.length) return rail;
     use.forEach((d, i) => {
       const el = document.createElement("div"); el.className = "inf";
       el.innerHTML = "<small></small><b></b>";
