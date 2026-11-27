@@ -359,11 +359,23 @@ object Alltag {
 
     /** Alle 3 Stunden: gibt es eine neuere APK? Dann Benachrichtigung, Antippen lädt sie. */
     private val APK = "https://github.com/sky3nb-prog/jarvis-android/releases/download/" + BuildConfig.RELEASE_TAG + "/" + BuildConfig.APK_NAME
-    fun updateNow(ctx: Context) { val s = state(ctx); s.put("upd_check", 0L); prefs(ctx).edit().remove("upd_told").apply(); appUpdate(ctx, s); save(ctx, s) }
+    /** Von Hand angestoßene Prüfung: altes Ergebnis weg, damit die Oberfläche das neue sicher als neu erkennt. */
+    fun updateNow(ctx: Context) {
+        val s = state(ctx)
+        s.put("upd_check", 0L); s.remove("upd_result")
+        prefs(ctx).edit().remove("upd_told").apply()
+        save(ctx, s)
+        val s2 = state(ctx)
+        appUpdate(ctx, s2)
+        save(ctx, s2)
+    }
+    /** Wird gesetzt, solange die App offen ist: meldet das Prüfergebnis sofort an die Oberfläche. */
+    @Volatile var ON_UPD: ((String) -> Unit)? = null
     /** Ergebnis der letzten Prüfung fürs HUD/die App ("" = noch keine gelaufen). */
     fun updResult(ctx: Context): String = state(ctx).optString("upd_result", "")
     private fun setResult(ctx: Context, text: String) {
         val s = state(ctx); s.put("upd_result", text); s.put("upd_result_t", System.currentTimeMillis()); save(ctx, s)
+        try { ON_UPD?.invoke(text) } catch (_: Exception) {}
     }
     private fun appUpdate(ctx: Context, s: JSONObject) {
         val now = System.currentTimeMillis()

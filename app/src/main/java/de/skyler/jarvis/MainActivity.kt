@@ -861,7 +861,10 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun updAllow() { runOnUiThread { try { startActivity(Updater.allowIntent(this@MainActivity)) } catch (_: Exception) {} } }
         @JavascriptInterface
-        fun updNow() { Alltag.updateNow(this@MainActivity) }
+        fun updNow() {
+            Alltag.ON_UPD = { r -> send("updresult", JSONObject().put("result", r)) }
+            Alltag.updateNow(this@MainActivity)
+        }
         @JavascriptInterface
         fun sysTest(id: String): String {   // Test im Hintergrund – Ergebnis kommt als Event „systest“
             Thread({ val r = try { SysCheck.test(this@MainActivity, id) } catch (e: Exception) { "Test ging nicht." }

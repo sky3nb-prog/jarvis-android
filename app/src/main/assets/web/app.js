@@ -988,10 +988,40 @@
       setTimeout(after, 3000);
     }, 1000);
   }
+  // Text für das, was bei der Prüfung rauskam – steht in der Karte und bleibt stehen
+  function updResultText(r) {
+    if (r === "aktuell") return "✓ Du hast schon die neueste Version.";
+    if (r.startsWith("laedt:")) return "✓ Build " + r.split(":")[1] + " gefunden – lädt im Hintergrund und wird beim nächsten Bildschirm-aus eingespielt.";
+    if (r.startsWith("gefunden:")) return "Build " + r.split(":")[1] + " ist da – tipp die Benachrichtigung an zum Herunterladen.";
+    if (r === "ratenlimit") return "⏳ GitHub blockt gerade kurz (zu oft gefragt) – in einer Stunde nochmal.";
+    if (r === "fehler") return "✕ Konnte nicht nachsehen – kein Internet?";
+    return "";
+  }
+  function updSagErgebnis(r) {
+    const t = updResultText(r || ""); if (!t) return false;
+    const el = $("upd-state"); if (el) el.textContent = t;
+    if (r !== updLastToasted) { updLastToasted = r; toast(t); }
+    return true;
+  }
+  // Antwort kommt direkt aus der App, sobald die Prüfung durch ist
+  { const vor = window.jarvis && window.jarvis.onEvent;
+    if (window.jarvis) window.jarvis.onEvent = function (type, data) {
+      if (type === "updresult") { updSagErgebnis((data && data.result) || ""); return; }
+      return vor && vor.call(window.jarvis, type, data);
+    }; }
   $("upd-now").addEventListener("click", () => {
+    const el = $("upd-state"); if (el) el.textContent = "Suche nach einer neuen Version …";
+    updLastToasted = "";
     try { A.updNow(); } catch (e) {} toast("Schaue nach …");
-    let tries = 0;
-    const poll = setInterval(() => { tries++; if (updTellResult() || tries >= 10) clearInterval(poll); }, 2000);
+    let tries = 0;   // Rückfall, falls die Meldung aus der App nicht ankommt
+    const poll = setInterval(() => {
+      tries++;
+      const u = updShow();
+      if ((u && updSagErgebnis(u.result || "")) || tries >= 15) {
+        clearInterval(poll);
+        if (tries >= 15 && el && el.textContent.startsWith("Suche")) el.textContent = "Keine Antwort – probier es gleich nochmal.";
+      }
+    }, 2000);
   });
   window.addEventListener("focus", updShow);
   const closeSettings = () => { $("settings").classList.remove("on"); newDots(); if (window.show) try { show("fokus"); } catch (e) {} };
