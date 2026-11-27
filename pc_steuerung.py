@@ -757,6 +757,25 @@ def handle_fixed(text: str):
         import pc_lernen
         return pc_lernen.paused_text()
     # Iron-Man-Start zum Ansehen: "Startanimation", "zeig deinen Start"
+    # Beleuchtung (RGB): "mach die Beleuchtung normal", "spiel mal mit den RGBs", "Beleuchtung aus"
+    if re.search(r"\b(beleuchtung|rgb|rgbs|lichter|beleuchtet)\b", low):
+        import pc_rgb
+        if re.search(r"normal|standard|zur(ü|ue)ck|eigen|wie vorher|lass.*in ruhe|finger weg", low):
+            return pc_rgb.standard()
+        if re.search(r"\baus\b|dunkel|ausmachen", low):
+            pc_rgb.set_mode("kino")
+            return "Beleuchtung ist aus."
+        if re.search(r"spiel|zeig|vorf(ü|ue)hr|mach was|angeben", low):
+            art = ("regenbogen" if "regenbogen" in low else "blitz" if "blitz" in low
+                   else "puls" if re.search(r"puls|atmen", low) else "welle")
+            return pc_rgb.spiel(art, 10)
+        if re.search(r"\ban\b|anmachen|(ü|ue)bernehm|du machst|mach du", low):
+            return pc_rgb.uebernehmen()
+        st = pc_rgb.status()
+        if not st["verbunden"]:
+            return "Ich komme gerade nicht an die Beleuchtung. Läuft OpenRGB, und ist dort der SDK Server an?"
+        return ("Ich steuere gerade " + ", ".join(g["name"] for g in st["geraete"]) + "."
+                if st["steuert"] else "Die Beleuchtung läuft gerade auf deinem eigenen Profil.")
     if re.search(r"start ?animation|boot ?animation|zeig (mal )?(deinen|den) start|hochfahr ?animation", low):
         import pc_systemcheck
         if pc_systemcheck.BOOT:

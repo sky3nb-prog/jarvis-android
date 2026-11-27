@@ -49,6 +49,13 @@ DEFAULTS = {
     "overlay_style": "neu",  # "neu" = 3D-Kugel mit Nervenstrang, "klein" = alter Kreis, "gross" = Leuchtrahmen + Textfeld
     "overlay_v2": False,
     "boot_animation": True,
+    # Beleuchtung (RGB) über OpenRGB: Tastatur, Maus, Mainboard, RAM, Grafikkarte folgen seiner Farbe und seinem Zustand
+    "akzent": "#C45CFF",   # zweite Farbe: sein Kern, Zustand, Pegel – und die Beleuchtung
+    "rgb_on": False,
+    "rgb_host": "127.0.0.1",
+    "rgb_port": 6742,
+    "rgb_profil": "",      # dein eigenes OpenRGB-Profil für „mach die Beleuchtung normal“ (leer = Vector-vorher)
+
     "msg_ask_first": True,
     "kommentare": True,
     "lieblingskanaele": "",   # neue Videos melden (YouTube-Kanäle, mit Komma)

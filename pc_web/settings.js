@@ -296,6 +296,13 @@
   }
 
   // Akzentfarbe: zweite Farbe für seinen Kern, den Zustand und die Pegel. Drei feste Töne, sofort sichtbar.
+  // Akzentwechsel dem PC melden: die Beleuchtung und der nächste Start sollen die Farbe kennen
+  try {
+    if (window.VectorAccent) window.VectorAccent.onSave = function (hex) {
+      try { window.PC.post("settings_save", { values: { akzent: hex } }); } catch (e) {}
+    };
+  } catch (e) {}
+
   function openAkzent() {
     if (!window.VectorAccent || document.getElementById("jakz")) return;
     const TONE = [["Orchidee", "#C45CFF"], ["Violett", "#8B5CF6"], ["Magenta", "#FF4D9D"]];

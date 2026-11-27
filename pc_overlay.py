@@ -1283,6 +1283,11 @@ class UI:
     def _handle(self, role: str, text: str, hide_ms: int, glow: bool, log: bool):
         state = state_for(role, text)
         self.hud.set_state(state)
+        try:
+            import pc_rgb
+            pc_rgb.set_state(state)
+        except Exception:
+            pass
         if self.web:
             self.web.push("state", {"state": state})
             if text.strip(" …") and role in ("Du", "Assistent"):
@@ -2188,6 +2193,11 @@ def main():
     pc_singen.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})
     pc_modi.SAVE = ui.post_setting
     pc_modi.SAY = lambda t: pc_nachrichten.incoming({"kind": "say", "text": t, "force": True})   # auch wenn du nicht am PC sitzt (lernst)
+    import pc_rgb                                   # Beleuchtung: Tastatur, Maus, Mainboard … folgen ihm
+    pc_rgb.SETTINGS = lambda: ui.settings
+    pc_rgb.LOG = lambda t: print(t)
+    pc_rgb.set_accent(str(ui.settings.get("akzent") or "#C45CFF"))
+    pc_rgb.start()
     pc_kommentar.start(stop)
     import pc_systemcheck
     pc_systemcheck.SETTINGS = lambda: ui.settings

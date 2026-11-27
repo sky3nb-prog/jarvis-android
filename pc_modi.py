@@ -198,6 +198,11 @@ def _music(m: dict, no_music: bool):
 def set_mode(mode: str, from_phone: bool = False, lofi=None) -> str:
     """Modus umschalten. Gibt den Text für Jarvis zurück."""
     mode = (mode or "aus").lower()
+    try:
+        import pc_rgb
+        pc_rgb.set_mode("" if mode == "aus" else mode)   # Beleuchtung folgt dem Modus
+    except Exception:
+        pass
     old = STATE["mode"]
     runden = STATE["runden"]
     _cancel_timer()

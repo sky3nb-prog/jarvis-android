@@ -267,6 +267,17 @@ def schema(s: dict) -> dict:
                  sw("hud_animation", "Animationen", "Aus = ruhiger und sparsamer"),
                  btn("farbe_open", "Deine Farbe (Farbkreis, Helligkeit, Kräftigkeit)"),
                  btn("akzent_open", "Akzentfarbe (sein Gehirn im Kern, Zustand, Pegel)")),
+            card("Beleuchtung (RGB)",
+                 note("Tastatur, Maus, Mainboard, RAM und Grafikkarte nehmen seine Farbe an und zeigen, was er gerade "
+                      "tut. Dafür muss OpenRGB laufen (openrgb.org) und dort unter Einstellungen der „SDK Server“ "
+                      "eingeschaltet sein. Vector sichert beim ersten Verbinden deinen jetzigen Stand als Profil "
+                      "„Vector-vorher“ – damit kommst du jederzeit zurück."),
+                 sw("rgb_on", "Beleuchtung mitsteuern"),
+                 tx("rgb_profil", "Dein eigenes Profil", "Name eines OpenRGB-Profils für „mach die Beleuchtung normal“. "
+                     "Leer = Vector-vorher.", "Vector-vorher"),
+                 btn("rgb_test", "Kurz vorführen (Welle)"),
+                 btn("rgb_standard", "Zurück auf mein Profil"),
+                 btn("rgb_info", "Was wurde gefunden?")),
             card("Beim Weckwort",
                  sel("overlay_style", "Anzeige", _opts(su.STYLES)),
                  rng("orb_size", "Größe", 40, 120, " px"),
@@ -452,6 +463,21 @@ def _key(s, v, name):
 def run(ui, name: str, v: dict) -> dict:
     """Knöpfe der Einstellungsseite. Läuft im Server-Thread (darf ein paar Sekunden dauern)."""
     s = ui.settings
+    if name in ("rgb_test", "rgb_standard", "rgb_info"):   # Beleuchtung (OpenRGB)
+        import pc_rgb
+        if name == "rgb_test":
+            if not s.get("rgb_on"):
+                return {"ok": False, "text": "Erst „Beleuchtung mitsteuern“ einschalten."}
+            return {"ok": True, "text": pc_rgb.spiel("welle", 6)}
+        if name == "rgb_standard":
+            return {"ok": True, "text": pc_rgb.standard()}
+        st = pc_rgb.status()
+        if not st["verbunden"]:
+            return {"ok": False, "text": "Keine Verbindung zu OpenRGB." +
+                    (f" ({st['fehler']})" if st["fehler"] else " Läuft es, und ist der SDK Server eingeschaltet?")}
+        if not st["geraete"]:
+            return {"ok": False, "text": "Verbunden, aber OpenRGB meldet kein steuerbares Gerät."}
+        return {"ok": True, "text": "Gefunden: " + ", ".join(f"{g['name']} ({g['leds']} LEDs)" for g in st["geraete"])}
     if name == "test_voice":
         import pc_audio
         import pc_eleven

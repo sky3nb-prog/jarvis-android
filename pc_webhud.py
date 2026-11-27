@@ -557,7 +557,14 @@ class WebHud:
             return {"ok": True}
         if name == "settings_save":
             import pc_websettings
-            self.ui.q.put(("apply", pc_websettings.save(self.ui.settings, body.get("values") or {})))
+            vals = body.get("values") or {}
+            if vals.get("akzent"):           # Beleuchtung sofort auf die neue Akzentfarbe
+                try:
+                    import pc_rgb
+                    pc_rgb.set_accent(str(vals["akzent"]))
+                except Exception:
+                    pass
+            self.ui.q.put(("apply", pc_websettings.save(self.ui.settings, vals)))
             return {"ok": True}
         if name == "modi_cfg":   # Modi selbst einstellen
             import pc_modi
