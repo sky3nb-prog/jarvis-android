@@ -139,7 +139,8 @@
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); return { f, t, w, h }; }
 
   const mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
-  const GOLD = [1.0, 0.5, 0.14], HOT = [1.0, 0.84, 0.58], GREY = [0.55, 0.57, 0.62], GREY_HOT = [0.7, 0.72, 0.76];
+  const GOLD = [0.114, 0.620, 0.459], HOT = [0.624, 0.882, 0.796], GREY = [0.55, 0.57, 0.62], GREY_HOT = [0.7, 0.72, 0.76];
+  // Name "GOLD" bleibt (Variable), Farbe ist jetzt Teal (#1D9E75), "HOT" ist das helle Teal (#9FE1CB)
 
   class Sphere3D {
     constructor(canvas, seed) {
