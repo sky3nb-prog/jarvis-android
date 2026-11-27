@@ -342,11 +342,70 @@
     });
     mark();
   }
+
+  // Welche Infos beim Start einfliegen sollen. Bekannte Werte zum Antippen, dazu zwei eigene Zeilen.
+  function openBootInfo() {
+    if (document.getElementById("jbinf")) return;
+    const KEY = "vector_boot_infos";
+    const BEKANNT = [["uhrzeit", "Uhrzeit"], ["datum", "Datum"], ["wochentag", "Wochentag"],
+                     ["skills", "Gelernte Skills"], ["status", "Status"], ["kalenderwoche", "Kalenderwoche"]];
+    let wahl = [];
+    try { wahl = JSON.parse(localStorage.getItem(KEY) || "null") || []; } catch (e) {}
+    if (!wahl.length) wahl = ["uhrzeit", "datum", "skills", "status"];
+    const eigene = wahl.filter((w) => w && typeof w === "object");
+    const ov = document.createElement("div");
+    ov.id = "jbinf";
+    ov.innerHTML = '<style>' +
+      '#jbinf{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font-family:inherit}' +
+      '#jbinf .box{width:420px;max-width:94vw;padding:22px 20px 18px;border-radius:22px;background:#0b0f13;border:1px solid rgba(255,255,255,.12);color:#e8e4da}' +
+      '#jbinf h3{margin:0 0 6px;font-size:14px;letter-spacing:3px;font-weight:600;text-align:center}' +
+      '#jbinf p{margin:0 0 14px;font-size:12px;color:#94a8a3;line-height:1.5;text-align:center}' +
+      '#jbinf .t{display:flex;flex-wrap:wrap;gap:7px}' +
+      '#jbinf .t button{padding:8px 13px;border-radius:11px;border:1px solid rgba(255,255,255,.14);background:#141a20;color:#9dc9bb;font:inherit;font-size:12px;cursor:pointer}' +
+      '#jbinf .t button.on{border-color:#C45CFF;color:#D98BFF;background:rgba(196,92,255,.12)}' +
+      '#jbinf label{display:block;margin:14px 0 5px;font-size:11px;letter-spacing:1.5px;color:#94a8a3}' +
+      '#jbinf .e{display:flex;gap:7px;margin-bottom:7px}' +
+      '#jbinf .e input{flex:1;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:#0d1318;color:#e8e4da;font:inherit;font-size:12.5px}' +
+      '#jbinf .e input.k{flex:0 0 120px}' +
+      '#jbinf .row{display:flex;gap:10px;margin-top:16px}' +
+      '#jbinf .row button{flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#141a20;color:#e8e4da;font:inherit;font-size:14px;cursor:pointer}' +
+      '#jbinf .row button.ok{background:#e8e4da;color:#0b0f13;font-weight:600}</style>' +
+      '<div class="box"><h3>INFOS BEIM START</h3>' +
+      '<p>Was beim Hochfahren als Kachel einfliegt. Höchstens vier – am Handy zwei.</p>' +
+      '<div class="t">' + BEKANNT.map(function (b) {
+        return '<button data-k="' + b[0] + '"' + (wahl.indexOf(b[0]) >= 0 ? ' class="on"' : '') + '>' + b[1] + '</button>';
+      }).join("") + '</div>' +
+      '<label>EIGENE ZEILEN (Überschrift und Text)</label>' +
+      [0, 1].map(function (i) {
+        const e = eigene[i] || { l: "", v: "" };
+        return '<div class="e"><input class="k" data-ei="' + i + '" data-f="l" placeholder="z. B. SPRUCH" value="' + (e.l || "") + '">' +
+               '<input data-ei="' + i + '" data-f="v" placeholder="z. B. Auf geht\u2019s" value="' + (e.v || "") + '"></div>';
+      }).join("") +
+      '<div class="row"><button id="jbinf-no">Abbrechen</button><button class="ok" id="jbinf-ok">Fertig</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener("click", function (e) {
+      const b = e.target.closest("button[data-k]");
+      if (b) { b.classList.toggle("on"); return; }
+      if (e.target.id === "jbinf-no" || e.target === ov) { ov.remove(); return; }
+      if (e.target.id === "jbinf-ok") {
+        const neu = [];
+        ov.querySelectorAll("button[data-k].on").forEach(function (x) { neu.push(x.dataset.k); });
+        [0, 1].forEach(function (i) {
+          const l = ov.querySelector('input[data-ei="' + i + '"][data-f="l"]').value.trim();
+          const v = ov.querySelector('input[data-ei="' + i + '"][data-f="v"]').value.trim();
+          if (l) neu.push({ l: l, v: v });
+        });
+        try { localStorage.setItem(KEY, JSON.stringify(neu)); } catch (x) {}
+        ov.remove();
+      }
+    });
+  }
   const WEG = [["Selbstzerstörung", ""], ["Wirklich? Nochmal klicken", "Noch einmal klicken – dann ist alles weg"], ["JA, ALLES LÖSCHEN", "Letzte Chance: jetzt klicken löscht Vector von diesem PC"]];
   function run(a, btn) {
     if (a === "konto_open" && window.JKonto) { close(false); window.JKonto.open(); return; }
     if (a === "farbe_open" && window.JFarbe) { window.JFarbe.open(); return; }
     if (a === "akzent_open") { openAkzent(); return; }
+    if (a === "bootinfo_open") { openBootInfo(); return; }
     if (a === "selbstzerstoerung" && wegStep < 2 && !btn.dataset.boom) {
       clearTimeout(wegT); wegStep++;
       btn.textContent = WEG[wegStep][0]; btn.style.color = "#ff9a8a"; btn.style.borderColor = "#ff5a5a";
