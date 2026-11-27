@@ -1,6 +1,8 @@
 :root {
   --gold: #1d9e75; --gold-l: #9fe1cb; --cyan: #3cc8ff; --cyan-d: #145a82; --txt: #c8e6f5; --dim: #78a0b4;
   --green: #6effcd; --orange: #ffa03c; --panel: #04121c;
+  /* Akzent: was gerade lebt (Zustand, aktive Kachel, Puls). Umstellbar unter Anzeige -> Akzentfarbe. */
+  --akzent: #C45CFF;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: #000; color: var(--txt); overflow: hidden;
@@ -23,7 +25,7 @@ html, body { margin: 0; height: 100%; background: #000; color: var(--txt); overf
 .sphere-wrap.tiny { width: 30vw; height: 30vw; }
 .sphere-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .name { color: var(--gold-l); font-size: 24px; letter-spacing: 2px; font-weight: 600; margin-top: 4px; }
-.state { color: #5ac89b; font-size: 14px; margin-top: 4px; min-height: 18px; }
+.state { color: var(--akzent); font-size: 14px; margin-top: 4px; min-height: 18px; }
 .talkbox { width: 100%; margin-top: 14px; padding: 12px 16px; border-radius: 18px; background: #040e0a;
   border: 1px solid #145a42; font-size: 15px; line-height: 1.35; }
 .talkbox .line { margin: 4px 0; }
@@ -514,3 +516,9 @@ body.clean #v-fokus .talkbox, body.clean #v-fokus .callbtn, body.clean #v-fokus 
 .stk-it.on { border-color: #1d9e75; box-shadow: 0 0 0 2px rgba(60, 255, 190,.45); }
 .stk-it.on::after { content: "✓"; position: absolute; top: 3px; right: 6px; color: #9fe1cb; font-weight: 700; font-size: 12px; }
 .sec textarea { font-family: inherit; resize: vertical; }
+
+/* Akzentfarbe wählen (Einstellungen -> Anzeige): drei Punkte, der gewählte bekommt einen Ring */
+.akz { display: flex; gap: 9px; align-items: center; }
+.akz span { width: 22px; height: 22px; border-radius: 50%; display: block; cursor: pointer;
+  box-shadow: 0 0 0 2px #0b1413, 0 0 0 2px transparent; transition: box-shadow .15s, transform .15s; }
+.akz span.on { box-shadow: 0 0 0 2px #0b1413, 0 0 0 4px currentColor, 0 0 16px -2px currentColor; transform: scale(1.08); }

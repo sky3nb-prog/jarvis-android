@@ -50,13 +50,14 @@
       const top = r() < .5, la = (top ? 1 : -1) * (58 + r() * 14);
       trace(la, r() * 360, 1.1 + r() * .06, 10 + (r() * 22 | 0), 1.7, top ? 52 : -76, top ? 76 : -52, .3, .5 + r() * .4, 1.6, true);
     }
-    // 4) Innerer Kern: kleine, dichte Kugel, dreht sich schneller
-    for (let k = 0; k < 260; k++) trace(asinLat(), r() * 360, .38 + r() * .1, 6 + (r() * 14 | 0), 3.2, -88, 88, .7, .7 + r() * .3, .6, false);
+    // 4) Innerer Kern: kleine, dichte Kugel, dreht sich schneller – das ist sein Gehirn, deshalb in der Akzentfarbe
+    //    (negatives Wabern = Akzent-Markierung für den Shader)
+    for (let k = 0; k < 260; k++) trace(asinLat(), r() * 360, .38 + r() * .1, 6 + (r() * 14 | 0), 3.2, -88, 88, .7, .7 + r() * .3, -.6, false);
     // Kern-Breitenkreise (konzentrische Ringe)
     for (let k = 0; k < 14; k++) {
       const rad = .3 + k * .018, la = -60 + k * 9;
       let prev = null;
-      for (let lo = 0; lo <= 360; lo += 6) { const q = sph(la, lo, rad); if (prev && r() > .15) seg(prev, q, .9, .55, .5); prev = q; }
+      for (let lo = 0; lo <= 360; lo += 6) { const q = sph(la, lo, rad); if (prev && r() > .15) seg(prev, q, .9, .55, -.5); prev = q; }
     }
     // 5) Äquator-Ringband: viele parallele Linien, leicht gekippt, eigene Drehung
     const tilt = 8 * D2R;
@@ -67,14 +68,14 @@
         let [x, y, z] = sph(la0 + Math.sin(a * .2 + k) * .6, a, rad);
         const y2 = y * Math.cos(tilt) - x * Math.sin(tilt), x2 = x * Math.cos(tilt) + y * Math.sin(tilt);
         const q = [x2, y2, z];
-        if (prev && r() > .06) seg(prev, q, .45, .7 + r() * .4, 2); prev = q;
+        if (prev && r() > .06) seg(prev, q, .45, .7 + r() * .4, k % 3 === 0 ? -2 : 2); prev = q;   // jede dritte Linie im Akzent
       }
     }
     // 6) Diagonaler Lichtstrahl durch den Kern
     const bdir = [Math.sin(-28 * D2R), Math.cos(-28 * D2R), .25];
     for (let k = 0; k < 7; k++) {
       const o = (r() - .5) * .03, len = .75 + r() * .2;
-      seg([-bdir[0] * len + o, -bdir[1] * len, -bdir[2] * len], [bdir[0] * len + o, bdir[1] * len + o, bdir[2] * len], .05, 1.6, .2);
+      seg([-bdir[0] * len + o, -bdir[1] * len, -bdir[2] * len], [bdir[0] * len + o, bdir[1] * len + o, bdir[2] * len], .05, 1.6, -.2);
     }
     return new Float32Array(V);
   }
@@ -83,15 +84,15 @@
   const VS_LINES = `
   attribute vec3 aPos; attribute vec3 aP;   // aP: Drehung, Helligkeit, Wabern
   uniform float uT, uLevel, uAspect, uBreath, uTiltX;
-  varying float vB;
+  varying float vB; varying float vA;   // vA: 1 = Akzentfarbe (Kern, Lichtstrahl, Teil des Ringbands)
   // weiches 3D-Rauschen (billig)
   float n3(vec3 p){ return sin(p.x*2.1+uT*1.3)*sin(p.y*2.7-uT*1.1)*sin(p.z*2.3+uT*.9); }
   void main(){
     float a = uT * aP.x;
     vec3 p = aPos;
     p = vec3(p.x*cos(a)+p.z*sin(a), p.y, -p.x*sin(a)+p.z*cos(a));
-    float w = n3(p*1.7) * (0.035 + uLevel*0.09) * aP.z;            // Wabern
-    w += sin(length(aPos)*14.0 - uT*3.0) * 0.012 * aP.z;              // Welle, die nach außen läuft
+    float w = n3(p*1.7) * (0.035 + uLevel*0.09) * abs(aP.z);       // Wabern
+    w += sin(length(aPos)*14.0 - uT*3.0) * 0.012 * abs(aP.z);         // Welle, die nach außen läuft
     p *= (1.0 + w) * uBreath;
     float c = cos(uTiltX), s = sin(uTiltX);
     p = vec3(p.x, p.y*c - p.z*s, p.y*s + p.z*c);
@@ -99,9 +100,10 @@
     gl_Position = vec4(p.x*1.88/zc/uAspect, p.y*1.88/zc, 0.0, 1.0);
     float depth = clamp((p.z + 1.25) / 2.5, 0.0, 1.0);
     vB = aP.y * (0.12 + 0.88*pow(depth, 1.6));
+    vA = step(aP.z, -0.0001);
   }`;
-  const FS_LINES = `precision mediump float; varying float vB; uniform vec3 uCol;
-  void main(){ gl_FragColor = vec4(uCol * vB, 1.0); }`;
+  const FS_LINES = `precision mediump float; varying float vB; varying float vA; uniform vec3 uCol, uCol2;
+  void main(){ gl_FragColor = vec4(mix(uCol, uCol2, vA) * vB, 1.0); }`;
   const VS_QUAD = `attribute vec2 aQ; varying vec2 vUv; void main(){ vUv = aQ*.5+.5; gl_Position = vec4(aQ,0.,1.); }`;
   const FS_COPY = `precision mediump float; varying vec2 vUv; uniform sampler2D uTex; uniform vec2 uPx;
   void main(){ vec4 c = texture2D(uTex,vUv+uPx*vec2(-1.,-1.))+texture2D(uTex,vUv+uPx*vec2(1.,-1.))+texture2D(uTex,vUv+uPx*vec2(-1.,1.))+texture2D(uTex,vUv+uPx*vec2(1.,1.)); gl_FragColor = c*.25; }`;
@@ -112,14 +114,16 @@
   const FS_COMP = `precision mediump float; varying vec2 vUv; uniform sampler2D uBase, uBloom; uniform float uAspect, uCore, uT;
   uniform vec3 uCol, uHot;
   void main(){
-    vec3 c = texture2D(uBase,vUv).rgb + texture2D(uBloom,vUv).rgb*1.7;
+    vec3 c = texture2D(uBase,vUv).rgb + texture2D(uBloom,vUv).rgb*1.2;
     vec2 d = (vUv-.5)*vec2(uAspect,1.);
     float r = length(d);
-    float core = exp(-r*r*55.0) * uCore + exp(-r*r*9.0) * uCore * .22;          // leuchtender Kern
-    float halo = exp(-r*r*3.2) * .10 * uCore;
+    float core = exp(-r*r*78.0) * uCore + exp(-r*r*13.0) * uCore * .16;         // leuchtender Kern (enger gefasst)
+    float halo = exp(-r*r*4.2) * .055 * uCore;
     c += uHot * core + uCol * halo;
-    c = 1.0 - exp(-c*1.25);                                                      // weiches Abregeln
-    float a = clamp(max(c.r, max(c.g, c.b)) * 1.2, 0.0, 1.0);
+    c = 1.0 - exp(-c*1.05);                                                      // weiches Abregeln
+    float edge = 1.0 - smoothstep(0.40, 0.52, r);                                // zum Rand hin sauber auf Null
+    c *= edge;
+    float a = clamp(max(c.r, max(c.g, c.b)) * 1.15, 0.0, 1.0) * edge;
     gl_FragColor = vec4(c, a);
   }`;
 
@@ -142,6 +146,13 @@
   // Vector-Farbschema (siehe VectorColors weiter unten): Hauptfarbe der Kugel ist Teal/Petrol statt des alten Golds.
   function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; }
   const GOLD = hex2rgb("#1D9E75"), HOT = hex2rgb("#9FE1CB"), GREY = [0.3, 0.37, 0.37], GREY_HOT = [0.42, 0.5, 0.48];
+  // Akzentfarbe (Einstellungen -> Anzeige -> Akzentfarbe). Umstellen über window.VectorAccent.set("#C45CFF").
+  const ACCENTS = { orchidee: "#C45CFF", violett: "#8B5CF6", magenta: "#FF4D9D" };
+  const ACC_KEY = "vector_akzent";
+  let ACC_HEX = ACCENTS.orchidee;
+  try { const v = localStorage.getItem(ACC_KEY); if (v && /^#[0-9a-f]{6}$/i.test(v)) ACC_HEX = v; } catch (e) {}
+  let ACC = hex2rgb(ACC_HEX);
+  const ACC_GREY = [0.34, 0.3, 0.4];
 
   class Sphere3D {
     constructor(canvas, seed) {
@@ -184,6 +195,8 @@
       const lv = this.level * this.pw;
       const breath = (1 + .03 * Math.sin(this.t * 1.5) + lv * .08) * (.92 + .08 * this.pw);
       const col = mix(GREY, GOLD, this.pw), hot = mix(GREY_HOT, HOT, this.pw);
+      const col2 = mix(ACC_GREY, ACC, this.pw);
+      const coreHot = mix(hot, mix(ACC, [1, 1, 1], .35), .6);   // Kernleuchten nimmt die Akzentfarbe auf
       const bright = .62 + .38 * this.pw;
 
       // 1) Linien in Textur A
@@ -194,6 +207,7 @@
       gl.uniform1f(L.u.uT, this.t); gl.uniform1f(L.u.uLevel, lv); gl.uniform1f(L.u.uAspect, asp);
       gl.uniform1f(L.u.uBreath, breath); gl.uniform1f(L.u.uTiltX, .32 + .08 * Math.sin(this.t * .37));
       gl.uniform3fv(L.u.uCol, col.map((v) => v * bright * (.85 + lv * .5)));
+      gl.uniform3fv(L.u.uCol2, col2.map((v) => v * bright * (.95 + lv * .6)));
       gl.bindBuffer(gl.ARRAY_BUFFER, this.vb);
       const a0 = gl.getAttribLocation(L.p, "aPos"), a1 = gl.getAttribLocation(L.p, "aP");
       gl.enableVertexAttribArray(a0); gl.enableVertexAttribArray(a1);
@@ -221,14 +235,24 @@
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.fA.t); gl.uniform1i(K.u.uBase, 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.fB.t); gl.uniform1i(K.u.uBloom, 1);
       gl.uniform1f(K.u.uAspect, asp); gl.uniform1f(K.u.uT, this.t);
-      const pulse = .55 + .12 * Math.sin(this.t * 2.2) + lv * .8;
+      const pulse = .34 + .08 * Math.sin(this.t * 2.2) + lv * .5;   // gedämpft: er war vorher überbelichtet
       gl.uniform1f(K.u.uCore, pulse * (.15 + .85 * this.pw));
-      gl.uniform3fv(K.u.uCol, col); gl.uniform3fv(K.u.uHot, hot);
+      gl.uniform3fv(K.u.uCol, col); gl.uniform3fv(K.u.uHot, coreHot);
       this.quad(K);
       gl.activeTexture(gl.TEXTURE0);
     }
   }
   window.Sphere3D = Sphere3D;
+  window.VectorAccent = {
+    names: Object.keys(ACCENTS), hexOf: (n) => ACCENTS[n] || n,
+    get: () => ACC_HEX,
+    set(v) { const h = ACCENTS[v] || v; if (!/^#[0-9a-f]{6}$/i.test(h)) return ACC_HEX;
+             ACC_HEX = h; ACC = hex2rgb(h);
+             try { localStorage.setItem(ACC_KEY, h); } catch (e) {}
+             document.documentElement.style.setProperty("--akzent", h);
+             try { if (window.VectorAccent && window.VectorAccent.onSave) window.VectorAccent.onSave(h); } catch (e) {}
+             return ACC_HEX; },
+  };
 
   // ---------------- Vector-Bausteine ---------------------------------------------------------------------------
   // Gemeinsames Farbschema fürs ganze HUD (Boot, HUD-Kugel, Kacheln, Alarme, Login). Eine Stelle für alle Hex-Werte.
@@ -341,6 +365,8 @@
     return { vectorRing, playThinkingPulse, stopThinkingPulse, flyInDataTile, playAlertPulse, playLoginWaitRing };
   })();
 
+  try { document.documentElement.style.setProperty("--akzent", ACC_HEX); } catch (e) {}
+  VectorColors.akzent = ACC_HEX;
   window.VectorColors = VectorColors;
   window.VectorFX = VectorFX;
 })();
