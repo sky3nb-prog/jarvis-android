@@ -36,6 +36,10 @@
     const t = b.dataset.t;
     if (t === "skill") { box.classList.remove("on"); setTimeout(() => window.JSkill && JSkill.test(), 300); return; }
     if (t === "check") { box.classList.remove("on"); fetch("/api/syscheck").then((r) => r.json()).then((d) => window.JCheck && JCheck.play(d.items)).catch(() => window.JCheck && JCheck.play()); return; }
+    if (t === "boot") {   // direkt abspielen, nicht über den Server – und ein hängengebliebenes Mal zurücksetzen
+      box.classList.remove("on");
+      if (window.JBoot) { JBoot.running = false; setTimeout(() => JBoot.play(), 280); return; }
+    }
     if (t === "overlay") box.classList.remove("on");
     fetch("/api/test", { method: "POST", body: JSON.stringify({ what: t }) }).catch(() => {});
   }));

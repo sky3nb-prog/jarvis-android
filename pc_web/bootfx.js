@@ -289,7 +289,10 @@
       setTimeout(() => box.classList.add("out"), 250);
       if (rail) { rail.style.transition = "opacity .4s"; rail.style.opacity = "0"; }   // Info-Reihe mit abräumen
       const top = document.querySelector(".top, .view.active .topbar"); if (top) { top.classList.remove("bootin-top"); void top.offsetWidth; top.classList.add("bootin-top"); }
-      const parts = [...document.querySelectorAll(".pv.on > *, #typebar, .view.active > *, .tabs")].filter((e) => e.offsetParent !== null);
+      const parts = [...document.querySelectorAll(
+        document.body.classList.contains("jw-on") ? "#jbrett .jw, #typebar, .tabs"
+                                                  : ".pv.on > *, #typebar, .view.active > *, .tabs")]
+        .filter((e) => e.offsetParent !== null);
       parts.forEach((e, i) => { e.style.animationDelay = (.25 + i * .06) + "s"; e.classList.remove("bootin"); void e.offsetWidth; e.classList.add("bootin");
         setTimeout(() => { e.classList.remove("bootin"); e.style.animationDelay = ""; }, 1700 + i * 60); });
       if (!A) try { fetch("/api/boot_done", { method: "POST", body: JSON.stringify({ bad: box.querySelectorAll(".row.r").length }) }); } catch (e) {}

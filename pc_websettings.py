@@ -384,6 +384,11 @@ def schema(s: dict) -> dict:
     }
     for k, n in LISTS.items():
         values[k] = ", ".join(s.get(k) or (d.get(k) or []))
+    for k, std in pc_settings.DEFAULTS.items():   # alles, was oben nicht von Hand drinsteht
+        jetzt = s.get(k, std)
+        if k in values or isinstance(std, (list, dict)) or isinstance(jetzt, (list, dict)):
+            continue
+        values[k] = bool(jetzt) if isinstance(std, bool) else (jetzt if jetzt is not None else "")
     for k, enc in SECRETS.items():
         values[k] = ""
         values["_has_" + k] = bool(s.get(enc))
@@ -457,6 +462,30 @@ def save(s: dict, v: dict) -> dict:
                 pc_memory.set_profile(k, str(v["profil_" + k]))
     except Exception:
         pass
+    # Alles Übrige, was in den Standardwerten steht, speichert sich von selbst.
+    # Vorher musste jede neue Einstellung oben in einer der Listen stehen – wer das vergaß,
+    # bekam einen Schalter, der sich beim Speichern stillschweigend zurücksetzte.
+    fertig = set(LISTS) | set(SECRETS) | {
+        "assistant_name", "weather_city", "home_city", "wake_words", "hud_buttons",
+        "eleven_voice", "eleven_voice_name", "input_device", "output_device", "discord_device",
+    }
+    for k, std in d.items():
+        if k in fertig or k not in v:
+            continue
+        if isinstance(std, bool):
+            new[k] = bool(v[k])
+        elif isinstance(std, int):
+            try:
+                new[k] = int(float(v[k]))
+            except (TypeError, ValueError):
+                pass
+        elif isinstance(std, float):
+            try:
+                new[k] = float(v[k])
+            except (TypeError, ValueError):
+                pass
+        elif isinstance(std, str):
+            new[k] = str(v[k] if v[k] is not None else "").strip()
     return new
 
 
