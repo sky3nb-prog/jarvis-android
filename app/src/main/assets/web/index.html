@@ -7,6 +7,7 @@
 <title>Vector</title>
 <link rel="stylesheet" href="maplibre-gl.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="raster.css">
 </head>
 <body>
 <div id="app">
@@ -21,7 +22,7 @@
     <div class="roundbtn sysround" id="sysbtn-f" title="Systemstatus, Tests und Updates">●</div>
     <div class="hint" id="fokus-hint">Tipp auf die Kugel, um mit Vector zu reden</div>
     <div class="sphere-wrap" id="sphere-fokus"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
-    <div class="name">VECTOR</div>
+    <div class="name" id="f-name">VECTOR</div>
     <div class="state" id="fokus-state">bereit</div>
     <div class="talkbox" id="talkbox">
       <div class="line"><span class="who you">DU</span><span id="last-you">–</span></div>
@@ -40,9 +41,9 @@
       <div class="roundbtn feedbtn2" id="feedbtn-i" title="Mitteilungen">🔔<i class="fdot"></i></div></div>
     </div>
     <div class="sphere-wrap small" id="sphere-info"><canvas class="sphere"></canvas><canvas class="brain"></canvas><canvas class="rings"></canvas></div>
-    <div class="sub">bereit · tipp auf die Kugel zum Reden</div>
+    <div class="sub" id="i-sub">bereit · tipp auf die Kugel zum Reden</div>
     <div class="grid2">
-      <div class="card">
+      <div class="card" id="k-wetter">
         <div class="ctitle" id="w-ort">ZUHAUSE</div>
         <div class="big" id="w-temp">–°</div>
         <div class="row"><span>gefühlt</span><b id="w-feel">–</b></div>
@@ -55,7 +56,7 @@
         <div class="row"><span>Leistung</span><b id="ipc-perf">–</b></div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" id="k-heute">
       <div class="ctitle">HEUTE</div>
       <div class="big" id="clock">--:--</div>
       <div class="row"><span id="date">–</span></div>
@@ -64,7 +65,7 @@
       <div class="ctitle">FÜR DICH</div>
       <div class="row muted" id="info-fuer"></div>
     </div>
-    <div class="card orange">
+    <div class="card orange" id="k-lage">
       <div class="ctitle">LAGE</div>
       <div class="row muted" id="info-lage">Wisch nach rechts zur Lage – oder frag Vector „Wie ist die Lage?“</div>
     </div>
@@ -93,17 +94,17 @@
   <!-- 4) STEUERN -->
   <section id="v-steuern" class="view">
     <div class="sphere-wrap tiny" id="sphere-steuern"><canvas class="sphere"></canvas><canvas class="brain"></canvas></div>
-    <div class="sub">Sag es – oder tipp drauf</div>
+    <div class="sub" id="st-sub">Sag es – oder tipp drauf</div>
     <div class="pcbar off" id="pcbar"><span class="dot"></span><div><b id="pc-head">PC ZUHAUSE · …</b><small id="pc-sub">frage den PC …</small></div><div class="r" id="pc-perf"></div></div>
-    <div class="gtitle gold">HANDY</div>
-    <div class="tiles">
+    <div class="gtitle gold" id="h-ghandy">HANDY</div>
+    <div class="tiles" id="h-tiles">
       <div class="tile" data-tile="musik"><i>♪</i>Musik</div><div class="tile" data-tile="wecker"><i>◷</i>Wecker</div><div class="tile" data-tile="navigation"><i>➜</i>Navigation</div>
       <div class="tile" data-tile="anrufen"><i>☎</i>Anrufen</div><div class="tile" data-tile="whatsapp"><i>✉</i>WhatsApp</div><div class="tile" data-tile="videos"><i>▶</i>Videos</div>
     </div>
-    <div class="gtitle green">PC ZUHAUSE <small id="pc-note">· läuft gerade</small></div>
+    <div class="gtitle green" id="h-gpc">PC ZUHAUSE <small id="pc-note">· läuft gerade</small></div>
     <div class="now" id="pc-now"><div class="cov">♪</div><div class="nt"><div class="t" id="pc-title">–</div><div class="a" id="pc-artist">nichts läuft</div></div>
       <div class="ctl"><span data-pc='{"type":"media","key":"prevtrack"}'>⏮</span><span data-pc='{"type":"media","key":"playpause"}' id="pc-pp">⏯</span><span data-pc='{"type":"media","key":"nexttrack"}'>⏭</span></div></div>
-    <div class="tiles">
+    <div class="tiles" id="h-pctiles">
       <div class="tile g" data-pc='{"type":"app","name":"discord"}' id="t-discord"><i>D</i>Discord<small>–</small></div>
       <div class="tile g" data-pc='{"type":"app","name":"steam"}' id="t-steam"><i>S</i>Steam<small>–</small></div>
       <div class="tile g" data-pc='{"type":"discord","what":"mic"}' id="t-mic"><i>🎙</i>Mikro<small>–</small></div>
@@ -113,8 +114,8 @@
     </div>
     <div class="gtitle green" id="wl-head" style="display:none">WAVE LINK <small>· Lautstärke am PC</small><div class="wseg" id="wl-mixes"></div></div>
     <div class="mix" id="wl" style="display:none"></div>
-    <div class="gtitle green">SCHNELL</div>
-    <div class="tiles">
+    <div class="gtitle green" id="h-gschnell">SCHNELL</div>
+    <div class="tiles" id="h-stiles">
       <div class="tile g" data-pc='{"type":"youtube"}'><i>▶</i>YouTube<small>am PC</small></div>
       <div class="tile g" data-pc='{"type":"hud"}'><i>◐</i>Vector-HUD<small>ein/aus</small></div>
       <div class="tile g" id="t-text"><i>⌨</i>Befehl<small>an den PC</small></div>
@@ -578,6 +579,7 @@
           <div class="srow"><div>Vector-Strang im Hintergrund</div><div class="sw" id="set-strand"></div></div>
           <div class="srow"><div>Startanimation beim Öffnen<small>Lichtpunkte, Ringe, Systemstatus – Tippen überspringt</small></div><div class="sw" id="set-bootanim"></div></div>
           <div class="srow"><div>Infos beim Start<small>Welche Kacheln beim Hochfahren einfliegen – am Handy die ersten zwei</small></div><div class="sbtn" id="set-bootinfo">Auswählen</div></div>
+          <div class="srow"><div>Modulares HUD<small>Kacheln frei anordnen: lange drücken und ziehen, Ecke ziehen für die Größe</small></div><div class="sw" id="set-raster"></div></div>
           <div class="srow"><div>Leuchtrand über anderen Apps einrichten</div><div class="sbtn" id="set-overlay2">Öffnen</div></div>
         </div>
       </div>
@@ -585,6 +587,9 @@
       <button class="ssave" id="set-save">Speichern</button>
     </div>
   </div>
+
+  <div class="jw-brett" id="jbrett"><div class="jw-raster" id="jraster"></div><div class="jw-geist" id="jgeist"></div></div>
+  <div class="jw-kat" id="jkat"></div>
 
   <nav id="nav">
     <div class="tab on" data-v="fokus"><i>◉</i><span>FOKUS</span></div>
@@ -608,6 +613,8 @@
 <script src="schulkal.js"></script>
 <script src="app.js"></script>
 <script src="steuern.js"></script>
+<script src="raster.js"></script>
+<script src="handyraster.js"></script>
 <script src="feed.js"></script>
 <script src="skill.js"></script>
 <script src="braincard.js"></script>

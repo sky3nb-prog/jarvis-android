@@ -753,6 +753,13 @@
   $("gs-infobtn").addEventListener("click", () => { $("gs-info").textContent = A.gassiStatus(); });
   $("gs-share").addEventListener("click", () => { toast("Schicke …"); setTimeout(() => toast(A.gassiShare()), 50); });
   $("tst-sms").addEventListener("click", () => toast(A.testSms($("tst-smswer").value || "")));
+  try { sw("set-raster", localStorage.getItem("vector_raster_an") === "1"); } catch (e) {}
+  $("set-raster").addEventListener("click", () => setTimeout(() => {
+    const v = sw("set-raster");
+    if (window.JHandyRaster) window.JHandyRaster.an(v);
+    else { try { localStorage.setItem("vector_raster_an", v ? "1" : "0"); } catch (e) {} }
+    if (v) toast("Lange auf eine Kachel drücken und ziehen.");
+  }, 50));
   try { sw("set-bootanim", localStorage.getItem("boot_anim") !== "0"); } catch (e) {}
   $("set-bootanim").addEventListener("click", () => setTimeout(() => { try { localStorage.setItem("boot_anim", sw("set-bootanim") ? "1" : "0"); } catch (e) {} }, 50));
   try { sw("set-melden", A.getFlag("melden", true)); } catch (e) {}
