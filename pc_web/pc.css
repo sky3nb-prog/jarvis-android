@@ -271,3 +271,14 @@ body.clean[data-mode=fokus] #f-state{opacity:0}
 .jw-holt .st-cmd{flex-wrap:wrap}
 .jw-holt .st-cmd input{min-width:0}
 .jw-holt .qb{justify-content:flex-start}
+
+/* Brett und Katalog im PC-HUD */
+#jbrett { position: absolute; left: 14px; right: 14px; top: 56px; bottom: 86px; display: none; }
+body.jw-on #jbrett { display: block; }
+body.jw-edit #jbrett { right: 210px; }
+#jkat { right: 14px; top: 56px; bottom: 86px; width: 190px; }
+.jw-edit-btn { margin-left: 10px; padding: 6px 12px; border-radius: 14px; cursor: pointer;
+  font: 700 10px/1 Consolas, monospace; letter-spacing: 1.4px; color: #74b49d;
+  border: 1px solid #143a2e; background: rgba(4,14,10,.6); }
+.jw-edit-btn.on { border-color: var(--akzent, #C45CFF); color: var(--akzent-l, #D98BFF);
+  background: rgba(196,92,255,.12); }

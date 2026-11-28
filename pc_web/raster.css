@@ -69,7 +69,9 @@ body.jw-edit .jw-kat { display: flex; }
 .jw-mut { font-size: clamp(9.5px,.95vw,12px); color: #8fb9ac; line-height: 1.5; }
 
 /* Übernommene HUD-Elemente füllen ihr Widget aus – schlägt die festen Positionen aus dem alten Aufbau */
+body.jw-on .jw { touch-action: none; }
 .jw-holt { position: absolute; inset: 30px 11px 9px 11px; overflow: auto; scrollbar-width: thin;
+  touch-action: pan-y;
   scrollbar-color: rgba(159,225,203,.25) transparent; }
 .jw-holt::-webkit-scrollbar { width: 5px; height: 5px; }
 .jw-holt::-webkit-scrollbar-thumb { background: rgba(159,225,203,.25); border-radius: 3px; }
@@ -83,15 +85,10 @@ body.jw-zieht-an .jw-holt { overflow: hidden; }
 body.jw-on .pv, body.jw-on #typebar.jw-weg { display: none !important; }
 body.jw-zieht-an { cursor: grabbing; }
 
-/* Brett und Katalog im PC-HUD */
-#jbrett { position: absolute; left: 14px; right: 14px; top: 56px; bottom: 86px; display: none; }
-body.jw-on #jbrett { display: block; }
-body.jw-edit #jbrett { right: 210px; }
-#jkat { right: 14px; top: 56px; bottom: 86px; width: 190px; }
-.jw-edit-btn { margin-left: 10px; padding: 6px 12px; border-radius: 14px; cursor: pointer;
-  font: 700 10px/1 Consolas, monospace; letter-spacing: 1.4px; color: #74b49d;
-  border: 1px solid #143a2e; background: rgba(4,14,10,.6); }
-.jw-edit-btn.on { border-color: var(--akzent, #C45CFF); color: var(--akzent-l, #D98BFF);
-  background: rgba(196,92,255,.12); }
 .jw.jw-mitte .jw-holt { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.jw.jw-mitte .jw-holt > * { text-align: center; }
+.jw.jw-kugel .jw-holt { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.jw.jw-kugel .jw-holt > * { flex: 0 0 auto; }
+body:not(.jw-edit) .jw.jw-leer { display: none; }
+.jw.jw-leer { opacity: .45; }
 .jw.jw-karte .jw-holt { inset: 0; }

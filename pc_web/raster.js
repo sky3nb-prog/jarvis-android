@@ -64,6 +64,7 @@
     return el;
   }
   function allesEinlagern() {
+    while (wacht.length) { try { wacht.pop().disconnect(); } catch (e) {} }
     [...brett.querySelectorAll(".jw")].forEach((w) => {
       [...w.querySelectorAll(".jw-holt > *")].forEach((k) => lagerBox().appendChild(k));
       w.remove();
@@ -108,11 +109,38 @@
         if (k) { k.classList.add("jw-adopt"); inhalt.appendChild(k); }
       });
       if (d.bau) try { d.bau(inhalt, { w, h }); } catch (e) {}
+      if (d.klasse && d.klasse.indexOf("jw-kugel") >= 0) quadrat(inhalt);
+      leerPruefen(el, inhalt);
       el.insertAdjacentHTML("beforeend",
         '<div class="jw-x" title="Entfernen">✕</div><div class="jw-gr">' + w + "×" + h + "</div>" +
         ["n", "s", "w", "e", "nw", "ne", "sw", "se"].map((k) => '<div class="jw-g ' + k + '" data-k="' + k + '"></div>').join(""));
     });
     if (window.JRasterNachMalen) try { window.JRasterNachMalen(); } catch (e) {}
+  }
+
+  // Kugeln bleiben rund: das übernommene Element bekommt die größte quadratische Fläche im Widget
+  function quadrat(inhalt) {
+    const r = inhalt.getBoundingClientRect();
+    const k = inhalt.firstElementChild;
+    if (!k) return;
+    let rest = 0;
+    [...inhalt.children].slice(1).forEach((e) => { rest += e.offsetHeight || 0; });
+    const s = Math.max(40, Math.min(r.width, r.height - rest));
+    k.style.setProperty("width", s + "px", "important");
+    k.style.setProperty("height", s + "px", "important");
+  }
+
+  // Ein Widget, dessen Inhalt das HUD gerade ausgeblendet hat, verschwindet mit – außer beim Anordnen
+  const wacht = [];
+  function leerPruefen(el, inhalt) {
+    const kinder = [...inhalt.children];
+    if (!kinder.length) return;
+    const schau = () => el.classList.toggle("jw-leer",
+      kinder.every((k) => getComputedStyle(k).display === "none"));
+    schau();
+    const o = new MutationObserver(schau);
+    kinder.forEach((k) => o.observe(k, { attributes: true, attributeFilter: ["style", "class"] }));
+    wacht.push(o);
   }
 
   // --- Live ausweichen ---------------------------------------------------------------------------
@@ -158,13 +186,13 @@
   let akt = null;
   function runter(e) {
     if (!EDIT || !AN) return;
-    const el = e.target.closest(".jw"); if (!el) return;
-    if (e.target.closest(".jw-x")) {
+    const el = e.target.closest ? e.target.closest(".jw") : e.target; if (!el) return;
+    if (e.target.closest && e.target.closest(".jw-x")) {
       const a = liste().slice(); a.splice(+el.dataset.i, 1); setze(a); male(); return;
     }
     e.preventDefault();
     const it = liste()[+el.dataset.i]; if (!it) return;
-    const g = e.target.closest(".jw-g");
+    const g = e.target.closest ? e.target.closest(".jw-g") : null;
     akt = { el, i: +el.dataset.i, c: zelle(), art: g ? "groesse" : "schieben", kante: g ? g.dataset.k : "",
             x: it[1], y: it[2], w: it[3], h: it[4], sx: e.clientX, sy: e.clientY,
             vorher: JSON.parse(JSON.stringify(liste())) };
@@ -229,6 +257,28 @@
   }
   addEventListener("keydown", (e) => { if (e.key === "Escape" && akt) hoch(true); });
 
+  // Lange draufbleiben schaltet das Bearbeiten an und nimmt das Widget gleich mit (wie am Startbildschirm)
+  let lang = null;
+  function langAn(e) {
+    if (!AN || EDIT || akt) return;
+    const el = e.target.closest(".jw"); if (!el) return;
+    const id = el.dataset.id, i = +el.dataset.i, sx = e.clientX, sy = e.clientY, pid = e.pointerId;
+    lang = { sx, sy, t: setTimeout(() => {
+      lang = null;
+      api.edit(true);                                  // male() baut die Widgets neu auf
+      const neuEl = brett.querySelector('.jw[data-i="' + i + '"]');
+      if (!neuEl || neuEl.dataset.id !== id) return;
+      try { navigator.vibrate && navigator.vibrate(15); } catch (x) {}
+      runter({ target: neuEl, clientX: sx, clientY: sy, pointerId: pid,
+               preventDefault() {}, closest: null });
+    }, 420) };
+  }
+  function langWeg(e) {
+    if (!lang) return;
+    if (e && e.clientX != null && Math.abs(e.clientX - lang.sx) < 12 && Math.abs(e.clientY - lang.sy) < 12) return;
+    clearTimeout(lang.t); lang = null;
+  }
+
   // --- Katalog -------------------------------------------------------------------------------------
   function katalogHtml() {
     const drin = new Set(liste().map((a) => a[0]));
@@ -264,10 +314,11 @@
       GERAET = o.geraet || "pc"; SEITE = o.seite || "fokus"; MODUS = o.modus || "normal";
       beimAendern = o.onChange || null;
       laden();
-      brett.addEventListener("pointerdown", runter);
-      brett.addEventListener("pointermove", bewegt);
-      brett.addEventListener("pointerup", () => hoch(false));
-      brett.addEventListener("pointercancel", () => hoch(true));
+      brett.addEventListener("pointerdown", (e) => { runter(e); langAn(e); });
+      brett.addEventListener("pointermove", (e) => { bewegt(e); langWeg(e); });
+      brett.addEventListener("pointerup", () => { langWeg(); hoch(false); });
+      brett.addEventListener("pointercancel", () => { langWeg(); hoch(true); });
+      brett.addEventListener("scroll", () => langWeg(), true);
       addEventListener("resize", () => { if (AN) male(); });
     },
     an(v) {
