@@ -22,20 +22,20 @@
   <div class="sph" id="i-sph"><canvas class="sphere"></canvas><canvas class="brain"></canvas><canvas class="rings"></canvas></div>
   <div class="name" id="i-name">V.E.C.T.O.R.</div><div class="state" id="i-state">bereit</div>
   <div class="col left">
-    <div class="card"><div class="ct">HEUTE</div><div class="big" id="i-clock">--:--</div><div class="muted" id="i-date">–</div></div>
-    <div class="card"><div class="ct" id="i-city">WETTER</div><div class="big" id="i-temp">–°</div><div class="row"><span>gefühlt</span><b id="i-feel">–</b></div><div class="row"><span>Regen</span><b id="i-rain">–</b></div></div>
-    <div class="card" style="--c:var(--green)"><div class="ct">SYSTEM</div><div class="row"><span>CPU</span><b id="i-cpu">–</b></div><div class="row"><span>GPU</span><b id="i-gpu">–</b></div><div class="row"><span>RAM</span><b id="i-ram">–</b></div></div>
-    <div class="card" style="--c:#d7a8ff"><div class="ct">HANDY</div><div class="muted" id="i-handy">–</div></div>
+    <div class="card" id="k-heute"><div class="ct">HEUTE</div><div class="big" id="i-clock">--:--</div><div class="muted" id="i-date">–</div></div>
+    <div class="card" id="k-wetter"><div class="ct" id="i-city">WETTER</div><div class="big" id="i-temp">–°</div><div class="row"><span>gefühlt</span><b id="i-feel">–</b></div><div class="row"><span>Regen</span><b id="i-rain">–</b></div></div>
+    <div class="card" id="k-system" style="--c:var(--green)"><div class="ct">SYSTEM</div><div class="row"><span>CPU</span><b id="i-cpu">–</b></div><div class="row"><span>GPU</span><b id="i-gpu">–</b></div><div class="row"><span>RAM</span><b id="i-ram">–</b></div></div>
+    <div class="card" id="k-handy" style="--c:#d7a8ff"><div class="ct">HANDY</div><div class="muted" id="i-handy">–</div></div>
     <div class="card" style="--c:#ffa03c;display:none" id="i-ets2"><div class="ct" id="e-head">FAHRT · ETS2</div>
       <div class="big" id="e-kmh">–</div><div class="muted" id="e-job">–</div>
       <div class="row"><span>Tank</span><b id="e-tank">–</b></div><div class="row"><span>Ziel</span><b id="e-ziel">–</b></div>
       <div class="row"><span>Schlafen in</span><b id="e-ruhe">–</b></div><div class="row"><span>Lohn</span><b id="e-lohn">–</b></div></div>
   </div>
   <div class="col right">
-    <div class="card"><div class="ct">TERMINE</div><div id="i-termine" class="muted">–</div></div>
-    <div class="card" style="--c:#ffa03c"><div class="ct">LAGE</div><div class="muted" id="info-lage">Klick auf LAGE oder frag „Wie ist die Lage?“</div></div>
+    <div class="card" id="k-termine"><div class="ct">TERMINE</div><div id="i-termine" class="muted">–</div></div>
+    <div class="card" id="k-lage" style="--c:#ffa03c"><div class="ct">LAGE</div><div class="muted" id="info-lage">Klick auf LAGE oder frag „Wie ist die Lage?“</div></div>
     <div class="card" style="--c:var(--gold)" id="info-fuer-card"><div class="ct">FÜR DICH</div><div class="muted" id="info-fuer">–</div></div>
-    <div class="card"><div class="ct">VERLAUF</div><div class="muted" id="i-log">–</div></div>
+    <div class="card" id="k-verlauf"><div class="ct">VERLAUF</div><div class="muted" id="i-log">–</div></div>
   </div>
 </section>
 
@@ -95,6 +95,8 @@
   <div class="tb-row"><input id="tb-in" placeholder="Schreib Vector … (Antwort kommt als Text)" autocomplete="off"><button id="tb-send" title="Senden (Enter)">➤</button></div></div>
 
 <!-- Untere Leiste im Handy-Stil -->
+<div class="jw-brett" id="jbrett"><div class="jw-raster" id="jraster"></div><div class="jw-geist" id="jgeist"></div></div>
+<div class="jw-kat" id="jkat"></div>
 <nav class="pnav" id="pnav"><div data-m="fokus"><i>◉</i>FOKUS</div><div data-m="info"><i>▦</i>INFO</div><div data-m="lage"><i>◍</i>LAGE</div><div data-m="steuern"><i>✦</i>STEUERN</div></nav>
 
 <!-- EINSTELLUNGEN (im HUD, wie am Handy) -->
@@ -129,6 +131,9 @@
 <div id="feed" class="feedpage"><div class="fp-top"><div class="fp-back" id="fp-back">‹</div><div class="fp-ttl" id="fp-ttl">MITTEILUNGEN</div></div><div class="fp-body" id="fp-body"></div></div>
 <script src="feedshim.js"></script>
 <script src="feed.js"></script>
+<link rel="stylesheet" href="raster.css">
+<script src="raster.js"></script>
+<script src="hudraster.js"></script>
 <script src="bootfx.js"></script>
 <script src="schulkal.js"></script>
 <script src="modi.js"></script>

@@ -267,7 +267,11 @@ def schema(s: dict) -> dict:
                  sw("hud_animation", "Animationen", "Aus = ruhiger und sparsamer"),
                  btn("farbe_open", "Deine Farbe (Farbkreis, Helligkeit, Kräftigkeit)"),
                  btn("akzent_open", "Akzentfarbe (sein Gehirn im Kern, Zustand, Pegel)"),
-                 btn("bootinfo_open", "Infos beim Start (welche Kacheln einfliegen)")),
+                 btn("bootinfo_open", "Infos beim Start (welche Kacheln einfliegen)"),
+                 sw("hud_raster", "Modulares HUD",
+                    "Widgets liegen in einem Raster und lassen sich selbst anordnen: oben in der Leiste auf "
+                    "„Anordnen“, dann schieben, an den Kanten größer ziehen, rauswerfen und aus dem Katalog "
+                    "dazuholen. Jeder Modus hat seine eigene Anordnung. Aus = das gewohnte HUD.")),
             card("Beleuchtung (RGB)",
                  note("Tastatur, Maus, Mainboard, RAM und Grafikkarte nehmen seine Farbe an und zeigen, was er gerade "
                       "tut. Dafür muss OpenRGB laufen (openrgb.org) und dort unter Einstellungen der „SDK Server“ "

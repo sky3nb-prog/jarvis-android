@@ -1118,8 +1118,8 @@ class UI:
         """Wird vom Einstellungsfenster (und der Nadel im HUD) aufgerufen."""
         old = self.settings
         self.settings = new
-        if self.web and {k: v for k, v in old.items() if k not in ("hud_mode", "hud_width", "seen_new")} != \
-                {k: v for k, v in new.items() if k not in ("hud_mode", "hud_width", "seen_new")}:
+        if self.web and {k: v for k, v in old.items() if k not in ("hud_mode", "hud_width", "seen_new", "hud_raster_plan")} != \
+                {k: v for k, v in new.items() if k not in ("hud_mode", "hud_width", "seen_new", "hud_raster_plan")}:
             self.web.push("settings", {})   # neues HUD lädt die geänderten Einstellungen
         if self.web and new.get("hud_mode") != old.get("hud_mode") and new.get("hud_mode") in ("fokus", "info", "lage", "steuern"):
             self.web.push("mode", {"mode": new["hud_mode"]})

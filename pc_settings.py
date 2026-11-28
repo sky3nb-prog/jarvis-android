@@ -50,6 +50,8 @@ DEFAULTS = {
     "overlay_v2": False,
     "boot_animation": True,
     # Beleuchtung (RGB) über OpenRGB: Tastatur, Maus, Mainboard, RAM, Grafikkarte folgen seiner Farbe und seinem Zustand
+    "hud_raster": False,        # modulares HUD: Widgets im Raster, selbst anordnen
+    "hud_raster_plan": "",      # gespeicherte Anordnung (wird mit dem Konto abgeglichen)
     "akzent": "#C45CFF",   # zweite Farbe: sein Kern, Zustand, Pegel – und die Beleuchtung
     "rgb_on": False,
     "rgb_host": "127.0.0.1",

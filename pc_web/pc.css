@@ -266,3 +266,8 @@ body.clean[data-mode=fokus] #f-state{opacity:0}
 .ps-card.coll.open > h3{margin-bottom:6px}
 .ps-card.coll.open > h3::after{transform:rotate(90deg)}
 .ps-card.coll:not(.open) > :not(h3){display:none!important}
+
+/* Anpassungen für Elemente, die im modularen Raster sitzen */
+.jw-holt .st-cmd{flex-wrap:wrap}
+.jw-holt .st-cmd input{min-width:0}
+.jw-holt .qb{justify-content:flex-start}

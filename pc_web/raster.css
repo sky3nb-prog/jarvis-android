@@ -67,3 +67,31 @@ body.jw-edit .jw-kat { display: flex; }
   color: #8fb9ac; padding: 2px 0; }
 .jw-z b { color: #e2f6ee; font-weight: 600; }
 .jw-mut { font-size: clamp(9.5px,.95vw,12px); color: #8fb9ac; line-height: 1.5; }
+
+/* Übernommene HUD-Elemente füllen ihr Widget aus – schlägt die festen Positionen aus dem alten Aufbau */
+.jw-holt { position: absolute; inset: 30px 11px 9px 11px; overflow: auto; scrollbar-width: thin;
+  scrollbar-color: rgba(159,225,203,.25) transparent; }
+.jw-holt::-webkit-scrollbar { width: 5px; height: 5px; }
+.jw-holt::-webkit-scrollbar-thumb { background: rgba(159,225,203,.25); border-radius: 3px; }
+body.jw-zieht-an .jw-holt { overflow: hidden; }
+.jw .jw-t + .jw-holt { top: 30px; }
+.jw-holt:first-child { top: 9px; }
+.jw-adopt { position: absolute !important; left: 0 !important; top: 0 !important; right: auto !important;
+  bottom: auto !important; width: 100% !important; height: 100% !important; margin: 0 !important;
+  transform: none !important; opacity: 1 !important; }
+.jw-adopt.jw-fliess { position: relative !important; height: auto !important; }
+body.jw-on .pv, body.jw-on #typebar.jw-weg { display: none !important; }
+body.jw-zieht-an { cursor: grabbing; }
+
+/* Brett und Katalog im PC-HUD */
+#jbrett { position: absolute; left: 14px; right: 14px; top: 56px; bottom: 86px; display: none; }
+body.jw-on #jbrett { display: block; }
+body.jw-edit #jbrett { right: 210px; }
+#jkat { right: 14px; top: 56px; bottom: 86px; width: 190px; }
+.jw-edit-btn { margin-left: 10px; padding: 6px 12px; border-radius: 14px; cursor: pointer;
+  font: 700 10px/1 Consolas, monospace; letter-spacing: 1.4px; color: #74b49d;
+  border: 1px solid #143a2e; background: rgba(4,14,10,.6); }
+.jw-edit-btn.on { border-color: var(--akzent, #C45CFF); color: var(--akzent-l, #D98BFF);
+  background: rgba(196,92,255,.12); }
+.jw.jw-mitte .jw-holt { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.jw.jw-karte .jw-holt { inset: 0; }
